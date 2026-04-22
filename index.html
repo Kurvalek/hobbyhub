@@ -328,7 +328,8 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const ref = useRef(null);
   const dragRef = useRef(null);
   const [ghost, setGhost] = useState(null);
-  const [cur, setCur] = useState('crosshair');
+  const [marquee, setMarquee] = useState(null);
+  const [cur, setCur] = useState('default');
   const sRef = useRef(shapes); useEffect(()=>{sRef.current=shapes;},[shapes]);
   const selRef = useRef(selIds); useEffect(()=>{selRef.current=selIds;},[selIds]);
 
@@ -337,12 +338,19 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     const r=ref.current.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
     return { px,py,rect:r, r:Math.max(0,Math.min(rows-1,Math.floor((py/r.height)*rows))), c:Math.max(0,Math.min(cols-1,Math.floor((px/r.width)*cols))) };
   };
-  const findHandle = (px,py,s,rect) => {
-    if(!s||selRef.current.size!==1) return null;
-    const cw=rect.width/cols,ch=rect.height/rows;
-    const l=s.c*cw,t=s.r*ch,ri=(s.c+s.w)*cw,b=(s.r+s.h)*ch;
-    const oL=Math.abs(px-l)<=H,oR=Math.abs(px-ri)<=H,oT=Math.abs(py-t)<=H,oB=Math.abs(py-b)<=H;
-    const iX=px>=l-H&&px<=ri+H,iY=py>=t-H&&py<=b+H;
+  const getSelBounds = (list, sids) => {
+    const sel = list.filter(s => sids.has(s.id));
+    if (sel.length === 0) return null;
+    let minR=Infinity, minC=Infinity, maxR=-Infinity, maxC=-Infinity;
+    for (const s of sel) { minR=Math.min(minR,s.r); minC=Math.min(minC,s.c); maxR=Math.max(maxR,s.r+s.h); maxC=Math.max(maxC,s.c+s.w); }
+    return { minR, minC, maxR, maxC };
+  };
+  const findHandle = (px, py, bounds, rect) => {
+    if (!bounds || selRef.current.size === 0) return null;
+    const cw=rect.width/cols, ch=rect.height/rows;
+    const l=bounds.minC*cw, t=bounds.minR*ch, ri=bounds.maxC*cw, b=bounds.maxR*ch;
+    const oL=Math.abs(px-l)<=H, oR=Math.abs(px-ri)<=H, oT=Math.abs(py-t)<=H, oB=Math.abs(py-b)<=H;
+    const iX=px>=l-H&&px<=ri+H, iY=py>=t-H&&py<=b+H;
     if(oL&&oT) return'nw'; if(oR&&oT) return'ne'; if(oR&&oB) return'se'; if(oL&&oB) return'sw';
     if(oT&&iX) return'n'; if(oB&&iX) return's'; if(oL&&iY) return'w'; if(oR&&iY) return'e';
     return null;
@@ -362,53 +370,59 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       dragRef.current={type:'erase'}; return;
     }
 
-    // Check resize handle (single selection only)
-    if(sids.size===1){
-      const selShape=cur.find(s=>sids.has(s.id));
-      if(selShape){
-        const h=findHandle(px,py,selShape,rect);
-        if(h){ dragRef.current={type:'resize',id:selShape.id,handle:h,orig:{...selShape},startR:r,startC:c}; return; }
+    if(sids.size>0){
+      const bounds=getSelBounds(cur,sids);
+      const h=findHandle(px,py,bounds,rect);
+      if(h){
+        const relevant=cur.filter(x=>sids.has(x.id));
+        const origs=Object.fromEntries(relevant.map(x=>[x.id,{r:x.r,c:x.c,h:x.h,w:x.w}]));
+        dragRef.current={type:'resize',handle:h,origBounds:bounds,origs,startR:r,startC:c};
+        return;
       }
     }
 
     const s=shapeAt(r,c,cur);
     if(s){
       if(shift){
-        // Toggle shape in selection
         setSelIds(prev=>{const n=new Set(prev);n.has(s.id)?n.delete(s.id):n.add(s.id);return n;});
         dragRef.current={type:'noop'};
       } else {
         const newSids = sids.has(s.id) ? sids : new Set([s.id]);
         setSelIds(newSids);
-        // Store originals for all selected shapes
         const relevant=cur.filter(x=>newSids.has(x.id));
         const origs=Object.fromEntries(relevant.map(x=>[x.id,{r:x.r,c:x.c,h:x.h,w:x.w}]));
         dragRef.current={type:'move',startR:r,startC:c,origs};
       }
     } else {
       if(!shift) setSelIds(new Set());
-      dragRef.current={type:'create',aR:r,aC:c};
-      setGhost({r,c,h:1,w:1});
+      if(tool==='select'){
+        dragRef.current={type:'marquee',aR:r,aC:c};
+        setMarquee({r,c,h:1,w:1});
+      } else {
+        dragRef.current={type:'create',aR:r,aC:c};
+        setGhost({r,c,h:1,w:1});
+      }
     }
   },[tool,rows,cols,setShapes,setSelIds]);
 
   const onMove = useCallback(e=>{
     const {px,py,rect,r,c}=toCell(e); const d=dragRef.current; const sids=selRef.current;
     if(!d){
-      // Cursor hints
-      if(sids.size===1){
-        const sel=sRef.current.find(s=>sids.has(s.id));
-        if(sel){
-          const h=findHandle(px,py,sel,rect);
+      if(sids.size>0){
+        const bounds=getSelBounds(sRef.current,sids);
+        if(bounds){
+          const h=findHandle(px,py,bounds,rect);
           if(h){const m={nw:'nw-resize',ne:'ne-resize',se:'se-resize',sw:'sw-resize',n:'n-resize',s:'s-resize',e:'e-resize',w:'w-resize'};setCur(m[h]);return;}
           const cw=rect.width/cols,ch=rect.height/rows;
-          if(px>=sel.c*cw&&px<=(sel.c+sel.w)*cw&&py>=sel.r*ch&&py<=(sel.r+sel.h)*ch){setCur('grab');return;}
+          const overSel=sRef.current.some(s=>sids.has(s.id)&&px>=s.c*cw&&px<=(s.c+s.w)*cw&&py>=s.r*ch&&py<=(s.r+s.h)*ch);
+          if(overSel){setCur('grab');return;}
         }
       }
-      setCur('crosshair'); return;
+      setCur(tool==='paint'?'crosshair':'default'); return;
     }
     if(d.type==='noop') return;
     if(d.type==='erase'){const s=shapeAt(r,c,sRef.current);if(s){setShapes(p=>p.filter(x=>x.id!==s.id));setSelIds(prev=>{const n=new Set(prev);n.delete(s.id);return n;});}}
+    else if(d.type==='marquee'){const mr=Math.min(d.aR,r),mc=Math.min(d.aC,c);setMarquee({r:mr,c:mc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
     else if(d.type==='create'){const gr=Math.min(d.aR,r),gc=Math.min(d.aC,c);setGhost({r:gr,c:gc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
     else if(d.type==='move'){
       const dr=r-d.startR, dc=c-d.startC;
@@ -418,14 +432,24 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       }));
     }
     else if(d.type==='resize'){
-      const dr=r-d.startR,dc=c-d.startC;let{r:nr,c:nc,h:nh,w:nw}=d.orig;
-      if(d.handle.includes('n')){nr=d.orig.r+dr;nh=d.orig.h-dr;}
-      if(d.handle.includes('s'))nh=d.orig.h+dr;
-      if(d.handle.includes('w')){nc=d.orig.c+dc;nw=d.orig.w-dc;}
-      if(d.handle.includes('e'))nw=d.orig.w+dc;
-      nh=Math.max(1,nh);nw=Math.max(1,nw);nr=Math.max(0,nr);nc=Math.max(0,nc);
-      nh=Math.min(rows-nr,nh);nw=Math.min(cols-nc,nw);
-      setShapes(p=>p.map(s=>s.id===d.id?{...s,r:nr,c:nc,h:nh,w:nw}:s));
+      const dr=r-d.startR, dc=c-d.startC;
+      const ob=d.origBounds;
+      let nMinR=ob.minR, nMinC=ob.minC, nMaxR=ob.maxR, nMaxC=ob.maxC;
+      if(d.handle.includes('n')) nMinR=ob.minR+dr;
+      if(d.handle.includes('s')) nMaxR=ob.maxR+dr;
+      if(d.handle.includes('w')) nMinC=ob.minC+dc;
+      if(d.handle.includes('e')) nMaxC=ob.maxC+dc;
+      nMinR=Math.max(0,nMinR); nMinC=Math.max(0,nMinC);
+      nMaxR=Math.min(rows,Math.max(nMinR+1,nMaxR)); nMaxC=Math.min(cols,Math.max(nMinC+1,nMaxC));
+      const oW=ob.maxC-ob.minC, oH=ob.maxR-ob.minR, nW=nMaxC-nMinC, nH=nMaxR-nMinR;
+      if(oW>0&&oH>0) setShapes(p=>p.map(s=>{
+        const orig=d.origs[s.id]; if(!orig) return s;
+        const nr=Math.max(0,Math.round(nMinR+((orig.r-ob.minR)/oH)*nH));
+        const nc=Math.max(0,Math.round(nMinC+((orig.c-ob.minC)/oW)*nW));
+        const nh=Math.max(1,Math.round((orig.h/oH)*nH));
+        const nw=Math.max(1,Math.round((orig.w/oW)*nW));
+        return {...s,r:nr,c:nc,h:Math.min(nh,rows-nr),w:Math.min(nw,cols-nc)};
+      }));
     }
   },[tool,rows,cols,setShapes,setSelIds]);
 
@@ -436,17 +460,58 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       setShapes(p=>[...p,ns]);
       setSelIds(new Set([ns.id]));
     }
-    dragRef.current=null; setGhost(null);
-  },[ghost,selectedColor,setShapes,setSelIds]);
+    if(d?.type==='marquee'&&marquee){
+      const minR=marquee.r, maxR=marquee.r+marquee.h, minC=marquee.c, maxC=marquee.c+marquee.w;
+      const hits=sRef.current.filter(s=>s.r<maxR&&s.r+s.h>minR&&s.c<maxC&&s.c+s.w>minC);
+      if(hits.length>0){
+        setSelIds(prev=>{
+          if(e.shiftKey){const n=new Set(prev);hits.forEach(s=>n.add(s.id));return n;}
+          return new Set(hits.map(s=>s.id));
+        });
+      }
+    }
+    dragRef.current=null; setGhost(null); setMarquee(null);
+  },[ghost,marquee,selectedColor,setShapes,setSelIds]);
+
+  useEffect(()=>{
+    const handleKey = e => {
+      if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
+      const sids=selRef.current;
+      if(sids.size===0) return;
+      if(e.key==='Delete'||e.key==='Backspace'){
+        e.preventDefault();
+        setShapes(p=>p.filter(s=>!sids.has(s.id)));
+        setSelIds(new Set());
+      }
+      const arrow={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
+      if(arrow){
+        e.preventDefault();
+        const [dr,dc]=arrow;
+        setShapes(p=>p.map(s=>{
+          if(!sids.has(s.id)) return s;
+          return {...s,r:Math.max(0,Math.min(rows-s.h,s.r+dr)),c:Math.max(0,Math.min(cols-s.w,s.c+dc))};
+        }));
+      }
+    };
+    window.addEventListener('keydown',handleKey);
+    return ()=>window.removeEventListener('keydown',handleKey);
+  },[rows,cols,setShapes,setSelIds]);
 
   const selShapes = shapes.filter(s=>selIds.has(s.id));
   const singleSel = selIds.size===1 ? selShapes[0] : null;
   const cw=100/cols, ch=100/rows;
 
-  const hDots = singleSel ? [
-    [singleSel.c,singleSel.r],[singleSel.c+singleSel.w/2,singleSel.r],[singleSel.c+singleSel.w,singleSel.r],
-    [singleSel.c+singleSel.w,singleSel.r+singleSel.h/2],[singleSel.c+singleSel.w,singleSel.r+singleSel.h],
-    [singleSel.c+singleSel.w/2,singleSel.r+singleSel.h],[singleSel.c,singleSel.r+singleSel.h],[singleSel.c,singleSel.r+singleSel.h/2],
+  const selBounds = useMemo(()=>{
+    if(selShapes.length===0) return null;
+    let minR=Infinity,minC=Infinity,maxR=-Infinity,maxC=-Infinity;
+    for(const s of selShapes){minR=Math.min(minR,s.r);minC=Math.min(minC,s.c);maxR=Math.max(maxR,s.r+s.h);maxC=Math.max(maxC,s.c+s.w);}
+    return {minR,minC,maxR,maxC};
+  },[selShapes]);
+
+  const hDots = selBounds ? [
+    [selBounds.minC,selBounds.minR],[(selBounds.minC+selBounds.maxC)/2,selBounds.minR],[selBounds.maxC,selBounds.minR],
+    [selBounds.maxC,(selBounds.minR+selBounds.maxR)/2],[selBounds.maxC,selBounds.maxR],
+    [(selBounds.minC+selBounds.maxC)/2,selBounds.maxR],[selBounds.minC,selBounds.maxR],[selBounds.minC,(selBounds.minR+selBounds.maxR)/2],
   ] : [];
 
   const handleDuplicate = () => {
@@ -541,7 +606,30 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
           }}/>
         )}
 
-        {/* Resize handles — single selection only */}
+        {/* Marquee */}
+        {marquee && (
+          <div style={{
+            position:'absolute',
+            left:`${marquee.c*cw}%`,top:`${marquee.r*ch}%`,
+            width:`${marquee.w*cw}%`,height:`${marquee.h*ch}%`,
+            background:'rgba(17,17,17,0.06)',
+            outline:'1.5px dashed #666',outlineOffset:'-1px',
+            boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
+          }}/>
+        )}
+
+        {/* Bounding box outline for multi-selection */}
+        {selBounds && selIds.size>1 && (
+          <div style={{
+            position:'absolute',
+            left:`${selBounds.minC*cw}%`,top:`${selBounds.minR*ch}%`,
+            width:`${(selBounds.maxC-selBounds.minC)*cw}%`,height:`${(selBounds.maxR-selBounds.minR)*ch}%`,
+            outline:'1.5px dashed #111',outlineOffset:'-1px',
+            boxSizing:'border-box',pointerEvents:'none',
+          }}/>
+        )}
+
+        {/* Resize handles */}
         {hDots.map(([hc,hr],i)=>(
           <div key={i} style={{
             position:'absolute',
@@ -559,10 +647,10 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
       {/* Hints */}
       <div className="hint-strip">
-        <span>Drag to draw</span><span>·</span>
-        <span>Click to select</span><span>·</span>
-        <span>Shift+click for multi-select</span><span>·</span>
-        <span>Drag corners to resize</span>
+        <span>Click to select · Drag to marquee</span><span>·</span>
+        <span>Shift+click to add/remove</span><span>·</span>
+        <span>Arrow keys to move · Delete to remove</span><span>·</span>
+        <span>Drag handles to resize</span>
       </div>
     </div>
   );
@@ -611,7 +699,7 @@ function App() {
   const [shapes, setShapes] = useState([]);
   const [selIds, setSelIds] = useState(new Set());
   const [color, setColor] = useState(KONA.find(c=>c.name==="Navy")||KONA[0]);
-  const [tool, setTool] = useState("paint");
+  const [tool, setTool] = useState("select");
   const [search, setSearch] = useState("");
   const [grp, setGrp] = useState("All");
   const [customs, setCustoms] = useState([]);
@@ -717,7 +805,7 @@ function App() {
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           {/* Tool toggles */}
           <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
-            {[{id:'paint',label:'Draw'},{id:'erase',label:'Erase'}].map(t=>(
+            {[{id:'select',label:'Select'},{id:'paint',label:'Draw'},{id:'erase',label:'Erase'}].map(t=>(
               <button key={t.id} onClick={()=>setTool(t.id)}
                 style={{padding:'6px 14px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s'}}>
                 {t.label}
