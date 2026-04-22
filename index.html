@@ -356,7 +356,30 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     if(oT&&iX) return'n'; if(oB&&iX) return's'; if(oL&&iY) return'w'; if(oR&&iY) return'e';
     return null;
   };
-  const shapeAt=(r,c,list)=>{const sl=list||sRef.current;for(let i=sl.length-1;i>=0;i--){const s=sl[i];if(r>=s.r&&r<s.r+s.h&&c>=s.c&&c<s.c+s.w)return s;}return null;};
+  const shapeAt=(r,c,list,px,py,rect)=>{
+    const sl=list||sRef.current;
+    for(let i=sl.length-1;i>=0;i--){
+      const s=sl[i];
+      if(r>=s.r&&r<s.r+s.h&&c>=s.c&&c<s.c+s.w){
+        if(s.type==='tri'&&px!==undefined&&rect){
+          const cw=rect.width/cols,ch=rect.height/rows;
+          const fx=(px-s.c*cw)/(s.w*cw),fy=(py-s.r*ch)/(s.h*ch);
+          const inside=s.dir==='/'
+            ?(s.half==='a'?fx+fy<=1:fx+fy>1)
+            :(s.half==='a'?fy<=fx:fy>fx);
+          if(!inside) continue;
+        }
+        return s;
+      }
+    }
+    return null;
+  };
+  const expandPairs=(ids,list)=>{
+    const out=new Set(ids);const pids=new Set();
+    for(const s of list)if(ids.has(s.id)&&s.pairId)pids.add(s.pairId);
+    for(const s of list)if(s.pairId&&pids.has(s.pairId))out.add(s.id);
+    return out;
+  };
 
   const onDown = useCallback(e=>{
     if(e.button!==0) return; e.preventDefault();
@@ -365,24 +388,19 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     const cur=sRef.current, sids=selRef.current;
     const shift=e.shiftKey;
 
-    if(tool==='erase'){
-      const s=shapeAt(r,c,cur);
-      if(s){ setShapes(p=>p.filter(x=>x.id!==s.id)); setSelIds(prev=>{const n=new Set(prev);n.delete(s.id);return n;}); }
-      dragRef.current={type:'erase'}; return;
-    }
-
     if(sids.size>0){
-      const bounds=getSelBounds(cur,sids);
+      const expanded=expandPairs(sids,cur);
+      const bounds=getSelBounds(cur,expanded);
       const h=findHandle(px,py,bounds,rect);
       if(h){
-        const relevant=cur.filter(x=>sids.has(x.id));
+        const relevant=cur.filter(x=>expanded.has(x.id));
         const origs=Object.fromEntries(relevant.map(x=>[x.id,{r:x.r,c:x.c,h:x.h,w:x.w}]));
         dragRef.current={type:'resize',handle:h,origBounds:bounds,origs,startR:r,startC:c};
         return;
       }
     }
 
-    const s=shapeAt(r,c,cur);
+    const s=shapeAt(r,c,cur,px,py,rect);
     if(s){
       if(shift){
         setSelIds(prev=>{const n=new Set(prev);n.has(s.id)?n.delete(s.id):n.add(s.id);return n;});
@@ -390,7 +408,8 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       } else {
         const newSids = sids.has(s.id) ? sids : new Set([s.id]);
         setSelIds(newSids);
-        const relevant=cur.filter(x=>newSids.has(x.id));
+        const moveIds=expandPairs(newSids,cur);
+        const relevant=cur.filter(x=>moveIds.has(x.id));
         const origs=Object.fromEntries(relevant.map(x=>[x.id,{r:x.r,c:x.c,h:x.h,w:x.w}]));
         dragRef.current={type:'move',startR:r,startC:c,origs};
       }
@@ -422,8 +441,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       setCur(tool==='paint'||tool==='hst'?'crosshair':'default'); return;
     }
     if(d.type==='noop') return;
-    if(d.type==='erase'){const s=shapeAt(r,c,sRef.current);if(s){setShapes(p=>p.filter(x=>x.id!==s.id));setSelIds(prev=>{const n=new Set(prev);n.delete(s.id);return n;});}}
-    else if(d.type==='marquee'){const mr=Math.min(d.aR,r),mc=Math.min(d.aC,c);setMarquee({r:mr,c:mc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
+    if(d.type==='marquee'){const mr=Math.min(d.aR,r),mc=Math.min(d.aC,c);setMarquee({r:mr,c:mc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
     else if(d.type==='create'){const gr=Math.min(d.aR,r),gc=Math.min(d.aC,c);setGhost({r:gr,c:gc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
     else if(d.type==='move'){
       const dr=r-d.startR, dc=c-d.startC;
@@ -459,14 +477,11 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     if(d?.type==='create'&&ghost){
       if(tool==='hst'){
         const white=KONA.find(c=>c.name==="White")||KONA[0];
-        const newShapes=[];
-        for(let r=ghost.r;r<ghost.r+ghost.h;r++)
-          for(let c=ghost.c;c<ghost.c+ghost.w;c++){
-            newShapes.push({id:Date.now()+Math.random(),r,c,h:1,w:1,type:'tri',color:selectedColor,dir:'/',half:'a'});
-            newShapes.push({id:Date.now()+Math.random(),r,c,h:1,w:1,type:'tri',color:white,dir:'/',half:'b'});
-          }
-        setShapes(p=>[...p,...newShapes]);
-        setSelIds(new Set(newShapes.map(s=>s.id)));
+        const pid=Date.now()+Math.random();
+        const a={id:Date.now()+Math.random(),r:ghost.r,c:ghost.c,h:ghost.h,w:ghost.w,type:'tri',color:selectedColor,dir:'/',half:'a',pairId:pid};
+        const b={id:Date.now()+Math.random(),r:ghost.r,c:ghost.c,h:ghost.h,w:ghost.w,type:'tri',color:white,dir:'/',half:'b',pairId:pid};
+        setShapes(p=>[...p,a,b]);
+        setSelIds(new Set([a.id,b.id]));
       } else {
         const ns={id:Date.now(),...ghost,color:selectedColor};
         setShapes(p=>[...p,ns]);
@@ -493,23 +508,25 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       if(sids.size===0) return;
       if(e.key==='Delete'||e.key==='Backspace'){
         e.preventDefault();
-        setShapes(p=>p.filter(s=>!sids.has(s.id)));
+        const del=expandPairs(sids,sRef.current);
+        setShapes(p=>p.filter(s=>!del.has(s.id)));
         setSelIds(new Set());
       }
       if(e.key==='f'||e.key==='F'){
-        const selTris=sRef.current.filter(s=>sids.has(s.id)&&s.type==='tri');
-        const cells=new Set(selTris.map(s=>`${s.r},${s.c}`));
+        const pids=new Set();
+        for(const s of sRef.current)if(sids.has(s.id)&&s.pairId)pids.add(s.pairId);
         setShapes(p=>p.map(s=>{
-          if(s.type!=='tri'||!cells.has(`${s.r},${s.c}`)) return s;
-          return {...s,dir:s.dir==='/'?'\\':'/',half:s.half};
+          if(s.type!=='tri'||!s.pairId||!pids.has(s.pairId)) return s;
+          return {...s,dir:s.dir==='/'?'\\':'/'};
         }));
       }
       const arrow={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
       if(arrow){
         e.preventDefault();
         const [dr,dc]=arrow;
+        const move=expandPairs(sids,sRef.current);
         setShapes(p=>p.map(s=>{
-          if(!sids.has(s.id)) return s;
+          if(!move.has(s.id)) return s;
           return {...s,r:Math.max(0,Math.min(rows-s.h,s.r+dr)),c:Math.max(0,Math.min(cols-s.w,s.c+dc))};
         }));
       }
@@ -522,12 +539,14 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const singleSel = selIds.size===1 ? selShapes[0] : null;
   const cw=100/cols, ch=100/rows;
 
+  const expandedSelIds = useMemo(()=>expandPairs(selIds,shapes),[selIds,shapes]);
+  const expandedSelShapes = shapes.filter(s=>expandedSelIds.has(s.id));
   const selBounds = useMemo(()=>{
-    if(selShapes.length===0) return null;
+    if(expandedSelShapes.length===0) return null;
     let minR=Infinity,minC=Infinity,maxR=-Infinity,maxC=-Infinity;
-    for(const s of selShapes){minR=Math.min(minR,s.r);minC=Math.min(minC,s.c);maxR=Math.max(maxR,s.r+s.h);maxC=Math.max(maxC,s.c+s.w);}
+    for(const s of expandedSelShapes){minR=Math.min(minR,s.r);minC=Math.min(minC,s.c);maxR=Math.max(maxR,s.r+s.h);maxC=Math.max(maxC,s.c+s.w);}
     return {minR,minC,maxR,maxC};
-  },[selShapes]);
+  },[expandedSelShapes]);
 
   const hDots = selBounds ? [
     [selBounds.minC,selBounds.minR],[(selBounds.minC+selBounds.maxC)/2,selBounds.minR],[selBounds.maxC,selBounds.minR],
@@ -536,23 +555,45 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   ] : [];
 
   const handleDuplicate = () => {
-    const toAdd = selShapes.map(s=>({...s,id:Date.now()+Math.random(),r:Math.min(rows-s.h,s.r+1),c:Math.min(cols-s.w,s.c+1)}));
+    const dupIds=expandPairs(selIds,shapes);
+    const toDup=shapes.filter(s=>dupIds.has(s.id));
+    const pairMap=new Map();
+    const toAdd=toDup.map(s=>{
+      let np=s.pairId;
+      if(np){if(!pairMap.has(np))pairMap.set(np,Date.now()+Math.random());np=pairMap.get(np);}
+      return {...s,id:Date.now()+Math.random(),pairId:np||undefined,r:Math.min(rows-s.h,s.r+1),c:Math.min(cols-s.w,s.c+1)};
+    });
     setShapes(p=>[...p,...toAdd]);
     setSelIds(new Set(toAdd.map(s=>s.id)));
   };
   const handleDelete = () => {
-    setShapes(p=>p.filter(s=>!selIds.has(s.id)));
+    const del=expandPairs(selIds,shapes);
+    setShapes(p=>p.filter(s=>!del.has(s.id)));
     setSelIds(new Set());
   };
   const handleRecolor = () => {
     setShapes(p=>p.map(s=>selIds.has(s.id)?{...s,color:selectedColor}:s));
   };
   const handleFlipTri = () => {
-    const selTris=selShapes.filter(s=>s.type==='tri');
-    const cells=new Set(selTris.map(s=>`${s.r},${s.c}`));
+    const pids=new Set();
+    for(const s of selShapes)if(s.pairId)pids.add(s.pairId);
     setShapes(p=>p.map(s=>{
-      if(s.type!=='tri'||!cells.has(`${s.r},${s.c}`)) return s;
+      if(s.type!=='tri'||!s.pairId||!pids.has(s.pairId)) return s;
       return {...s,dir:s.dir==='/'?'\\':'/'};
+    }));
+  };
+  const handleSwapTriColors = () => {
+    const pids=new Set();
+    for(const s of selShapes)if(s.pairId)pids.add(s.pairId);
+    const colorByPair=new Map();
+    for(const s of shapes)if(s.pairId&&pids.has(s.pairId)){
+      if(!colorByPair.has(s.pairId))colorByPair.set(s.pairId,{});
+      colorByPair.get(s.pairId)[s.half]=s.color;
+    }
+    setShapes(p=>p.map(s=>{
+      if(!s.pairId||!pids.has(s.pairId)) return s;
+      const c=colorByPair.get(s.pairId);
+      return {...s,color:s.half==='a'?c.b:c.a};
     }));
   };
 
@@ -592,7 +633,10 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
             <div style={{width:12,height:12,background:selectedColor.hex,border:'1px solid rgba(0,0,0,0.15)',borderRadius:2,flexShrink:0}}/>
             Apply color
           </button>
-          {hasTri && <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋ Flip</button>}
+          {hasTri && <>
+            <button className="btn btn-sm" onClick={handleSwapTriColors} title="Swap triangle colors">⇄ Swap</button>
+            <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋ Flip</button>
+          </>}
           <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDuplicate}><IcCopy/> Duplicate</button>
           <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDelete}><IcTrash/> Delete</button>
         </div>
@@ -696,7 +740,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         <span>Click to select · Drag to marquee</span><span>·</span>
         <span>Shift+click to add/remove</span><span>·</span>
         <span>Arrow keys to move · Delete to remove</span><span>·</span>
-        <span>Drag handles to resize</span>
+        <span>Drag handles to resize · F to flip triangles</span>
       </div>
     </div>
   );
@@ -894,8 +938,8 @@ function App() {
               <i className="iconoir-book" style={{fontSize:15}}/> My quilts ({savedQuilts.length})
             </button>
           )}
-          <button className="btn btn-sm btn-dark" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>{setSaveName('');setShowSave(true);}}>
-            <i className="iconoir-save-floppy-disk" style={{fontSize:15}}/> Save quilt
+          <button className="btn btn-sm btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
+            Save quilt
           </button>
         </div>
       </header>
@@ -1027,7 +1071,7 @@ function App() {
           {/* Toolbar */}
           <div style={{padding:'8px 24px',borderBottom:'var(--div-border)',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
             <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
-              {[{id:'select',label:'Select',icon:'iconoir-cursor-pointer'},{id:'paint',label:'Draw',icon:'iconoir-design-pencil'},{id:'hst',label:'HST',icon:'iconoir-triangle'},{id:'erase',label:'Erase',icon:'iconoir-erase'}].map(t=>(
+              {[{id:'select',label:'Select',icon:'iconoir-cursor-pointer'},{id:'paint',label:'Square',icon:'iconoir-square'},{id:'hst',label:'Triangle',icon:'iconoir-triangle'}].map(t=>(
                 <button key={t.id} onClick={()=>setTool(t.id)} title={t.label}
                   style={{padding:'7px 10px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s',display:'flex',alignItems:'center'}}>
                   <i className={t.icon} style={{fontSize:16}}/>
@@ -1223,7 +1267,7 @@ function App() {
                     <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#fafafa',borderRadius:4,overflow:'hidden'}}>
                       <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="64" height="64" preserveAspectRatio="xMidYMid meet">
                         {q.shapes.map((s,i)=>s.type==='tri'?(
-                          <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c},${s.r+1}`:`${s.c+1},${s.r} ${s.c+1},${s.r+1} ${s.c},${s.r+1}`):(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c+1},${s.r+1}`:`${s.c},${s.r} ${s.c},${s.r+1} ${s.c+1},${s.r+1}`)} fill={s.color.hex}/>
+                          <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`:`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`):(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`:`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
                         ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.05)" strokeWidth="0.05"/>)}
                       </svg>
                     </div>
@@ -1272,7 +1316,7 @@ function App() {
                       {Array.from({length:q.cols+1},(_,i)=><line key={`v${i}`} x1={i} y1={0} x2={i} y2={q.rows} stroke="#ebebeb" strokeWidth="0.04"/>)}
                       {Array.from({length:q.rows+1},(_,i)=><line key={`h${i}`} x1={0} y1={i} x2={q.cols} y2={i} stroke="#ebebeb" strokeWidth="0.04"/>)}
                       {q.shapes.map((s,i)=>s.type==='tri'?(
-                        <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c},${s.r+1}`:`${s.c+1},${s.r} ${s.c+1},${s.r+1} ${s.c},${s.r+1}`):(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c+1},${s.r+1}`:`${s.c},${s.r} ${s.c},${s.r+1} ${s.c+1},${s.r+1}`)} fill={s.color.hex}/>
+                        <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`:`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`):(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`:`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
                       ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.06)" strokeWidth="0.05"/>)}
                     </svg>
                   </div>
