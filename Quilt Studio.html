@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quilt Studio</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #fff;
+    color: #111;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :root { --div-border: 1px solid #000000; --app-bg: #ffffff; --canvas-bg: #fafafa; }
+
+  /* Layout */
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--app-bg); }
+  .body { flex: 1; display: grid; grid-template-columns: 220px 1fr 240px; min-height: 0; border-top: var(--div-border); }
+  .panel { overflow-y: auto; border-right: var(--div-border); }
+  .panel:last-child { border-right: none; }
+
+  /* Scrollbar */
+  .panel::-webkit-scrollbar { width: 4px; }
+  .panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+  /* Header */
+  header { padding: 20px 28px 16px; border-bottom: var(--div-border); display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0; }
+  .logo { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; letter-spacing: -0.01em; color: #111; }
+  .logo em { font-style: italic; color: #888; font-size: 14px; margin-left: 10px; font-family: 'DM Sans', sans-serif; font-weight: 300; }
+
+  /* Section labels */
+  .label { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 10px; }
+
+  /* Cards */
+  .card { padding: 16px; border-bottom: var(--div-border); }
+  .card:last-child { border-bottom: none; }
+
+  /* Inputs */
+  input[type=text], select {
+    width: 100%; padding: 7px 10px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    border: 1px solid #e0e0e0; background: #fff; color: #111; outline: none;
+    border-radius: 4px; transition: border-color .15s;
+  }
+  input[type=text]:focus, select:focus { border-color: #111; }
+  select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+  input[type=range] { width: 100%; accent-color: #111; cursor: pointer; }
+  input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid #e0e0e0; background: none; border-radius: 4px; cursor: pointer; }
+
+  /* Buttons */
+  .btn { padding: 7px 14px; font-size: 12px; font-family: 'DM Sans', sans-serif; font-weight: 500; border-radius: 4px; cursor: pointer; transition: all .12s; border: 1px solid #e0e0e0; background: #fff; color: #333; }
+  .btn:hover { background: #f5f5f5; border-color: #ccc; }
+  .btn-dark { background: #111; color: #fff; border-color: #111; }
+  .btn-dark:hover { background: #333; border-color: #333; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-xs { padding: 3px 8px; font-size: 11px; }
+
+  /* Color chip */
+  .chip { aspect-ratio: 1; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
+  .chip:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .chip.selected { outline: 2px solid #111; outline-offset: 2px; }
+
+  /* Tag pills */
+  .pill { padding: 3px 8px; font-size: 11px; border-radius: 2px; cursor: pointer; border: 1px solid #e5e5e5; background: #fff; color: #666; transition: all .12s; }
+  .pill.active { background: #111; color: #fff; border-color: #111; }
+  .pill:not(.active):hover { background: #f5f5f5; }
+
+  /* Grid canvas */
+  .grid-wrap { position: relative; }
+
+  /* Row in materials list */
+  .mat-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid #f0f0f0; }
+  .mat-row:last-child { border-bottom: none; }
+
+  /* Slider row */
+  .slider-row { display: flex; flex-direction: column; gap: 4px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #666; }
+  .slider-label span:last-child { font-weight: 500; color: #111; font-variant-numeric: tabular-nums; }
+
+  /* Overlay */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; }
+
+  /* Info text */
+  .muted { color: #999; }
+  .mono { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+  /* Hint strip */
+  .hint-strip { padding: 6px 12px; font-size: 11px; color: #bbb; display: flex; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useRef, useEffect, useCallback } = React;
+
+// ── Minimal inline icons ──────────────────────────────────────────────────
+const Svg = ({ children, size=14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+);
+const IcSearch  = () => <Svg><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></Svg>;
+const IcPin     = ({ on }) => <Svg><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill={on?"currentColor":"none"}/></Svg>;
+const IcX       = () => <Svg><path d="M18 6 6 18M6 6l12 12"/></Svg>;
+const IcPlus    = () => <Svg><path d="M12 5v14M5 12h14"/></Svg>;
+const IcLayers  = () => <Svg><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></Svg>;
+const IcTrash   = () => <Svg><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>;
+const IcCopy    = () => <Svg><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
+const IcErase   = () => <Svg><path d="M20 20H7L3 16l13-13 7 7-3 3"/><path d="M6.0 17.0 9 14"/></Svg>;
+const IcEye     = ({ off }) => off
+  ? <Svg><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/></Svg>
+  : <Svg><path d="M1 12s4-8 11-8 11 8 11 8M1 12s4 8 11 8 11-8 11-8"/><circle cx="12" cy="12" r="3"/></Svg>;
+const IcInfo    = () => <Svg><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></Svg>;
+const IcGrid    = () => <Svg><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></Svg>;
+
+// ── Data ──────────────────────────────────────────────────────────────────
+const KONA = [
+  { name:"White", code:"1387", hex:"#FFFFFF", group:"White" },
+  { name:"PFD White", code:"1287", hex:"#FBFBF8", group:"White" },
+  { name:"Snow", code:"1339", hex:"#F5F3EB", group:"White" },
+  { name:"Bone", code:"1037", hex:"#EDE4CA", group:"White" },
+  { name:"Ivory", code:"1181", hex:"#EEE1C5", group:"White" },
+  { name:"Natural", code:"1242", hex:"#E3D7B8", group:"White" },
+  { name:"Parchment", code:"412", hex:"#D7CBA1", group:"White" },
+  { name:"Putty", code:"1283", hex:"#C7B99A", group:"White" },
+  { name:"Sand", code:"1323", hex:"#DCCBA5", group:"White" },
+  { name:"Stone", code:"443", hex:"#B1A485", group:"Neutral" },
+  { name:"Khaki", code:"195", hex:"#B7A477", group:"Neutral" },
+  { name:"Bison", code:"851", hex:"#AF9773", group:"Neutral" },
+  { name:"Taupe", code:"457", hex:"#8A7764", group:"Neutral" },
+  { name:"Mushroom", code:"1295", hex:"#8C7F6B", group:"Neutral" },
+  { name:"Pebble", code:"1290", hex:"#A69F8E", group:"Neutral" },
+  { name:"Earth", code:"127", hex:"#705640", group:"Brown" },
+  { name:"Nutmeg", code:"1238", hex:"#8A5E3E", group:"Brown" },
+  { name:"Toffee", code:"1371", hex:"#97623B", group:"Brown" },
+  { name:"Cocoa", code:"98", hex:"#7B5237", group:"Brown" },
+  { name:"Chestnut", code:"85", hex:"#6C3F27", group:"Brown" },
+  { name:"Brown", code:"49", hex:"#5E3A24", group:"Brown" },
+  { name:"Chocolate", code:"86", hex:"#49311F", group:"Brown" },
+  { name:"Espresso", code:"1134", hex:"#3A2619", group:"Brown" },
+  { name:"Ash", code:"9", hex:"#A3A19A", group:"Grey" },
+  { name:"Silver", code:"1333", hex:"#B2B0AB", group:"Grey" },
+  { name:"Medium Grey", code:"1223", hex:"#8F8E8A", group:"Grey" },
+  { name:"Iron", code:"1184", hex:"#7B7B7B", group:"Grey" },
+  { name:"Shadow", code:"1320", hex:"#6B6B6B", group:"Grey" },
+  { name:"Steel", code:"1342", hex:"#58616B", group:"Grey" },
+  { name:"Graphite", code:"1159", hex:"#525252", group:"Grey" },
+  { name:"Slate", code:"1325", hex:"#4D4F55", group:"Grey" },
+  { name:"Charcoal", code:"1071", hex:"#424548", group:"Grey" },
+  { name:"Pepper", code:"1278", hex:"#2E2E2E", group:"Grey" },
+  { name:"Black", code:"1019", hex:"#141414", group:"Grey" },
+  { name:"Rich Red", code:"1551", hex:"#B01E2F", group:"Red" },
+  { name:"Red", code:"1308", hex:"#C8202C", group:"Red" },
+  { name:"Tomato", code:"1360", hex:"#D93A2E", group:"Red" },
+  { name:"Scarlet", code:"1321", hex:"#C12532", group:"Red" },
+  { name:"Cardinal", code:"1066", hex:"#A81F2B", group:"Red" },
+  { name:"Crimson", code:"1091", hex:"#8F1626", group:"Red" },
+  { name:"Wine", code:"1385", hex:"#6D1823", group:"Red" },
+  { name:"Burgundy", code:"1054", hex:"#5E1C26", group:"Red" },
+  { name:"Pomegranate", code:"1295", hex:"#B42846", group:"Pink" },
+  { name:"Watermelon", code:"1384", hex:"#E0495F", group:"Pink" },
+  { name:"Hot Pink", code:"154", hex:"#ED4F7E", group:"Pink" },
+  { name:"Bubble Gum", code:"1058", hex:"#EE8CAE", group:"Pink" },
+  { name:"Rose", code:"1312", hex:"#D27FA1", group:"Pink" },
+  { name:"Peony", code:"1275", hex:"#E591A9", group:"Pink" },
+  { name:"Dusty Pink", code:"1107", hex:"#D9A6A5", group:"Pink" },
+  { name:"Papaya", code:"1267", hex:"#F08A4B", group:"Orange" },
+  { name:"Orange", code:"1265", hex:"#ED6E3F", group:"Orange" },
+  { name:"Tangerine", code:"1370", hex:"#EE7730", group:"Orange" },
+  { name:"Pumpkin", code:"1301", hex:"#E66828", group:"Orange" },
+  { name:"Flame", code:"444", hex:"#E64A2A", group:"Orange" },
+  { name:"Peach", code:"1273", hex:"#F2B28D", group:"Orange" },
+  { name:"Coral", code:"1089", hex:"#F08274", group:"Orange" },
+  { name:"Salmon", code:"1316", hex:"#EB9680", group:"Orange" },
+  { name:"Buttercup", code:"1059", hex:"#F2C14A", group:"Yellow" },
+  { name:"Canary", code:"1062", hex:"#F2DC5D", group:"Yellow" },
+  { name:"Lemon", code:"1212", hex:"#F3DE6A", group:"Yellow" },
+  { name:"Sunflower", code:"1334", hex:"#F0B82E", group:"Yellow" },
+  { name:"Mustard", code:"1240", hex:"#C89C2C", group:"Yellow" },
+  { name:"Honey", code:"1163", hex:"#D9A245", group:"Yellow" },
+  { name:"Butter", code:"1060", hex:"#F7E7A6", group:"Yellow" },
+  { name:"Chartreuse", code:"1072", hex:"#A7B83A", group:"Green" },
+  { name:"Lime", code:"1192", hex:"#B4C73C", group:"Green" },
+  { name:"Sprout", code:"1331", hex:"#8CA33F", group:"Green" },
+  { name:"Kiwi", code:"1188", hex:"#6E9535", group:"Green" },
+  { name:"Clover", code:"1073", hex:"#4E8641", group:"Green" },
+  { name:"Leaf", code:"1205", hex:"#4F8E43", group:"Green" },
+  { name:"Grass Green", code:"1155", hex:"#3C7A3C", group:"Green" },
+  { name:"Basil", code:"1034", hex:"#2D6938", group:"Green" },
+  { name:"Evergreen", code:"1137", hex:"#1F5332", group:"Green" },
+  { name:"Pine", code:"1279", hex:"#1F4D36", group:"Green" },
+  { name:"Jade Green", code:"1183", hex:"#2F7F5D", group:"Green" },
+  { name:"Sage", code:"1188", hex:"#A8B89A", group:"Green" },
+  { name:"Celadon", code:"1069", hex:"#A7C0A2", group:"Green" },
+  { name:"Mint", code:"1234", hex:"#BDD9B9", group:"Green" },
+  { name:"Seafoam", code:"1318", hex:"#B7DFC7", group:"Green" },
+  { name:"Moss", code:"1236", hex:"#6F7A3E", group:"Green" },
+  { name:"Fern", code:"1144", hex:"#5B7D3A", group:"Green" },
+  { name:"Peacock", code:"1273", hex:"#007780", group:"Blue" },
+  { name:"Teal Blue", code:"1339", hex:"#0B7F8C", group:"Blue" },
+  { name:"Lagoon", code:"1186", hex:"#1588A0", group:"Blue" },
+  { name:"Pacific", code:"1272", hex:"#1F7FA0", group:"Blue" },
+  { name:"Bahama Blue", code:"1035", hex:"#2C83B5", group:"Blue" },
+  { name:"Cyan", code:"1092", hex:"#2FA1D0", group:"Blue" },
+  { name:"Turquoise", code:"1376", hex:"#3CB1B5", group:"Blue" },
+  { name:"Aqua", code:"1005", hex:"#5BC2C0", group:"Blue" },
+  { name:"Pool", code:"1292", hex:"#7BCBCF", group:"Blue" },
+  { name:"Robin Egg", code:"1309", hex:"#89C9D1", group:"Blue" },
+  { name:"Baby Blue", code:"1010", hex:"#A9C6D8", group:"Blue" },
+  { name:"Sky", code:"1513", hex:"#8FBAD4", group:"Blue" },
+  { name:"Bright Blue", code:"1040", hex:"#1D79C6", group:"Blue" },
+  { name:"Blue", code:"1036", hex:"#1E5A9F", group:"Blue" },
+  { name:"Royal", code:"1314", hex:"#1F3F8C", group:"Blue" },
+  { name:"Cobalt", code:"1083", hex:"#1B3894", group:"Blue" },
+  { name:"Navy", code:"1243", hex:"#1A2E4C", group:"Blue" },
+  { name:"Midnight", code:"1232", hex:"#1A2440", group:"Blue" },
+  { name:"Denim", code:"1178", hex:"#5D7A94", group:"Blue" },
+  { name:"Dusty Blue", code:"1132", hex:"#7A96AB", group:"Blue" },
+  { name:"Delft", code:"1102", hex:"#3B5F8A", group:"Blue" },
+  { name:"Lavender", code:"1189", hex:"#BAA9D0", group:"Purple" },
+  { name:"Thistle", code:"1375", hex:"#A892B8", group:"Purple" },
+  { name:"Wisteria", code:"1391", hex:"#8A78B0", group:"Purple" },
+  { name:"Violet", code:"1378", hex:"#6F5CA5", group:"Purple" },
+  { name:"Purple", code:"1301", hex:"#5E3B8F", group:"Purple" },
+  { name:"Magenta", code:"1225", hex:"#AA2D7B", group:"Purple" },
+  { name:"Berry", code:"1043", hex:"#7A2F5C", group:"Purple" },
+  { name:"Plum", code:"1287", hex:"#5A2A52", group:"Purple" },
+  { name:"Dragon Fruit", code:"1124", hex:"#D14F8E", group:"Purple" },
+];
+const GROUPS = ["All","White","Neutral","Brown","Grey","Red","Pink","Orange","Yellow","Green","Blue","Purple"];
+const PRESETS = [
+  { name:"Custom", w:null, h:null },
+  { name:"Mug Rug", w:8, h:10 },
+  { name:"Mini", w:18, h:24 },
+  { name:"Stroller", w:30, h:36 },
+  { name:"Baby", w:36, h:52 },
+  { name:"Crib", w:40, h:60 },
+  { name:"Lap / Throw", w:52, h:65 },
+  { name:"Twin", w:65, h:90 },
+  { name:"Full", w:80, h:90 },
+  { name:"Queen", w:90, h:108 },
+  { name:"King", w:108, h:108 },
+];
+const QUILT_PATTERNS = [
+  { id:"none", label:"None" },
+  { id:"ditch", label:"Stitch in the Ditch" },
+  { id:"horizontal", label:"Horizontal Lines" },
+  { id:"vertical", label:"Vertical Lines" },
+  { id:"diagonal", label:"Diagonal Lines" },
+  { id:"crosshatch", label:"Crosshatch" },
+  { id:"cross_diagonal", label:"Diagonal Cross" },
+];
+const WOF=40, SEAM=0.5, MAX=60;
+
+const SUGGESTED_PALETTES = [
+  { name: "Coastal",    colors: ["Navy","Dusty Blue","Robin Egg","Natural","White"] },
+  { name: "Prairie",    colors: ["Mustard","Toffee","Sage","Bone","Chocolate"] },
+  { name: "Berry Jam",  colors: ["Burgundy","Plum","Wisteria","Dusty Pink","Ivory"] },
+  { name: "Orchard",    colors: ["Scarlet","Pumpkin","Sunflower","Basil","Natural"] },
+  { name: "Slate",      colors: ["Charcoal","Steel","Ash","Robin Egg","White"] },
+  { name: "Forest",     colors: ["Pine","Basil","Moss","Honey","Bone"] },
+  { name: "Desert",     colors: ["Flame","Sand","Putty","Espresso","Ivory"] },
+  { name: "Coral Reef", colors: ["Coral","Turquoise","Aqua","Butter","White"] },
+];
+
+function calcYardage(count, bs) {
+  if (!count) return { yards:0, cutSize:bs+SEAM, strips:0 };
+  const cut=bs+SEAM, pps=Math.max(1,Math.floor(WOF/cut)), strips=Math.ceil(count/pps);
+  return { yards: Math.ceil((strips*cut/36)*8)/8, cutSize:cut, strips };
+}
+function calcBacking(w,h) {
+  const bW=w+8, bH=h+8;
+  const wA=Math.ceil(bW/WOF), wB=Math.ceil(bH/WOF);
+  const pickA=wA*bH<=wB*bW, widths=pickA?wA:wB, total=pickA?wA*bH:wB*bW;
+  return { yards:Math.ceil((total/36)*8)/8, backingW:bW, backingH:bH, widths };
+}
+function calcBinding(w,h) {
+  const perim=2*(w+h), strips=Math.ceil((perim+10)/WOF);
+  return { yards:Math.ceil((strips*2.5/36)*8)/8, strips, perimeter:perim };
+}
+function fmtY(y) {
+  if (!y) return "0 yd";
+  const w=Math.floor(y), e=Math.round((y-w)*8);
+  if (!e) return `${w} yd`;
+  if (e===8) return `${w+1} yd`;
+  const gcd=(a,b)=>b?gcd(b,a%b):a, g=gcd(e,8);
+  return w ? `${w} ${e/g}/${8/g} yd` : `${e/g}/${8/g} yd`;
+}
+
+// ── Quilting overlay ──────────────────────────────────────────────────────
+function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
+  if (pattern==="none") return null;
+  const lines=[], s=Math.max(1,spacing);
+  if (pattern==="ditch") {
+    for(let i=1;i<cols;i++) lines.push([i,0,i,rows]);
+    for(let i=1;i<rows;i++) lines.push([0,i,cols,i]);
+  }
+  if (pattern==="horizontal"||pattern==="crosshatch") for(let i=s;i<rows;i+=s) lines.push([0,i,cols,i]);
+  if (pattern==="vertical"||pattern==="crosshatch") for(let i=s;i<cols;i+=s) lines.push([i,0,i,rows]);
+  if (pattern==="diagonal"||pattern==="cross_diagonal") {
+    for(let k=-rows;k<=cols;k+=s){const x1=Math.max(0,k),y1=Math.max(0,-k),x2=Math.min(cols,k+rows),y2=Math.min(rows,cols-k);if(x2>x1&&y2>y1)lines.push([x1,y1,x2,y2]);}
+  }
+  if (pattern==="cross_diagonal") {
+    for(let k=0;k<=cols+rows;k+=s){const x1=Math.max(0,k-rows),y1=Math.min(rows,k),x2=Math.min(cols,k),y2=Math.max(0,k-cols);if(x2>x1&&y1>y2)lines.push([x1,y1,x2,y2]);}
+  }
+  return (
+    <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}} viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
+      <g stroke={color} strokeWidth="0.065" strokeDasharray="0.25,0.18" strokeLinecap="round" fill="none" opacity="0.85">
+        {lines.map(([x1,y1,x2,y2],i)=><line key={i} x1={x1} y1={y1} x2={x2} y2={y2}/>)}
+      </g>
+      <g stroke="#000" strokeWidth="0.1" strokeDasharray="0.25,0.18" strokeLinecap="round" fill="none" opacity="0.1">
+        {lines.map(([x1,y1,x2,y2],i)=><line key={`o${i}`} x1={x1} y1={y1} x2={x2} y2={y2}/>)}
+      </g>
+    </svg>
+  );
+}
+
+// ── GridCanvas ────────────────────────────────────────────────────────────
+// Shape: { id, r, c, h, w, color }
+// selIds: Set<id> — lifted to App for cross-component access
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting }) {
+  const ref = useRef(null);
+  const dragRef = useRef(null);
+  const [ghost, setGhost] = useState(null);
+  const [cur, setCur] = useState('crosshair');
+  const sRef = useRef(shapes); useEffect(()=>{sRef.current=shapes;},[shapes]);
+  const selRef = useRef(selIds); useEffect(()=>{selRef.current=selIds;},[selIds]);
+
+  const H=9;
+  const toCell = e => {
+    const r=ref.current.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+    return { px,py,rect:r, r:Math.max(0,Math.min(rows-1,Math.floor((py/r.height)*rows))), c:Math.max(0,Math.min(cols-1,Math.floor((px/r.width)*cols))) };
+  };
+  const findHandle = (px,py,s,rect) => {
+    if(!s||selRef.current.size!==1) return null;
+    const cw=rect.width/cols,ch=rect.height/rows;
+    const l=s.c*cw,t=s.r*ch,ri=(s.c+s.w)*cw,b=(s.r+s.h)*ch;
+    const oL=Math.abs(px-l)<=H,oR=Math.abs(px-ri)<=H,oT=Math.abs(py-t)<=H,oB=Math.abs(py-b)<=H;
+    const iX=px>=l-H&&px<=ri+H,iY=py>=t-H&&py<=b+H;
+    if(oL&&oT) return'nw'; if(oR&&oT) return'ne'; if(oR&&oB) return'se'; if(oL&&oB) return'sw';
+    if(oT&&iX) return'n'; if(oB&&iX) return's'; if(oL&&iY) return'w'; if(oR&&iY) return'e';
+    return null;
+  };
+  const shapeAt=(r,c,list)=>{const sl=list||sRef.current;for(let i=sl.length-1;i>=0;i--){const s=sl[i];if(r>=s.r&&r<s.r+s.h&&c>=s.c&&c<s.c+s.w)return s;}return null;};
+
+  const onDown = useCallback(e=>{
+    if(e.button!==0) return; e.preventDefault();
+    ref.current.setPointerCapture(e.pointerId);
+    const {px,py,rect,r,c}=toCell(e);
+    const cur=sRef.current, sids=selRef.current;
+    const shift=e.shiftKey;
+
+    if(tool==='erase'){
+      const s=shapeAt(r,c,cur);
+      if(s){ setShapes(p=>p.filter(x=>x.id!==s.id)); setSelIds(prev=>{const n=new Set(prev);n.delete(s.id);return n;}); }
+      dragRef.current={type:'erase'}; return;
+    }
+
+    // Check resize handle (single selection only)
+    if(sids.size===1){
+      const selShape=cur.find(s=>sids.has(s.id));
+      if(selShape){
+        const h=findHandle(px,py,selShape,rect);
+        if(h){ dragRef.current={type:'resize',id:selShape.id,handle:h,orig:{...selShape},startR:r,startC:c}; return; }
+      }
+    }
+
+    const s=shapeAt(r,c,cur);
+    if(s){
+      if(shift){
+        // Toggle shape in selection
+        setSelIds(prev=>{const n=new Set(prev);n.has(s.id)?n.delete(s.id):n.add(s.id);return n;});
+        dragRef.current={type:'noop'};
+      } else {
+        const newSids = sids.has(s.id) ? sids : new Set([s.id]);
+        setSelIds(newSids);
+        // Store originals for all selected shapes
+        const relevant=cur.filter(x=>newSids.has(x.id));
+        const origs=Object.fromEntries(relevant.map(x=>[x.id,{r:x.r,c:x.c,h:x.h,w:x.w}]));
+        dragRef.current={type:'move',startR:r,startC:c,origs};
+      }
+    } else {
+      if(!shift) setSelIds(new Set());
+      dragRef.current={type:'create',aR:r,aC:c};
+      setGhost({r,c,h:1,w:1});
+    }
+  },[tool,rows,cols,setShapes,setSelIds]);
+
+  const onMove = useCallback(e=>{
+    const {px,py,rect,r,c}=toCell(e); const d=dragRef.current; const sids=selRef.current;
+    if(!d){
+      // Cursor hints
+      if(sids.size===1){
+        const sel=sRef.current.find(s=>sids.has(s.id));
+        if(sel){
+          const h=findHandle(px,py,sel,rect);
+          if(h){const m={nw:'nw-resize',ne:'ne-resize',se:'se-resize',sw:'sw-resize',n:'n-resize',s:'s-resize',e:'e-resize',w:'w-resize'};setCur(m[h]);return;}
+          const cw=rect.width/cols,ch=rect.height/rows;
+          if(px>=sel.c*cw&&px<=(sel.c+sel.w)*cw&&py>=sel.r*ch&&py<=(sel.r+sel.h)*ch){setCur('grab');return;}
+        }
+      }
+      setCur('crosshair'); return;
+    }
+    if(d.type==='noop') return;
+    if(d.type==='erase'){const s=shapeAt(r,c,sRef.current);if(s){setShapes(p=>p.filter(x=>x.id!==s.id));setSelIds(prev=>{const n=new Set(prev);n.delete(s.id);return n;});}}
+    else if(d.type==='create'){const gr=Math.min(d.aR,r),gc=Math.min(d.aC,c);setGhost({r:gr,c:gc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
+    else if(d.type==='move'){
+      const dr=r-d.startR, dc=c-d.startC;
+      setShapes(p=>p.map(s=>{
+        const orig=d.origs[s.id]; if(!orig) return s;
+        return {...s,r:Math.max(0,Math.min(rows-orig.h,orig.r+dr)),c:Math.max(0,Math.min(cols-orig.w,orig.c+dc))};
+      }));
+    }
+    else if(d.type==='resize'){
+      const dr=r-d.startR,dc=c-d.startC;let{r:nr,c:nc,h:nh,w:nw}=d.orig;
+      if(d.handle.includes('n')){nr=d.orig.r+dr;nh=d.orig.h-dr;}
+      if(d.handle.includes('s'))nh=d.orig.h+dr;
+      if(d.handle.includes('w')){nc=d.orig.c+dc;nw=d.orig.w-dc;}
+      if(d.handle.includes('e'))nw=d.orig.w+dc;
+      nh=Math.max(1,nh);nw=Math.max(1,nw);nr=Math.max(0,nr);nc=Math.max(0,nc);
+      nh=Math.min(rows-nr,nh);nw=Math.min(cols-nc,nw);
+      setShapes(p=>p.map(s=>s.id===d.id?{...s,r:nr,c:nc,h:nh,w:nw}:s));
+    }
+  },[tool,rows,cols,setShapes,setSelIds]);
+
+  const onUp = useCallback(e=>{
+    const d=dragRef.current;
+    if(d?.type==='create'&&ghost){
+      const ns={id:Date.now(),...ghost,color:selectedColor};
+      setShapes(p=>[...p,ns]);
+      setSelIds(new Set([ns.id]));
+    }
+    dragRef.current=null; setGhost(null);
+  },[ghost,selectedColor,setShapes,setSelIds]);
+
+  const selShapes = shapes.filter(s=>selIds.has(s.id));
+  const singleSel = selIds.size===1 ? selShapes[0] : null;
+  const cw=100/cols, ch=100/rows;
+
+  const hDots = singleSel ? [
+    [singleSel.c,singleSel.r],[singleSel.c+singleSel.w/2,singleSel.r],[singleSel.c+singleSel.w,singleSel.r],
+    [singleSel.c+singleSel.w,singleSel.r+singleSel.h/2],[singleSel.c+singleSel.w,singleSel.r+singleSel.h],
+    [singleSel.c+singleSel.w/2,singleSel.r+singleSel.h],[singleSel.c,singleSel.r+singleSel.h],[singleSel.c,singleSel.r+singleSel.h/2],
+  ] : [];
+
+  const handleDuplicate = () => {
+    const toAdd = selShapes.map(s=>({...s,id:Date.now()+Math.random(),r:Math.min(rows-s.h,s.r+1),c:Math.min(cols-s.w,s.c+1)}));
+    setShapes(p=>[...p,...toAdd]);
+    setSelIds(new Set(toAdd.map(s=>s.id)));
+  };
+  const handleDelete = () => {
+    setShapes(p=>p.filter(s=>!selIds.has(s.id)));
+    setSelIds(new Set());
+  };
+  const handleRecolor = () => {
+    setShapes(p=>p.map(s=>selIds.has(s.id)?{...s,color:selectedColor}:s));
+  };
+
+  return (
+    <div style={{position:'relative'}}>
+      {/* Sticky selection bar */}
+      {selIds.size>0 && (
+        <div style={{
+          position:'sticky',top:0,zIndex:20,
+          display:'flex',alignItems:'center',gap:6,padding:'8px 12px',
+          background:'#fff',borderBottom:'1px solid #000',
+          boxShadow:'0 2px 8px rgba(0,0,0,0.06)',fontSize:12,
+        }}>
+          {selIds.size===1 && singleSel && <>
+            <div style={{width:16,height:16,background:singleSel.color.hex,border:'1px solid rgba(0,0,0,0.1)',borderRadius:2,flexShrink:0}}/>
+            <span style={{fontWeight:500,color:'#111'}}>{singleSel.color.name}</span>
+            <span style={{color:'#ddd'}}>·</span>
+            <span style={{color:'#999'}}>{singleSel.w}×{singleSel.h}</span>
+          </>}
+          {selIds.size>1 && <span style={{fontWeight:500,color:'#111'}}>{selIds.size} shapes selected</span>}
+          <span style={{color:'#ddd',margin:'0 2px'}}>·</span>
+          <span style={{fontSize:11,color:'#bbb',fontStyle:'italic'}}>Shift+click to add/remove</span>
+          <div style={{flex:1}}/>
+          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4,background:'#f5f5f5'}} onClick={handleRecolor} title={`Apply ${selectedColor.name} to selected`}>
+            <div style={{width:12,height:12,background:selectedColor.hex,border:'1px solid rgba(0,0,0,0.15)',borderRadius:2,flexShrink:0}}/>
+            Apply color
+          </button>
+          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDuplicate}><IcCopy/> Duplicate</button>
+          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDelete}><IcTrash/> Delete</button>
+        </div>
+      )}
+
+      {/* Canvas */}
+      <div style={{padding:'24px 24px 16px'}}>
+      <div ref={ref}
+        style={{position:'relative',width:'100%',aspectRatio:`${cols}/${rows}`,background:'#fafafa',cursor:cur,userSelect:'none',touchAction:'none'}}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
+
+        {/* Grid lines */}
+        <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}
+          viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
+          {Array.from({length:cols+1},(_,i)=>(
+            <line key={`v${i}`} x1={i} y1={0} x2={i} y2={rows}
+              stroke={i===0||i===cols?"#e0e0e0":"#ebebeb"}
+              strokeWidth={i===0||i===cols?"0.08":"0.04"}/>
+          ))}
+          {Array.from({length:rows+1},(_,i)=>(
+            <line key={`h${i}`} x1={0} y1={i} x2={cols} y2={i}
+              stroke={i===0||i===rows?"#e0e0e0":"#ebebeb"}
+              strokeWidth={i===0||i===rows?"0.08":"0.04"}/>
+          ))}
+        </svg>
+
+        {/* Shapes */}
+        {shapes.map(s=>{
+          const isSel=selIds.has(s.id);
+          return (
+            <div key={s.id} style={{
+              position:'absolute',
+              left:`${s.c*cw}%`,top:`${s.r*ch}%`,
+              width:`${s.w*cw}%`,height:`${s.h*ch}%`,
+              background:s.color.hex,
+              outline:isSel?'2px solid #111':'1px solid rgba(0,0,0,0.08)',
+              outlineOffset:isSel?'-1px':'0',
+              boxSizing:'border-box',pointerEvents:'none',
+              borderRadius:1,
+            }}/>
+          );
+        })}
+
+        {/* Ghost */}
+        {ghost && (
+          <div style={{
+            position:'absolute',
+            left:`${ghost.c*cw}%`,top:`${ghost.r*ch}%`,
+            width:`${ghost.w*cw}%`,height:`${ghost.h*ch}%`,
+            background:selectedColor.hex,opacity:0.5,
+            outline:'2px dashed #111',outlineOffset:'-1px',
+            boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
+          }}/>
+        )}
+
+        {/* Resize handles — single selection only */}
+        {hDots.map(([hc,hr],i)=>(
+          <div key={i} style={{
+            position:'absolute',
+            left:`calc(${hc*cw}% - 4px)`,top:`calc(${hr*ch}% - 4px)`,
+            width:8,height:8,
+            background:'#fff',border:'1.5px solid #111',borderRadius:2,
+            pointerEvents:'none',zIndex:5,
+          }}/>
+        ))}
+
+        {/* Quilting */}
+        {showQuilting && <QuiltOverlay cols={cols} rows={rows} pattern={quiltPattern} spacing={quiltSpacing} color={quiltColor?.hex||'#000'}/>}
+      </div>
+      </div>
+
+      {/* Hints */}
+      <div className="hint-strip">
+        <span>Drag to draw</span><span>·</span>
+        <span>Click to select</span><span>·</span>
+        <span>Shift+click for multi-select</span><span>·</span>
+        <span>Drag corners to resize</span>
+      </div>
+    </div>
+  );
+}
+
+// ── SuggestedPalettes ─────────────────────────────────────────────────────
+function SuggestedPalettes({ onLoad, onSelect }) {
+  const lookup = name => KONA.find(c => c.name === name);
+  const [expanded, setExpanded] = React.useState(false);
+  const visible = expanded ? SUGGESTED_PALETTES : SUGGESTED_PALETTES.slice(0, 4);
+
+  return (
+    <div className="card">
+      <div className="label">Suggested palettes</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {visible.map(pal => {
+          const cols = pal.colors.map(lookup).filter(Boolean);
+          return (
+            <div key={pal.name}
+              style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 0' }}
+              onClick={() => { onLoad(cols); if (cols[0]) onSelect(cols[0]); }}
+              title={`Load "${pal.name}" palette`}>
+              <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(0,0,0,0.08)' }}>
+                {cols.map((c,i) => (
+                  <div key={i} style={{ flex:1, background:c.hex }} title={c.name}/>
+                ))}
+              </div>
+              <span style={{ fontSize:11, color:'#888', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={()=>setExpanded(v=>!v)}
+        style={{ marginTop:8, background:'none', border:'none', cursor:'pointer', fontSize:11, color:'#bbb', padding:0, fontFamily:"'DM Sans',sans-serif" }}>
+        {expanded ? '↑ Show less' : `+ ${SUGGESTED_PALETTES.length - 4} more`}
+      </button>
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────
+function App() {
+  const [cols, setCols] = useState(16);
+  const [rows, setRows] = useState(16);
+  const [bs, setBs] = useState(3);
+  const [shapes, setShapes] = useState([]);
+  const [selIds, setSelIds] = useState(new Set());
+  const [color, setColor] = useState(KONA.find(c=>c.name==="Navy")||KONA[0]);
+  const [tool, setTool] = useState("paint");
+  const [search, setSearch] = useState("");
+  const [grp, setGrp] = useState("All");
+  const [customs, setCustoms] = useState([]);
+  const [showCF, setShowCF] = useState(false);
+  const [cName, setCName] = useState("");
+  const [cHex, setCHex] = useState("#000000");
+  const [pinned, setPinned] = useState([
+    KONA.find(c=>c.name==="White"), KONA.find(c=>c.name==="Black"),
+    KONA.find(c=>c.name==="Natural"), KONA.find(c=>c.name==="Navy"),
+    KONA.find(c=>c.name==="Scarlet"), KONA.find(c=>c.name==="Mustard"),
+  ].filter(Boolean));
+  const [preset, setPreset] = useState("Custom");
+  const [backing, setBacking] = useState(null);
+  const [binding, setBinding] = useState(null);
+  const [qPattern, setQPattern] = useState("none");
+  const [qSpacing, setQSpacing] = useState(2);
+  const [qColor, setQColor] = useState({ name:"White", hex:"#fff" });
+  const [showQ, setShowQ] = useState(true);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const allColors = useMemo(()=>[...customs,...KONA],[customs]);
+  const filtered = useMemo(()=>{
+    let l=allColors;
+    if(grp!=="All") l=l.filter(c=>c.group===grp);
+    if(search.trim()){const q=search.toLowerCase();l=l.filter(c=>c.name.toLowerCase().includes(q)||(c.code&&c.code.includes(q)));}
+    return l;
+  },[allColors,grp,search]);
+
+  useEffect(()=>{
+    setShapes(p=>p.map(s=>({...s,r:Math.min(s.r,rows-1),c:Math.min(s.c,cols-1),h:Math.max(1,Math.min(s.h,rows-Math.min(s.r,rows-1))),w:Math.max(1,Math.min(s.w,cols-Math.min(s.c,cols-1)))})));
+    setSelIds(new Set());
+  },[rows,cols]);
+
+  useEffect(()=>{
+    if(preset==="Custom") return;
+    const p=PRESETS.find(x=>x.name===preset); if(!p||!p.w) return;
+    const nc=Math.min(MAX,Math.max(2,Math.round(p.w/bs))), nr=Math.min(MAX,Math.max(2,Math.round(p.h/bs)));
+    if(nc!==cols)setCols(nc); if(nr!==rows)setRows(nr);
+  },[bs,preset]);
+
+  const flatGrid = useMemo(()=>{
+    const g=Array(rows).fill(null).map(()=>Array(cols).fill(null));
+    for(const s of shapes) for(let r=Math.max(0,s.r);r<Math.min(rows,s.r+s.h);r++) for(let c=Math.max(0,s.c);c<Math.min(cols,s.c+s.w);c++) g[r][c]=s.color;
+    return g;
+  },[shapes,rows,cols]);
+
+  const materials = useMemo(()=>{
+    const map=new Map();
+    for(const row of flatGrid) for(const cell of row){if(!cell)continue;if(!map.has(cell.name))map.set(cell.name,{...cell,count:0});map.get(cell.name).count+=1;}
+    const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs)})).sort((a,b)=>b.count-a.count);
+    return{items,total:items.reduce((s,x)=>s+x.count,0),possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
+  },[flatGrid,bs,rows,cols]);
+
+  const fw=cols*bs, fh=rows*bs;
+  const backCalc=useMemo(()=>calcBacking(fw,fh),[fw,fh]);
+  const bindCalc=useMemo(()=>calcBinding(fw,fh),[fw,fh]);
+  const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
+
+  const applyPreset=name=>{
+    const p=PRESETS.find(x=>x.name===name); if(!p||!p.w){setPreset(name);return;}
+    const nc=Math.min(MAX,Math.max(2,Math.round(p.w/bs))), nr=Math.min(MAX,Math.max(2,Math.round(p.h/bs)));
+    setCols(nc);setRows(nr);setPreset(name);
+  };
+
+  return (
+    <div className="app">
+
+      {/* Header */}
+      <header>
+        <div style={{display:'flex',alignItems:'baseline',gap:0}}>
+          <span className="logo">Quilt Studio</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {/* Tool toggles */}
+          <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
+            {[{id:'paint',label:'Draw'},{id:'erase',label:'Erase'}].map(t=>(
+              <button key={t.id} onClick={()=>setTool(t.id)}
+                style={{padding:'6px 14px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s'}}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button className="btn btn-sm" onClick={()=>setShapes([{id:Date.now(),r:0,c:0,h:rows,w:cols,color}])}>Fill all</button>
+          <button className="btn btn-sm" onClick={()=>setConfirmClear(true)}>Clear</button>
+        </div>
+      </header>
+
+      {/* Body */}
+      <div className="body">
+
+        {/* Left: palette */}
+        <div className="panel" style={{display:'flex',flexDirection:'column'}}>
+
+          {/* Selected color */}
+          <div className="card" style={{display:'flex',gap:10,alignItems:'center'}}>
+            <div style={{width:36,height:36,background:color?.hex,border:'1px solid rgba(0,0,0,0.1)',borderRadius:4,flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:500,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{color?.name}</div>
+              <div style={{fontSize:11,color:'#999',fontVariantNumeric:'tabular-nums'}}>{color?.hex}{color?.code&&!color?.custom?` · ${color.code}`:''}</div>
+            </div>
+            <button onClick={()=>{if(!color)return;setPinned(p=>p.find(c=>c.name===color.name)?p:[...p,color]);}}
+              style={{background:'none',border:'none',cursor:'pointer',color:pinned.some(c=>c.name===color?.name)?'#111':'#ccc',padding:2}}>
+              <IcPin on={pinned.some(c=>c.name===color?.name)}/>
+            </button>
+          </div>
+
+          {/* Suggested Palettes */}
+          <SuggestedPalettes onLoad={setPinned} onSelect={setColor}/>
+
+          {/* Pinned */}
+          {pinned.length>0 && (
+            <div className="card">
+              <div className="label">Saved colors</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4}}>
+                {pinned.map((c,i)=>(
+                  <div key={i} style={{position:'relative'}}
+                    onMouseEnter={e=>{const b=e.currentTarget.querySelector('.rm');if(b)b.style.opacity=1;}}
+                    onMouseLeave={e=>{const b=e.currentTarget.querySelector('.rm');if(b)b.style.opacity=0;}}>
+                    <button className={`chip ${color?.name===c.name?"selected":""}`} onClick={()=>setColor(c)}
+                      style={{background:c.hex}} title={c.name}/>
+                    <button className="rm" onClick={()=>setPinned(p=>p.filter((_,j)=>j!==i))}
+                      style={{position:'absolute',top:-3,right:-3,width:13,height:13,borderRadius:'50%',background:'#111',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',opacity:0,transition:'opacity .15s',zIndex:5}}>
+                      <IcX/>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search + filter */}
+          <div className="card" style={{paddingBottom:8}}>
+            <div style={{position:'relative',marginBottom:8}}>
+              <span style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',color:'#ccc',pointerEvents:'none',display:'flex'}}>
+                <IcSearch/>
+              </span>
+              <input type="text" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)} style={{paddingLeft:30}}/>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+              {GROUPS.map(g=>(
+                <button key={g} className={`pill ${grp===g?'active':''}`} onClick={()=>setGrp(g)}>{g}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color grid */}
+          <div className="card" style={{flex:1,overflowY:'auto'}}>
+            <div className="label">All colors ({filtered.length})</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:3}}>
+              {filtered.map((c,i)=>(
+                <button key={`${c.name}${i}`} className={`chip ${color?.name===c.name&&color?.hex===c.hex?'selected':''}`}
+                  onClick={()=>{ setColor(c); if(selIds.size>0) setShapes(p=>p.map(s=>selIds.has(s.id)?{...s,color:c}:s)); }} style={{background:c.hex}} title={`${c.name}${c.code&&!c.custom?` · ${c.code}`:''}`}/>
+              ))}
+              {!filtered.length && <div style={{gridColumn:'1/-1',fontSize:12,color:'#ccc',padding:'12px 0',textAlign:'center'}}>No matches</div>}
+            </div>
+          </div>
+
+          {/* Custom color */}
+          <div className="card">
+            {!showCF ? (
+              <button onClick={()=>setShowCF(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:'#999',display:'flex',alignItems:'center',gap:4,width:'100%',justifyContent:'center',padding:'2px 0'}}>
+                <IcPlus/> Add custom color
+              </button>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                <input type="text" placeholder="Color name" value={cName} onChange={e=>setCName(e.target.value)}/>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  <input type="color" value={cHex} onChange={e=>setCHex(e.target.value)} style={{width:36,flexShrink:0}}/>
+                  <input type="text" value={cHex} onChange={e=>setCHex(e.target.value)} style={{fontFamily:'monospace',fontSize:12}}/>
+                </div>
+                <div style={{display:'flex',gap:6}}>
+                  <button className="btn btn-dark btn-sm" style={{flex:1}} onClick={()=>{
+                    if(!cName.trim()||!/^#[0-9A-Fa-f]{6}$/.test(cHex)) return;
+                    const c={name:cName.trim(),hex:cHex.toUpperCase(),group:'Custom',custom:true};
+                    setCustoms(p=>[c,...p]);setColor(c);setCName('');setCHex('#000000');setShowCF(false);
+                  }}>Add</button>
+                  <button className="btn btn-sm" onClick={()=>setShowCF(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center: canvas */}
+        <div className="panel" style={{borderRight:'1px solid #000',display:'flex',flexDirection:'column'}}>
+          {/* Dimension bar */}
+          <div style={{padding:'12px 24px',borderBottom:'var(--div-border)',display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12,alignItems:'start',flexShrink:0}}>
+            <div style={{gridColumn:'1/-1'}}>
+              <div className="label" style={{marginBottom:6}}>Preset</div>
+              <select value={preset} onChange={e=>applyPreset(e.target.value)}>
+                {PRESETS.map(p=><option key={p.name} value={p.name}>{p.name}{p.w?` · ${p.w}" × ${p.h}"`:''}</option>)}
+              </select>
+            </div>
+            <div className="slider-row">
+              <div className="slider-label"><span>Columns</span><span>{cols}</span></div>
+              <input type="range" min={2} max={MAX} value={cols} onChange={e=>{setCols(+e.target.value);setPreset("Custom");}}/>
+            </div>
+            <div className="slider-row">
+              <div className="slider-label"><span>Rows</span><span>{rows}</span></div>
+              <input type="range" min={2} max={MAX} value={rows} onChange={e=>{setRows(+e.target.value);setPreset("Custom");}}/>
+            </div>
+            <div className="slider-row">
+              <div className="slider-label"><span>Block size</span><span>{bs}"</span></div>
+              <input type="range" min={1} max={12} step={0.5} value={bs} onChange={e=>setBs(+e.target.value)}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
+              <div style={{fontSize:11,color:'#999',marginBottom:2}}>Finished size</div>
+              <div style={{fontSize:14,fontWeight:500}}>{fw}" × {fh}"</div>
+              <div style={{fontSize:11,color:'#bbb'}}>cut: {bs+SEAM}" sq</div>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <div style={{flex:1,overflowY:'auto',overflowX:'hidden',padding:'0'}}>
+            <GridCanvas cols={cols} rows={rows} shapes={shapes} setShapes={setShapes}
+              selIds={selIds} setSelIds={setSelIds}
+              tool={tool} selectedColor={color}
+              quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}/>
+          </div>
+        </div>
+
+        {/* Right: finishing + materials */}
+        <div className="panel" style={{display:'flex',flexDirection:'column'}}>
+
+          {/* Quilting */}
+          <div className="card">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <div className="label" style={{marginBottom:0}}>Quilting pattern</div>
+              <button onClick={()=>setShowQ(v=>!v)} style={{background:'none',border:'none',cursor:'pointer',color:showQ?'#111':'#ccc',display:'flex'}}>
+                <IcEye off={!showQ}/>
+              </button>
+            </div>
+            <select value={qPattern} onChange={e=>setQPattern(e.target.value)} style={{marginBottom:8}}>
+              {QUILT_PATTERNS.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+            {qPattern!=="none"&&qPattern!=="ditch"&&(
+              <div className="slider-row" style={{marginBottom:8}}>
+                <div className="slider-label"><span>Spacing</span><span>every {qSpacing} block{qSpacing!==1?'s':''}</span></div>
+                <input type="range" min={1} max={8} value={qSpacing} onChange={e=>setQSpacing(+e.target.value)}/>
+              </div>
+            )}
+            {qPattern!=="none"&&(
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <span style={{fontSize:12,color:'#666'}}>Thread color</span>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <div style={{width:18,height:18,background:qColor?.hex,border:'1px solid rgba(0,0,0,0.12)',borderRadius:3}}/>
+                  <button className="btn btn-xs" onClick={()=>setQColor(color)}>Set to selected</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Backing */}
+          <div className="card">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <div className="label" style={{marginBottom:0}}>Backing</div>
+              <div style={{display:'flex',gap:4}}>
+                <button className="btn btn-xs btn-dark" onClick={()=>setBacking(color)}>Set color</button>
+                {backing&&<button className="btn btn-xs" onClick={()=>setBacking(null)}>Clear</button>}
+              </div>
+            </div>
+            {backing ? (
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <div style={{width:28,height:28,background:backing.hex,border:'1px solid rgba(0,0,0,0.1)',borderRadius:3,flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{backing.name}</div>
+                  <div style={{fontSize:11,color:'#999',fontFamily:'monospace'}}>{backCalc.backingW}"×{backCalc.backingH}" · {backCalc.widths}w</div>
+                </div>
+                <div style={{fontSize:15,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(backCalc.yards)}</div>
+              </div>
+            ) : <div style={{fontSize:12,color:'#ccc',fontStyle:'italic'}}>No backing set</div>}
+          </div>
+
+          {/* Binding */}
+          <div className="card">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <div className="label" style={{marginBottom:0}}>Binding</div>
+              <div style={{display:'flex',gap:4}}>
+                <button className="btn btn-xs btn-dark" onClick={()=>setBinding(color)}>Set color</button>
+                {binding&&<button className="btn btn-xs" onClick={()=>setBinding(null)}>Clear</button>}
+              </div>
+            </div>
+            {binding ? (
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <div style={{width:28,height:28,background:binding.hex,border:'1px solid rgba(0,0,0,0.1)',borderRadius:3,flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{binding.name}</div>
+                  <div style={{fontSize:11,color:'#999',fontFamily:'monospace'}}>{bindCalc.strips} strips · {bindCalc.perimeter}" perim.</div>
+                </div>
+                <div style={{fontSize:15,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(bindCalc.yards)}</div>
+              </div>
+            ) : <div style={{fontSize:12,color:'#ccc',fontStyle:'italic'}}>No binding set</div>}
+          </div>
+
+          {/* Materials */}
+          <div className="card">
+            <div className="label">Materials</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+              <div>
+                <div style={{fontSize:11,color:'#999',marginBottom:2}}>Patches placed</div>
+                <div style={{fontSize:26,fontWeight:600,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{materials.total}</div>
+                <div style={{fontSize:11,color:'#ccc'}}>of {materials.possible}</div>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:'#999',marginBottom:2}}>Grand total</div>
+                <div style={{fontSize:26,fontWeight:600,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{fmtY(grandTotal)}</div>
+                <div style={{fontSize:11,color:'#ccc'}}>all fabrics</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{borderTop:'1px solid #f0f0f0',flex:1,overflowY:'auto'}}>
+            <div style={{padding:'10px 16px 4px'}}>
+              <div className="label">Quilt top · by color</div>
+            </div>
+            {materials.items.length===0 ? (
+              <div style={{padding:'12px 16px',fontSize:12,color:'#ccc',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
+            ) : materials.items.map(item=>(
+              <div key={item.name} className="mat-row">
+                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.08)',borderRadius:3,flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
+                  <div style={{fontSize:11,color:'#999',fontFamily:'monospace'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
+                </div>
+                <div style={{fontSize:14,fontWeight:600,fontVariantNumeric:'tabular-nums',color:'#111'}}>{fmtY(item.yards)}</div>
+              </div>
+            ))}
+            <div style={{padding:'12px 16px',fontSize:11,color:'#ccc',lineHeight:1.6}}>
+              Assumes 40" WOF, ¼" seam allowance. Backing adds 4" per side. Binding: 2.5" double-fold strips. Add 10–15% for shrinkage.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Clear confirm */}
+      {confirmClear && (
+        <div className="overlay" onClick={()=>setConfirmClear(false)}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:8,padding:24,maxWidth:340,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.12)'}}>
+            <div style={{fontWeight:600,fontSize:16,marginBottom:8}}>Clear the quilt?</div>
+            <div style={{fontSize:13,color:'#666',marginBottom:20,lineHeight:1.5}}>This will remove all shapes from your design. This cannot be undone.</div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="btn" onClick={()=>setConfirmClear(false)}>Cancel</button>
+              <button className="btn btn-dark" onClick={()=>{setShapes([]);setSelIds(new Set());setConfirmClear(false);}}>Clear all</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tweaks ────────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "borderColor": "#000000",
+  "borderWidth": "1",
+  "appBg": "#ffffff",
+  "canvasBg": "#fafafa",
+  "radius": "4"
+}/*EDITMODE-END*/;
+
+function applyTweaks(t) {
+  const b = `${t.borderWidth}px solid ${t.borderColor}`;
+  const root = document.documentElement;
+  root.style.setProperty('--div-border', b);
+  root.style.setProperty('--app-bg', t.appBg);
+  root.style.setProperty('--canvas-bg', t.canvasBg);
+  let s = document.getElementById('_tweak_s');
+  if (!s) { s = document.createElement('style'); s.id = '_tweak_s'; document.head.appendChild(s); }
+  s.textContent = `.btn, input[type=text], select, .chip { border-radius: ${t.radius}px !important; } .pill { border-radius: 2px !important; } body { background: ${t.appBg}; }`;
+}
+
+function TweaksPanel() {
+  const [open, setOpen] = React.useState(false);
+  const [t, setT] = React.useState(TWEAK_DEFAULTS);
+
+  React.useEffect(() => {
+    applyTweaks(TWEAK_DEFAULTS);
+    const handler = (e) => {
+      if (e.data && e.data.type === '__activate_edit_mode') setOpen(true);
+      if (e.data && e.data.type === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const set = (key, val) => {
+    const next = { ...t, [key]: val };
+    setT(next);
+    applyTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+  };
+
+  if (!open) return null;
+
+  const Row = ({ label, children }) => (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+      <span style={{ fontSize:11, color:'#666' }}>{label}</span>
+      {children}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position:'fixed', bottom:16, right:16, zIndex:200,
+      background:'#fff', border:'1px solid #000', borderRadius:4,
+      padding:'14px 16px', width:230,
+      boxShadow:'0 4px 20px rgba(0,0,0,0.1)',
+      fontFamily:"'DM Sans',sans-serif",
+    }}>
+      <div style={{ fontSize:11, fontWeight:600, marginBottom:14, letterSpacing:'0.08em', textTransform:'uppercase', color:'#111' }}>Tweaks</div>
+
+      <Row label="Border color">
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <input type="color" value={t.borderColor} onChange={e=>set('borderColor',e.target.value)}
+            style={{ width:28, height:24, padding:2, border:'1px solid #e0e0e0', borderRadius:3, cursor:'pointer', background:'none' }}/>
+          <span style={{ fontSize:10, fontFamily:'monospace', color:'#aaa' }}>{t.borderColor}</span>
+        </div>
+      </Row>
+
+      <Row label="Border width">
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <input type="range" min={0} max={4} step={0.5} value={t.borderWidth} onChange={e=>set('borderWidth',e.target.value)}
+            style={{ width:80, accentColor:'#111' }}/>
+          <span style={{ fontSize:10, fontFamily:'monospace', color:'#aaa', minWidth:28 }}>{t.borderWidth}px</span>
+        </div>
+      </Row>
+
+      <Row label="Corner radius">
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <input type="range" min={0} max={12} step={1} value={t.radius} onChange={e=>set('radius',e.target.value)}
+            style={{ width:80, accentColor:'#111' }}/>
+          <span style={{ fontSize:10, fontFamily:'monospace', color:'#aaa', minWidth:28 }}>{t.radius}px</span>
+        </div>
+      </Row>
+
+      <Row label="Background">
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <input type="color" value={t.appBg} onChange={e=>set('appBg',e.target.value)}
+            style={{ width:28, height:24, padding:2, border:'1px solid #e0e0e0', borderRadius:3, cursor:'pointer', background:'none' }}/>
+          <span style={{ fontSize:10, fontFamily:'monospace', color:'#aaa' }}>{t.appBg}</span>
+        </div>
+      </Row>
+
+      <Row label="Canvas bg">
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <input type="color" value={t.canvasBg} onChange={e=>set('canvasBg',e.target.value)}
+            style={{ width:28, height:24, padding:2, border:'1px solid #e0e0e0', borderRadius:3, cursor:'pointer', background:'none' }}/>
+          <span style={{ fontSize:10, fontFamily:'monospace', color:'#aaa' }}>{t.canvasBg}</span>
+        </div>
+      </Row>
+
+      <button onClick={()=>{ setT(TWEAK_DEFAULTS); applyTweaks(TWEAK_DEFAULTS); }}
+        style={{ marginTop:6, width:'100%', padding:'5px 0', fontSize:11, background:'none', border:'1px solid #e0e0e0', borderRadius:4, cursor:'pointer', color:'#999', fontFamily:"'DM Sans',sans-serif" }}>
+        Reset defaults
+      </button>
+    </div>
+  );
+}
+
+function Root() {
+  return (
+    <>
+      <App/>
+      <TweaksPanel/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
+</script>
+</body>
+</html>
