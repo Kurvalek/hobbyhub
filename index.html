@@ -645,13 +645,6 @@ function App() {
     setSelIds(new Set());
   },[rows,cols]);
 
-  useEffect(()=>{
-    if(preset==="Custom") return;
-    const p=PRESETS.find(x=>x.name===preset); if(!p||!p.w) return;
-    const nc=Math.min(MAX,Math.max(2,Math.round(p.w/bs))), nr=Math.min(MAX,Math.max(2,Math.round(p.h/bs)));
-    if(nc!==cols)setCols(nc); if(nr!==rows)setRows(nr);
-  },[bs,preset]);
-
   const flatGrid = useMemo(()=>{
     const g=Array(rows).fill(null).map(()=>Array(cols).fill(null));
     for(const s of shapes) for(let r=Math.max(0,s.r);r<Math.min(rows,s.r+s.h);r++) for(let c=Math.max(0,s.c);c<Math.min(cols,s.c+s.w);c++) g[r][c]=s.color;
@@ -670,10 +663,47 @@ function App() {
   const bindCalc=useMemo(()=>calcBinding(fw,fh),[fw,fh]);
   const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
 
-  const applyPreset=name=>{
-    const p=PRESETS.find(x=>x.name===name); if(!p||!p.w){setPreset(name);return;}
-    const nc=Math.min(MAX,Math.max(2,Math.round(p.w/bs))), nr=Math.min(MAX,Math.max(2,Math.round(p.h/bs)));
-    setCols(nc);setRows(nr);setPreset(name);
+  const applyPreset = name => {
+    setPreset(name);
+    const p = PRESETS.find(x => x.name === name);
+    if (!p || !p.w) return;
+    const nc = Math.min(MAX, Math.max(2, Math.round(p.w / bs)));
+    const nr = Math.min(MAX, Math.max(2, Math.round(p.h / bs)));
+    setCols(nc);
+    setRows(nr);
+  };
+
+  const handleBsChange = newBs => {
+    setBs(newBs);
+    if (preset === "Custom") return;
+    const p = PRESETS.find(x => x.name === preset);
+    if (!p || !p.w) return;
+    const nc = Math.min(MAX, Math.max(2, Math.round(p.w / newBs)));
+    const nr = Math.min(MAX, Math.max(2, Math.round(p.h / newBs)));
+    setCols(nc);
+    setRows(nr);
+  };
+
+  const handleColsChange = newCols => {
+    setCols(newCols);
+    if (preset === "Custom") return;
+    const p = PRESETS.find(x => x.name === preset);
+    if (!p || !p.w) return;
+    const newBs = Math.min(12, Math.max(1, Math.round(p.w / newCols * 2) / 2));
+    setBs(newBs);
+    const nr = Math.min(MAX, Math.max(2, Math.round(p.h / newBs)));
+    setRows(nr);
+  };
+
+  const handleRowsChange = newRows => {
+    setRows(newRows);
+    if (preset === "Custom") return;
+    const p = PRESETS.find(x => x.name === preset);
+    if (!p || !p.w) return;
+    const newBs = Math.min(12, Math.max(1, Math.round(p.h / newRows * 2) / 2));
+    setBs(newBs);
+    const nc = Math.min(MAX, Math.max(2, Math.round(p.w / newBs)));
+    setCols(nc);
   };
 
   return (
@@ -807,15 +837,15 @@ function App() {
             </div>
             <div className="slider-row">
               <div className="slider-label"><span>Columns</span><span>{cols}</span></div>
-              <input type="range" min={2} max={MAX} value={cols} onChange={e=>{setCols(+e.target.value);setPreset("Custom");}}/>
+              <input type="range" min={2} max={MAX} value={cols} onChange={e=>handleColsChange(+e.target.value)}/>
             </div>
             <div className="slider-row">
               <div className="slider-label"><span>Rows</span><span>{rows}</span></div>
-              <input type="range" min={2} max={MAX} value={rows} onChange={e=>{setRows(+e.target.value);setPreset("Custom");}}/>
+              <input type="range" min={2} max={MAX} value={rows} onChange={e=>handleRowsChange(+e.target.value)}/>
             </div>
             <div className="slider-row">
               <div className="slider-label"><span>Block size</span><span>{bs}"</span></div>
-              <input type="range" min={1} max={12} step={0.5} value={bs} onChange={e=>setBs(+e.target.value)}/>
+              <input type="range" min={1} max={12} step={0.5} value={bs} onChange={e=>handleBsChange(+e.target.value)}/>
             </div>
             <div style={{display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>
               <div style={{fontSize:11,color:'#999',marginBottom:2}}>Finished size</div>
