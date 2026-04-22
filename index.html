@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@7.9.0/css/iconoir.css" rel="stylesheet"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body, #root { height: 100%; }
@@ -38,7 +39,7 @@
   .logo em { font-style: italic; color: #888; font-size: 14px; margin-left: 10px; font-family: 'DM Sans', sans-serif; font-weight: 300; }
 
   /* Section labels */
-  .label { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 10px; }
+  .label { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: #111; margin-bottom: 10px; }
 
   /* Cards */
   .card { padding: 16px; border-bottom: var(--div-border); }
@@ -659,47 +660,73 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 // ── SuggestedPalettes ─────────────────────────────────────────────────────
 function SuggestedPalettes({ onLoad, onSelect }) {
   const lookup = name => KONA.find(c => c.name === name);
-  const [expanded, setExpanded] = React.useState(false);
-  const visible = expanded ? SUGGESTED_PALETTES : SUGGESTED_PALETTES.slice(0, 4);
+  const [open, setOpen] = React.useState(false);
+  const [showAll, setShowAll] = React.useState(false);
+  const visible = showAll ? SUGGESTED_PALETTES : SUGGESTED_PALETTES.slice(0, 4);
 
   return (
-    <div className="card">
-      <div className="label">Suggested palettes</div>
-      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {visible.map(pal => {
-          const cols = pal.colors.map(lookup).filter(Boolean);
-          return (
-            <div key={pal.name}
-              style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 0' }}
-              onClick={() => { onLoad(cols); if (cols[0]) onSelect(cols[0]); }}
-              title={`Load "${pal.name}" palette`}>
-              <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(0,0,0,0.08)' }}>
-                {cols.map((c,i) => (
-                  <div key={i} style={{ flex:1, background:c.hex }} title={c.name}/>
-                ))}
-              </div>
-              <span style={{ fontSize:11, color:'#888', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
-            </div>
-          );
-        })}
-      </div>
-      <button onClick={()=>setExpanded(v=>!v)}
-        style={{ marginTop:8, background:'none', border:'none', cursor:'pointer', fontSize:11, color:'#bbb', padding:0, fontFamily:"'DM Sans',sans-serif" }}>
-        {expanded ? '↑ Show less' : `+ ${SUGGESTED_PALETTES.length - 4} more`}
+    <div>
+      <button onClick={()=>setOpen(v=>!v)}
+        style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, color:'#999', padding:0, fontFamily:"'DM Sans',sans-serif", display:'flex', alignItems:'center', gap:4 }}>
+        <span style={{fontSize:9,transition:'transform .15s',transform:open?'rotate(90deg)':'rotate(0)',display:'inline-block'}}>▶</span>
+        Suggested palettes
       </button>
+      {open && (
+        <div style={{ marginTop:8 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {visible.map(pal => {
+              const cols = pal.colors.map(lookup).filter(Boolean);
+              return (
+                <div key={pal.name}
+                  style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 0' }}
+                  onClick={() => { onLoad(cols); if (cols[0]) onSelect(cols[0]); }}
+                  title={`Load "${pal.name}" palette`}>
+                  <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(0,0,0,0.08)' }}>
+                    {cols.map((c,i) => (
+                      <div key={i} style={{ flex:1, background:c.hex }} title={c.name}/>
+                    ))}
+                  </div>
+                  <span style={{ fontSize:11, color:'#888', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
+                </div>
+              );
+            })}
+          </div>
+          {SUGGESTED_PALETTES.length > 4 && (
+            <button onClick={()=>setShowAll(v=>!v)}
+              style={{ marginTop:8, background:'none', border:'none', cursor:'pointer', fontSize:11, color:'#bbb', padding:0, fontFamily:"'DM Sans',sans-serif" }}>
+              {showAll ? '↑ Show less' : `+ ${SUGGESTED_PALETTES.length - 4} more`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
 function App() {
-  const [cols, setCols] = useState(16);
-  const [rows, setRows] = useState(16);
+  const [cols, setCols] = useState(17);
+  const [rows, setRows] = useState(22);
   const [bs, setBs] = useState(3);
-  const [shapes, setShapes] = useState([]);
+  const [shapes, _setShapes] = useState([]);
+  const historyRef = useRef([]);
+  const setShapes = useCallback(updater => {
+    _setShapes(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      historyRef.current.push(prev);
+      if (historyRef.current.length > 100) historyRef.current.shift();
+      return next;
+    });
+  }, []);
+  const undo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+    const prev = historyRef.current.pop();
+    _setShapes(prev);
+    setSelIds(new Set());
+  }, []);
   const [selIds, setSelIds] = useState(new Set());
   const [color, setColor] = useState(KONA.find(c=>c.name==="Navy")||KONA[0]);
-  const [tool, setTool] = useState("select");
+  const [tool, setTool] = useState("paint");
   const [search, setSearch] = useState("");
   const [grp, setGrp] = useState("All");
   const [customs, setCustoms] = useState([]);
@@ -711,7 +738,7 @@ function App() {
     KONA.find(c=>c.name==="Natural"), KONA.find(c=>c.name==="Navy"),
     KONA.find(c=>c.name==="Scarlet"), KONA.find(c=>c.name==="Mustard"),
   ].filter(Boolean));
-  const [preset, setPreset] = useState("Custom");
+  const [preset, setPreset] = useState("Lap / Throw");
   const [backing, setBacking] = useState(null);
   const [binding, setBinding] = useState(null);
   const [qPattern, setQPattern] = useState("none");
@@ -719,6 +746,22 @@ function App() {
   const [qColor, setQColor] = useState({ name:"White", hex:"#fff" });
   const [showQ, setShowQ] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [savedQuilts, setSavedQuilts] = useState([]);
+  const [showSave, setShowSave] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [viewQuilt, setViewQuilt] = useState(null);
+  const [showMyQuilts, setShowMyQuilts] = useState(false);
+
+  useEffect(() => {
+    const handleKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [undo]);
 
   const allColors = useMemo(()=>[...customs,...KONA],[customs]);
   const filtered = useMemo(()=>{
@@ -799,21 +842,16 @@ function App() {
 
       {/* Header */}
       <header>
-        <div style={{display:'flex',alignItems:'baseline',gap:0}}>
-          <span className="logo">Quilt Studio</span>
-        </div>
+        <span className="logo">Quilt Studio</span>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          {/* Tool toggles */}
-          <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
-            {[{id:'select',label:'Select'},{id:'paint',label:'Draw'},{id:'erase',label:'Erase'}].map(t=>(
-              <button key={t.id} onClick={()=>setTool(t.id)}
-                style={{padding:'6px 14px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s'}}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <button className="btn btn-sm" onClick={()=>setShapes([{id:Date.now(),r:0,c:0,h:rows,w:cols,color}])}>Fill all</button>
-          <button className="btn btn-sm" onClick={()=>setConfirmClear(true)}>Clear</button>
+          {savedQuilts.length>0 && (
+            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
+              <i className="iconoir-book" style={{fontSize:15}}/> My quilts ({savedQuilts.length})
+            </button>
+          )}
+          <button className="btn btn-sm btn-dark" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>{setSaveName('');setShowSave(true);}}>
+            <i className="iconoir-save-floppy-disk" style={{fontSize:15}}/> Save quilt
+          </button>
         </div>
       </header>
 
@@ -836,14 +874,11 @@ function App() {
             </button>
           </div>
 
-          {/* Suggested Palettes */}
-          <SuggestedPalettes onLoad={setPinned} onSelect={setColor}/>
-
-          {/* Pinned */}
-          {pinned.length>0 && (
-            <div className="card">
-              <div className="label">Saved colors</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4}}>
+          {/* My Palette */}
+          <div className="card">
+            <div className="label">My palette</div>
+            {pinned.length>0 && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:4,marginBottom:8}}>
                 {pinned.map((c,i)=>(
                   <div key={i} style={{position:'relative'}}
                     onMouseEnter={e=>{const b=e.currentTarget.querySelector('.rm');if(b)b.style.opacity=1;}}
@@ -857,8 +892,10 @@ function App() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+            {pinned.length===0 && <div style={{fontSize:12,color:'#ccc',fontStyle:'italic',marginBottom:8}}>Pin colors to build your palette</div>}
+            <SuggestedPalettes onLoad={setPinned} onSelect={setColor}/>
+          </div>
 
           {/* Search + filter */}
           <div className="card" style={{paddingBottom:8}}>
@@ -940,6 +977,23 @@ function App() {
               <div style={{fontSize:14,fontWeight:500}}>{fw}" × {fh}"</div>
               <div style={{fontSize:11,color:'#bbb'}}>cut: {bs+SEAM}" sq</div>
             </div>
+          </div>
+
+          {/* Toolbar */}
+          <div style={{padding:'8px 24px',borderBottom:'var(--div-border)',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+            <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
+              {[{id:'select',label:'Select',icon:'iconoir-cursor-pointer'},{id:'paint',label:'Draw',icon:'iconoir-design-pencil'},{id:'erase',label:'Erase',icon:'iconoir-erase'}].map(t=>(
+                <button key={t.id} onClick={()=>setTool(t.id)}
+                  style={{padding:'6px 12px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s',display:'flex',alignItems:'center',gap:5}}>
+                  <i className={t.icon} style={{fontSize:15}}/>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div style={{width:1,height:20,background:'#e5e5e5',margin:'0 2px'}}/>
+            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={undo} title="Undo (⌘Z)"><i className="iconoir-undo" style={{fontSize:15}}/> Undo</button>
+            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShapes([{id:Date.now(),r:0,c:0,h:rows,w:cols,color}])}><i className="iconoir-fill-color" style={{fontSize:15}}/> Fill all</button>
+            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setConfirmClear(true)}><i className="iconoir-trash" style={{fontSize:15}}/> Clear</button>
           </div>
 
           {/* Grid */}
@@ -1078,6 +1132,139 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Save dialog */}
+      {showSave && (
+        <div className="overlay" onClick={()=>setShowSave(false)}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:8,padding:24,maxWidth:380,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.12)'}}>
+            <div style={{fontWeight:600,fontSize:16,marginBottom:16}}>Save your quilt</div>
+            <input type="text" placeholder="Give your quilt a name…" value={saveName} onChange={e=>setSaveName(e.target.value)}
+              autoFocus onKeyDown={e=>{if(e.key==='Enter'&&saveName.trim()){
+                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,
+                  materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
+                setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
+              }}}
+              style={{marginBottom:16}}/>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="btn" onClick={()=>setShowSave(false)}>Cancel</button>
+              <button className="btn btn-dark" onClick={()=>{
+                if(!saveName.trim()) return;
+                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,
+                  materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
+                setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
+              }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* My quilts list */}
+      {showMyQuilts && (
+        <div className="overlay" onClick={()=>setShowMyQuilts(false)}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:8,padding:24,maxWidth:500,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.12)',maxHeight:'80vh',overflowY:'auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+              <div style={{fontWeight:600,fontSize:16}}>My quilts</div>
+              <button onClick={()=>setShowMyQuilts(false)} style={{background:'none',border:'none',cursor:'pointer',color:'#999',display:'flex'}}><IcX/></button>
+            </div>
+            {savedQuilts.length===0 ? (
+              <div style={{fontSize:13,color:'#ccc',fontStyle:'italic',padding:'20px 0',textAlign:'center'}}>No saved quilts yet</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {savedQuilts.map(q=>(
+                  <div key={q.id} style={{display:'flex',gap:12,alignItems:'center',padding:12,border:'1px solid #e5e5e5',borderRadius:6,cursor:'pointer',transition:'background .1s'}}
+                    onClick={()=>{setViewQuilt(q);setShowMyQuilts(false);}}
+                    onMouseEnter={e=>e.currentTarget.style.background='#fafafa'}
+                    onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                    <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#fafafa',borderRadius:4,overflow:'hidden'}}>
+                      <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="64" height="64" preserveAspectRatio="xMidYMid meet">
+                        {q.shapes.map((s,i)=><rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.05)" strokeWidth="0.05"/>)}
+                      </svg>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:500,fontSize:14,marginBottom:2}}>{q.name}</div>
+                      <div style={{fontSize:12,color:'#999'}}>{q.fw}" × {q.fh}" · {q.preset !== 'Custom' ? q.preset : 'Custom size'}</div>
+                      <div style={{fontSize:12,color:'#bbb'}}>{q.materials.items.length} color{q.materials.items.length!==1?'s':''} · {fmtY(q.grandTotal)} total</div>
+                    </div>
+                    <i className="iconoir-nav-arrow-right" style={{fontSize:18,color:'#ccc'}}/>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Quilt preview */}
+      {viewQuilt && (()=>{
+        const q = viewQuilt;
+        const allItems = [
+          ...q.materials.items.map(m=>({type:'Quilt top',name:m.name,hex:m.hex,detail:`${m.count} pcs · ${m.strips} strip${m.strips!==1?'s':''}`,yards:m.yards})),
+          ...(q.backing ? [{type:'Backing',name:q.backing.name,hex:q.backing.hex,detail:`${q.backCalc.backingW}"×${q.backCalc.backingH}" · ${q.backCalc.widths}w`,yards:q.backCalc.yards}] : []),
+          ...(q.binding ? [{type:'Binding',name:q.binding.name,hex:q.binding.hex,detail:`${q.bindCalc.strips} strips · ${q.bindCalc.perimeter}" perim.`,yards:q.bindCalc.yards}] : []),
+        ];
+        return (
+          <div className="overlay" onClick={()=>setViewQuilt(null)}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:'#fff',border:'1px solid #e5e5e5',borderRadius:8,maxWidth:720,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.12)',maxHeight:'90vh',overflowY:'auto'}}>
+
+              {/* Top bar */}
+              <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #f0f0f0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:18}}>{q.name}</div>
+                  <div style={{fontSize:13,color:'#999',marginTop:2}}>{q.fw}" × {q.fh}" · {q.preset !== 'Custom' ? q.preset : 'Custom size'} · {q.bs}" blocks</div>
+                </div>
+                <button onClick={()=>setViewQuilt(null)} style={{background:'none',border:'none',cursor:'pointer',color:'#999',display:'flex'}}><IcX/></button>
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
+                {/* Preview */}
+                <div style={{padding:24,borderRight:'1px solid #f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:'100%',maxWidth:320,background:'#fafafa',borderRadius:4,overflow:'hidden',border:'1px solid #e5e5e5'}}>
+                    <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{display:'block'}}>
+                      <rect width={q.cols} height={q.rows} fill="#fafafa"/>
+                      {Array.from({length:q.cols+1},(_,i)=><line key={`v${i}`} x1={i} y1={0} x2={i} y2={q.rows} stroke="#ebebeb" strokeWidth="0.04"/>)}
+                      {Array.from({length:q.rows+1},(_,i)=><line key={`h${i}`} x1={0} y1={i} x2={q.cols} y2={i} stroke="#ebebeb" strokeWidth="0.04"/>)}
+                      {q.shapes.map((s,i)=><rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.06)" strokeWidth="0.05"/>)}
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Supplies list */}
+                <div style={{display:'flex',flexDirection:'column'}}>
+                  <div style={{padding:'16px 20px 8px'}}>
+                    <div className="label" style={{marginBottom:4}}>Supplies list</div>
+                    <div style={{fontSize:12,color:'#999'}}>{allItems.length} item{allItems.length!==1?'s':''}</div>
+                  </div>
+                  <div style={{flex:1,overflowY:'auto',maxHeight:320}}>
+                    {allItems.map((item,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 20px',borderBottom:'1px solid #f5f5f5'}}>
+                        <div style={{width:24,height:24,background:item.hex,border:'1px solid rgba(0,0,0,0.08)',borderRadius:3,flexShrink:0}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
+                          <div style={{fontSize:11,color:'#999'}}>{item.type} · {item.detail}</div>
+                        </div>
+                        <div style={{fontSize:13,fontWeight:600,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{fmtY(item.yards)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{padding:'12px 20px',borderTop:'1px solid #f0f0f0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div>
+                      <div style={{fontSize:11,color:'#999'}}>Grand total</div>
+                      <div style={{fontSize:20,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(q.grandTotal)}</div>
+                    </div>
+                    <button className="btn btn-dark" style={{display:'flex',alignItems:'center',gap:6,padding:'10px 20px',fontSize:13}}
+                      onClick={()=>alert('Add to cart coming soon — Shopify integration pending!')}>
+                      <i className="iconoir-cart" style={{fontSize:16}}/> Add to cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
