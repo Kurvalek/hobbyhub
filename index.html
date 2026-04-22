@@ -461,8 +461,10 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         const white=KONA.find(c=>c.name==="White")||KONA[0];
         const newShapes=[];
         for(let r=ghost.r;r<ghost.r+ghost.h;r++)
-          for(let c=ghost.c;c<ghost.c+ghost.w;c++)
-            newShapes.push({id:Date.now()+Math.random(),r,c,h:1,w:1,type:'hst',color:selectedColor,color2:white,dir:'/'});
+          for(let c=ghost.c;c<ghost.c+ghost.w;c++){
+            newShapes.push({id:Date.now()+Math.random(),r,c,h:1,w:1,type:'tri',color:selectedColor,dir:'/',half:'a'});
+            newShapes.push({id:Date.now()+Math.random(),r,c,h:1,w:1,type:'tri',color:white,dir:'/',half:'b'});
+          }
         setShapes(p=>[...p,...newShapes]);
         setSelIds(new Set(newShapes.map(s=>s.id)));
       } else {
@@ -495,7 +497,12 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         setSelIds(new Set());
       }
       if(e.key==='f'||e.key==='F'){
-        setShapes(p=>p.map(s=>(sids.has(s.id)&&s.type==='hst')?{...s,dir:s.dir==='/'?'\\':'/'}:s));
+        const selTris=sRef.current.filter(s=>sids.has(s.id)&&s.type==='tri');
+        const cells=new Set(selTris.map(s=>`${s.r},${s.c}`));
+        setShapes(p=>p.map(s=>{
+          if(s.type!=='tri'||!cells.has(`${s.r},${s.c}`)) return s;
+          return {...s,dir:s.dir==='/'?'\\':'/',half:s.half};
+        }));
       }
       const arrow={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];
       if(arrow){
@@ -540,17 +547,16 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const handleRecolor = () => {
     setShapes(p=>p.map(s=>selIds.has(s.id)?{...s,color:selectedColor}:s));
   };
-  const handleRecolor2 = () => {
-    setShapes(p=>p.map(s=>(selIds.has(s.id)&&s.type==='hst')?{...s,color2:selectedColor}:s));
-  };
-  const handleFlipHst = () => {
-    setShapes(p=>p.map(s=>(selIds.has(s.id)&&s.type==='hst')?{...s,dir:s.dir==='/'?'\\':'/'}:s));
-  };
-  const handleSwapHst = () => {
-    setShapes(p=>p.map(s=>(selIds.has(s.id)&&s.type==='hst')?{...s,color:s.color2,color2:s.color}:s));
+  const handleFlipTri = () => {
+    const selTris=selShapes.filter(s=>s.type==='tri');
+    const cells=new Set(selTris.map(s=>`${s.r},${s.c}`));
+    setShapes(p=>p.map(s=>{
+      if(s.type!=='tri'||!cells.has(`${s.r},${s.c}`)) return s;
+      return {...s,dir:s.dir==='/'?'\\':'/'};
+    }));
   };
 
-  const hasHst = selShapes.some(s=>s.type==='hst');
+  const hasTri = selShapes.some(s=>s.type==='tri');
 
   return (
     <div style={{position:'relative'}}>
@@ -563,21 +569,16 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
           boxShadow:'0 2px 8px rgba(0,0,0,0.06)',fontSize:12,flexWrap:'wrap',
         }}>
           {selIds.size===1 && singleSel && <>
-            {singleSel.type==='hst' ? <>
-              <svg width="18" height="18" viewBox="0 0 1 1" style={{border:'1px solid rgba(0,0,0,0.1)',borderRadius:2,flexShrink:0}}>
-                {singleSel.dir==='/' ? <>
-                  <polygon points="0,0 1,0 0,1" fill={singleSel.color.hex}/>
-                  <polygon points="1,0 1,1 0,1" fill={(singleSel.color2||singleSel.color).hex}/>
-                </> : <>
-                  <polygon points="0,0 1,0 1,1" fill={singleSel.color.hex}/>
-                  <polygon points="0,0 0,1 1,1" fill={(singleSel.color2||singleSel.color).hex}/>
-                </>}
+            {singleSel.type==='tri' ? <>
+              <svg width="16" height="16" viewBox="0 0 1 1" style={{border:'1px solid rgba(0,0,0,0.1)',borderRadius:2,flexShrink:0}}>
+                {singleSel.dir==='/'&&singleSel.half==='a'&&<polygon points="0,0 1,0 0,1" fill={singleSel.color.hex}/>}
+                {singleSel.dir==='/'&&singleSel.half==='b'&&<polygon points="1,0 1,1 0,1" fill={singleSel.color.hex}/>}
+                {singleSel.dir==='\\'&&singleSel.half==='a'&&<polygon points="0,0 1,0 1,1" fill={singleSel.color.hex}/>}
+                {singleSel.dir==='\\'&&singleSel.half==='b'&&<polygon points="0,0 0,1 1,1" fill={singleSel.color.hex}/>}
               </svg>
               <span style={{fontWeight:500,color:'#111'}}>{singleSel.color.name}</span>
-              <span style={{color:'#ddd'}}>/</span>
-              <span style={{fontWeight:500,color:'#111'}}>{(singleSel.color2||singleSel.color).name}</span>
               <span style={{color:'#ddd'}}>·</span>
-              <span style={{color:'#999'}}>HST</span>
+              <span style={{color:'#999'}}>Triangle</span>
             </> : <>
               <div style={{width:16,height:16,background:singleSel.color.hex,border:'1px solid rgba(0,0,0,0.1)',borderRadius:2,flexShrink:0}}/>
               <span style={{fontWeight:500,color:'#111'}}>{singleSel.color.name}</span>
@@ -587,18 +588,11 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
           </>}
           {selIds.size>1 && <span style={{fontWeight:500,color:'#111'}}>{selIds.size} shapes selected</span>}
           <div style={{flex:1}}/>
-          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4,background:'#f5f5f5'}} onClick={handleRecolor} title={`Apply ${selectedColor.name}`}>
+          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4,background:'#f5f5f5'}} onClick={handleRecolor} title={`Apply ${selectedColor.name} to selected`}>
             <div style={{width:12,height:12,background:selectedColor.hex,border:'1px solid rgba(0,0,0,0.15)',borderRadius:2,flexShrink:0}}/>
-            {hasHst ? '◤ Color' : 'Apply color'}
+            Apply color
           </button>
-          {hasHst && <>
-            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4,background:'#f5f5f5'}} onClick={handleRecolor2} title={`Apply ${selectedColor.name} to second half`}>
-              <div style={{width:12,height:12,background:selectedColor.hex,border:'1px solid rgba(0,0,0,0.15)',borderRadius:2,flexShrink:0}}/>
-              ◢ Color
-            </button>
-            <button className="btn btn-sm" onClick={handleSwapHst} title="Swap colors">⇄ Swap</button>
-            <button className="btn btn-sm" onClick={handleFlipHst} title="Flip diagonal">⟋ Flip</button>
-          </>}
+          {hasTri && <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋ Flip</button>}
           <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDuplicate}><IcCopy/> Duplicate</button>
           <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDelete}><IcTrash/> Delete</button>
         </div>
@@ -629,24 +623,20 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         {shapes.map(s=>{
           const isSel=selIds.has(s.id);
           const pos={position:'absolute',left:`${s.c*cw}%`,top:`${s.r*ch}%`,width:`${s.w*cw}%`,height:`${s.h*ch}%`,
-            outline:isSel?'2px solid #111':'1px solid rgba(0,0,0,0.08)',outlineOffset:isSel?'-1px':'0',
             boxSizing:'border-box',pointerEvents:'none',borderRadius:1,overflow:'hidden'};
-          if(s.type==='hst') return (
-            <div key={s.id} style={pos}>
-              <svg viewBox="0 0 1 1" width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}>
-                {s.dir==='/' ? <>
-                  <polygon points="0,0 1,0 0,1" fill={s.color.hex}/>
-                  <polygon points="1,0 1,1 0,1" fill={(s.color2||s.color).hex}/>
-                </> : <>
-                  <polygon points="0,0 1,0 1,1" fill={s.color.hex}/>
-                  <polygon points="0,0 0,1 1,1" fill={(s.color2||s.color).hex}/>
-                </>}
-                <line x1={s.dir==='/'?0:0} y1={s.dir==='/'?1:0} x2={s.dir==='/'?1:1} y2={s.dir==='/'?0:1} stroke="rgba(0,0,0,0.1)" strokeWidth="0.03"/>
-              </svg>
-            </div>
-          );
+          if(s.type==='tri'){
+            const pts=s.dir==='/'?(s.half==='a'?'0,0 1,0 0,1':'1,0 1,1 0,1'):(s.half==='a'?'0,0 1,0 1,1':'0,0 0,1 1,1');
+            return (
+              <div key={s.id} style={pos}>
+                <svg viewBox="0 0 1 1" width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}>
+                  <polygon points={pts} fill={s.color.hex} stroke={isSel?'#111':'rgba(0,0,0,0.08)'} strokeWidth={isSel?'0.06':'0.02'}/>
+                </svg>
+              </div>
+            );
+          }
           return (
-            <div key={s.id} style={{...pos,background:s.color.hex}}/>
+            <div key={s.id} style={{...pos,background:s.color.hex,
+              outline:isSel?'2px solid #111':'1px solid rgba(0,0,0,0.08)',outlineOffset:isSel?'-1px':'0'}}/>
           );
         })}
 
@@ -831,23 +821,18 @@ function App() {
     setSelIds(new Set());
   },[rows,cols]);
 
-  const flatGrid = useMemo(()=>{
-    const g=Array(rows).fill(null).map(()=>Array(cols).fill(null));
-    for(const s of shapes) for(let r=Math.max(0,s.r);r<Math.min(rows,s.r+s.h);r++) for(let c=Math.max(0,s.c);c<Math.min(cols,s.c+s.w);c++) g[r][c]=s;
-    return g;
-  },[shapes,rows,cols]);
-
   const materials = useMemo(()=>{
     const map=new Map();
     const add=(col,amt)=>{if(!col)return;if(!map.has(col.name))map.set(col.name,{...col,count:0});map.get(col.name).count+=amt;};
-    for(const row of flatGrid) for(const cell of row){
-      if(!cell) continue;
-      if(cell.type==='hst'){add(cell.color,0.5);add(cell.color2,0.5);}
-      else add(cell.color,1);
+    for(const s of shapes){
+      const area=s.h*s.w;
+      if(s.type==='tri') add(s.color,area*0.5);
+      else add(s.color,area);
     }
     const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs)})).sort((a,b)=>b.count-a.count);
-    return{items,total:items.reduce((s,x)=>s+x.count,0),possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
-  },[flatGrid,bs,rows,cols]);
+    const total=shapes.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
+    return{items,total,possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
+  },[shapes,bs,rows,cols]);
 
   const fw=cols*bs, fh=rows*bs;
   const backCalc=useMemo(()=>calcBacking(fw,fh),[fw,fh]);
@@ -1043,16 +1028,14 @@ function App() {
           <div style={{padding:'8px 24px',borderBottom:'var(--div-border)',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
             <div style={{display:'flex',border:'1px solid #e5e5e5',borderRadius:6,overflow:'hidden'}}>
               {[{id:'select',label:'Select',icon:'iconoir-cursor-pointer'},{id:'paint',label:'Draw',icon:'iconoir-design-pencil'},{id:'hst',label:'HST',icon:'iconoir-triangle'},{id:'erase',label:'Erase',icon:'iconoir-erase'}].map(t=>(
-                <button key={t.id} onClick={()=>setTool(t.id)}
-                  style={{padding:'6px 12px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s',display:'flex',alignItems:'center',gap:5}}>
-                  <i className={t.icon} style={{fontSize:15}}/>
-                  {t.label}
+                <button key={t.id} onClick={()=>setTool(t.id)} title={t.label}
+                  style={{padding:'7px 10px',fontSize:12,fontFamily:"'DM Sans',sans-serif",fontWeight:500,border:'none',background:tool===t.id?'#111':'transparent',color:tool===t.id?'#fff':'#666',cursor:'pointer',transition:'all .12s',display:'flex',alignItems:'center'}}>
+                  <i className={t.icon} style={{fontSize:16}}/>
                 </button>
               ))}
             </div>
             <div style={{width:1,height:20,background:'#e5e5e5',margin:'0 2px'}}/>
             <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={undo} title="Undo (⌘Z)"><i className="iconoir-undo" style={{fontSize:15}}/> Undo</button>
-            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShapes([{id:Date.now(),r:0,c:0,h:rows,w:cols,color}])}><i className="iconoir-fill-color" style={{fontSize:15}}/> Fill all</button>
             <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setConfirmClear(true)}><i className="iconoir-trash" style={{fontSize:15}}/> Clear</button>
           </div>
 
@@ -1239,8 +1222,8 @@ function App() {
                     onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
                     <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#fafafa',borderRadius:4,overflow:'hidden'}}>
                       <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="64" height="64" preserveAspectRatio="xMidYMid meet">
-                        {q.shapes.map((s,i)=>s.type==='hst'?(
-                          <g key={i}>{s.dir==='/'?<><polygon points={`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`} fill={s.color.hex}/><polygon points={`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`} fill={(s.color2||s.color).hex}/></>:<><polygon points={`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`} fill={s.color.hex}/><polygon points={`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`} fill={(s.color2||s.color).hex}/></>}</g>
+                        {q.shapes.map((s,i)=>s.type==='tri'?(
+                          <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c},${s.r+1}`:`${s.c+1},${s.r} ${s.c+1},${s.r+1} ${s.c},${s.r+1}`):(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c+1},${s.r+1}`:`${s.c},${s.r} ${s.c},${s.r+1} ${s.c+1},${s.r+1}`)} fill={s.color.hex}/>
                         ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.05)" strokeWidth="0.05"/>)}
                       </svg>
                     </div>
@@ -1288,8 +1271,8 @@ function App() {
                       <rect width={q.cols} height={q.rows} fill="#fafafa"/>
                       {Array.from({length:q.cols+1},(_,i)=><line key={`v${i}`} x1={i} y1={0} x2={i} y2={q.rows} stroke="#ebebeb" strokeWidth="0.04"/>)}
                       {Array.from({length:q.rows+1},(_,i)=><line key={`h${i}`} x1={0} y1={i} x2={q.cols} y2={i} stroke="#ebebeb" strokeWidth="0.04"/>)}
-                      {q.shapes.map((s,i)=>s.type==='hst'?(
-                        <g key={i}>{s.dir==='/'?<><polygon points={`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`} fill={s.color.hex}/><polygon points={`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`} fill={(s.color2||s.color).hex}/></>:<><polygon points={`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`} fill={s.color.hex}/><polygon points={`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`} fill={(s.color2||s.color).hex}/></>}</g>
+                      {q.shapes.map((s,i)=>s.type==='tri'?(
+                        <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c},${s.r+1}`:`${s.c+1},${s.r} ${s.c+1},${s.r+1} ${s.c},${s.r+1}`):(s.half==='a'?`${s.c},${s.r} ${s.c+1},${s.r} ${s.c+1},${s.r+1}`:`${s.c},${s.r} ${s.c},${s.r+1} ${s.c+1},${s.r+1}`)} fill={s.color.hex}/>
                       ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.06)" strokeWidth="0.05"/>)}
                     </svg>
                   </div>
