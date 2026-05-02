@@ -47,7 +47,7 @@
     /* Action / accent semantics */
     --action: var(--metime-black);
     --action-hover: var(--metime-almost-black);
-    --selection: var(--metime-tomato);
+    --selection: #CCD6EB;
     --metime-wave: var(--metime-tomato);
 
     /* Shadows tuned to warm bg */
@@ -85,7 +85,7 @@
 
   /* Layout */
   .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--app-bg); }
-  .body { flex: 1; display: grid; grid-template-columns: 52px 1fr 290px; min-height: 0; border-top: var(--div-border); }
+  .body { flex: 1; display: grid; grid-template-columns: 52px 1fr 290px; min-height: 0; }
   .panel { overflow-y: auto; border-right: var(--div-border); }
   .panel:last-child { border-right: none; }
 
@@ -94,7 +94,7 @@
   .panel::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
 
   /* Header */
-  header { padding: 14px 20px; border-bottom: var(--div-border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; }
+  header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
   .header-left { display: flex; align-items: center; }
   .header-center { display: flex; align-items: center; justify-content: center; }
   .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -154,6 +154,31 @@
   .size-bar-meta { display: flex; gap: 16px; font-size: 11px; color: var(--warm-muted); white-space: nowrap; }
   .size-bar-meta span { font-variant-numeric: tabular-nums; }
 
+  /* Canvas viewport (scrollable, centered, scaled by zoom) */
+  .canvas-scroll { width: 100%; height: 100%; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; box-sizing: border-box; }
+  .canvas-scroll > .canvas-frame { flex-shrink: 0; position: relative; background: var(--canvas-bg); }
+  .canvas-surface { position: absolute; inset: 0; user-select: none; touch-action: none; }
+
+  /* Bottom-of-canvas zoom bar */
+  .zoom-bar { display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-top: var(--div-border); background: var(--surface-canvas); flex-shrink: 0; }
+  .zoom-bar input[type=range] { flex: 1; max-width: 280px; }
+  .zoom-bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--warm-fg-2); min-width: 40px; text-align: right; }
+
+  /* Floating selection toolbar (position+coords are computed in JS, FigJam-style) */
+  .selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(46,41,37,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
+  .selection-toolbar-divider { display: inline-block; width: 1px; height: 16px; background: var(--warm-hairline); margin: 0 2px; }
+  .selection-swatch-btn { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 5px; font: inherit; color: inherit; cursor: pointer; transition: background .12s, border-color .12s; }
+  .selection-swatch-btn:hover { background: var(--surface-hover, rgba(46,41,37,0.05)); border-color: var(--warm-hairline); }
+  .selection-swatch-preview { width: 14px; height: 14px; border: 1px solid rgba(46,41,37,0.12); border-radius: 2px; flex-shrink: 0; display: block; }
+  .selection-swatch-mixed { background: conic-gradient(#E8583A 0deg 90deg, #B5BB46 90deg 180deg, #1A2E4C 180deg 270deg, #E1A92F 270deg 360deg); }
+  .selection-swatch-name { font-weight: 500; color: var(--warm-fg); }
+  .selection-swatch-meta { color: var(--warm-muted); font-family: var(--font-mono); font-size: 11px; }
+  .selection-swatch-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-fg-2); margin-left: 2px; }
+  .selection-toolbar::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+  .selection-toolbar.above::after { bottom: -5px; border-top: 6px solid var(--surface-card); }
+  .selection-toolbar.below::after { top: -5px; border-bottom: 6px solid var(--surface-card); }
+  .selection-toolbar.clamped::after { display: none; }
+
   /* Section labels */
   .label { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--warm-fg); margin-bottom: 10px; }
   .label-mono { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warm-muted); }
@@ -181,10 +206,21 @@
   .btn-sm { padding: 4px 10px; font-size: 11px; }
   .btn-xs { padding: 3px 8px; font-size: 11px; }
 
+  /* Fabric row (clickable color field) */
+  .fabric-row { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: transparent; border: none; border-bottom: var(--div-border); width: 100%; cursor: pointer; text-align: left; font: inherit; color: inherit; transition: background .12s; box-sizing: border-box; }
+  .fabric-row:hover { background: var(--warm-hover); }
+  .fabric-row:focus-visible { outline: 2px solid var(--selection); outline-offset: -2px; }
+  .fabric-row-swatch { width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--warm-hairline); }
+  .fabric-row-swatch.empty { border: 1px dashed var(--warm-hairline); background: transparent; }
+  .fabric-row-main { flex: 1; min-width: 0; }
+  .fabric-row-title { font-size: 12px; font-weight: 500; color: var(--warm-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fabric-row-name { color: var(--warm-muted); font-weight: 400; }
+  .fabric-row-detail { font-size: 11px; color: var(--warm-muted); font-family: var(--font-mono); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* Color chip */
-  .chip { aspect-ratio: 1; border-radius: 3px; border: 1px solid rgba(46,41,37,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
-  .chip:hover { transform: scale(1.08); box-shadow: 0 2px 8px rgba(46,41,37,0.18); }
-  .chip.selected { outline: 2px solid var(--selection); outline-offset: 2px; }
+  .chip { aspect-ratio: 1; border-radius: 4px; border: 1px solid rgba(46,41,37,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
+  .chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(46,41,37,0.18); }
+  .chip.selected { outline: 3px solid var(--selection); outline-offset: 3px; box-shadow: 0 0 0 1px rgba(46,41,37,0.18) inset, 0 2px 6px rgba(46,41,37,0.12); position: relative; z-index: 2; }
 
   /* Tag pills */
   .pill { padding: 3px 8px; font-size: 11px; border-radius: 2px; cursor: pointer; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg-2); transition: all .12s; }
@@ -217,7 +253,7 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useMemo, useRef, useEffect, useCallback } = React;
+const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
 
 // ── Minimal inline icons ──────────────────────────────────────────────────
 const Svg = ({ children, size=14 }) => (
@@ -404,6 +440,7 @@ const QUILT_PATTERNS = [
   { id:"cross_diagonal", label:"Diagonal Cross" },
 ];
 const WOF=40, SEAM=0.5, MAX=60;
+const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
 
 const SUGGESTED_PALETTES = [
   { name: "Coastal",    colors: ["Navy","Dusty Blue","Robin Egg","Natural","White"] },
@@ -471,12 +508,18 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // ── GridCanvas ────────────────────────────────────────────────────────────
 // Shape: { id, r, c, h, w, color }
 // selIds: Set<id> — lifted to App for cross-component access
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting }) {
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, pinned = [] }) {
   const ref = useRef(null);
+  const scrollRef = useRef(null);
+  const toolbarRef = useRef(null);
   const dragRef = useRef(null);
   const [ghost, setGhost] = useState(null);
   const [marquee, setMarquee] = useState(null);
   const [cur, setCur] = useState('default');
+  const [tbPos, setTbPos] = useState(null);
+  const swatchRefA = useRef(null);
+  const swatchRefB = useRef(null);
+  const [paletteSlot, setPaletteSlot] = useState(null);
   const sRef = useRef(shapes); useEffect(()=>{sRef.current=shapes;},[shapes]);
   const selRef = useRef(selIds); useEffect(()=>{selRef.current=selIds;},[selIds]);
 
@@ -548,11 +591,22 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
     const s=shapeAt(r,c,cur,px,py,rect);
     if(s){
+      // Triangle pairs are treated as a single selectable item — clicking either
+      // half selects both, shift-click toggles them together.
+      const pairSet = expandPairs(new Set([s.id]), cur);
+      const pairIds = [...pairSet];
       if(shift){
-        setSelIds(prev=>{const n=new Set(prev);n.has(s.id)?n.delete(s.id):n.add(s.id);return n;});
+        setSelIds(prev=>{
+          const n=new Set(prev);
+          const allIn=pairIds.every(id=>n.has(id));
+          if(allIn) pairIds.forEach(id=>n.delete(id));
+          else pairIds.forEach(id=>n.add(id));
+          return n;
+        });
         dragRef.current={type:'noop'};
       } else {
-        const newSids = sids.has(s.id) ? sids : new Set([s.id]);
+        const alreadySelected=pairIds.every(id=>sids.has(id));
+        const newSids = alreadySelected ? sids : pairSet;
         setSelIds(newSids);
         const moveIds=expandPairs(newSids,cur);
         const relevant=cur.filter(x=>moveIds.has(x.id));
@@ -700,6 +754,22 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     [(selBounds.minC+selBounds.maxC)/2,selBounds.maxR],[selBounds.minC,selBounds.maxR],[selBounds.minC,(selBounds.minR+selBounds.maxR)/2],
   ] : [];
 
+  // Triangle pairs whose halves are both selected — used to suppress the
+  // diagonal hypotenuse stroke so the pair reads as a single highlighted square.
+  const fullySelectedPairs = useMemo(() => {
+    const counts = new Map();
+    for (const s of shapes) {
+      if (!s.pairId) continue;
+      const e = counts.get(s.pairId) || { sel: 0, total: 0 };
+      e.total++;
+      if (selIds.has(s.id)) e.sel++;
+      counts.set(s.pairId, e);
+    }
+    const set = new Set();
+    for (const [pid, e] of counts) if (e.total === 2 && e.sel === 2) set.add(pid);
+    return set;
+  }, [shapes, selIds]);
+
   const handleDuplicate = () => {
     const dupIds=expandPairs(selIds,shapes);
     const toDup=shapes.filter(s=>dupIds.has(s.id));
@@ -717,8 +787,8 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     setShapes(p=>p.filter(s=>!del.has(s.id)));
     setSelIds(new Set());
   };
-  const handleRecolor = () => {
-    setShapes(p=>p.map(s=>selIds.has(s.id)?{...s,color:selectedColor}:s));
+  const handleRecolor = (c = selectedColor, ids = selIds) => {
+    setShapes(p=>p.map(s=>ids.has(s.id)?{...s,color:c}:s));
   };
   const handleFlipTri = () => {
     const pids=new Set();
@@ -745,142 +815,302 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
   const hasTri = selShapes.some(s=>s.type==='tri');
 
+  // Color shown on the toolbar swatch: shape color when single-select; common
+  // color across the selection when all match; otherwise null (mixed).
+  const selectionSwatchColor = useMemo(() => {
+    if (selShapes.length === 0) return null;
+    const first = selShapes[0].color;
+    return selShapes.every(s => s.color?.hex === first?.hex) ? first : null;
+  }, [selShapes]);
+
+  // Half-square triangle (HST) view: when the selection is exactly one tri pair,
+  // treat it as a single item with two color dropdowns + the swap/flip switcher.
+  const singleTriPair = useMemo(() => {
+    if (selShapes.length !== 2 || !selShapes.every(s => s.type === 'tri')) return null;
+    const [s1, s2] = selShapes;
+    if (!s1.pairId || s1.pairId !== s2.pairId) return null;
+    const a = s1.half === 'a' ? s1 : s2;
+    const b = s1.half === 'a' ? s2 : s1;
+    return { a, b };
+  }, [selShapes]);
+
+  // Which set of shape ids the mini-palette will recolor when a chip is picked.
+  const paletteTargetIds = useMemo(() => {
+    if (!paletteSlot) return null;
+    if (singleTriPair) return new Set([singleTriPair[paletteSlot].id]);
+    return selIds;
+  }, [paletteSlot, singleTriPair, selIds]);
+
+  // The currently-applied color shown as "selected" in the popover grid.
+  const paletteCurrentColor = useMemo(() => {
+    if (!paletteSlot) return null;
+    if (singleTriPair) return singleTriPair[paletteSlot].color;
+    return selectionSwatchColor;
+  }, [paletteSlot, singleTriPair, selectionSwatchColor]);
+
+  useEffect(() => { setPaletteSlot(null); }, [selIds]);
+
+  // Position the floating selection toolbar in viewport coords, FigJam-style:
+  // - Default: hover above the bbox, anchored to the canvas frame.
+  // - When the bbox sits at the top of the canvas (or off-screen above), flip below.
+  // - When neither above nor below fits in the canvas-scroll viewport, clamp to the
+  //   visible top of the viewport (no arrow).
+  useLayoutEffect(() => {
+    if (!selBounds || selIds.size === 0) {
+      if (tbPos) setTbPos(null);
+      return undefined;
+    }
+    const recompute = () => {
+      const surface = ref.current;
+      const scroll = scrollRef.current;
+      const tb = toolbarRef.current;
+      if (!surface || !scroll || !tb) return;
+      const sRect = surface.getBoundingClientRect();
+      const cRect = scroll.getBoundingClientRect();
+      const tbRect = tb.getBoundingClientRect();
+      const cellW = sRect.width / cols;
+      const cellH = sRect.height / rows;
+      const bboxLeft = sRect.left + selBounds.minC * cellW;
+      const bboxRight = sRect.left + selBounds.maxC * cellW;
+      const bboxTop = sRect.top + selBounds.minR * cellH;
+      const bboxBottom = sRect.top + selBounds.maxR * cellH;
+      const bboxCx = (bboxLeft + bboxRight) / 2;
+      const GAP = 8;
+      const PAD = 8;
+      const tbH = tbRect.height || 36;
+      const tbW = tbRect.width || 240;
+      let mode, top;
+      const aboveY = bboxTop - GAP - tbH;
+      const belowY = bboxBottom + GAP;
+      if (aboveY >= cRect.top + PAD) {
+        mode = 'above'; top = aboveY;
+      } else if (belowY + tbH <= cRect.bottom - PAD) {
+        mode = 'below'; top = belowY;
+      } else {
+        mode = 'clamped'; top = cRect.top + PAD;
+      }
+      let left = bboxCx - tbW / 2;
+      const minLeft = cRect.left + PAD;
+      const maxLeft = cRect.right - PAD - tbW;
+      left = Math.max(minLeft, Math.min(left, maxLeft));
+      setTbPos(prev => {
+        if (prev && prev.mode === mode && Math.abs(prev.left - left) < 0.5 && Math.abs(prev.top - top) < 0.5) return prev;
+        return { left, top, mode };
+      });
+    };
+    recompute();
+    const scrollEl = scrollRef.current;
+    const onScroll = () => recompute();
+    const onResize = () => recompute();
+    scrollEl?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      scrollEl?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, [
+    selBounds?.minR, selBounds?.minC, selBounds?.maxR, selBounds?.maxC,
+    selIds.size, cols, rows, zoom,
+  ]);
+
   return (
-    <div style={{position:'relative'}}>
-      {/* Sticky selection bar */}
-      {selIds.size>0 && (
-        <div style={{
-          position:'sticky',top:0,zIndex:20,
-          display:'flex',alignItems:'center',gap:6,padding:'8px 12px',
-          background:'#F5F3EE',borderBottom:'1px solid #2E2925',
-          boxShadow:'0 2px 8px rgba(46,41,37,0.08)',fontSize:12,flexWrap:'wrap',
+    <div style={{position:'relative',width:'100%',height:'100%'}}>
+      <div className="canvas-scroll" ref={scrollRef}>
+        <div className="canvas-frame" style={{
+          width: `${zoom*100}%`,
+          aspectRatio: `${cols}/${rows}`,
         }}>
-          {selIds.size===1 && singleSel && <>
-            {singleSel.type==='tri' ? <>
-              <svg width="16" height="16" viewBox="0 0 1 1" style={{border:'1px solid rgba(46,41,37,0.12)',borderRadius:2,flexShrink:0}}>
-                {singleSel.dir==='/'&&singleSel.half==='a'&&<polygon points="0,0 1,0 0,1" fill={singleSel.color.hex}/>}
-                {singleSel.dir==='/'&&singleSel.half==='b'&&<polygon points="1,0 1,1 0,1" fill={singleSel.color.hex}/>}
-                {singleSel.dir==='\\'&&singleSel.half==='a'&&<polygon points="0,0 1,0 1,1" fill={singleSel.color.hex}/>}
-                {singleSel.dir==='\\'&&singleSel.half==='b'&&<polygon points="0,0 0,1 1,1" fill={singleSel.color.hex}/>}
+          <div ref={ref} className="canvas-surface"
+            style={{cursor:cur}}
+            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
+
+            {/* Grid lines (1pt regardless of zoom via non-scaling-stroke) */}
+            <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}
+              viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
+              {Array.from({length:cols+1},(_,i)=>(
+                <line key={`v${i}`} x1={i} y1={0} x2={i} y2={rows}
+                  stroke={i===0||i===cols?"#E2DDD2":"#EFE9DD"}
+                  strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+              ))}
+              {Array.from({length:rows+1},(_,i)=>(
+                <line key={`h${i}`} x1={0} y1={i} x2={cols} y2={i}
+                  stroke={i===0||i===rows?"#E2DDD2":"#EFE9DD"}
+                  strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+              ))}
+            </svg>
+
+            {/* Shapes */}
+            {shapes.map(s=>{
+              const isSel=selIds.has(s.id);
+              const pos={position:'absolute',left:`${s.c*cw}%`,top:`${s.r*ch}%`,width:`${s.w*cw}%`,height:`${s.h*ch}%`,
+                boxSizing:'border-box',pointerEvents:'none',borderRadius:1,overflow:'hidden'};
+              if(s.type==='tri'){
+                const pts=s.dir==='/'?(s.half==='a'?'0,0 1,0 0,1':'1,0 1,1 0,1'):(s.half==='a'?'0,0 1,0 1,1':'0,0 0,1 1,1');
+                // Suppress the polygon's stroke (which would draw the diagonal
+                // hypotenuse) when the whole pair is selected — the pair gets a
+                // single outline around its bounding box instead.
+                const pairFully = s.pairId && fullySelectedPairs.has(s.pairId);
+                const showSelStroke = isSel && !pairFully;
+                return (
+                  <div key={s.id} style={pos}>
+                    <svg viewBox="0 0 1 1" width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}>
+                      <polygon points={pts} fill={s.color.hex} stroke={showSelStroke?'#CCD6EB':'rgba(46,41,37,0.10)'} strokeWidth={showSelStroke?'0.06':'0.02'}/>
+                    </svg>
+                  </div>
+                );
+              }
+              return (
+                <div key={s.id} style={{...pos,background:s.color.hex,
+                  outline:isSel?'2px solid #CCD6EB':'1px solid rgba(46,41,37,0.10)',outlineOffset:isSel?'-1px':'0'}}/>
+              );
+            })}
+
+            {/* Ghost */}
+            {ghost && (
+              <div style={{
+                position:'absolute',
+                left:`${ghost.c*cw}%`,top:`${ghost.r*ch}%`,
+                width:`${ghost.w*cw}%`,height:`${ghost.h*ch}%`,
+                background:selectedColor.hex,opacity:0.5,
+                outline:'2px dashed #2E2925',outlineOffset:'-1px',
+                boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
+              }}/>
+            )}
+
+            {/* Marquee */}
+            {marquee && (
+              <div style={{
+                position:'absolute',
+                left:`${marquee.c*cw}%`,top:`${marquee.r*ch}%`,
+                width:`${marquee.w*cw}%`,height:`${marquee.h*ch}%`,
+                background:'rgba(46,41,37,0.06)',
+                outline:'1.5px dashed #5C544A',outlineOffset:'-1px',
+                boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
+              }}/>
+            )}
+
+            {/* Bounding box outline for multi-selection or a fully-selected
+                tri pair (so HSTs read as a single highlighted square). */}
+            {selBounds && (selIds.size>1) && (
+              <div style={{
+                position:'absolute',
+                left:`${selBounds.minC*cw}%`,top:`${selBounds.minR*ch}%`,
+                width:`${(selBounds.maxC-selBounds.minC)*cw}%`,height:`${(selBounds.maxR-selBounds.minR)*ch}%`,
+                outline: singleTriPair ? '2px solid #CCD6EB' : '1.5px dashed #CCD6EB',
+                outlineOffset:'-1px',
+                boxSizing:'border-box',pointerEvents:'none',
+              }}/>
+            )}
+
+            {/* Resize handles */}
+            {hDots.map(([hc,hr],i)=>(
+              <div key={i} style={{
+                position:'absolute',
+                left:`calc(${hc*cw}% - 4px)`,top:`calc(${hr*ch}% - 4px)`,
+                width:8,height:8,
+                background:'#FFFFFF',border:'1.5px solid #CCD6EB',borderRadius:2,
+                pointerEvents:'none',zIndex:5,
+              }}/>
+            ))}
+
+            {/* Quilting */}
+            {showQuilting && <QuiltOverlay cols={cols} rows={rows} pattern={quiltPattern} spacing={quiltSpacing} color={quiltColor?.hex||'#2E2925'}/>}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Floating selection toolbar (FigJam-style: anchored to bbox, clamps to viewport) */}
+      {selBounds && selIds.size > 0 && (
+        <div
+          ref={toolbarRef}
+          className={`selection-toolbar ${tbPos ? tbPos.mode : 'above'}`}
+          style={tbPos
+            ? { position:'fixed', left: tbPos.left, top: tbPos.top }
+            : { position:'fixed', left: 0, top: 0, visibility:'hidden' }}>
+          {singleTriPair ? <>
+            <button
+              ref={swatchRefA}
+              className="selection-swatch-btn"
+              onClick={() => setPaletteSlot(s => s === 'a' ? null : 'a')}
+              title="Change color of first triangle">
+              <svg className="selection-swatch-preview" width="14" height="14" viewBox="0 0 1 1">
+                {singleTriPair.a.dir==='/'
+                  ? <polygon points="0,0 1,0 0,1" fill={singleTriPair.a.color.hex}/>
+                  : <polygon points="0,0 1,0 1,1" fill={singleTriPair.a.color.hex}/>}
               </svg>
-              <span style={{fontWeight:500,color:'#2E2925'}}>{singleSel.color.name}</span>
-              <span style={{color:'#CFC9BE'}}>·</span>
-              <span style={{color:'#8A8580'}}>Triangle</span>
-            </> : <>
-              <div style={{width:16,height:16,background:singleSel.color.hex,border:'1px solid rgba(46,41,37,0.12)',borderRadius:2,flexShrink:0}}/>
-              <span style={{fontWeight:500,color:'#2E2925'}}>{singleSel.color.name}</span>
-              <span style={{color:'#CFC9BE'}}>·</span>
-              <span style={{color:'#8A8580'}}>{singleSel.w}×{singleSel.h}</span>
-            </>}
-          </>}
-          {selIds.size>1 && <span style={{fontWeight:500,color:'#2E2925'}}>{selIds.size} shapes selected</span>}
-          <div style={{flex:1}}/>
-          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4,background:'#EFE9DD'}} onClick={handleRecolor} title={`Apply ${selectedColor.name} to selected`}>
-            <div style={{width:12,height:12,background:selectedColor.hex,border:'1px solid rgba(46,41,37,0.18)',borderRadius:2,flexShrink:0}}/>
-            Apply color
-          </button>
+              <span className="selection-swatch-caret" aria-hidden="true"/>
+            </button>
+            <button
+              ref={swatchRefB}
+              className="selection-swatch-btn"
+              onClick={() => setPaletteSlot(s => s === 'b' ? null : 'b')}
+              title="Change color of second triangle">
+              <svg className="selection-swatch-preview" width="14" height="14" viewBox="0 0 1 1">
+                {singleTriPair.b.dir==='/'
+                  ? <polygon points="1,0 1,1 0,1" fill={singleTriPair.b.color.hex}/>
+                  : <polygon points="0,0 0,1 1,1" fill={singleTriPair.b.color.hex}/>}
+              </svg>
+              <span className="selection-swatch-caret" aria-hidden="true"/>
+            </button>
+            <span className="selection-swatch-meta">{singleTriPair.a.w}×{singleTriPair.a.h}</span>
+          </> : (
+            <button
+              ref={swatchRefA}
+              className="selection-swatch-btn"
+              onClick={() => setPaletteSlot(s => s === 'a' ? null : 'a')}
+              title="Change color">
+              {selectionSwatchColor
+                ? <span className="selection-swatch-preview" style={{background: selectionSwatchColor.hex}}/>
+                : <span className="selection-swatch-preview selection-swatch-mixed" aria-hidden="true"/>}
+              <span className="selection-swatch-meta">
+                {selIds.size === 1 && singleSel
+                  ? `${singleSel.w}×${singleSel.h}`
+                  : `${selIds.size} selected`}
+              </span>
+              <span className="selection-swatch-caret" aria-hidden="true"/>
+            </button>
+          )}
+          <span className="selection-toolbar-divider"/>
           {hasTri && <>
-            <button className="btn btn-sm" onClick={handleSwapTriColors} title="Swap triangle colors">⇄ Swap</button>
-            <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋ Flip</button>
+            <button className="btn btn-sm" onClick={handleSwapTriColors} title="Swap triangle colors">⇄</button>
+            <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋</button>
           </>}
-          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDuplicate}><IcCopy/> Duplicate</button>
-          <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:4}} onClick={handleDelete}><IcTrash/> Delete</button>
+          <button className="btn btn-sm" onClick={handleDuplicate} title="Duplicate"><IcCopy/></button>
+          <button className="btn btn-sm" onClick={handleDelete} title="Delete"><IcTrash/></button>
         </div>
       )}
-
-      {/* Canvas */}
-      <div style={{padding:'24px 24px 16px'}}>
-      <div ref={ref}
-        style={{position:'relative',width:'100%',aspectRatio:`${cols}/${rows}`,background:'var(--canvas-bg)',cursor:cur,userSelect:'none',touchAction:'none'}}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
-
-        {/* Grid lines */}
-        <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}
-          viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
-          {Array.from({length:cols+1},(_,i)=>(
-            <line key={`v${i}`} x1={i} y1={0} x2={i} y2={rows}
-              stroke={i===0||i===cols?"#E2DDD2":"#EFE9DD"}
-              strokeWidth={i===0||i===cols?"0.08":"0.04"}/>
-          ))}
-          {Array.from({length:rows+1},(_,i)=>(
-            <line key={`h${i}`} x1={0} y1={i} x2={cols} y2={i}
-              stroke={i===0||i===rows?"#E2DDD2":"#EFE9DD"}
-              strokeWidth={i===0||i===rows?"0.08":"0.04"}/>
-          ))}
-        </svg>
-
-        {/* Shapes */}
-        {shapes.map(s=>{
-          const isSel=selIds.has(s.id);
-          const pos={position:'absolute',left:`${s.c*cw}%`,top:`${s.r*ch}%`,width:`${s.w*cw}%`,height:`${s.h*ch}%`,
-            boxSizing:'border-box',pointerEvents:'none',borderRadius:1,overflow:'hidden'};
-          if(s.type==='tri'){
-            const pts=s.dir==='/'?(s.half==='a'?'0,0 1,0 0,1':'1,0 1,1 0,1'):(s.half==='a'?'0,0 1,0 1,1':'0,0 0,1 1,1');
-            return (
-              <div key={s.id} style={pos}>
-                <svg viewBox="0 0 1 1" width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}>
-                  <polygon points={pts} fill={s.color.hex} stroke={isSel?'#E8583A':'rgba(46,41,37,0.10)'} strokeWidth={isSel?'0.06':'0.02'}/>
-                </svg>
+      {paletteSlot && selIds.size > 0 && paletteTargetIds && (
+        <Popover
+          anchorRef={paletteSlot === 'b' ? swatchRefB : swatchRefA}
+          onClose={() => setPaletteSlot(null)}
+          placement="bottom-start"
+          width={220}>
+          <div className="popover-header">
+            <span className="popover-title">My palette</span>
+          </div>
+          <div className="popover-body" style={{padding: 12}}>
+            {pinned.length > 0 ? (
+              <div style={{display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6}}>
+                {pinned.map((c, i) => (
+                  <button
+                    key={i}
+                    className={`chip ${paletteCurrentColor?.hex===c.hex ? 'selected' : ''}`}
+                    style={{background: c.hex}}
+                    title={c.name}
+                    onClick={() => { handleRecolor(c, paletteTargetIds); setPaletteSlot(null); }}/>
+                ))}
               </div>
-            );
-          }
-          return (
-            <div key={s.id} style={{...pos,background:s.color.hex,
-              outline:isSel?'2px solid #E8583A':'1px solid rgba(46,41,37,0.10)',outlineOffset:isSel?'-1px':'0'}}/>
-          );
-        })}
-
-        {/* Ghost */}
-        {ghost && (
-          <div style={{
-            position:'absolute',
-            left:`${ghost.c*cw}%`,top:`${ghost.r*ch}%`,
-            width:`${ghost.w*cw}%`,height:`${ghost.h*ch}%`,
-            background:selectedColor.hex,opacity:0.5,
-            outline:'2px dashed #2E2925',outlineOffset:'-1px',
-            boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
-          }}/>
-        )}
-
-        {/* Marquee */}
-        {marquee && (
-          <div style={{
-            position:'absolute',
-            left:`${marquee.c*cw}%`,top:`${marquee.r*ch}%`,
-            width:`${marquee.w*cw}%`,height:`${marquee.h*ch}%`,
-            background:'rgba(46,41,37,0.06)',
-            outline:'1.5px dashed #5C544A',outlineOffset:'-1px',
-            boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
-          }}/>
-        )}
-
-        {/* Bounding box outline for multi-selection */}
-        {selBounds && selIds.size>1 && (
-          <div style={{
-            position:'absolute',
-            left:`${selBounds.minC*cw}%`,top:`${selBounds.minR*ch}%`,
-            width:`${(selBounds.maxC-selBounds.minC)*cw}%`,height:`${(selBounds.maxR-selBounds.minR)*ch}%`,
-            outline:'1.5px dashed #E8583A',outlineOffset:'-1px',
-            boxSizing:'border-box',pointerEvents:'none',
-          }}/>
-        )}
-
-        {/* Resize handles */}
-        {hDots.map(([hc,hr],i)=>(
-          <div key={i} style={{
-            position:'absolute',
-            left:`calc(${hc*cw}% - 4px)`,top:`calc(${hr*ch}% - 4px)`,
-            width:8,height:8,
-            background:'#FFFFFF',border:'1.5px solid #E8583A',borderRadius:2,
-            pointerEvents:'none',zIndex:5,
-          }}/>
-        ))}
-
-        {/* Quilting */}
-        {showQuilting && <QuiltOverlay cols={cols} rows={rows} pattern={quiltPattern} spacing={quiltSpacing} color={quiltColor?.hex||'#2E2925'}/>}
-      </div>
-      </div>
-
+            ) : (
+              <div style={{fontSize:12, color:'var(--warm-placeholder)', fontStyle:'italic'}}>
+                Pin colors in My palette to recolor here.
+              </div>
+            )}
+          </div>
+        </Popover>
+      )}
     </div>
   );
 }
@@ -1069,19 +1299,53 @@ function ToolRail({ tool, setTool, onToggleHints, hintsOn, helpRef }) {
 // ── LibraryPopover (anchored to + button on My Palette) ───────────────────
 function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
   filtered, color, setColor, selIds, setShapes,
-  customs, setCustoms, setPinned, allColors }) {
+  customs, setCustoms, setPinned, allColors,
+  pinned, showMyPalette, onPick, onClear, title }) {
   const [showCF, setShowCF] = useState(false);
   const [cName, setCName] = useState("");
   const [cHex, setCHex] = useState("#000000");
+  // When `onPick` is provided (e.g. picking a fabric), the chip click delegates
+  // there and closes the popover instead of doing the default paint behaviour.
+  const handleChip = (c) => {
+    if (onPick) {
+      onPick(c);
+      onClose();
+      return;
+    }
+    setColor(c);
+    setPinned(p => p.find(x => x.name === c.name) ? p : [...p, c]);
+    if (selIds.size > 0) setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
+  };
   return (
     <Popover anchorRef={anchorRef} onClose={onClose} placement="left-anchored" width={320}>
       <div className="popover-header">
-        <span className="popover-title">Color library</span>
-        <button onClick={onClose} className="icon-btn" style={{ width:24, height:24 }} title="Close"><IcX/></button>
+        <span className="popover-title">{title || 'Color library'}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {onClear && <button onClick={() => { onClear(); onClose(); }} className="btn btn-xs">Clear</button>}
+          <button onClick={onClose} className="icon-btn" style={{ width:24, height:24 }} title="Close"><IcX/></button>
+        </div>
       </div>
       <div className="popover-body" style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:'70vh', overflowY:'auto' }}>
-        <div style={{ position:'relative' }}>
-          <span style={{ position:'absolute', left:9, top:'50%', transform:'translateY(-50%)', color:'var(--warm-placeholder)', pointerEvents:'none', display:'flex' }}>
+        {showMyPalette && (
+          <div>
+            <div className="label" style={{ marginBottom:6 }}>My palette</div>
+            {pinned && pinned.length > 0 ? (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:4 }}>
+                {pinned.map((c,i) => (
+                  <button key={`p${i}`}
+                    className={`chip ${color?.name===c.name && color?.hex===c.hex ? 'selected' : ''}`}
+                    onClick={() => handleChip(c)}
+                    style={{ background: c.hex }}
+                    title={`${c.name}${c.code && !c.custom ? ` · ${c.code}` : ''}`}/>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:'var(--warm-placeholder)', fontStyle:'italic' }}>Your palette is empty.</div>
+            )}
+          </div>
+        )}
+        <div style={{ position:'relative', ...(showMyPalette ? { borderTop:'1px solid var(--warm-divider-soft)', paddingTop:10 } : {}) }}>
+          <span style={{ position:'absolute', left:9, top: showMyPalette ? 'calc(50% + 5px)' : '50%', transform:'translateY(-50%)', color:'var(--warm-placeholder)', pointerEvents:'none', display:'flex' }}>
             <IcSearch/>
           </span>
           <input type="text" placeholder="Search colors…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:30 }}/>
@@ -1097,11 +1361,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
             {filtered.map((c,i) => (
               <button key={`${c.name}${i}`}
                 className={`chip ${color?.name===c.name && color?.hex===c.hex ? 'selected' : ''}`}
-                onClick={() => {
-                  setColor(c);
-                  setPinned(p => p.find(x => x.name === c.name) ? p : [...p, c]);
-                  if (selIds.size > 0) setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
-                }}
+                onClick={() => handleChip(c)}
                 style={{ background: c.hex }}
                 title={`${c.name}${c.code && !c.custom ? ` · ${c.code}` : ''}`}/>
             ))}
@@ -1129,6 +1389,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
                   if (!cName.trim() || !/^#[0-9A-Fa-f]{6}$/.test(cHex)) return;
                   const c = { name: cName.trim(), hex: cHex.toUpperCase(), group: 'Custom', custom: true };
                   setCustoms(p => [c, ...p]);
+                  if (onPick) { onPick(c); onClose(); return; }
                   setColor(c);
                   setPinned(p => [...p, c]);
                   setCName(''); setCHex('#000000'); setShowCF(false);
@@ -1144,54 +1405,24 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
 }
 
 // ── Right-column blocks ───────────────────────────────────────────────────
-function SelectedColorCard({ color, pinned, setPinned }) {
-  const isPinned = pinned.some(c => c.name === color?.name);
-  return (
-    <div className="card" style={{ display:'flex', gap:10, alignItems:'center' }}>
-      <div style={{ width:36, height:36, background: color?.hex, border:'1px solid rgba(46,41,37,0.12)', borderRadius:4, flexShrink:0 }}/>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontWeight:500, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{color?.name}</div>
-        <div style={{ fontSize:11, color:'var(--warm-muted)', fontFamily:'var(--font-mono)', fontVariantNumeric:'tabular-nums' }}>
-          {color?.hex}{color?.code && !color?.custom ? ` · ${color.code}` : ''}
-        </div>
-      </div>
-      <button
-        onClick={() => { if (!color) return; setPinned(p => p.find(c => c.name === color.name) ? p : [...p, color]); }}
-        style={{ background:'none', border:'none', cursor:'pointer', color: isPinned ? 'var(--metime-almost-black)' : 'var(--warm-placeholder)', padding:2 }}
-        title={isPinned ? "In palette" : "Pin to palette"}>
-        <IcPin on={isPinned}/>
-      </button>
-    </div>
-  );
-}
-
-function MyPaletteRow({ pinned, setPinned, color, setColor, onOpenLibrary, onSwap, swapDisabled }) {
+function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary }) {
   const plusRef = useRef(null);
   return (
     <div className="card">
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div className="label" style={{ marginBottom:0 }}>My palette</div>
-        <div style={{ display:'flex', alignItems:'center', gap:2 }}>
-          <button
-            ref={plusRef}
-            className="icon-btn"
-            style={{ width:24, height:24 }}
-            onClick={() => onOpenLibrary(plusRef)}
-            title="Open color library">
-            <IcPlus/>
-          </button>
-          <button
-            className="icon-btn"
-            style={{ width:24, height:24 }}
-            onClick={onSwap}
-            disabled={swapDisabled}
-            title={swapDisabled ? "Select triangles to swap their colors" : "Swap triangle colors"}>
-            <IcSwap/>
-          </button>
-        </div>
+        <button
+          ref={plusRef}
+          className="icon-btn"
+          style={{ width:24, height:24 }}
+          onClick={() => onOpenLibrary(plusRef)}
+          title="Open color library">
+          <IcPlus/>
+        </button>
       </div>
+
       {pinned.length > 0 ? (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:4 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
           {pinned.map((c,i) => (
             <div key={i} style={{ position:'relative' }}
               onMouseEnter={e => { const b = e.currentTarget.querySelector('.rm'); if (b) b.style.opacity = 1; }}
@@ -1211,40 +1442,21 @@ function MyPaletteRow({ pinned, setPinned, color, setColor, onOpenLibrary, onSwa
   );
 }
 
-function FabricRow({ label, fabric, onSet, onClear, color, detail, yards }) {
-  const [expanded, setExpanded] = useState(false);
+const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, onClick }, ref) {
   return (
-    <div className="card">
-      <div className="stack-row" style={{ marginBottom: expanded ? 10 : 0 }}>
-        <div style={{ width:24, height:24, background: fabric?.hex || 'transparent', border:'1px dashed var(--warm-hairline)', borderRadius:3, flexShrink:0 }}/>
-        <div className="stack-main">
-          <div style={{ fontSize:12, fontWeight:500, color:'var(--warm-fg)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {label}{fabric ? <span style={{ color:'var(--warm-muted)', fontWeight:400 }}> · {fabric.name}</span> : <span style={{ color:'var(--warm-placeholder)', fontWeight:400, fontStyle:'italic' }}> · not set</span>}
-          </div>
-          {fabric && <div style={{ fontSize:11, color:'var(--warm-muted)', fontFamily:'var(--font-mono)' }}>{detail}</div>}
+    <button ref={ref} type="button" className="fabric-row" onClick={onClick}
+      title={fabric ? `${label} · ${fabric.name} — tap to change` : `Choose ${label.toLowerCase()} fabric`}>
+      <div className={`fabric-row-swatch${fabric ? '' : ' empty'}`} style={fabric ? { background: fabric.hex } : undefined}/>
+      <div className="fabric-row-main">
+        <div className="fabric-row-title">
+          {label}
+          {fabric && <span className="fabric-row-name"> · {fabric.name}</span>}
         </div>
-        <div style={{ fontSize:13, fontWeight:600, fontVariantNumeric:'tabular-nums', color: fabric ? 'var(--warm-fg)' : 'var(--warm-placeholder)' }}>
-          {fabric ? fmtY(yards) : '—'}
-        </div>
-        <button
-          className="edit-link"
-          aria-expanded={expanded}
-          onClick={()=>setExpanded(v=>!v)}>
-          {expanded ? 'Done' : 'Edit'} <span className="chev" style={{ display:'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0)', transition:'transform .12s' }}><IcChevR size={9}/></span>
-        </button>
+        {fabric && detail && <div className="fabric-row-detail">{detail}</div>}
       </div>
-      {expanded && (
-        <div style={{ display:'flex', flexDirection:'column', gap:8, paddingTop:6, borderTop:'1px solid var(--warm-divider-soft)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ fontSize:11, color:'var(--warm-muted)', flex:1 }}>Apply selected color {color ? `(${color.name})` : ''}</span>
-            <button className="btn btn-xs btn-dark" onClick={onSet} disabled={!color}>Set color</button>
-            {fabric && <button className="btn btn-xs" onClick={onClear}>Clear</button>}
-          </div>
-        </div>
-      )}
-    </div>
+    </button>
   );
-}
+});
 
 function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColor, setQColor, color, showQ, setShowQ }) {
   const [showMore, setShowMore] = useState(false);
@@ -1320,6 +1532,40 @@ function MaterialsBlock({ materials, grandTotal, fmtY }) {
   );
 }
 
+// ── ZoomBar (bottom of center canvas panel) ───────────────────────────────
+function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
+  const pct = Math.round(zoom * 100);
+  return (
+    <div className="zoom-bar">
+      <button
+        className="icon-btn"
+        style={{ width:24, height:24, fontSize:14, lineHeight:1 }}
+        onClick={()=>onStep(-ZOOM_STEP)}
+        disabled={zoom <= ZOOM_MIN}
+        title="Zoom out (Ctrl/Cmd -)">−</button>
+      <input
+        type="range"
+        min={ZOOM_MIN}
+        max={ZOOM_MAX}
+        step={ZOOM_STEP}
+        value={zoom}
+        onChange={e => onZoomChange(+e.target.value)}/>
+      <button
+        className="icon-btn"
+        style={{ width:24, height:24, fontSize:14, lineHeight:1 }}
+        onClick={()=>onStep(+ZOOM_STEP)}
+        disabled={zoom >= ZOOM_MAX}
+        title="Zoom in (Ctrl/Cmd +)">+</button>
+      <span className="zoom-bar-value">{pct}%</span>
+      <button
+        className="btn btn-xs"
+        onClick={onReset}
+        disabled={zoom === 1}
+        title="Reset zoom (Ctrl/Cmd 0)">1:1</button>
+    </div>
+  );
+}
+
 // ── SizeBar (top of center canvas panel) ──────────────────────────────────
 function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows }) {
   return (
@@ -1390,14 +1636,27 @@ function App() {
   const [viewQuilt, setViewQuilt] = useState(null);
   const [showMyQuilts, setShowMyQuilts] = useState(false);
   const [showHints, setShowHints] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
+  // The library popover doubles as a fabric picker. `picker` is null when
+  // closed, otherwise an object describing the active picker config:
+  //   { onPick?, onClear?, showMyPalette?, title? }
+  // (Empty object => default paint behaviour from the My palette + button.)
+  const [picker, setPicker] = useState(null);
   const helpAnchor = useRef(null);
   const libraryAnchorRef = useRef(null);
+  const backingRowRef = useRef(null);
+  const bindingRowRef = useRef(null);
 
   const openLibrary = useCallback((anchorRef) => {
     if (anchorRef && anchorRef.current) libraryAnchorRef.current = anchorRef.current;
-    setShowLibrary(true);
+    setPicker({});
   }, []);
+
+  const openFabricPicker = useCallback((anchorRef, onPick, onClear, title) => {
+    if (anchorRef && anchorRef.current) libraryAnchorRef.current = anchorRef.current;
+    setPicker({ onPick, onClear, showMyPalette: true, title });
+  }, []);
+
+  const closePicker = useCallback(() => setPicker(null), []);
 
   const handleSwapTriColors = useCallback(() => {
     const sel = shapes.filter(s => selIds.has(s.id));
@@ -1431,6 +1690,39 @@ function App() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [undo]);
+
+  const [zoom, setZoom] = useState(1);
+  const adjustZoom = useCallback(delta => {
+    setZoom(z => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, +(z + delta).toFixed(2))));
+  }, []);
+  const resetZoom = useCallback(() => setZoom(1), []);
+
+  useEffect(() => {
+    const onKey = e => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); adjustZoom(+ZOOM_STEP); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); adjustZoom(-ZOOM_STEP); }
+      else if (e.key === '0') { e.preventDefault(); resetZoom(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [adjustZoom, resetZoom]);
+
+  // Dismiss the selection (and its floating toolbar) when the user mouses down
+  // anywhere outside the canvas frame, the toolbar itself, popovers, or modals.
+  useEffect(() => {
+    if (selIds.size === 0) return undefined;
+    const onDown = e => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest('.canvas-frame, .selection-toolbar, .popover, .popover-backdrop, .overlay')) return;
+      setSelIds(new Set());
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [selIds.size]);
 
   const allColors = useMemo(()=>[...customs,...KONA],[customs]);
   const filtered = useMemo(()=>{
@@ -1550,11 +1842,12 @@ function App() {
             onBsChange={handleBsChange}
             fw={fw} fh={fh}
             cols={cols} rows={rows}/>
-          <div style={{flex:1,overflowY:'auto',overflowX:'hidden',position:'relative'}}>
+          <div style={{flex:1,minHeight:0,position:'relative'}}>
             <GridCanvas cols={cols} rows={rows} shapes={shapes} setShapes={setShapes}
               selIds={selIds} setSelIds={setSelIds}
               tool={tool} selectedColor={color}
-              quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}/>
+              quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}
+              zoom={zoom} pinned={pinned}/>
             {showHints && (
               <div className="hint-overlay">
                 <span>Click to select · Drag to marquee</span>
@@ -1567,35 +1860,41 @@ function App() {
               </div>
             )}
           </div>
+          <ZoomBar
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onReset={resetZoom}
+            onStep={adjustZoom}/>
         </div>
 
         {/* Right column */}
         <div className="panel" style={{display:'flex',flexDirection:'column'}}>
-          <SelectedColorCard color={color} pinned={pinned} setPinned={setPinned}/>
-          <MyPaletteRow
+          <MyPaletteCard
+            color={color}
             pinned={pinned}
             setPinned={setPinned}
-            color={color}
             setColor={setColor}
-            onOpenLibrary={openLibrary}
-            onSwap={handleSwapTriColors}
-            swapDisabled={swapDisabled}/>
+            onOpenLibrary={openLibrary}/>
           <FabricRow
+            ref={backingRowRef}
             label="Backing"
             fabric={backing}
-            onSet={()=>setBacking(color)}
-            onClear={()=>setBacking(null)}
-            color={color}
-            detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w` : ''}
-            yards={backCalc.yards}/>
+            detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w · ${fmtY(backCalc.yards)}` : ''}
+            onClick={() => openFabricPicker(
+              backingRowRef,
+              setBacking,
+              backing ? () => setBacking(null) : null,
+              'Backing fabric')}/>
           <FabricRow
+            ref={bindingRowRef}
             label="Binding"
             fabric={binding}
-            onSet={()=>setBinding(color)}
-            onClear={()=>setBinding(null)}
-            color={color}
-            detail={binding ? `${bindCalc.strips} strips · ${bindCalc.perimeter}" perim.` : ''}
-            yards={bindCalc.yards}/>
+            detail={binding ? `${bindCalc.strips} strips · ${bindCalc.perimeter}" perim. · ${fmtY(bindCalc.yards)}` : ''}
+            onClick={() => openFabricPicker(
+              bindingRowRef,
+              setBinding,
+              binding ? () => setBinding(null) : null,
+              'Binding fabric')}/>
           <QuiltPatternBlock
             qPattern={qPattern} setQPattern={setQPattern}
             qSpacing={qSpacing} setQSpacing={setQSpacing}
@@ -1626,11 +1925,12 @@ function App() {
         </div>
       </div>
 
-      {/* Library popover (anchored to + button) */}
-      {showLibrary && libraryAnchorRef.current && (
+      {/* Library popover. Anchored to whatever invoked it (My palette + or a
+          fabric row); doubles as a fabric picker when `picker.onPick` is set. */}
+      {picker && libraryAnchorRef.current && (
         <LibraryPopover
           anchorRef={libraryAnchorRef}
-          onClose={()=>setShowLibrary(false)}
+          onClose={closePicker}
           search={search} setSearch={setSearch}
           grp={grp} setGrp={setGrp}
           filtered={filtered}
@@ -1638,7 +1938,12 @@ function App() {
           selIds={selIds} setShapes={setShapes}
           customs={customs} setCustoms={setCustoms}
           setPinned={setPinned}
-          allColors={allColors}/>
+          allColors={allColors}
+          pinned={pinned}
+          showMyPalette={picker.showMyPalette}
+          onPick={picker.onPick}
+          onClear={picker.onClear}
+          title={picker.title}/>
       )}
 
       {/* Clear confirm */}
