@@ -248,6 +248,25 @@
 
   /* Hint strip */
   .hint-strip { padding: 6px 12px; font-size: 11px; color: var(--warm-muted-2); display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* Project selector page */
+  .proj-page { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
+  .proj-header { padding: 14px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
+  .proj-body { flex: 1; overflow-y: auto; padding: 48px 48px 64px; }
+  .proj-intro { margin-bottom: 40px; }
+  .proj-heading { font-family: var(--font-display); font-size: 34px; line-height: 1.15; color: var(--warm-fg); margin-bottom: 6px; }
+  .proj-subheading { font-size: 14px; color: var(--warm-muted); }
+  .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 18px; }
+  .proj-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; display: flex; flex-direction: column; }
+  .proj-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .proj-card:active { transform: translateY(0); }
+  .proj-card-thumb { overflow: hidden; background: var(--metime-cream); flex-shrink: 0; }
+  .proj-card-thumb svg { display: block; width: 100%; height: auto; }
+  .proj-card-body { padding: 13px 15px 15px; flex: 1; }
+  .proj-card-name { font-size: 15px; font-weight: 600; color: var(--warm-fg); margin-bottom: 3px; }
+  .proj-card-dims { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-bottom: 2px; }
+  .proj-card-desc { font-size: 12px; color: var(--warm-muted-2); margin-bottom: 8px; }
+  .proj-card-cost { font-size: 11px; color: var(--warm-muted-2); border-top: 1px solid var(--warm-divider-soft); padding-top: 8px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -452,6 +471,19 @@ const SUGGESTED_PALETTES = [
   { name: "Desert",     colors: ["Flame","Sand","Putty","Espresso","Ivory"] },
   { name: "Coral Reef", colors: ["Coral","Turquoise","Aqua","Butter","White"] },
 ];
+
+const PRESET_THEMES = {
+  "Mug Rug":     { c1:"#C83A2C", c2:"#F5F3EE", desc:"Quick weekend project" },
+  "Mini":        { c1:"#2C5080", c2:"#97B5D4", desc:"Great for gifting" },
+  "Stroller":    { c1:"#7AB08C", c2:"#F5D89A", desc:"Baby on the go" },
+  "Baby":        { c1:"#E8A0B0", c2:"#B8D4E0", desc:"Cozy for little ones" },
+  "Crib":        { c1:"#E8C060", c2:"#C07830", desc:"Sweet nursery size" },
+  "Lap / Throw": { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
+  "Twin":        { c1:"#6A3A78", c2:"#D4A8E0", desc:"Perfect for kids' rooms" },
+  "Full":        { c1:"#2C4A30", c2:"#7AAA80", desc:"Generous double coverage" },
+  "Queen":       { c1:"#4A3028", c2:"#9A7060", desc:"Master bedroom classic" },
+  "King":        { c1:"#2A2A2A", c2:"#808080", desc:"Grand statement piece" },
+};
 
 function calcYardage(count, bs) {
   if (!count) return { yards:0, cutSize:bs+SEAM, strips:0 };
@@ -1458,10 +1490,11 @@ const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, o
   );
 });
 
-function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColor, setQColor, color, showQ, setShowQ }) {
+function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColor, setQColor, onPickColor, showQ, setShowQ }) {
   const [showMore, setShowMore] = useState(false);
   const showSpacing = qPattern !== "none" && qPattern !== "ditch";
   const hasMore = qPattern !== "none";
+  const threadRef = useRef(null);
   return (
     <div className="card">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -1494,13 +1527,21 @@ function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColo
                   <input type="range" min={1} max={8} value={qSpacing} onChange={e=>setQSpacing(+e.target.value)}/>
                 </div>
               )}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                <span style={{ fontSize:12, color:'var(--warm-fg-2)' }}>Thread color</span>
-                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <div style={{ width:18, height:18, background: qColor?.hex, border:'1px solid rgba(46,41,37,0.14)', borderRadius:3 }}/>
-                  <button className="btn btn-xs" onClick={()=>setQColor(color)}>Set to selected</button>
+              <button
+                ref={threadRef}
+                type="button"
+                className="fabric-row"
+                style={{ borderBottom:'none', padding:'8px 0', marginLeft:-2, marginRight:-2 }}
+                onClick={() => onPickColor && onPickColor(threadRef, setQColor, null, 'Thread color')}
+                title={qColor ? `Thread · ${qColor.name} — tap to change` : 'Choose thread color'}>
+                <div className={`fabric-row-swatch${qColor ? '' : ' empty'}`} style={qColor ? { background: qColor.hex, width:24, height:24 } : { width:24, height:24 }}/>
+                <div className="fabric-row-main">
+                  <div className="fabric-row-title">
+                    Thread color
+                    {qColor && <span className="fabric-row-name"> · {qColor.name}</span>}
+                  </div>
                 </div>
-              </div>
+              </button>
             </div>
           )}
         </div>
@@ -1591,9 +1632,10 @@ function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
-function App() {
-  const [cols, setCols] = useState(17);
-  const [rows, setRows] = useState(22);
+function App({ initialPreset = "Lap / Throw", onBack }) {
+  const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Lap / Throw");
+  const [cols, setCols] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.w / 3))));
+  const [rows, setRows] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.h / 3))));
   const [bs, setBs] = useState(3);
   const [shapes, _setShapes] = useState([]);
   const historyRef = useRef([]);
@@ -1622,7 +1664,7 @@ function App() {
     KONA.find(c=>c.name==="Natural"), KONA.find(c=>c.name==="Navy"),
     KONA.find(c=>c.name==="Scarlet"), KONA.find(c=>c.name==="Mustard"),
   ].filter(Boolean));
-  const [preset, setPreset] = useState("Lap / Throw");
+  const [preset, setPreset] = useState(initialPreset);
   const [backing, setBacking] = useState(null);
   const [binding, setBinding] = useState(null);
   const [qPattern, setQPattern] = useState("none");
@@ -1651,7 +1693,9 @@ function App() {
     setPicker({});
   }, []);
 
-  const openFabricPicker = useCallback((anchorRef, onPick, onClear, title) => {
+  // Generic "color picker" popover with the My palette section pinned at the
+  // top. Used for fabrics (backing/binding) and the thread color.
+  const openColorPicker = useCallback((anchorRef, onPick, onClear, title) => {
     if (anchorRef && anchorRef.current) libraryAnchorRef.current = anchorRef.current;
     setPicker({ onPick, onClear, showMyPalette: true, title });
   }, []);
@@ -1786,7 +1830,12 @@ function App() {
 
       {/* Header */}
       <header>
-        <div className="header-left">
+        <div className="header-left" style={{display:'flex',alignItems:'center',gap:8}}>
+          {onBack && (
+            <button className="icon-btn" onClick={onBack} title="Back to projects" style={{marginRight:2}}>
+              <i className="iconoir-arrow-left" style={{fontSize:18}}/>
+            </button>
+          )}
           <a className="brand" href="/" aria-label="metime — home">
             <MetimeLogo/>
           </a>
@@ -1880,7 +1929,7 @@ function App() {
             label="Backing"
             fabric={backing}
             detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w · ${fmtY(backCalc.yards)}` : ''}
-            onClick={() => openFabricPicker(
+            onClick={() => openColorPicker(
               backingRowRef,
               setBacking,
               backing ? () => setBacking(null) : null,
@@ -1890,7 +1939,7 @@ function App() {
             label="Binding"
             fabric={binding}
             detail={binding ? `${bindCalc.strips} strips · ${bindCalc.perimeter}" perim. · ${fmtY(bindCalc.yards)}` : ''}
-            onClick={() => openFabricPicker(
+            onClick={() => openColorPicker(
               bindingRowRef,
               setBinding,
               binding ? () => setBinding(null) : null,
@@ -1899,7 +1948,7 @@ function App() {
             qPattern={qPattern} setQPattern={setQPattern}
             qSpacing={qSpacing} setQSpacing={setQSpacing}
             qColor={qColor} setQColor={setQColor}
-            color={color}
+            onPickColor={openColorPicker}
             showQ={showQ} setShowQ={setShowQ}/>
           <MaterialsBlock materials={materials} grandTotal={grandTotal} fmtY={fmtY}/>
           <div style={{borderTop:'1px solid var(--warm-divider-soft)',flex:1,overflowY:'auto'}}>
@@ -2210,10 +2259,88 @@ function TweaksPanel() {
   );
 }
 
+function QuiltThumb({ preset }) {
+  const theme = PRESET_THEMES[preset.name] || { c1:"#2C3E50", c2:"#8FAABF" };
+  const aspect = preset.h / preset.w;
+  const W = 200, H = Math.round(W * aspect);
+  const cellSize = Math.max(8, Math.min(16, Math.round(W / 14)));
+  const cols = Math.ceil(W / cellSize);
+  const rows = Math.ceil(H / cellSize);
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const even = (r + c) % 2 === 0;
+      cells.push(
+        <rect key={`${r}-${c}`}
+          x={c * cellSize} y={r * cellSize}
+          width={cellSize} height={cellSize}
+          fill={even ? theme.c1 : theme.c2}/>
+      );
+    }
+  }
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      {cells}
+      <rect width={W} height={H} fill="none" stroke="rgba(46,41,37,0.15)" strokeWidth="1"/>
+    </svg>
+  );
+}
+
+function ProjectCard({ preset, onSelect }) {
+  const theme = PRESET_THEMES[preset.name] || {};
+  const backYards = calcBacking(preset.w, preset.h).yards;
+  const bindYards = calcBinding(preset.w, preset.h).yards;
+  const bs = 3;
+  const cols = Math.min(MAX, Math.round(preset.w / bs));
+  const rows = Math.min(MAX, Math.round(preset.h / bs));
+  const topYards = calcYardage(Math.ceil(cols * rows / 2), bs).yards * 2;
+  const estCost = Math.ceil((topYards + backYards + bindYards) * 13 / 5) * 5;
+
+  return (
+    <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
+      <div className="proj-card-thumb">
+        <QuiltThumb preset={preset}/>
+      </div>
+      <div className="proj-card-body">
+        <div className="proj-card-name">{preset.name}</div>
+        <div className="proj-card-dims">{preset.w}" × {preset.h}"</div>
+        <div className="proj-card-desc">{theme.desc || ""}</div>
+        <div className="proj-card-cost">Fabric from ~${estCost}</div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectSelector({ onSelect }) {
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body">
+        <div className="proj-intro">
+          <h1 className="proj-heading">What are you making?</h1>
+          <p className="proj-subheading">Choose a size to start planning your quilt.</p>
+        </div>
+        <div className="proj-grid">
+          {PRESETS.map(p => (
+            <ProjectCard key={p.name} preset={p} onSelect={onSelect}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Root() {
+  const [selectedPreset, setSelectedPreset] = React.useState(null);
+  if (!selectedPreset) {
+    return <ProjectSelector onSelect={setSelectedPreset}/>;
+  }
   return (
     <>
-      <App/>
+      <App initialPreset={selectedPreset} onBack={() => setSelectedPreset(null)}/>
       <TweaksPanel/>
     </>
   );
