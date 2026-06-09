@@ -1610,13 +1610,22 @@ const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, o
 
 function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColor, setQColor, onPickColor, showQ, setShowQ }) {
   const [showMore, setShowMore] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const showSpacing = qPattern !== "none" && qPattern !== "ditch";
   const hasMore = qPattern !== "none";
   const threadRef = useRef(null);
   return (
     <div className="card">
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <div className="label" style={{ marginBottom:0 }}>Quilt pattern</div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: collapsed ? 0 : 8 }}>
+        <button
+          type="button"
+          aria-expanded={!collapsed}
+          onClick={()=>setCollapsed(v=>!v)}
+          title={collapsed ? "Expand quilt pattern" : "Collapse quilt pattern"}
+          style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:0, font:'inherit', flex:1, textAlign:'left' }}>
+          <span className="chev" style={{ display:'inline-flex', transition:'transform .12s', transform: collapsed ? 'none' : 'rotate(90deg)', color:'var(--warm-muted)' }}><IcChevR size={9}/></span>
+          <span className="label" style={{ marginBottom:0 }}>Quilt pattern</span>
+        </button>
         <button
           className="icon-btn"
           style={{ width:24, height:24, color: showQ ? 'var(--metime-almost-black)' : 'var(--warm-placeholder)' }}
@@ -1625,10 +1634,12 @@ function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColo
           <IcEye off={!showQ}/>
         </button>
       </div>
+      {!collapsed && (
       <select value={qPattern} onChange={e=>setQPattern(e.target.value)}>
         {QUILT_PATTERNS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
       </select>
-      {hasMore && (
+      )}
+      {!collapsed && hasMore && (
         <div style={{ marginTop:8 }}>
           <button
             className="disclosure-toggle"
