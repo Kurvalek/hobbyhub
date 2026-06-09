@@ -295,9 +295,12 @@
   .pal-result-preview { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--warm-hairline); }
   .pal-result-main { flex: 1; min-width: 0; }
   .pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
-  .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.12); }
+  .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
+  .pal-chip-check { width: 14px; height: 14px; accent-color: var(--metime-almost-black); cursor: pointer; margin: 0; }
+  .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
+  .pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
   .pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
+  .pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
   .pal-check input { width: 15px; height: 15px; accent-color: var(--metime-almost-black); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
@@ -2460,6 +2463,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [extracted, setExtracted] = useState(null);
   const [pool, setPool] = useState([]);
+  const [locked, setLocked] = useState(() => new Set());
   const [useAsBacking, setUseAsBacking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -2474,10 +2478,24 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
     }
     return a;
   };
+  const toggleLock = useCallback(name => {
+    setLocked(prev => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }, []);
+  // Reshuffle only the unchecked swatches; checked ones stay put in place.
   const regenerate = useCallback(() => {
     if (!pool.length) return;
-    setExtracted(shuffle(pool).slice(0, Math.min(PALETTE_SIZE, pool.length)));
-  }, [pool]);
+    setExtracted(prev => {
+      if (!prev) return prev;
+      const lockedNames = new Set(prev.filter(c => locked.has(c.name)).map(c => c.name));
+      const fill = shuffle(pool.filter(c => !lockedNames.has(c.name)));
+      let fi = 0;
+      return prev.map(c => (lockedNames.has(c.name) ? c : (fill[fi++] || c)));
+    });
+  }, [pool, locked]);
 
   const handleFile = useCallback(file => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -2498,7 +2516,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
         let pixels;
         try { pixels = ctx.getImageData(0, 0, w, h); }
         catch (e) { setBusy(false); return; }
-        const raw = extractColors(pixels, 16);
+        const raw = extractColors(pixels, 32);
         const seen = new Set(), colors = [];
         for (const c of raw) {
           const k = nearestKona(c);
@@ -2506,6 +2524,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
         }
         setImgSrc(src);
         setPool(colors);
+        setLocked(new Set());
         setExtracted(colors.slice(0, Math.min(PALETTE_SIZE, colors.length)));
         setBusy(false);
       };
@@ -2515,7 +2534,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
     reader.readAsDataURL(file);
   }, []);
 
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); fileRef.current && (fileRef.current.value = ''); };
+  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); fileRef.current && (fileRef.current.value = ''); };
 
   return (
     <div className="proj-page">
@@ -2578,14 +2597,18 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
             <div className="pal-result">
               <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
               <div className="pal-result-main">
-                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — matched to fabrics</div>
+                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check any to keep them when you regenerate</div>
                 <div className="pal-result-swatches">
-                  {extracted.map((c, i) => (
-                    <div key={i} className="pal-chip">
-                      <span className="pal-chip-color" style={{ background: c.hex }} title={`${c.name} ${c.hex}`}/>
-                      <span className="pal-chip-label">{c.name}</span>
-                    </div>
-                  ))}
+                  {extracted.map((c, i) => {
+                    const isLocked = locked.has(c.name);
+                    return (
+                      <label key={c.name} className={`pal-chip${isLocked ? ' locked' : ''}`} title={`${c.name} ${c.hex}`}>
+                        <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(c.name)}/>
+                        <span className="pal-chip-color" style={{ background: c.hex }}/>
+                        <span className="pal-chip-label">{c.name}</span>
+                      </label>
+                    );
+                  })}
                 </div>
                 <label className="pal-check">
                   <input type="checkbox" checked={useAsBacking} onChange={e => setUseAsBacking(e.target.checked)}/>
