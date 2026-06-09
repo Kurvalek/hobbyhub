@@ -1609,10 +1609,8 @@ const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, o
 });
 
 function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColor, setQColor, onPickColor, showQ, setShowQ }) {
-  const [showMore, setShowMore] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const showSpacing = qPattern !== "none" && qPattern !== "ditch";
-  const hasMore = qPattern !== "none";
   const threadRef = useRef(null);
   return (
     <div className="card">
@@ -1622,8 +1620,10 @@ function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColo
           aria-expanded={!collapsed}
           onClick={()=>setCollapsed(v=>!v)}
           title={collapsed ? "Expand quilt pattern" : "Collapse quilt pattern"}
-          style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:0, font:'inherit', flex:1, textAlign:'left' }}>
-          <span className="chev" style={{ display:'inline-flex', transition:'transform .12s', transform: collapsed ? 'none' : 'rotate(90deg)', color:'var(--warm-muted)' }}><IcChevR size={9}/></span>
+          style={{ display:'flex', alignItems:'center', gap:8, background:'none', border:'none', cursor:'pointer', padding:0, font:'inherit', flex:1, textAlign:'left' }}>
+          <span style={{ display:'inline-flex', transition:'transform .12s', transform: collapsed ? 'none' : 'rotate(90deg)', color:'var(--metime-black)' }}>
+            <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M3 1.5 L9 5.5 L3 9.5 Z" fill="currentColor"/></svg>
+          </span>
           <span className="label" style={{ marginBottom:0 }}>Quilt pattern</span>
         </button>
         <button
@@ -1635,44 +1635,31 @@ function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColo
         </button>
       </div>
       {!collapsed && (
-      <select value={qPattern} onChange={e=>setQPattern(e.target.value)}>
-        {QUILT_PATTERNS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-      </select>
-      )}
-      {!collapsed && hasMore && (
-        <div style={{ marginTop:8 }}>
-          <button
-            className="disclosure-toggle"
-            aria-expanded={showMore}
-            onClick={()=>setShowMore(v=>!v)}>
-            <span className="chev"><IcChevR size={9}/></span>
-            More options
-          </button>
-          {showMore && (
-            <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:10 }}>
-              {showSpacing && (
-                <div className="slider-row">
-                  <div className="slider-label"><span>Spacing</span><span>every {qSpacing} block{qSpacing!==1?'s':''}</span></div>
-                  <input type="range" min={1} max={8} value={qSpacing} onChange={e=>setQSpacing(+e.target.value)}/>
-                </div>
-              )}
-              <button
-                ref={threadRef}
-                type="button"
-                className="fabric-row"
-                style={{ borderBottom:'none', padding:'8px 0', marginLeft:-2, marginRight:-2 }}
-                onClick={() => onPickColor && onPickColor(threadRef, setQColor, null, 'Thread color')}
-                title={qColor ? `Thread · ${qColor.name} — tap to change` : 'Choose thread color'}>
-                <div className={`fabric-row-swatch${qColor ? '' : ' empty'}`} style={qColor ? { background: qColor.hex, width:24, height:24 } : { width:24, height:24 }}/>
-                <div className="fabric-row-main">
-                  <div className="fabric-row-title">
-                    Thread color
-                    {qColor && <span className="fabric-row-name"> · {qColor.name}</span>}
-                  </div>
-                </div>
-              </button>
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          <select value={qPattern} onChange={e=>setQPattern(e.target.value)}>
+            {QUILT_PATTERNS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+          {showSpacing && (
+            <div className="slider-row">
+              <div className="slider-label"><span>Spacing</span><span>every {qSpacing} block{qSpacing!==1?'s':''}</span></div>
+              <input type="range" min={1} max={8} value={qSpacing} onChange={e=>setQSpacing(+e.target.value)}/>
             </div>
           )}
+          <button
+            ref={threadRef}
+            type="button"
+            className="fabric-row"
+            style={{ borderBottom:'none', padding:'8px 0', marginLeft:-2, marginRight:-2 }}
+            onClick={() => onPickColor && onPickColor(threadRef, setQColor, null, 'Thread color')}
+            title={qColor ? `Thread · ${qColor.name} — tap to change` : 'Choose thread color'}>
+            <div className={`fabric-row-swatch${qColor ? '' : ' empty'}`} style={qColor ? { background: qColor.hex, width:24, height:24 } : { width:24, height:24 }}/>
+            <div className="fabric-row-main">
+              <div className="fabric-row-title">
+                Thread color
+                {qColor && <span className="fabric-row-name"> · {qColor.name}</span>}
+              </div>
+            </div>
+          </button>
         </div>
       )}
     </div>
