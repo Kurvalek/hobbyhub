@@ -2459,10 +2459,25 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
   );
   const [imgSrc, setImgSrc] = useState(null);
   const [extracted, setExtracted] = useState(null);
+  const [pool, setPool] = useState([]);
   const [useAsBacking, setUseAsBacking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const fileRef = useRef(null);
+
+  const PALETTE_SIZE = 8;
+  const shuffle = arr => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const regenerate = useCallback(() => {
+    if (!pool.length) return;
+    setExtracted(shuffle(pool).slice(0, Math.min(PALETTE_SIZE, pool.length)));
+  }, [pool]);
 
   const handleFile = useCallback(file => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -2483,15 +2498,15 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
         let pixels;
         try { pixels = ctx.getImageData(0, 0, w, h); }
         catch (e) { setBusy(false); return; }
-        const raw = extractColors(pixels, 12);
+        const raw = extractColors(pixels, 16);
         const seen = new Set(), colors = [];
         for (const c of raw) {
           const k = nearestKona(c);
           if (k && !seen.has(k.name)) { seen.add(k.name); colors.push(k); }
-          if (colors.length >= 10) break;
         }
         setImgSrc(src);
-        setExtracted(colors);
+        setPool(colors);
+        setExtracted(colors.slice(0, Math.min(PALETTE_SIZE, colors.length)));
         setBusy(false);
       };
       img.onerror = () => setBusy(false);
@@ -2500,7 +2515,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
     reader.readAsDataURL(file);
   }, []);
 
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); fileRef.current && (fileRef.current.value = ''); };
+  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); fileRef.current && (fileRef.current.value = ''); };
 
   return (
     <div className="proj-page">
@@ -2581,6 +2596,15 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
                     extracted,
                     useAsBacking ? { name: 'Photo backing', hex: extracted[0].hex, image: imgSrc } : null
                   )}>Use these colors</button>
+                  {pool.length > 1 && (
+                    <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                        <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                      </svg>
+                      Regenerate
+                    </button>
+                  )}
                   <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
                 </div>
               </div>
