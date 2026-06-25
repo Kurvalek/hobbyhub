@@ -185,7 +185,7 @@
 
   /* Section labels */
   .label { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--warm-fg); margin-bottom: 10px; }
-  .label-mono { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warm-muted); }
+  .label-mono { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--warm-muted); }
 
   /* Cards */
   .card { padding: 16px; border-bottom: var(--div-border); }
@@ -273,10 +273,10 @@
   .proj-card-cost { font-size: 11px; color: var(--warm-muted); border-top: 1px solid var(--warm-divider-soft); padding-top: 8px; margin-top: 8px; }
 
   /* Palette selector page */
-  .pal-body { max-width: 880px; }
+  .pal-body { max-width: none; }
   .pal-section { margin-bottom: 36px; }
   .pal-section-head { margin-bottom: 14px; }
-  .pal-section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--warm-fg-2); }
+  .pal-section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--warm-fg-2); }
   .pal-section-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; }
   .pal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
   .pal-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; text-align: left; }
@@ -2549,29 +2549,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
 
         <section className="pal-section">
           <div className="pal-section-head">
-            <div className="pal-section-title">Sample palettes</div>
-            <div className="pal-section-sub">Curated fabric combinations to get you going fast.</div>
-          </div>
-          <div className="pal-grid">
-            {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, null)}>
-                <div className="pal-swatches">
-                  {s.colors.map((c, i) => (
-                    <span key={i} className="pal-swatch" style={{ background: c.hex }} title={c.name}/>
-                  ))}
-                </div>
-                <div className="pal-card-body">
-                  <div className="pal-card-name">{s.name}</div>
-                  <div className="pal-card-meta">{s.colors.length} fabrics</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Upload an image</div>
+            <div className="pal-section-title">Upload an Image</div>
             <div className="pal-section-sub">We'll read the top colors from your photo and turn them into a fabric palette.</div>
           </div>
           {!extracted && (
@@ -2632,6 +2610,28 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
               </div>
             </div>
           )}
+        </section>
+
+        <section className="pal-section">
+          <div className="pal-section-head">
+            <div className="pal-section-title">Sample Palettes</div>
+            <div className="pal-section-sub">Curated fabric combinations to get you going fast.</div>
+          </div>
+          <div className="pal-grid">
+            {samples.map(s => (
+              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, null)}>
+                <div className="pal-swatches">
+                  {s.colors.map((c, i) => (
+                    <span key={i} className="pal-swatch" style={{ background: c.hex }} title={c.name}/>
+                  ))}
+                </div>
+                <div className="pal-card-body">
+                  <div className="pal-card-name">{s.name}</div>
+                  <div className="pal-card-meta">{s.colors.length} fabrics</div>
+                </div>
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="pal-section">
