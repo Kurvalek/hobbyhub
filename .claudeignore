@@ -1,0 +1,20 @@
+# Build artifacts & Dependencies
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# IDE & Tooling (Cursor specific)
+.cursor/
+.vscode/
+.DS_Store
+*.log
+
+# Secrets & Large Assets
+.env*
+public/assets/
+*.png
+*.jpg
+*.jpeg
+*.svg
