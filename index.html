@@ -290,7 +290,7 @@
   .pal-card-meta { font-size: 11px; color: var(--warm-muted); margin-top: 2px; }
 
   /* Upload */
-  .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); }
+  .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 50%; box-sizing: border-box; }
   .pal-upload:hover, .pal-upload.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
   .pal-upload-icon { color: var(--warm-muted); margin-bottom: 8px; display: inline-flex; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: var(--warm-fg); }
@@ -531,6 +531,10 @@ const SUGGESTED_PALETTES = [
   { name: "Forest",     colors: ["Pine","Basil","Moss","Honey","Bone"] },
   { name: "Desert",     colors: ["Flame","Sand","Putty","Espresso","Ivory"] },
   { name: "Coral Reef", colors: ["Coral","Turquoise","Aqua","Butter","White"] },
+  { name: "Harvest",    colors: ["Pumpkin","Nutmeg","Mustard","Fern","Bone"] },
+  { name: "Tidepool",   colors: ["Peacock","Lagoon","Pool","Seafoam","Snow"] },
+  { name: "Cotton Candy", colors: ["Peony","Lavender","Baby Blue","Mint","Butter"] },
+  { name: "Twilight Jewel", colors: ["Midnight","Berry","Jade Green","Wine","Bone"] },
 ];
 
 // ── Palette helpers ─────────────────────────────────────────────────────────
