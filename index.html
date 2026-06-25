@@ -2539,6 +2539,21 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
 
   const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); fileRef.current && (fileRef.current.value = ''); };
 
+  // Only the swatches the user checked ("kept") should be added to their
+  // palette. The unchecked swatches are just candidate slots they shuffle
+  // through with Regenerate, so passing all of `extracted` would inflate the
+  // palette with colors the user never selected. If nothing is checked we
+  // fall back to the full extracted set (the simple "upload & use" path).
+  const applySelection = useCallback(() => {
+    if (!extracted || !extracted.length) return;
+    const kept = extracted.filter(c => locked.has(c.name));
+    const chosen = kept.length ? kept : extracted;
+    onChoose(
+      chosen,
+      useAsBacking ? { name: 'Photo backing', hex: chosen[0].hex, image: imgSrc } : null
+    );
+  }, [extracted, locked, useAsBacking, imgSrc, onChoose]);
+
   return (
     <div className="proj-page">
       <header className="proj-header">
@@ -2578,7 +2593,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
             <div className="pal-result">
               <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
               <div className="pal-result-main">
-                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check any to keep them when you regenerate</div>
+                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
                 <div className="pal-result-swatches">
                   {extracted.map((c, i) => {
                     const isLocked = locked.has(c.name);
@@ -2596,10 +2611,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
                   Use this image as the backing fabric
                 </label>
                 <div className="pal-actions">
-                  <button className="pal-btn" onClick={() => onChoose(
-                    extracted,
-                    useAsBacking ? { name: 'Photo backing', hex: extracted[0].hex, image: imgSrc } : null
-                  )}>Use these colors</button>
+                  <button className="pal-btn" onClick={applySelection}>Use these colors</button>
                   {pool.length > 1 && (
                     <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
