@@ -271,6 +271,8 @@
   .proj-card-dims { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-bottom: 2px; }
   .proj-card-desc { font-size: 12px; color: var(--warm-muted); margin-bottom: 8px; }
   .proj-card-cost { font-size: 11px; color: var(--warm-muted); border-top: 1px solid var(--warm-divider-soft); padding-top: 8px; margin-top: 8px; }
+  .proj-card.is-soon { opacity: 0.55; cursor: default; }
+  .proj-card.is-soon:hover { border-color: var(--warm-hairline); box-shadow: none; transform: none; }
 
   /* Palette selector page */
   .pal-body { max-width: none; }
@@ -2531,7 +2533,13 @@ function ProjectCard({ preset, onSelect }) {
   );
 }
 
-function ProjectSelector({ onSelect }) {
+const CRAFTS = [
+  { id: "quilt", name: "Quilt", desc: "Design a patchwork quilt and get a fabric supply list.", ready: true },
+  { id: "cross-stitch", name: "Cross-stitch", desc: "Chart a cross-stitch pattern stitch by stitch.", ready: false },
+  { id: "punch-needle", name: "Punch needle", desc: "Plan a punch needle project and yarn colors.", ready: false },
+];
+
+function CraftSelector({ onSelect }) {
   return (
     <div className="proj-page">
       <header className="proj-header">
@@ -2540,6 +2548,37 @@ function ProjectSelector({ onSelect }) {
       <div className="proj-body">
         <div className="proj-intro">
           <h1 className="proj-heading">What are you making?</h1>
+          <p className="proj-subheading">Choose a craft to begin.</p>
+        </div>
+        <div className="proj-grid">
+          {CRAFTS.map(c => (
+            <div key={c.id}
+              className={c.ready ? "proj-card" : "proj-card is-soon"}
+              role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
+              onClick={() => c.ready && onSelect(c.id)}
+              onKeyDown={e => e.key === "Enter" && c.ready && onSelect(c.id)}>
+              <div className="proj-card-body">
+                <div className="proj-card-name">{c.name}</div>
+                <div className="proj-card-desc">{c.desc}</div>
+                <div className="proj-card-cost">{c.ready ? "Start →" : "Coming soon"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectSelector({ onSelect }) {
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body">
+        <div className="proj-intro">
+          <h1 className="proj-heading">What size?</h1>
           <p className="proj-subheading">Choose a size to start planning your quilt.</p>
         </div>
         <div className="proj-grid">
@@ -2753,13 +2792,17 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
 }
 
 function Root() {
+  const [craft, setCraft] = React.useState(null);
   const [selectedPreset, setSelectedPreset] = React.useState(null);
   const [paletteDone, setPaletteDone] = React.useState(false);
   const [palette, setPalette] = React.useState(null);
   const [backingFabric, setBackingFabric] = React.useState(null);
 
-  const resetAll = () => { setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null); };
+  const resetAll = () => { setCraft(null); setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null); };
 
+  if (!craft) {
+    return <CraftSelector onSelect={setCraft}/>;
+  }
   if (!selectedPreset) {
     return <ProjectSelector onSelect={setSelectedPreset}/>;
   }
