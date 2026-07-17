@@ -1839,6 +1839,42 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
   const [viewQuilt, setViewQuilt] = useState(null);
   const [showMyQuilts, setShowMyQuilts] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // Restore a saved quilt back onto the editor canvas. Rebuilds every piece of
+  // editor state we persisted so the design opens exactly as it was saved.
+  const loadQuilt = useCallback((q) => {
+    if (!q) return;
+    historyRef.current = [];
+    _setShapes(Array.isArray(q.shapes) ? q.shapes : []);
+    setSelIds(new Set());
+    if (typeof q.cols === 'number') setCols(q.cols);
+    if (typeof q.rows === 'number') setRows(q.rows);
+    if (typeof q.bs === 'number') setBs(q.bs);
+    if (q.preset) setPreset(q.preset);
+    setBacking(q.backing || null);
+    setBinding(q.binding || null);
+    // Palette: prefer the saved "My palette", else rebuild it from the colors
+    // actually used in the design (covers quilts saved before palette storage).
+    let pal = Array.isArray(q.pinned) ? q.pinned.filter(Boolean) : [];
+    if (!pal.length && Array.isArray(q.shapes)) {
+      const seen = new Set();
+      pal = [];
+      for (const s of q.shapes) {
+        if (s && s.color && s.color.hex && !seen.has(s.color.hex)) {
+          seen.add(s.color.hex);
+          pal.push(s.color);
+        }
+      }
+    }
+    if (pal.length) setPinned(pal);
+    if (q.qPattern) setQPattern(q.qPattern);
+    if (typeof q.qSpacing === 'number') setQSpacing(q.qSpacing);
+    if (q.qColor) setQColor(q.qColor);
+    if (typeof q.showQ === 'boolean') setShowQ(q.showQ);
+    setViewQuilt(null);
+    setShowMyQuilts(false);
+    setConfirmDeleteId(null);
+  }, []);
   const [showHints, setShowHints] = useState(false);
   // The library popover doubles as a fabric picker. `picker` is null when
   // closed, otherwise an object describing the active picker config:
@@ -2180,7 +2216,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             <div style={{fontWeight:400,fontSize:24,marginBottom:16,fontFamily:"var(--font-display)",lineHeight:1.1}}>Save your quilt</div>
             <input type="text" placeholder="Give your quilt a name…" value={saveName} onChange={e=>setSaveName(e.target.value)}
               autoFocus onKeyDown={e=>{if(e.key==='Enter'&&saveName.trim()){
-                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,
+                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,pinned:[...pinned],qPattern,qSpacing,qColor,showQ,
                   materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
                 setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
               }}}
@@ -2189,7 +2225,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
               <button className="btn" onClick={()=>setShowSave(false)}>Cancel</button>
               <button className="btn btn-dark" onClick={()=>{
                 if(!saveName.trim()) return;
-                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,
+                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,pinned:[...pinned],qPattern,qSpacing,qColor,showQ,
                   materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
                 setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
               }}>Save</button>
@@ -2216,7 +2252,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
                 {savedQuilts.map(q=>(
                   <div key={q.id} style={{display:'flex',gap:12,alignItems:'center',padding:12,border:'1px solid #E2DDD2',borderRadius:6,cursor:'pointer',transition:'background .1s'}}
-                    onClick={()=>{setViewQuilt(q);setShowMyQuilts(false);}}
+                    onClick={()=>loadQuilt(q)} title="Open on canvas"
                     onMouseEnter={e=>e.currentTarget.style.background='#EFE9DD'}
                     onMouseLeave={e=>e.currentTarget.style.background='#FFFFFF'}>
                     <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#FFFFFF',borderRadius:4,overflow:'hidden'}}>
@@ -2237,11 +2273,18 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
                         <button className="btn btn-sm btn-dark" onClick={()=>{setSavedQuilts(p=>p.filter(x=>x.id!==q.id));setConfirmDeleteId(null);}}>Delete</button>
                       </div>
                     ) : (
-                      <button title="Delete quilt"
-                        onClick={e=>{e.stopPropagation();setConfirmDeleteId(q.id);}}
-                        style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
-                        onMouseEnter={e=>e.currentTarget.style.color='var(--metime-tomato)'}
-                        onMouseLeave={e=>e.currentTarget.style.color='var(--warm-muted)'}><IcTrash/></button>
+                      <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                        <button title="Preview supplies"
+                          onClick={e=>{e.stopPropagation();setViewQuilt(q);setShowMyQuilts(false);}}
+                          style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
+                          onMouseEnter={e=>e.currentTarget.style.color='var(--warm-fg)'}
+                          onMouseLeave={e=>e.currentTarget.style.color='var(--warm-muted)'}><IcEye/></button>
+                        <button title="Delete quilt"
+                          onClick={e=>{e.stopPropagation();setConfirmDeleteId(q.id);}}
+                          style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
+                          onMouseEnter={e=>e.currentTarget.style.color='var(--metime-tomato)'}
+                          onMouseLeave={e=>e.currentTarget.style.color='var(--warm-muted)'}><IcTrash/></button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -2270,7 +2313,10 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
                   <div style={{fontWeight:400,fontSize:24,fontFamily:"var(--font-display)",lineHeight:1.1}}>{q.name}</div>
                   <div style={{fontSize:13,color:'var(--warm-muted)',marginTop:2}}>{q.fw}" × {q.fh}" · {q.preset !== 'Custom' ? q.preset : 'Custom size'} · {q.bs}" blocks</div>
                 </div>
-                <button onClick={()=>setViewQuilt(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}}><IcX/></button>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <button className="btn" onClick={()=>loadQuilt(q)}>Open on canvas</button>
+                  <button onClick={()=>setViewQuilt(null)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}}><IcX/></button>
+                </div>
               </div>
 
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
