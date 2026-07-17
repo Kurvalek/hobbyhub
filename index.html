@@ -274,6 +274,40 @@
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
   .proj-card.is-soon:hover { border-color: var(--warm-hairline); box-shadow: none; transform: none; }
 
+  /* Cross-stitch editor */
+  .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
+  .xs-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
+  .xs-title { font-family: var(--font-display); font-size: 20px; line-height: 1; color: var(--warm-fg); }
+  .xs-sub { font-size: 12px; color: var(--warm-muted); font-family: var(--font-mono); }
+  .xs-topbar-spacer { flex: 1; }
+  .xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
+  .xs-body { flex: 1; display: flex; min-height: 0; }
+  .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--warm-hairline); background: var(--metime-cream); flex-shrink: 0; }
+  .xs-tool { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--warm-hairline); background: var(--metime-white); border-radius: 8px; cursor: pointer; color: var(--warm-fg-2); transition: all .12s; }
+  .xs-tool:hover { border-color: var(--metime-almost-black); }
+  .xs-tool.active { background: var(--metime-almost-black); color: var(--metime-white); border-color: var(--metime-almost-black); }
+  .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px; background: repeating-conic-gradient(#EFEBE1 0% 25%, #F5F3EE 0% 50%) 50% / 20px 20px; min-width: 0; }
+  .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; }
+  .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--warm-hairline); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
+  .xs-panel-head { padding: 14px 16px 8px; }
+  .xs-panel-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--warm-fg-2); text-transform: uppercase; }
+  .xs-current { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--warm-divider-soft); }
+  .xs-current-chip { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
+  .xs-swatches { flex: 1; overflow-y: auto; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 8px; align-content: start; }
+  .xs-swatch { position: relative; aspect-ratio: 1; border-radius: 6px; border: 1px solid rgba(46,41,37,0.15); cursor: pointer; transition: transform .1s; }
+  .xs-swatch:hover { transform: scale(1.08); }
+  .xs-swatch.active { outline: 2px solid var(--metime-almost-black); outline-offset: 1px; }
+  .xs-add { margin: 0 16px 14px; padding: 8px; border: 1px dashed var(--warm-muted); background: none; border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--warm-fg-2); display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .xs-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
+  .xs-picker { position: fixed; inset: 0; background: rgba(46,41,37,0.28); display: flex; align-items: center; justify-content: center; z-index: 60; }
+  .xs-picker-card { background: #fff; border-radius: 10px; width: 460px; max-width: calc(100vw - 32px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(46,41,37,0.2); overflow: hidden; }
+  .xs-picker-list { overflow-y: auto; padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+  .xs-picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+  .xs-picker-item:hover { background: var(--metime-cream); border-color: var(--warm-hairline); }
+  .xs-picker-dot { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
+  .xs-picker-code { font-size: 12px; font-weight: 600; color: var(--warm-fg); }
+  .xs-picker-name { font-size: 10px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* Palette selector page */
   .pal-body { max-width: none; }
   .pal-section { margin-bottom: 36px; }
@@ -388,6 +422,10 @@ const IcUndo    = ({ size=18 }) => <Svg size={size}><path d="M3 7v6h6"/><path d=
 const IcBook    = ({ size=15 }) => <Svg size={size}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></Svg>;
 const IcChevR   = ({ size=11 }) => <Svg size={size}><path d="m9 6-6 6V0z" fill="currentColor" stroke="none"/></Svg>;
 const IcSwap    = ({ size=14 }) => <Svg size={size}><path d="M16 3l4 4-4 4"/><path d="M4 7h16"/><path d="M8 21l-4-4 4-4"/><path d="M20 17H4"/></Svg>;
+const IcPen     = ({ size=18 }) => <Svg size={size}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></Svg>;
+const IcLineTool= ({ size=18 }) => <Svg size={size}><path d="M5 19 19 5"/><circle cx="19" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none"/></Svg>;
+const IcCircle  = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="8"/></Svg>;
+const IcImage   = ({ size=16 }) => <Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></Svg>;
 
 // ── Brand: metime wordmark ────────────────────────────────────────────────
 // Logotype set in "Sundae" by Taylor Penton; sourced from the metime design
@@ -526,6 +564,66 @@ const KONA = [
   { name:"Dragon Fruit", code:"1124", hex:"#D14F8E", group:"Purple" },
 ];
 const GROUPS = ["All","White","Neutral","Brown","Grey","Red","Pink","Orange","Yellow","Green","Blue","Purple"];
+
+// ── DMC 6-Strand Cotton Floss (full range) ─────────────────────────────────
+// Encoded as code~name~HEX joined by | to keep the file small; parsed once at
+// load. Source data: seanockert/rgb-to-dmc (hex derived from published RGB).
+const DMC_ENC = "3713~Salmon Very Light~FFE2E2|761~Salmon Light~FFC9C9|760~Salmon~F5ADAD|3712~Salmon Medium~F18787|3328~Salmon Dark~E36D6D|347~Salmon Very Dark~BF2D2D|353~Peach~FED7CC|352~Coral Light~FD9C97|351~Coral~E96A67|350~Coral Medium~E04848|349~Coral Dark~D21035|817~Coral Red Very Dark~BB051F|3708~Melon Light~FFCBD5|3706~Melon Medium~FFADBC|3705~Melon Dark~FF7992|3801~Melon Very Dark~E74967|666~Bright Red~E31D42|321~Red~C72B3B|304~Red Medium~B71F33|498~Red Dark~A7132B|816~Garnet~970B23|815~Garnet Medium~87071F|814~Garnet Dark~7B001B|894~Carnation Very Light~FFB2BB|893~Carnation Light~FC90A2|892~Carnation Medium~FF798C|891~Carnation Dark~FF5773|818~Baby Pink~FFDFD9|957~Geranium Pale~FDB5B5|956~Geranium~FF9191|309~Rose Dark~564A4A|963~Dusty Rose Ult Vy Lt~FFD7D7|3716~Dusty Rose Med Vy Lt~FFBDBD|962~Dusty Rose Medium~E68A8A|961~Dusty Rose Dark~CF7373|3833~Raspberry Light~EA8699|3832~Raspberry Medium~DB556E|3831~Raspberry Dark~B32F48|777~Raspberry Very Dark~913546|819~Baby Pink Light~FFEEEB|3326~Rose Light~FBADB4|776~Pink Medium~FCB0B9|899~Rose Medium~F27688|335~Rose~EE546E|326~Rose Very Dark~B33B4B|151~Dusty Rose Vry Lt~F0CED4|3354~Dusty Rose Light~E4A6AC|3733~Dusty Rose~E8879B|3731~Dusty Rose Very Dark~DA6783|3350~Dusty Rose Ultra Dark~BC4365|150~Dusty Rose Ult Vy Dk~AB0249|3689~Mauve Light~FBBFC2|3688~Mauve Medium~E7A9AC|3687~Mauve~C96B70|3803~Mauve Dark~AB3357|3685~Mauve Very Dark~881531|605~Cranberry Very Light~FFC0CD|604~Cranberry Light~FFB0BE|603~Cranberry~FFA4BE|602~Cranberry Medium~E24874|601~Cranberry Dark~D1286A|600~Cranberry Very Dark~CD2F63|3806~Cyclamen Pink Light~FF8CAE|3805~Cyclamen Pink~F3478B|3804~Cyclamen Pink Dark~E02876|3609~Plum Ultra Light~F4AED5|3608~Plum Very Light~EA9CC4|3607~Plum Light~C54989|718~Plum~9C2462|917~Plum Medium~9B1359|915~Plum Dark~820043|225~Shell Pink Ult Vy Lt~FFDFD5|224~Shell Pink Very Light~EBB7AF|152~Shell Pink Med Light~E2A099|223~Shell Pink Light~CC847C|3722~Shell Pink Med~BC6C64|3721~Shell Pink Dark~A14B51|221~Shell Pink Vy Dk~883E43|778~Antique Mauve Vy Lt~DFB3BB|3727~Antique Mauve Light~DBA9B2|316~Antique Mauve Med~B7737F|3726~Antique Mauve Dark~9B5B66|315~Antique Mauve Md Dk~814952|3802~Antique Mauve Vy Dk~714149|902~Garnet Very Dark~822637|3743~Antique Violet Vy Lt~D7CBD3|3042~Antique Violet Light~B79DA7|3041~Antique Violet Medium~956F7C|3740~Antique Violet Dark~785762|3836~Grape Light~BA91AA|3835~Grape Medium~946083|3834~Grape Dark~72375D|154~Grape Very Dark~572433|211~Lavender Light~E3CBE3|210~Lavender Medium~C39FC3|209~Lavender Dark~A37BA7|208~Lavender Very Dark~835B8B|3837~Lavender Ultra Dark~6C3A6E|327~Violet Dark~633666|153~Violet Very Light~E6CCD9|554~Violet Light~DBB3CB|553~Violet~A3638B|552~Violet Medium~803A6B|550~Violet Very Dark~5C184E|3747~Blue Violet Vy Lt~D3D7ED|341~Blue Violet Light~B7BFDD|156~Blue Violet Med Lt~A3AED1|340~Blue Violet Medium~ADA7C7|155~Blue Violet Med Dark~9891B6|3746~Blue Violet Dark~776B98|333~Blue Violet Very Dark~5C5478|157~Cornflower Blue Vy Lt~BBC3D9|794~Cornflower Blue Light~8F9CC1|793~Cornflower Blue Med~707DA2|3807~Cornflower Blue~60678C|792~Cornflower Blue Dark~555B7B|158~Cornflower Blu M V D~4C526E|791~Cornflower Blue V D~464563|3840~Lavender Blue Light~B0C0DA|3839~Lavender Blue Med~7B8EAB|3838~Lavender Blue Dark~5C7294|800~Delft Blue Pale~C0CCDE|809~Delft Blue~94A8C6|799~Delft Blue Medium~748EB6|798~Delft Blue Dark~466A8E|797~Royal Blue~13477D|796~Royal Blue Dark~11416D|820~Royal Blue Very Dark~0E365C|162~Blue Ultra Very Light~DBECF5|827~Blue Very Light~BDDDED|813~Blue Light~A1C2D7|826~Blue Medium~6B9EBF|825~Blue Dark~4781A5|824~Blue Very Dark~396987|996~Electric Blue Medium~30C2EC|3843~Electric Blue~14AAD0|995~Electric Blue Dark~2696B6|3846~Turquoise Bright Light~06E3E6|3845~Turquoise Bright Med~04C4CA|3844~Turquoise Bright Dark~12AEBA|159~Blue Gray Light~C7CAD7|160~Blue Gray Medium~999FB7|161~Blue Gray~7880A4|3756~Baby Blue Ult Vy Lt~EEFCFC|775~Baby Blue Very Light~D9EBF1|3841~Baby Blue Pale~CDDFED|3325~Baby Blue Light~B8D2E6|3755~Baby Blue~93B4CE|334~Baby Blue Medium~739FC1|322~Baby Blue Dark~5A8FB8|312~Baby Blue Very Dark~35668B|803~Baby Blue Ult Vy Dk~2C597C|336~Navy Blue~253B73|823~Navy Blue Dark~213063|939~Navy Blue Very Dark~1B2853|3753~Antique Blue Ult Vy Lt~DBE2E9|3752~Antique Blue Very Lt~C7D1DB|932~Antique Blue Light~A2B5C6|931~Antique Blue Medium~6A859E|930~Antique Blue Dark~455C71|3750~Antique Blue Very Dk~384C5E|828~Sky Blue Vy Lt~C5E8ED|3761~Sky Blue Light~ACD8E2|519~Sky Blue~7EB1C8|518~Wedgewood Light~4F93A7|3760~Wedgewood Med~3E85A2|517~Wedgewood Dark~3B768F|3842~Wedgewood Vry Dk~32667C|311~Wedgewood Ult VyDk~1C5066|747~Peacock Blue Vy Lt~E5FCFD|3766~Peacock Blue Light~99CFD9|807~Peacock Blue~64ABBA|806~Peacock Blue Dark~3D95A5|3765~Peacock Blue Vy Dk~347F8C|3811~Turquoise Very Light~BCE3E6|598~Turquoise Light~90C3CC|597~Turquoise~5BA3B3|3810~Turquoise Dark~488E9A|3809~Turquoise Vy Dark~3F7C85|3808~Turquoise Ult Vy Dk~366970|928~Gray Green Vy Lt~DDE3E3|927~Gray Green Light~BDCBCB|926~Gray Green Med~98AEAE|3768~Gray Green Dark~657F7F|924~Gray Green Vy Dark~566A6A|3849~Teal Green Light~52B3A4|3848~Teal Green Med~559392|3847~Teal Green Dark~347D75|964~Sea Green Light~A9E2D8|959~Sea Green Med~59C7B4|958~Sea Green Dark~3EB6A1|3812~Sea Green Vy Dk~2F8C84|3851~Green Bright Lt~49B3A1|943~Green Bright Md~3D9384|3850~Green Bright Dk~378477|993~Aquamarine Vy Lt~90C0B4|992~Aquamarine Lt~6FAE9F|3814~Aquamarine~508B7D|991~Aquamarine Dk~477B6E|966~Jade Ultra Vy Lt~B9D7C0|564~Jade Very Light~A7CDAF|563~Jade Light~8FC098|562~Jade Medium~53976A|505~Jade Green~338362|3817~Celadon Green Lt~99C3AA|3816~Celadon Green~65A57D|163~Celadon Green Md~4D8361|3815~Celadon Green Dk~477759|561~Celadon Green VD~2C6A45|504~Blue Green Vy Lt~C4DECC|3813~Blue Green Lt~B2D4BD|503~Blue Green Med~7BAC94|502~Blue Green~5B9071|501~Blue Green Dark~396F52|500~Blue Green Vy Dk~044D33|955~Nile Green Light~A2D6AD|954~Nile Green~88BA91|913~Nile Green Med~6DAB77|912~Emerald Green Lt~1B9D6B|911~Emerald Green Med~189065|910~Emerald Green Dark~187E56|909~Emerald Green Vy Dk~156F49|3818~Emerald Grn Ult V Dk~115A3B|369~Pistachio Green Vy Lt~D7EDCC|368~Pistachio Green Lt~A6C298|320~Pistachio Green Med~69885A|367~Pistachio Green Dk~617A52|319~Pistachio Grn Vy Dk~205F2E|890~Pistachio Grn Ult V D~174923|164~Forest Green Lt~C8D8B8|989~Forest Green~8DA675|988~Forest Green Med~738B5B|987~Forest Green Dk~587141|986~Forest Green Vy Dk~405230|772~Yellow Green Vy Lt~E4ECD4|3348~Yellow Green Lt~CCD9B1|3347~Yellow Green Med~71935C|3346~Hunter Green~406A3A|3345~Hunter Green Dk~1B5915|895~Hunter Green Vy Dk~1B5300|704~Chartreuse Bright~9ECF34|703~Chartreuse~7BB547|702~Kelly Green~47A72F|701~Green Light~3F8F29|700~Green Bright~07731B|699~Green~056517|907~Parrot Green Lt~C7E666|906~Parrot Green Md~7FB335|905~Parrot Green Dk~628A28|904~Parrot Green V Dk~557822|472~Avocado Grn U Lt~D8E498|471~Avocado Grn V Lt~AEBF79|470~Avocado Grn Lt~94AB4F|469~Avocado Green~72843C|937~Avocado Green Md~627133|936~Avocado Grn V Dk~4C5826|935~Avocado Green Dk~424D21|934~Avocado Grn Black~313919|523~Fern Green Lt~ABB197|3053~Green Gray~9CA482|3052~Green Gray Md~889268|3051~Green Gray Dk~5F6648|524~Fern Green Vy Lt~C4CDAC|522~Fern Green~969E7E|520~Fern Green Dark~666D4F|3364~Pine Green~83975F|3363~Pine Green Md~728256|3362~Pine Green Dk~5E6B47|165~Moss Green Vy Lt~EFF4A4|3819~Moss Green Lt~E0E868|166~Moss Green Md Lt~C0C840|581~Moss Green~A7AE38|580~Moss Green Dk~888D33|734~Olive Green Lt~C7C077|733~Olive Green Md~BCB34C|732~Olive Green~948C36|731~Olive Green Dk~938B37|730~Olive Green V Dk~827B30|3013~Khaki Green Lt~B9B982|3012~Khaki Green Md~A6A75D|3011~Khaki Green Dk~898A58|372~Mustard Lt~CCB784|371~Mustard~BFA671|370~Mustard Medium~B89D64|834~Golden Olive Vy Lt~DBBE7F|833~Golden Olive Lt~C8AB6C|832~Golden Olive~BD9B51|831~Golden Olive Md~AA8F56|830~Golden Olive Dk~8D784B|829~Golden Olive Vy Dk~7E6B42|613~Drab Brown V Lt~DCC4AA|612~Drab Brown Lt~BC9A78|611~Drab Brown~967656|610~Drab Brown Dk~796047|3047~Yellow Beige Lt~E7D6C1|3046~Yellow Beige Md~D8BC9A|3045~Yellow Beige Dk~BC966A|167~Yellow Beige V Dk~A77C49|746~Off White~FCFCEE|677~Old Gold Vy Lt~F5ECCB|422~Hazelnut Brown Lt~C69F7B|3828~Hazelnut Brown~B78B61|420~Hazelnut Brown Dk~A07042|869~Hazelnut Brown V Dk~835E39|728~Topaz~E4B468|783~Topaz Medium~CE9124|782~Topaz Dark~AE7720|781~Topaz Very Dark~A26D20|780~Topaz Ultra Vy Dk~94631A|676~Old Gold Lt~E5CE97|729~Old Gold Medium~D0A53E|680~Old Gold Dark~BC8D0E|3829~Old Gold Vy Dark~A98204|3822~Straw Light~F6DC98|3821~Straw~F3CE75|3820~Straw Dark~DFB65F|3852~Straw Very Dark~CD9D37|445~Lemon Light~FFFB8B|307~Lemon~FDED54|973~Canary Bright~FFE300|444~Lemon Dark~FFD600|3078~Golden Yellow Vy Lt~FDF9CD|727~Topaz Vy Lt~FFF1AF|726~Topaz Light~FDD755|725~Topaz Med Lt~FFC840|972~Canary Deep~FFB515|745~Yellow Pale Light~FFE9AD|744~Yellow Pale~FFE793|743~Yellow Med~FED376|742~Tangerine Light~FFBF57|741~Tangerine Med~FFA32B|740~Tangerine~FF8B00|970~Pumpkin Light~F78B13|971~Pumpkin~F67F00|947~Burnt Orange~FF7B4D|946~Burnt Orange Med~EB6307|900~Burnt Orange Dark~D15807|967~Apricot Very Light~FFDED5|3824~Apricot Light~FECDC2|3341~Apricot~FCAB98|3340~Apricot Med~FF836F|608~Burnt Orange Bright~FD5D35|606~Orange-Red Bright~FA3203|951~Tawny Light~FFE2CF|3856~Mahogany Ult Vy Lt~FFD3B5|722~Orange Spice Light~F7976F|721~Orange Spice Med~F27842|720~Orange Spice Dark~E55C1F|3825~Pumpkin Pale~FDBD96|922~Copper Light~E27323|921~Copper~C66218|920~Copper Med~AC5414|919~Red-Copper~A64510|918~Red-Copper Dark~82340A|3770~Tawny Vy Light~FFEEE3|945~Tawny~FBD5BB|402~Mahogany Vy Lt~F7A777|3776~Mahogany Light~CF7939|301~Mahogany Med~B35F2B|400~Mahogany Dark~8F430F|300~Mahogany Vy Dk~6F2F00|3823~Yellow Ultra Pale~FFFDE3|3855~Autumn Gold Lt~FAD396|3854~Autumn Gold Med~F2AF68|3853~Autumn Gold Dk~F29746|3827~Golden Brown Pale~F7BB77|977~Golden Brown Light~DC9C56|976~Golden Brown Med~C28142|3826~Golden Brown~AD7239|975~Golden Brown Dk~914F12|948~Peach Very Light~FEE7DA|754~Peach Light~F7CBBF|3771~Terra Cotta Ult Vy Lt~F4BBA9|758~Terra Cotta Vy Lt~EEAA9B|3778~Terra Cotta Light~D98978|356~Terra Cotta Med~C56A5B|3830~Terra Cotta~B95544|355~Terra Cotta Dark~984436|3777~Terra Cotta Vy Dk~863022|3779~Rosewood Ult Vy Lt~F8CAC8|3859~Rosewood Light~BA8B7C|3858~Rosewood Med~964A3F|3857~Rosewood Dark~68251A|3774~Desert Sand Vy Lt~F3E1D7|950~Desert Sand Light~EED3C4|3064~Desert Sand~C48E70|407~Desert Sand Med~BB8161|3773~Desert Sand Dark~B67552|3772~Desert Sand Vy Dk~A06C50|632~Desert Sand Ult Vy Dk~875539|453~Shell Gray Light~D7CECB|452~Shell Gray Med~C0B3AE|451~Shell Gray Dark~917B73|3861~Cocoa Light~A68881|3860~Cocoa~7D5D57|779~Cocoa Dark~624B45|712~Cream~FFFBEF|739~Tan Ult Vy Lt~F8E4C8|738~Tan Very Light~ECCC9E|437~Tan Light~E4BB8E|436~Tan~CB9051|435~Brown Very Light~B87748|434~Brown Light~985E33|433~Brown Med~7A451F|801~Coffee Brown Dk~653919|898~Coffee Brown Vy Dk~492A13|938~Coffee Brown Ult Dk~361F0E|3371~Black Brown~1E1108|543~Beige Brown Ult Vy Lt~F2E3CE|3864~Mocha Beige Light~CBB69C|3863~Mocha Beige Med~A4835C|3862~Mocha Beige Dark~8A6E4E|3031~Mocha Brown Vy Dk~4B3C2A|B5200~Snow White~FFFFFF|White~White~FCFBF8|3865~Winter White~F9F7F1|Ecru~Ecru~F0EADA|822~Beige Gray Light~E7E2D3|644~Beige Gray Med~DDD8CB|642~Beige Gray Dark~A49878|640~Beige Gray Vy Dk~857B61|3787~Brown Gray Dark~625D50|3021~Brown Gray Vy Dk~4F4B41|3024~Brown Gray Vy Lt~EBEAE7|3023~Brown Gray Light~B1AA97|3022~Brown Gray Med~8E9078|535~Ash Gray Vy Lt~636458|3033~Mocha Brown Vy Lt~E3D8CC|3782~Mocha Brown Lt~D2BCA6|3032~Mocha Brown Med~B39F8B|3790~Beige Gray Ult Dk~7F6A55|3781~Mocha Brown Dk~6B5743|3866~Mocha Brn Ult Vy Lt~FAF6F0|842~Beige Brown Vy Lt~D1BAA1|841~Beige Brown Lt~B69B7E|840~Beige Brown Med~9A7C5C|839~Beige Brown Dk~675541|838~Beige Brown Vy Dk~594937|3072~Beaver Gray Vy Lt~E6E8E8|648~Beaver Gray Lt~BCB4AC|647~Beaver Gray Med~B0A69C|646~Beaver Gray Dk~877D73|645~Beaver Gray Vy Dk~6E655C|844~Beaver Gray Ult Dk~484848|762~Pearl Gray Vy Lt~ECECEC|415~Pearl Gray~D3D3D6|318~Steel Gray Lt~ABABAB|414~Steel Gray Dk~8C8C8C|168~Pewter Very Light~D1D1D1|169~Pewter Light~848484|317~Pewter Gray~6C6C6C|413~Pewter Gray Dark~565656|3799~Pewter Gray Vy Dk~424242|310~Black~000000";
+const DMC = DMC_ENC.split("|").map(s => { const [code, name, hex] = s.split("~"); return { code, name, hex: "#" + hex }; });
+// Closest DMC floss to an arbitrary RGB color (Euclidean in RGB space).
+function nearestDMC({ r, g, b }) {
+  let best = null, bd = Infinity;
+  for (const c of DMC) {
+    const k = hexToRgb(c.hex);
+    const d = (r - k.r) ** 2 + (g - k.g) ** 2 + (b - k.b) ** 2;
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+// Closest color within an explicit list (used to snap to a chosen palette).
+function nearestInList({ r, g, b }, list) {
+  let best = null, bd = Infinity;
+  for (const c of list) {
+    const k = hexToRgb(c.hex);
+    const d = (r - k.r) ** 2 + (g - k.g) ** 2 + (b - k.b) ** 2;
+    if (d < bd) { bd = d; best = c; }
+  }
+  return best;
+}
+// Cross-stitch sizes are measured in stitches (grid count). Finished inches
+// depend on Aida fabric count; we show finished size at 14-count (most common).
+const STITCH_PRESETS = [
+  { name:"Coaster", w:40, h:40, desc:"Quick starter motif" },
+  { name:"Bookmark", w:30, h:120, desc:"Tall and skinny" },
+  { name:"Greeting Card", w:60, h:80, desc:"Little gift-sized art" },
+  { name:"Small Hoop", w:70, h:70, desc:"Fits a 5\" hoop" },
+  { name:"Sampler", w:100, h:100, desc:"Classic square sampler" },
+  { name:"Medium Hoop", w:120, h:120, desc:"Fits an 8\" hoop" },
+  { name:"Portrait", w:140, h:180, desc:"Detailed vertical piece" },
+  { name:"Large", w:200, h:200, desc:"Big, detailed project" },
+];
+const STITCH_THEMES = {
+  "Coaster":      { c1:"#C83A2C", c2:"#F5D89A", desc:"Quick starter motif" },
+  "Bookmark":     { c1:"#2C5080", c2:"#97B5D4", desc:"Tall and skinny" },
+  "Greeting Card":{ c1:"#7AB08C", c2:"#F5D89A", desc:"Little gift-sized art" },
+  "Small Hoop":   { c1:"#E8A0B0", c2:"#B8D4E0", desc:"Fits a 5\" hoop" },
+  "Sampler":      { c1:"#6A3A78", c2:"#D4A8E0", desc:"Classic square sampler" },
+  "Medium Hoop":  { c1:"#2C4A30", c2:"#7AAA80", desc:"Fits an 8\" hoop" },
+  "Portrait":     { c1:"#4A3028", c2:"#9A7060", desc:"Detailed vertical piece" },
+  "Large":        { c1:"#2A2A2A", c2:"#808080", desc:"Big, detailed project" },
+};
+// Curated DMC starter palettes (referenced by floss code).
+const DMC_PALETTES = [
+  { name:"Garden Bloom", codes:["472","471","3346","3705","3706","742","726","3865"] },
+  { name:"Ocean Breeze", codes:["3766","807","518","517","311","964","3865","747"] },
+  { name:"Autumn Harvest", codes:["720","721","922","3826","3852","869","730","3865"] },
+  { name:"Berry Sweet", codes:["600","602","604","3607","153","209","3865","310"] },
+  { name:"Earth & Stone", codes:["3031","640","642","644","822","3866","310","3865"] },
+  { name:"Sunset Warmth", codes:["606","608","740","742","972","349","816","3865"] },
+];
+function dmcByCode(code) { return DMC.find(c => c.code === code); }
+function resolveDmcPalette(pal) { return pal.codes.map(dmcByCode).filter(Boolean); }
+
 const PRESETS = [
   { name:"Mug Rug", w:8, h:10 },
   { name:"Mini", w:18, h:24 },
@@ -2535,7 +2633,7 @@ function ProjectCard({ preset, onSelect }) {
 
 const CRAFTS = [
   { id: "quilt", name: "Quilt", desc: "Design a patchwork quilt and get a fabric supply list.", ready: true },
-  { id: "cross-stitch", name: "Cross-stitch", desc: "Chart a cross-stitch pattern stitch by stitch.", ready: false },
+  { id: "cross-stitch", name: "Cross-stitch", desc: "Chart a cross-stitch pattern stitch by stitch.", ready: true },
   { id: "punch-needle", name: "Punch needle", desc: "Plan a punch needle project and yarn colors.", ready: false },
 ];
 
@@ -2791,18 +2889,567 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
   );
 }
 
+// ── Cross-stitch: size selector ────────────────────────────────────────────
+function StitchSizeCard({ preset, onSelect }) {
+  const theme = STITCH_THEMES[preset.name] || {};
+  const inW = (preset.w / 14).toFixed(1), inH = (preset.h / 14).toFixed(1);
+  return (
+    <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
+      <div className="proj-card-thumb" style={{ aspectRatio: `${preset.w} / ${preset.h}`, maxHeight: 120, background: theme.c2 || '#EFE9DD' }}/>
+      <div className="proj-card-body">
+        <div className="proj-card-name">{preset.name}</div>
+        <div className="proj-card-dims">{preset.w} × {preset.h} stitches</div>
+        <div className="proj-card-desc">{theme.desc || preset.desc || ''}</div>
+        <div className="proj-card-cost">≈ {inW}" × {inH}" on 14-count</div>
+      </div>
+    </div>
+  );
+}
+
+function CrossStitchSizeSelector({ onSelect, onBack }) {
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body">
+        <button className="back-link" onClick={onBack}>← Back</button>
+        <div className="proj-intro">
+          <h1 className="proj-heading">What size?</h1>
+          <p className="proj-subheading">Pick a canvas size for your cross-stitch — measured in stitches. Finished dimensions shown for 14-count Aida.</p>
+        </div>
+        <div className="proj-grid">
+          {STITCH_PRESETS.map(p => <StitchSizeCard key={p.name} preset={p} onSelect={onSelect}/>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Cross-stitch: palette / image selector ─────────────────────────────────
+function CrossStitchPaletteSelector({ preset, onChoose, onSkip, onBack }) {
+  const samples = useMemo(() => DMC_PALETTES.map(p => ({ name: p.name, colors: resolveDmcPalette(p) })), []);
+  const [imgSrc, setImgSrc] = useState(null);
+  const [extracted, setExtracted] = useState(null);
+  const [pool, setPool] = useState([]);
+  const [locked, setLocked] = useState(() => new Set());
+  const [autoGen, setAutoGen] = useState(true);
+  const [useAsBg, setUseAsBg] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef(null);
+  const imgElRef = useRef(null);
+  const PALETTE_SIZE = 10;
+
+  const handleFile = useCallback(file => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setBusy(true);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const src = ev.target.result;
+      const img = new Image();
+      img.onload = () => {
+        imgElRef.current = img;
+        const maxDim = 160;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        let pixels;
+        try { pixels = ctx.getImageData(0, 0, w, h); }
+        catch (e) { setBusy(false); return; }
+        const raw = extractColors(pixels, 24);
+        const seen = new Set(), colors = [];
+        for (const c of raw) {
+          const k = nearestDMC(c);
+          if (k && !seen.has(k.code)) { seen.add(k.code); colors.push(k); }
+        }
+        setImgSrc(src);
+        setPool(colors);
+        setLocked(new Set());
+        setExtracted(colors.slice(0, Math.min(PALETTE_SIZE, colors.length)));
+        setBusy(false);
+      };
+      img.onerror = () => setBusy(false);
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const toggleLock = useCallback(code => {
+    setLocked(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; });
+  }, []);
+
+  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; fileRef.current && (fileRef.current.value = ''); };
+
+  // Sample the uploaded image into the stitch grid, snapping each cell to the
+  // nearest color in the chosen palette → a ready-to-stitch design.
+  const generateGrid = useCallback((chosen) => {
+    const img = imgElRef.current;
+    if (!img || !chosen.length) return null;
+    const W = preset.w, H = preset.h;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const scale = Math.max(W / img.width, H / img.height);
+    const sw = W / scale, sh = H / scale;
+    const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    let data;
+    try { data = ctx.getImageData(0, 0, W, H).data; }
+    catch (e) { return null; }
+    const grid = new Array(W * H).fill(null);
+    for (let i = 0; i < W * H; i++) {
+      const a = data[i * 4 + 3];
+      if (a < 100) continue;
+      const near = nearestInList({ r: data[i * 4], g: data[i * 4 + 1], b: data[i * 4 + 2] }, chosen);
+      grid[i] = near ? near.hex : null;
+    }
+    return grid;
+  }, [preset]);
+
+  const applySelection = useCallback(() => {
+    if (!extracted || !extracted.length) return;
+    const kept = extracted.filter(c => locked.has(c.code));
+    const chosen = kept.length ? kept : extracted;
+    const autoGrid = autoGen ? generateGrid(chosen) : null;
+    onChoose(chosen, { bgImage: useAsBg ? imgSrc : null, autoGrid });
+  }, [extracted, locked, autoGen, useAsBg, imgSrc, generateGrid, onChoose]);
+
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body pal-body">
+        <button className="back-link" onClick={onBack}>← Back to sizes</button>
+        <div className="proj-intro">
+          <h1 className="proj-heading">Pick your floss colors</h1>
+          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — pull colors from a photo, choose a set, or skip and pick as you stitch.</p>
+        </div>
+
+        <section className="pal-section">
+          <div className="pal-section-head">
+            <div className="pal-section-title">Upload an Image</div>
+            <div className="pal-section-sub">We'll match the top colors to DMC floss. You can auto-generate a design from it or trace over it on the canvas.</div>
+          </div>
+          {!extracted && (
+            <div className={`pal-upload${drag ? ' drag' : ''}`}
+              onClick={() => fileRef.current && fileRef.current.click()}
+              onDragOver={e => { e.preventDefault(); setDrag(true); }}
+              onDragLeave={() => setDrag(false)}
+              onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
+              <div className="pal-upload-icon"><IcImage size={28}/></div>
+              <div className="pal-upload-title">{busy ? 'Reading colors…' : 'Drop an image here or click to browse'}</div>
+              <div className="pal-upload-sub">JPG, PNG, or WebP</div>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => handleFile(e.target.files[0])}/>
+            </div>
+          )}
+          {extracted && (
+            <div className="pal-result">
+              <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
+              <div className="pal-result-main">
+                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} DMC colors matched — check the ones to keep (they're the palette used). Leave all unchecked to use them all.</div>
+                <div className="pal-result-swatches">
+                  {extracted.map(c => {
+                    const isLocked = locked.has(c.code);
+                    return (
+                      <label key={c.code} className={`pal-chip${isLocked ? ' locked' : ''}`} title={`DMC ${c.code} · ${c.name}`}>
+                        <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(c.code)}/>
+                        <span className="pal-chip-color" style={{ background: c.hex }}/>
+                        <span className="pal-chip-label">{c.code} {c.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <label className="pal-check">
+                  <input type="checkbox" checked={autoGen} onChange={e => setAutoGen(e.target.checked)}/>
+                  Auto-generate a stitch design from this image
+                </label>
+                <label className="pal-check">
+                  <input type="checkbox" checked={useAsBg} onChange={e => setUseAsBg(e.target.checked)}/>
+                  Show the image behind the canvas to trace it
+                </label>
+                <div className="pal-actions">
+                  <button className="pal-btn" onClick={applySelection}>Start stitching</button>
+                  <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="pal-section">
+          <div className="pal-section-head">
+            <div className="pal-section-title">Floss Palettes</div>
+            <div className="pal-section-sub">Curated DMC combinations to get you going fast.</div>
+          </div>
+          <div className="pal-grid">
+            {samples.map(s => (
+              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, { bgImage: null, autoGrid: null })}>
+                <div className="pal-swatches">
+                  {s.colors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
+                </div>
+                <div className="pal-card-body">
+                  <div className="pal-card-name">{s.name}</div>
+                  <div className="pal-card-meta">{s.colors.length} flosses</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="pal-section">
+          <button className="pal-skip" onClick={onSkip}>Skip for now — I'll pick colors in the editor →</button>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// ── Cross-stitch: canvas editor ────────────────────────────────────────────
+const XS_DEFAULT_CODES = ["310","B5200","666","797","700","726","435","3806","3846","971"];
+function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
+  const W = preset.w, H = preset.h;
+  const defaultPalette = useMemo(() => XS_DEFAULT_CODES.map(dmcByCode).filter(Boolean), []);
+  const initPalette = useMemo(() => {
+    const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
+    // Make sure every color present in an auto-generated design is selectable.
+    if (autoGrid) {
+      const have = new Set(base.map(c => c.hex));
+      for (const hex of autoGrid) {
+        if (hex && !have.has(hex)) { const d = DMC.find(c => c.hex === hex); if (d) { have.add(hex); base.push(d); } }
+      }
+    }
+    return base;
+  }, [palette, autoGrid, defaultPalette]);
+
+  const [pal, setPal] = useState(initPalette);
+  const [color, setColor] = useState(initPalette[0] || dmcByCode("310"));
+  const [tool, setTool] = useState("pen");
+  const [showBg, setShowBg] = useState(!!bgImage);
+  const [bgOpacity, setBgOpacity] = useState(0.5);
+  const [showGrid, setShowGrid] = useState(true);
+  const [cellSize, setCellSize] = useState(12);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const cellsRef = useRef(autoGrid ? autoGrid.slice() : new Array(W * H).fill(null));
+  const previewRef = useRef(null);
+  const canvasRef = useRef(null);
+  const wrapRef = useRef(null);
+  const bgImgRef = useRef(null);
+  const rafRef = useRef(0);
+  const undoRef = useRef([]);
+  const drawingRef = useRef(false);
+  const startRef = useRef(null);
+  const lastRef = useRef(null);
+
+  const idx = (x, y) => y * W + x;
+
+  const redraw = useCallback(() => {
+    const cv = canvasRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const cs = cellSize;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    if (showBg && bgImgRef.current) {
+      const img = bgImgRef.current;
+      ctx.save();
+      ctx.globalAlpha = bgOpacity;
+      const scale = Math.max(cv.width / img.width, cv.height / img.height);
+      const dw = img.width * scale, dh = img.height * scale;
+      ctx.drawImage(img, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+      ctx.restore();
+    }
+    const cells = cellsRef.current;
+    for (let i = 0; i < cells.length; i++) {
+      if (!cells[i]) continue;
+      ctx.fillStyle = cells[i];
+      ctx.fillRect((i % W) * cs, Math.floor(i / W) * cs, cs, cs);
+    }
+    const pv = previewRef.current;
+    if (pv) { ctx.fillStyle = color.hex; for (const [x, y] of pv) ctx.fillRect(x * cs, y * cs, cs, cs); }
+    if (showGrid && cs >= 5) {
+      ctx.strokeStyle = 'rgba(46,41,37,0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x++) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
+      for (let y = 0; y <= H; y++) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(46,41,37,0.34)';
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 10) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
+      for (let y = 0; y <= H; y += 10) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
+      ctx.stroke();
+    }
+  }, [cellSize, showBg, bgOpacity, showGrid, color, W, H]);
+
+  const scheduleRedraw = useCallback(() => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; redraw(); });
+  }, [redraw]);
+
+  // Fit the grid to the available space; recompute on resize.
+  useLayoutEffect(() => {
+    const fit = () => {
+      const wrap = wrapRef.current; if (!wrap) return;
+      const availW = wrap.clientWidth - 48, availH = wrap.clientHeight - 48;
+      const cs = Math.max(3, Math.min(30, Math.floor(Math.min(availW / W, availH / H))));
+      setCellSize(cs);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [W, H]);
+
+  useEffect(() => { redraw(); }, [redraw, cellSize]);
+
+  useEffect(() => {
+    if (!bgImage) { bgImgRef.current = null; return; }
+    const img = new Image();
+    img.onload = () => { bgImgRef.current = img; redraw(); };
+    img.src = bgImage;
+  }, [bgImage, redraw]);
+
+  const pushUndo = () => { undoRef.current.push(cellsRef.current.slice()); if (undoRef.current.length > 40) undoRef.current.shift(); };
+  const undo = useCallback(() => {
+    if (!undoRef.current.length) return;
+    cellsRef.current = undoRef.current.pop();
+    redraw();
+  }, [redraw]);
+
+  const cellFromEvent = (e) => {
+    const cv = canvasRef.current; const rect = cv.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / cellSize);
+    const y = Math.floor((e.clientY - rect.top) / cellSize);
+    if (x < 0 || y < 0 || x >= W || y >= H) return null;
+    return [x, y];
+  };
+
+  const lineCells = (x0, y0, x1, y1) => {
+    const out = []; let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx - dy;
+    while (true) { out.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 > -dy) { err -= dy; x0 += sx; } if (e2 < dx) { err += dx; y0 += sy; } }
+    return out;
+  };
+  const rectCells = (x0, y0, x1, y1) => {
+    const out = []; const xa = Math.min(x0, x1), xb = Math.max(x0, x1), ya = Math.min(y0, y1), yb = Math.max(y0, y1);
+    for (let x = xa; x <= xb; x++) { out.push([x, ya]); out.push([x, yb]); }
+    for (let y = ya; y <= yb; y++) { out.push([xa, y]); out.push([xb, y]); }
+    return out;
+  };
+  const ellipseCells = (x0, y0, x1, y1) => {
+    const out = []; const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    const rx = Math.abs(x1 - x0) / 2, ry = Math.abs(y1 - y0) / 2;
+    if (rx < 0.5 || ry < 0.5) return lineCells(x0, y0, x1, y1);
+    const steps = Math.ceil(2 * Math.PI * Math.max(rx, ry));
+    const seen = new Set();
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * 2 * Math.PI;
+      const x = Math.round(cx + rx * Math.cos(t)), y = Math.round(cy + ry * Math.sin(t));
+      const k = x + ',' + y; if (!seen.has(k) && x >= 0 && y >= 0 && x < W && y < H) { seen.add(k); out.push([x, y]); }
+    }
+    return out;
+  };
+
+  const applyCells = (list, hex) => { for (const [x, y] of list) { if (x >= 0 && y >= 0 && x < W && y < H) cellsRef.current[idx(x, y)] = hex; } };
+
+  const onPointerDown = (e) => {
+    const cell = cellFromEvent(e); if (!cell) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawingRef.current = true; startRef.current = cell; lastRef.current = cell;
+    pushUndo();
+    if (tool === 'pen') { cellsRef.current[idx(cell[0], cell[1])] = color.hex; scheduleRedraw(); }
+    else if (tool === 'eraser') { cellsRef.current[idx(cell[0], cell[1])] = null; scheduleRedraw(); }
+  };
+  const onPointerMove = (e) => {
+    if (!drawingRef.current) return;
+    const cell = cellFromEvent(e); if (!cell) return;
+    const last = lastRef.current;
+    if (tool === 'pen' || tool === 'eraser') {
+      const hex = tool === 'pen' ? color.hex : null;
+      if (last) applyCells(lineCells(last[0], last[1], cell[0], cell[1]), hex);
+      lastRef.current = cell; scheduleRedraw();
+    } else {
+      const s = startRef.current;
+      previewRef.current = tool === 'line' ? lineCells(s[0], s[1], cell[0], cell[1])
+        : tool === 'rect' ? rectCells(s[0], s[1], cell[0], cell[1])
+        : ellipseCells(s[0], s[1], cell[0], cell[1]);
+      lastRef.current = cell; scheduleRedraw();
+    }
+  };
+  const onPointerUp = () => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    if (previewRef.current) { applyCells(previewRef.current, color.hex); previewRef.current = null; }
+    redraw();
+  };
+
+  useEffect(() => {
+    const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo]);
+
+  const addColor = (dmc) => {
+    setPal(prev => prev.some(c => c.code === dmc.code) ? prev : [...prev, dmc]);
+    setColor(dmc);
+    setShowPicker(false); setPickerSearch("");
+  };
+  const clearAll = () => { pushUndo(); cellsRef.current = new Array(W * H).fill(null); previewRef.current = null; redraw(); setConfirmClear(false); };
+
+  const pickerResults = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return DMC.slice(0, 120);
+    return DMC.filter(c => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)).slice(0, 200);
+  }, [pickerSearch]);
+
+  const TOOLS = [
+    { id: 'pen', label: 'Draw', icon: <IcPen/> },
+    { id: 'eraser', label: 'Erase', icon: <IcErase/> },
+    { id: 'line', label: 'Line', icon: <IcLineTool/> },
+    { id: 'rect', label: 'Rectangle', icon: <IcSquare/> },
+    { id: 'ellipse', label: 'Ellipse', icon: <IcCircle/> },
+  ];
+
+  return (
+    <div className="xs-app">
+      <div className="xs-topbar">
+        <button className="icon-btn" onClick={onBack} title="Back to projects" style={{ marginRight: 2 }}><i className="iconoir-nav-arrow-left" style={{ fontSize: 18 }}/></button>
+        <div>
+          <div className="xs-title">Cross-stitch</div>
+          <div className="xs-sub">{W} × {H} stitches · ≈ {(W/14).toFixed(1)}" × {(H/14).toFixed(1)}" @14ct</div>
+        </div>
+        <div className="xs-topbar-spacer"/>
+        {bgImage && (
+          <label className="xs-ctrl" title="Toggle the tracing image">
+            <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
+            <IcImage/> Trace image
+          </label>
+        )}
+        {bgImage && showBg && (
+          <div className="xs-ctrl">
+            <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)} style={{ width: 90 }}/>
+          </div>
+        )}
+        <label className="xs-ctrl" title="Toggle grid lines">
+          <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)}/>
+          <IcGrid/> Grid
+        </label>
+        <button className="btn btn-sm" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo size={15}/></button>
+        {confirmClear ? (
+          <span style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-sm" onClick={() => setConfirmClear(false)}>Cancel</button>
+            <button className="btn btn-sm btn-dark" onClick={clearAll}>Clear all</button>
+          </span>
+        ) : (
+          <button className="btn btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
+        )}
+      </div>
+      <div className="xs-body">
+        <div className="xs-rail">
+          {TOOLS.map(t => (
+            <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
+          ))}
+        </div>
+        <div className="xs-canvas-wrap" ref={wrapRef}>
+          <canvas ref={canvasRef} className="xs-canvas" width={W * cellSize} height={H * cellSize}
+            onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}/>
+        </div>
+        <div className="xs-panel">
+          <div className="xs-panel-head"><div className="xs-panel-title">Floss</div></div>
+          <div className="xs-current">
+            <div className="xs-current-chip" style={{ background: color.hex }}/>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>DMC {color.code}</div>
+              <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{color.name}</div>
+            </div>
+          </div>
+          <div className="xs-swatches">
+            {pal.map(c => (
+              <button key={c.code} className={`xs-swatch${color.code === c.code ? ' active' : ''}`} style={{ background: c.hex }}
+                title={`DMC ${c.code} · ${c.name}`} onClick={() => setColor(c)}/>
+            ))}
+          </div>
+          <button className="xs-add" onClick={() => setShowPicker(true)}><IcPlus/> Add DMC color</button>
+        </div>
+      </div>
+
+      {showPicker && (
+        <div className="xs-picker" onClick={() => setShowPicker(false)}>
+          <div className="xs-picker-card" onClick={e => e.stopPropagation()}>
+            <div style={{ padding: 14, borderBottom: '1px solid var(--warm-divider-soft)', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="text" autoFocus placeholder="Search DMC code or name…" value={pickerSearch}
+                onChange={e => setPickerSearch(e.target.value)} style={{ flex: 1 }}/>
+              <button onClick={() => setShowPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
+            </div>
+            <div className="xs-picker-list">
+              {pickerResults.map(c => (
+                <div key={c.code} className="xs-picker-item" onClick={() => addColor(c)}>
+                  <span className="xs-picker-dot" style={{ background: c.hex }}/>
+                  <span style={{ minWidth: 0 }}>
+                    <div className="xs-picker-code">{c.code}</div>
+                    <div className="xs-picker-name">{c.name}</div>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Root() {
   const [craft, setCraft] = React.useState(null);
   const [selectedPreset, setSelectedPreset] = React.useState(null);
   const [paletteDone, setPaletteDone] = React.useState(false);
   const [palette, setPalette] = React.useState(null);
   const [backingFabric, setBackingFabric] = React.useState(null);
+  // Cross-stitch flow state
+  const [xsPreset, setXsPreset] = React.useState(null);
+  const [xsDone, setXsDone] = React.useState(false);
+  const [xsPalette, setXsPalette] = React.useState(null);
+  const [xsOpts, setXsOpts] = React.useState({});
 
-  const resetAll = () => { setCraft(null); setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null); };
+  const resetAll = () => {
+    setCraft(null); setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null);
+    setXsPreset(null); setXsDone(false); setXsPalette(null); setXsOpts({});
+  };
 
   if (!craft) {
     return <CraftSelector onSelect={setCraft}/>;
   }
+
+  if (craft === 'cross-stitch') {
+    if (!xsPreset) {
+      return <CrossStitchSizeSelector onBack={() => setCraft(null)}
+        onSelect={name => setXsPreset(STITCH_PRESETS.find(p => p.name === name))}/>;
+    }
+    if (!xsDone) {
+      return (
+        <CrossStitchPaletteSelector
+          preset={xsPreset}
+          onBack={() => setXsPreset(null)}
+          onChoose={(pal, opts) => { setXsPalette(pal); setXsOpts(opts || {}); setXsDone(true); }}
+          onSkip={() => { setXsPalette(null); setXsOpts({}); setXsDone(true); }}/>
+      );
+    }
+    return (
+      <CrossStitchApp preset={xsPreset} palette={xsPalette}
+        bgImage={xsOpts.bgImage} autoGrid={xsOpts.autoGrid} onBack={resetAll}/>
+    );
+  }
+
   if (!selectedPreset) {
     return <ProjectSelector onSelect={setSelectedPreset}/>;
   }
