@@ -3581,11 +3581,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           <div className="xs-sub">{W} × {H} stitches · ≈ {(W/14).toFixed(1)}" × {(H/14).toFixed(1)}" @14ct</div>
         </div>
         <div className="xs-topbar-spacer"/>
-        <button className="xs-ctrl" title="Choose Aida fabric color" onClick={() => setShowFabric(true)}
-          style={{ background: 'none', border: '1px solid var(--warm-hairline)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer' }}>
-          <span style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid rgba(46,41,37,0.2)', background: fabric.hex, display: 'inline-block' }}/>
-          Fabric
-        </button>
         {bg && (
           <label className="xs-ctrl" title="Toggle the tracing image">
             <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
@@ -3664,6 +3659,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
             ))}
           </div>
           <button className="xs-add" onClick={() => setShowPicker(true)}><IcPlus/> Add DMC color</button>
+          <div style={{ borderTop: '1px solid var(--warm-divider-soft)', padding: '12px 16px' }}>
+            <div className="xs-panel-title" style={{ marginBottom: 8 }}>Fabric</div>
+            <FabricRow label="Aida" fabric={fabric} detail={`${fabric.name} · 14-count`} onClick={() => setShowFabric(true)}/>
+          </div>
         </div>
 
         {/* Materials readout (bottom-right, like the quilt editor) */}
