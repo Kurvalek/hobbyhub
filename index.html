@@ -335,6 +335,32 @@
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
 
+// ── Saved-quilt persistence (device-local, survives refresh/close) ─────────
+// Quilts are stored in the browser's localStorage under a versioned key so we
+// can migrate the shape later without clobbering older saves.
+const QUILTS_KEY = "metime.savedQuilts.v1";
+function loadSavedQuilts() {
+  try {
+    const raw = localStorage.getItem(QUILTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Could not read saved quilts:", e);
+    return [];
+  }
+}
+function persistSavedQuilts(quilts) {
+  try {
+    localStorage.setItem(QUILTS_KEY, JSON.stringify(quilts));
+    return true;
+  } catch (e) {
+    // Most likely QuotaExceededError (localStorage is ~5MB per origin).
+    console.warn("Could not save quilts:", e);
+    return false;
+  }
+}
+
 // ── Minimal inline icons ──────────────────────────────────────────────────
 const Svg = ({ children, size=14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
@@ -1800,11 +1826,19 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
   const [qColor, setQColor] = useState({ name:"White", hex:"#fff" });
   const [showQ, setShowQ] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [savedQuilts, setSavedQuilts] = useState([]);
+  const [savedQuilts, setSavedQuilts] = useState(loadSavedQuilts);
+  const [saveError, setSaveError] = useState("");
+  // Persist to the browser whenever the collection changes so quilts survive
+  // refreshes, closing the tab, and coming back later on this device.
+  useEffect(() => {
+    const ok = persistSavedQuilts(savedQuilts);
+    setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
+  }, [savedQuilts]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [viewQuilt, setViewQuilt] = useState(null);
   const [showMyQuilts, setShowMyQuilts] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [showHints, setShowHints] = useState(false);
   // The library popover doubles as a fabric picker. `picker` is null when
   // closed, otherwise an object describing the active picker config:
@@ -2173,6 +2207,9 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
               <div style={{fontWeight:400,fontSize:24,fontFamily:"var(--font-display)",lineHeight:1.1}}>My quilts</div>
               <button onClick={()=>setShowMyQuilts(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}}><IcX/></button>
             </div>
+            {saveError && (
+              <div style={{fontSize:12,color:'var(--metime-tomato)',background:'#FBECE8',border:'1px solid #F3C9BF',borderRadius:6,padding:'8px 10px',marginBottom:12}}>{saveError}</div>
+            )}
             {savedQuilts.length===0 ? (
               <div style={{fontSize:13,color:'var(--warm-muted)',fontStyle:'italic',padding:'20px 0',textAlign:'center'}}>No saved quilts yet</div>
             ) : (
@@ -2194,7 +2231,18 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
                       <div style={{fontSize:12,color:'var(--warm-muted)'}}>{q.fw}" × {q.fh}" · {q.preset !== 'Custom' ? q.preset : 'Custom size'}</div>
                       <div style={{fontSize:12,color:'var(--warm-muted)'}}>{q.materials.items.length} color{q.materials.items.length!==1?'s':''} · {fmtY(q.grandTotal)} total</div>
                     </div>
-                    <i className="iconoir-nav-arrow-right" style={{fontSize:18,color:'var(--warm-muted)'}}/>
+                    {confirmDeleteId===q.id ? (
+                      <div style={{display:'flex',gap:6,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
+                        <button className="btn btn-sm" onClick={()=>setConfirmDeleteId(null)}>Cancel</button>
+                        <button className="btn btn-sm btn-dark" onClick={()=>{setSavedQuilts(p=>p.filter(x=>x.id!==q.id));setConfirmDeleteId(null);}}>Delete</button>
+                      </div>
+                    ) : (
+                      <button title="Delete quilt"
+                        onClick={e=>{e.stopPropagation();setConfirmDeleteId(q.id);}}
+                        style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
+                        onMouseEnter={e=>e.currentTarget.style.color='var(--metime-tomato)'}
+                        onMouseLeave={e=>e.currentTarget.style.color='var(--warm-muted)'}><IcTrash/></button>
+                    )}
                   </div>
                 ))}
               </div>
