@@ -281,7 +281,7 @@
   .xs-sub { font-size: 12px; color: var(--warm-muted); font-family: var(--font-mono); }
   .xs-topbar-spacer { flex: 1; }
   .xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
-  .xs-body { flex: 1; display: flex; min-height: 0; }
+  .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--warm-hairline); background: var(--metime-cream); flex-shrink: 0; }
   .xs-tool { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--warm-hairline); background: var(--metime-white); border-radius: 8px; cursor: pointer; color: var(--warm-fg-2); transition: all .12s; }
   .xs-tool:hover { border-color: var(--metime-almost-black); }
@@ -307,6 +307,13 @@
   .xs-picker-dot { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
   .xs-picker-code { font-size: 12px; font-weight: 600; color: var(--warm-fg); }
   .xs-picker-name { font-size: 10px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .xs-materials { position: absolute; bottom: 16px; right: 280px; width: 232px; background: var(--metime-white); border: 1px solid var(--warm-hairline); border-radius: 10px; box-shadow: 0 6px 24px rgba(46,41,37,0.16); overflow: hidden; z-index: 20; }
+  .xs-materials-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; }
+  .xs-materials-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 12px; }
+  .xs-materials-num { font-size: 26px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1; font-family: var(--font-display); }
+  .xs-materials-list { border-top: 1px solid var(--warm-divider-soft); max-height: 180px; overflow-y: auto; }
+  .xs-materials-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; }
+  .xs-materials-dot { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
 
   /* Palette selector page */
   .pal-body { max-width: none; }
@@ -395,6 +402,70 @@ function persistSavedQuilts(quilts) {
     console.warn("Could not save quilts:", e);
     return false;
   }
+}
+// Cross-stitch designs use the same on-device persistence pattern as quilts.
+const STITCHES_KEY = "metime.savedStitches.v1";
+function loadSavedStitches() {
+  try {
+    const raw = localStorage.getItem(STITCHES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Could not read saved designs:", e);
+    return [];
+  }
+}
+function persistSavedStitches(designs) {
+  try {
+    localStorage.setItem(STITCHES_KEY, JSON.stringify(designs));
+    return true;
+  } catch (e) {
+    console.warn("Could not save designs:", e);
+    return false;
+  }
+}
+// Compact, run-length-encoded grid so saved designs stay small in localStorage.
+function serializeGrid(cells) {
+  const colors = [], cidx = new Map(), vals = new Array(cells.length);
+  for (let i = 0; i < cells.length; i++) {
+    const h = cells[i];
+    if (!h) { vals[i] = 0; continue; }
+    let ix = cidx.get(h);
+    if (ix === undefined) { ix = colors.length; colors.push(h); cidx.set(h, ix); }
+    vals[i] = ix + 1;
+  }
+  const runs = [];
+  let i = 0;
+  while (i < vals.length) { let j = i + 1; while (j < vals.length && vals[j] === vals[i]) j++; runs.push((j - i) + '.' + vals[i]); i = j; }
+  return { colors, rle: runs.join('|') };
+}
+function deserializeGrid(g, len) {
+  const cells = new Array(len).fill(null);
+  if (!g || !g.rle) return cells;
+  let i = 0;
+  for (const run of g.rle.split('|')) {
+    const dot = run.indexOf('.');
+    const c = +run.slice(0, dot), v = +run.slice(dot + 1);
+    for (let k = 0; k < c && i < len; k++) { if (v > 0) cells[i] = g.colors[v - 1] || null; i++; }
+  }
+  return cells;
+}
+// Tally filled stitches per floss color for the materials readout.
+function computeStitchStats(cells, W, H, pal) {
+  const map = new Map();
+  let total = 0;
+  for (const h of cells) {
+    if (!h) continue;
+    total++;
+    map.set(h, (map.get(h) || 0) + 1);
+  }
+  const byHex = new Map((pal || []).map(c => [c.hex, c]));
+  const colors = Array.from(map.entries()).map(([hex, count]) => {
+    const dmc = byHex.get(hex) || DMC.find(c => c.hex === hex) || { code: "?", name: "Custom", hex };
+    return { hex, code: dmc.code, name: dmc.name, count };
+  }).sort((a, b) => b.count - a.count);
+  return { total, possible: W * H, colors };
 }
 
 // ── Minimal inline icons ──────────────────────────────────────────────────
@@ -624,6 +695,40 @@ const DMC_PALETTES = [
 ];
 function dmcByCode(code) { return DMC.find(c => c.code === code); }
 function resolveDmcPalette(pal) { return pal.codes.map(dmcByCode).filter(Boolean); }
+
+// Aida fabric colors (Wichelt 14ct range, everythingcrossstitch.com). Names are
+// from the retailer; hex values are close visual approximations for on-screen
+// preview — the fabric color is what shows through unstitched squares.
+const AIDA_FABRICS = [
+  { name:"White", hex:"#FFFFFF" }, { name:"Antique White", hex:"#F3EBD8" }, { name:"China White/Platinum", hex:"#ECEAE2" },
+  { name:"Opalescent on White", hex:"#F0F0EC" }, { name:"Silver/White", hex:"#E6E7E4" }, { name:"White Chocolate", hex:"#EFE6D4" },
+  { name:"White/Grey Light Basalt", hex:"#DCDCD8" }, { name:"Cream", hex:"#F5EFDD" }, { name:"Ivory", hex:"#F1E7CF" },
+  { name:"French Lace", hex:"#EDE6D6" }, { name:"Ray of Light", hex:"#F2ECDD" }, { name:"Vintage Country Cream", hex:"#EDE2C8" },
+  { name:"Lambswool", hex:"#E4DAC4" }, { name:"Oyster", hex:"#E2D8C4" }, { name:"Natural", hex:"#E8DCC0" },
+  { name:"Natural Light", hex:"#EDE3CB" }, { name:"Natural Rustico", hex:"#D9C7A6" }, { name:"Natural Brown", hex:"#CBB694" },
+  { name:"Beautiful Beige", hex:"#DFCDB0" }, { name:"Icelandic Beige", hex:"#DDD0BB" }, { name:"Prairie Grain", hex:"#E4D3A8" },
+  { name:"Gold/Creme", hex:"#EEDCA6" }, { name:"Dirty", hex:"#CBBEA6" }, { name:"Venetian Stone", hex:"#CDBBA0" },
+  { name:"Tumbleweed", hex:"#C7AE84" }, { name:"Pale Coffee", hex:"#CBB79B" }, { name:"Light Mocha", hex:"#D8C6AC" },
+  { name:"Latte variegated", hex:"#C9AE8E" }, { name:"Vintage Country Mocha", hex:"#C3AA88" }, { name:"French Country", hex:"#7C6A55" },
+  { name:"Cafe Mocha", hex:"#8C6B52" }, { name:"Milk Chocolate", hex:"#7A5640" }, { name:"Chocolate Raspberry", hex:"#6E4A4E" },
+  { name:"Espresso", hex:"#4A382C" }, { name:"Amber", hex:"#E8B15E" }, { name:"Riviera Gold", hex:"#D8B25E" },
+  { name:"Yellow", hex:"#F3DE79" }, { name:"Lime", hex:"#C6D66E" }, { name:"Sage/Summer Khaki", hex:"#AEAF8C" },
+  { name:"Artichoke", hex:"#8E9A6C" }, { name:"Celadon", hex:"#B7C7B0" }, { name:"Tropical Green", hex:"#4FB07A" },
+  { name:"Holly Green", hex:"#2F6B45" }, { name:"Forest Green", hex:"#35583F" }, { name:"Dark Green", hex:"#2E5138" },
+  { name:"Aqua", hex:"#AEDCDA" }, { name:"Riviera Aqua", hex:"#86C3C0" }, { name:"Tropical Blue", hex:"#4FB0D0" },
+  { name:"Ice Blue", hex:"#D3E4EC" }, { name:"Touch of Blue", hex:"#DCE6EC" }, { name:"Light Blue", hex:"#BBD3E4" },
+  { name:"Misty Blue", hex:"#B9CAD5" }, { name:"Vintage Blue Whisper", hex:"#C6D2D4" }, { name:"Icelandic Blue", hex:"#AFC3D2" },
+  { name:"Nordic Blue", hex:"#8FA9C0" }, { name:"Star Sapphire", hex:"#5E7BA6" }, { name:"Blue", hex:"#4A7FB5" },
+  { name:"Blue Blizzard Opalescent", hex:"#CFE2EE" }, { name:"Royal", hex:"#2E4C8E" }, { name:"Navy", hex:"#26324D" },
+  { name:"Rain", hex:"#A9B3B0" }, { name:"Stormy Night", hex:"#4A525C" }, { name:"Stoney Point", hex:"#B9B0A0" },
+  { name:"Graceful Grey", hex:"#B4B2AC" }, { name:"Touch of Grey", hex:"#DADAD6" }, { name:"Mystic Gray", hex:"#A9AAA6" },
+  { name:"Amazing Gray", hex:"#9E9C97" }, { name:"Icelandic Gray", hex:"#C0C1BC" }, { name:"Black", hex:"#1B1B1B" },
+  { name:"Chalk Board Black", hex:"#232626" }, { name:"Lavender", hex:"#C9BBD9" }, { name:"Lavender Bliss", hex:"#D8CCE6" },
+  { name:"Lilac", hex:"#C6B2D2" }, { name:"Lilac Vintage", hex:"#B7A6C2" }, { name:"Peaceful Purple", hex:"#B4A6C8" },
+  { name:"Water Lily", hex:"#E7CBD6" }, { name:"Touch of Pink", hex:"#F4DEE2" }, { name:"Bo-Peep Pink", hex:"#F3C6CE" },
+  { name:"Pink Sand", hex:"#EAD5C6" }, { name:"Rose", hex:"#E0A8AE" }, { name:"Touch of Peach", hex:"#F5E2D4" },
+  { name:"Coral", hex:"#F09A82" }, { name:"Tropical Orange", hex:"#F2934A" }, { name:"Red (Christmas)", hex:"#B23A34" },
+];
 
 const PRESETS = [
   { name:"Mug Rug", w:8, h:10 },
@@ -3171,6 +3276,26 @@ function rasterizeText(text, font, sizeCells) {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (data[(y * w + x) * 4 + 3] >= 128) out.push([x, y]); }
   return out;
 }
+// Small canvas preview of a stitch grid (used in the saved-designs list/preview).
+function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const cv = ref.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const scale = Math.min(size / w, size / h);
+    const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+    cv.width = cw; cv.height = ch;
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, cw, ch);
+    for (let i = 0; i < cells.length; i++) {
+      if (!cells[i]) continue;
+      ctx.fillStyle = cells[i];
+      ctx.fillRect((i % w) * scale, Math.floor(i / w) * scale, Math.ceil(scale), Math.ceil(scale));
+    }
+  }, [w, h, cells, size, bg]);
+  return <canvas ref={ref} style={{ width: size, height: 'auto', display: 'block', imageRendering: 'pixelated', borderRadius: 4 }}/>;
+}
+
 function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const W = preset.w, H = preset.h;
   const defaultPalette = useMemo(() => XS_DEFAULT_CODES.map(dmcByCode).filter(Boolean), []);
@@ -3189,6 +3314,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || dmcByCode("310"));
   const [tool, setTool] = useState("pen");
+  const [bg, setBg] = useState(bgImage || null);
   const [showBg, setShowBg] = useState(!!bgImage);
   const [bgOpacity, setBgOpacity] = useState(0.5);
   const [showGrid, setShowGrid] = useState(true);
@@ -3196,10 +3322,27 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [fabric, setFabric] = useState(AIDA_FABRICS[0]);
+  const [showFabric, setShowFabric] = useState(false);
   const [text, setText] = useState("");
   const [textFont, setTextFont] = useState("sans");
   const [textSize, setTextSize] = useState(14);
   const textStamp = useMemo(() => rasterizeText(text, textFont, textSize), [text, textFont, textSize]);
+  // Materials + save state (mirrors the quilt flow, device-local).
+  const [version, setVersion] = useState(0);
+  const bump = useCallback(() => setVersion(v => v + 1), []);
+  const [savedStitches, setSavedStitches] = useState(loadSavedStitches);
+  const [saveError, setSaveError] = useState("");
+  const [showSave, setShowSave] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [showMyStitches, setShowMyStitches] = useState(false);
+  const [viewStitch, setViewStitch] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [materialsOpen, setMaterialsOpen] = useState(false);
+  useEffect(() => {
+    const ok = persistSavedStitches(savedStitches);
+    setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
+  }, [savedStitches]);
 
   const cellsRef = useRef(autoGrid ? autoGrid.slice() : new Array(W * H).fill(null));
   const previewRef = useRef(null);
@@ -3212,6 +3355,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const startRef = useRef(null);
   const lastRef = useRef(null);
 
+  const stats = useMemo(() => computeStitchStats(cellsRef.current, W, H, pal), [version, pal, W, H]);
+
   const idx = (x, y) => y * W + x;
 
   const redraw = useCallback(() => {
@@ -3219,7 +3364,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     const ctx = cv.getContext('2d');
     const cs = cellSize;
     ctx.clearRect(0, 0, cv.width, cv.height);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = fabric.hex;
     ctx.fillRect(0, 0, cv.width, cv.height);
     if (showBg && bgImgRef.current) {
       const img = bgImgRef.current;
@@ -3251,7 +3396,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
       for (let y = 0; y <= H; y += 10) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
       ctx.stroke();
     }
-  }, [cellSize, showBg, bgOpacity, showGrid, color, W, H]);
+  }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H]);
 
   const scheduleRedraw = useCallback(() => {
     if (rafRef.current) return;
@@ -3274,18 +3419,18 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   useEffect(() => { redraw(); }, [redraw, cellSize]);
 
   useEffect(() => {
-    if (!bgImage) { bgImgRef.current = null; return; }
+    if (!bg) { bgImgRef.current = null; redraw(); return; }
     const img = new Image();
     img.onload = () => { bgImgRef.current = img; redraw(); };
-    img.src = bgImage;
-  }, [bgImage, redraw]);
+    img.src = bg;
+  }, [bg, redraw]);
 
   const pushUndo = () => { undoRef.current.push(cellsRef.current.slice()); if (undoRef.current.length > 40) undoRef.current.shift(); };
   const undo = useCallback(() => {
     if (!undoRef.current.length) return;
     cellsRef.current = undoRef.current.pop();
-    redraw();
-  }, [redraw]);
+    redraw(); bump();
+  }, [redraw, bump]);
 
   const cellFromEvent = (e) => {
     const cv = canvasRef.current; const rect = cv.getBoundingClientRect();
@@ -3329,7 +3474,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
       if (!textStamp.length) return;
       pushUndo();
       applyCells(textStamp.map(([dx, dy]) => [cell[0] + dx, cell[1] + dy]), color.hex);
-      previewRef.current = null; redraw();
+      previewRef.current = null; redraw(); bump();
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -3364,7 +3509,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     if (!drawingRef.current) return;
     drawingRef.current = false;
     if (previewRef.current) { applyCells(previewRef.current, color.hex); previewRef.current = null; }
-    redraw();
+    redraw(); bump();
   };
   const onPointerLeave = (e) => {
     if (drawingRef.current) { onPointerUp(e); }
@@ -3385,7 +3530,32 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     setColor(dmc);
     setShowPicker(false); setPickerSearch("");
   };
-  const clearAll = () => { pushUndo(); cellsRef.current = new Array(W * H).fill(null); previewRef.current = null; redraw(); setConfirmClear(false); };
+  const clearAll = () => { pushUndo(); cellsRef.current = new Array(W * H).fill(null); previewRef.current = null; redraw(); bump(); setConfirmClear(false); };
+
+  const saveDesign = () => {
+    const name = saveName.trim(); if (!name) return;
+    const grid = serializeGrid(cellsRef.current);
+    const s = computeStitchStats(cellsRef.current, W, H, pal);
+    const design = {
+      id: Date.now(), name, presetName: preset.name, w: W, h: H,
+      palette: pal, grid, bgImage: bg || null, fabric,
+      stitches: s.total, colorsUsed: s.colors.length, colors: s.colors,
+    };
+    setSavedStitches(p => [design, ...p]);
+    setShowSave(false); setSaveName('');
+  };
+
+  const loadDesign = (d) => {
+    if (!d) return;
+    undoRef.current = [];
+    cellsRef.current = deserializeGrid(d.grid, d.w * d.h);
+    previewRef.current = null;
+    if (Array.isArray(d.palette) && d.palette.length) { setPal(d.palette); setColor(d.palette[0]); }
+    setBg(d.bgImage || null); setShowBg(!!d.bgImage);
+    if (d.fabric) setFabric(d.fabric);
+    setViewStitch(null); setShowMyStitches(false); setConfirmDeleteId(null);
+    redraw(); bump();
+  };
 
   const pickerResults = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
@@ -3411,13 +3581,18 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           <div className="xs-sub">{W} × {H} stitches · ≈ {(W/14).toFixed(1)}" × {(H/14).toFixed(1)}" @14ct</div>
         </div>
         <div className="xs-topbar-spacer"/>
-        {bgImage && (
+        <button className="xs-ctrl" title="Choose Aida fabric color" onClick={() => setShowFabric(true)}
+          style={{ background: 'none', border: '1px solid var(--warm-hairline)', borderRadius: 8, padding: '5px 8px', cursor: 'pointer' }}>
+          <span style={{ width: 16, height: 16, borderRadius: 4, border: '1px solid rgba(46,41,37,0.2)', background: fabric.hex, display: 'inline-block' }}/>
+          Fabric
+        </button>
+        {bg && (
           <label className="xs-ctrl" title="Toggle the tracing image">
             <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
             <IcImage/> Trace image
           </label>
         )}
-        {bgImage && showBg && (
+        {bg && showBg && (
           <div className="xs-ctrl">
             <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)} style={{ width: 90 }}/>
           </div>
@@ -3427,6 +3602,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           <IcGrid/> Grid
         </label>
         <button className="btn btn-sm" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo size={15}/></button>
+        {savedStitches.length > 0 && (
+          <button className="btn btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
+            <IcBook/> My designs ({savedStitches.length})
+          </button>
+        )}
         {confirmClear ? (
           <span style={{ display: 'flex', gap: 6 }}>
             <button className="btn btn-sm" onClick={() => setConfirmClear(false)}>Cancel</button>
@@ -3435,6 +3615,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
         ) : (
           <button className="btn btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
         )}
+        <button className="btn btn-sm btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>Save design</button>
       </div>
       <div className="xs-body">
         <div className="xs-rail">
@@ -3484,6 +3665,42 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           </div>
           <button className="xs-add" onClick={() => setShowPicker(true)}><IcPlus/> Add DMC color</button>
         </div>
+
+        {/* Materials readout (bottom-right, like the quilt editor) */}
+        <div className="xs-materials">
+          <div className="xs-materials-head" onClick={() => setMaterialsOpen(o => !o)}>
+            <div className="label" style={{ marginBottom: 0 }}>Materials</div>
+            <i className={materialsOpen ? 'iconoir-nav-arrow-down' : 'iconoir-nav-arrow-up'} style={{ fontSize: 16, color: 'var(--warm-muted)' }}/>
+          </div>
+          <div className="xs-materials-stats">
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>Stitches</div>
+              <div className="xs-materials-num">{stats.total}</div>
+              <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>of {stats.possible}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>Floss colors</div>
+              <div className="xs-materials-num">{stats.colors.length}</div>
+              <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>used</div>
+            </div>
+          </div>
+          {materialsOpen && (
+            <div className="xs-materials-list">
+              {stats.colors.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic', padding: '10px 14px' }}>No stitches yet</div>
+              ) : stats.colors.map(c => (
+                <div key={c.hex} className="xs-materials-row">
+                  <span className="xs-materials-dot" style={{ background: c.hex }}/>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>DMC {c.code}</div>
+                    <div style={{ fontSize: 10, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  </div>
+                  <div style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{c.count}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {showPicker && (
@@ -3508,6 +3725,142 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           </div>
         </div>
       )}
+
+      {showFabric && (
+        <div className="xs-picker" onClick={() => setShowFabric(false)}>
+          <div className="xs-picker-card" onClick={e => e.stopPropagation()}>
+            <div style={{ padding: 14, borderBottom: '1px solid var(--warm-divider-soft)', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20 }}>Aida fabric color</div>
+              <button onClick={() => setShowFabric(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
+            </div>
+            <div className="xs-picker-list">
+              {AIDA_FABRICS.map(f => (
+                <div key={f.name} className="xs-picker-item" onClick={() => { setFabric(f); setShowFabric(false); }}>
+                  <span className="xs-picker-dot" style={{ background: f.hex }}/>
+                  <span className="xs-picker-name" style={{ fontSize: 12, color: fabric.name === f.name ? 'var(--warm-fg)' : undefined, fontWeight: fabric.name === f.name ? 600 : 400 }}>{f.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save dialog */}
+      {showSave && (
+        <div className="overlay" onClick={() => setShowSave(false)}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)' }}>
+            <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 16, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>Save your design</div>
+            <input type="text" placeholder="Give your design a name…" value={saveName} onChange={e => setSaveName(e.target.value)}
+              autoFocus onKeyDown={e => { if (e.key === 'Enter') saveDesign(); }} style={{ marginBottom: 16 }}/>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setShowSave(false)}>Cancel</button>
+              <button className="btn btn-dark" onClick={saveDesign}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* My designs list */}
+      {showMyStitches && (
+        <div className="overlay" onClick={() => setShowMyStitches(false)}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 500, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontWeight: 400, fontSize: 24, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>My designs</div>
+              <button onClick={() => setShowMyStitches(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
+            </div>
+            {saveError && (
+              <div style={{ fontSize: 12, color: 'var(--metime-tomato)', background: '#FBECE8', border: '1px solid #F3C9BF', borderRadius: 6, padding: '8px 10px', marginBottom: 12 }}>{saveError}</div>
+            )}
+            {savedStitches.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--warm-muted)', fontStyle: 'italic', padding: '20px 0', textAlign: 'center' }}>No saved designs yet</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {savedStitches.map(d => (
+                  <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #E2DDD2', borderRadius: 6, cursor: 'pointer', transition: 'background .1s' }}
+                    onClick={() => loadDesign(d)} title="Open on canvas"
+                    onMouseEnter={e => e.currentTarget.style.background = '#EFE9DD'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}>
+                    <div style={{ width: 64, height: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 4, overflow: 'hidden' }}>
+                      <StitchThumb w={d.w} h={d.h} cells={deserializeGrid(d.grid, d.w * d.h)} size={64} bg={(d.fabric && d.fabric.hex) || '#FFFFFF'}/>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 2 }}>{d.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.w} × {d.h} stitches · {d.presetName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.colorsUsed} color{d.colorsUsed !== 1 ? 's' : ''} · {d.stitches} stitches</div>
+                    </div>
+                    {confirmDeleteId === d.id ? (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                        <button className="btn btn-sm" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+                        <button className="btn btn-sm btn-dark" onClick={() => { setSavedStitches(p => p.filter(x => x.id !== d.id)); setConfirmDeleteId(null); }}>Delete</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <button title="Preview" onClick={e => { e.stopPropagation(); setViewStitch(d); setShowMyStitches(false); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex', padding: 4 }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--warm-fg)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--warm-muted)'}><IcEye/></button>
+                        <button title="Delete design" onClick={e => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex', padding: 4 }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--metime-tomato)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--warm-muted)'}><IcTrash/></button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Design preview */}
+      {viewStitch && (() => {
+        const d = viewStitch;
+        return (
+          <div className="overlay" onClick={() => setViewStitch(null)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, maxWidth: 640, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 400, fontSize: 24, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{d.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--warm-muted)', marginTop: 2 }}>{d.w} × {d.h} stitches · {d.colorsUsed} colors{d.fabric ? ` · ${d.fabric.name} Aida` : ''}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button className="btn" onClick={() => loadDesign(d)}>Open on canvas</button>
+                  <button onClick={() => setViewStitch(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                <div style={{ padding: 24, borderRight: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '100%', maxWidth: 280, border: '1px solid #E2DDD2', borderRadius: 4, overflow: 'hidden' }}>
+                    <StitchThumb w={d.w} h={d.h} cells={deserializeGrid(d.grid, d.w * d.h)} size={280} bg={(d.fabric && d.fabric.hex) || '#FFFFFF'}/>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '16px 20px 8px' }}>
+                    <div className="label" style={{ marginBottom: 4 }}>Floss list</div>
+                    <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.colors.length} color{d.colors.length !== 1 ? 's' : ''}</div>
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', maxHeight: 340 }}>
+                    {d.colors.map(c => (
+                      <div key={c.hex} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid #EFE9DD' }}>
+                        <div style={{ width: 24, height: 24, background: c.hex, border: '1px solid rgba(46,41,37,0.10)', borderRadius: 3, flexShrink: 0 }}/>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500 }}>DMC {c.code}</div>
+                          <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>{c.name}</div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
