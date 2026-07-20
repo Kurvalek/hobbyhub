@@ -3432,7 +3432,11 @@ function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
 }
 
 function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
-  const W = preset.w, H = preset.h;
+  // Board dimensions are stateful (not fixed to the initial preset) so a saved
+  // design opened via loadDesign can restore the exact size it was made at,
+  // rather than being forced into the currently active canvas size.
+  const [dims, setDims] = useState({ w: preset.w, h: preset.h, name: preset.name });
+  const W = dims.w, H = dims.h;
   const defaultPalette = useMemo(() => XS_DEFAULT_CODES.map(dmcByCode).filter(Boolean), []);
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
@@ -3581,10 +3585,16 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     }
   }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H]);
 
+  // Keep a ref to the latest redraw so a queued animation frame always paints
+  // with current state. Without this, the rafRef dedupe guard below can let a
+  // frame scheduled at a stale cell size (e.g. mid-resize during loadDesign)
+  // fire last and repaint the board at the wrong size.
+  const redrawRef = useRef(redraw);
+  useLayoutEffect(() => { redrawRef.current = redraw; }, [redraw]);
   const scheduleRedraw = useCallback(() => {
     if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; redraw(); });
-  }, [redraw]);
+    rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; redrawRef.current(); });
+  }, []);
 
   // Fit the grid to the available space; recompute on resize.
   useLayoutEffect(() => {
@@ -3599,7 +3609,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     return () => window.removeEventListener('resize', fit);
   }, [W, H]);
 
-  useEffect(() => { redraw(); }, [redraw, cellSize]);
+  // Layout effect (not passive) so the redraw runs for every committed render,
+  // including the settled size after loadDesign resizes the board — a passive
+  // effect can be coalesced away when the fit effect triggers a second render
+  // before paint, leaving the canvas drawn at a stale cell size.
+  useLayoutEffect(() => { redraw(); }, [redraw]);
 
   useEffect(() => {
     if (!bg) { bgImgRef.current = null; redraw(); return; }
@@ -3836,7 +3850,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     const grid = serializeGrid(cellsRef.current);
     const s = computeStitchStats(cellsRef.current, W, H, pal);
     const design = {
-      id: Date.now(), name, presetName: preset.name, w: W, h: H,
+      id: Date.now(), name, presetName: dims.name, w: W, h: H,
       palette: pal, grid, bgImage: bg || null, fabric,
       stitches: s.total, colorsUsed: s.colors.length, colors: s.colors,
     };
@@ -3847,6 +3861,12 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const loadDesign = (d) => {
     if (!d) return;
     undoRef.current = [];
+    // Restore the design at its saved size. Setting dims re-runs the fit and
+    // redraw effects (both keyed on W/H), so the board resizes to match the
+    // grid instead of the grid being squeezed into the active canvas size.
+    if (typeof d.w === 'number' && typeof d.h === 'number') {
+      setDims({ w: d.w, h: d.h, name: d.presetName || 'Custom' });
+    }
     cellsRef.current = deserializeGrid(d.grid, d.w * d.h);
     previewRef.current = null;
     if (Array.isArray(d.palette) && d.palette.length) { setPal(d.palette); setColor(d.palette[0]); }
