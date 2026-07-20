@@ -425,6 +425,66 @@ function persistSavedStitches(designs) {
     return false;
   }
 }
+// ── Design-store API (server-side, powers checkout) ────────────────────────
+// POSTs a finished design to /api/designs (same-origin serverless function)
+// and resolves to the server's opaque design id. That id is the handle a
+// Shopify order will carry (as a cart attribute) so a purchased kit can be
+// traced back to the exact design, long after this device's localStorage is
+// gone.
+async function saveDesignToApi(type, data) {
+  const res = await fetch("/api/designs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, data }),
+  });
+  if (!res.ok) throw new Error(`design save failed (HTTP ${res.status})`);
+  const body = await res.json();
+  if (!body || typeof body.id !== "string") throw new Error("design save failed (bad response)");
+  return body.id;
+}
+
+// Checkout button shared by the quilt and cross-stitch preview modals. Sends
+// the design to the design-store API once and remembers the returned id via
+// onSaved (persisted as `apiId` on the saved entry, so a design is never
+// uploaded twice). The local `id` is a device-only list key, and `bgImage`
+// is a reference photo that can exceed the API's payload cap — neither is
+// part of the kit, so both are stripped before upload.
+function KitCheckoutButton({ type, design, savedId, onSaved }) {
+  const [state, setState] = useState(savedId ? { status: "done", id: savedId } : { status: "idle" });
+  const busy = state.status === "saving" || state.status === "done";
+  const submit = async () => {
+    if (busy) return;
+    setState({ status: "saving" });
+    try {
+      const { id: _localId, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+      const id = await saveDesignToApi(type, data);
+      setState({ status: "done", id });
+      if (onSaved) onSaved(id);
+    } catch (e) {
+      console.warn("Design save failed:", e);
+      setState({ status: "error" });
+    }
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+      <button className="btn btn-dark" disabled={busy}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontSize: 13, opacity: state.status === "saving" ? 0.7 : 1 }}
+        onClick={submit}>
+        <i className="iconoir-cart" style={{ fontSize: 16 }}/>
+        {state.status === "saving" ? "Saving…" : state.status === "done" ? "Saved for checkout ✓" : "Add to cart"}
+      </button>
+      {state.status === "done" && (
+        <div style={{ fontSize: 11, color: "var(--warm-muted)", fontVariantNumeric: "tabular-nums" }}>
+          Kit ID {state.id} · checkout coming soon
+        </div>
+      )}
+      {state.status === "error" && (
+        <div style={{ fontSize: 11, color: "#B23A34" }}>Couldn't reach the kit service — try again</div>
+      )}
+    </div>
+  );
+}
+
 // Compact, run-length-encoded grid so saved designs stay small in localStorage.
 function serializeGrid(cells) {
   const colors = [], cidx = new Map(), vals = new Array(cells.length);
@@ -2640,10 +2700,8 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
                       <div style={{fontSize:11,color:'var(--warm-muted)'}}>Grand total</div>
                       <div style={{fontSize:20,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(q.grandTotal)}</div>
                     </div>
-                    <button className="btn btn-dark" style={{display:'flex',alignItems:'center',gap:6,padding:'10px 20px',fontSize:13}}
-                      onClick={()=>alert('Add to cart coming soon — Shopify integration pending!')}>
-                      <i className="iconoir-cart" style={{fontSize:16}}/> Add to cart
-                    </button>
+                    <KitCheckoutButton type="quilt" design={q} savedId={q.apiId}
+                      onSaved={id=>setSavedQuilts(p=>p.map(x=>x.id===q.id?{...x,apiId:id}:x))}/>
                   </div>
                 </div>
               </div>
@@ -4091,6 +4149,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
                         <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.count}</div>
                       </div>
                     ))}
+                  </div>
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Total stitches</div>
+                      <div style={{ fontSize: 20, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{d.stitches}</div>
+                    </div>
+                    <KitCheckoutButton type="cross-stitch" design={d} savedId={d.apiId}
+                      onSaved={id=>setSavedStitches(p=>p.map(x=>x.id===d.id?{...x,apiId:id}:x))}/>
                   </div>
                 </div>
               </div>
