@@ -1,0 +1,47 @@
+import { applyCors } from "../_lib/cors.js";
+import { validateDesignPayload } from "../_lib/validate.js";
+import { generateDesignId } from "../_lib/id.js";
+import { putDesignIfAbsent } from "../_lib/store.js";
+
+const SCHEMA_VERSION = 1;
+const MAX_ID_COLLISION_RETRIES = 3;
+
+export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
+
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST, OPTIONS");
+    return res.status(405).json({ error: "method_not_allowed" });
+  }
+
+  const error = validateDesignPayload(req.body);
+  if (error === "payload_too_large") {
+    return res.status(400).json({ error: "payload_too_large" });
+  }
+  if (error) {
+    return res.status(400).json({ error: "invalid_payload", message: error });
+  }
+
+  const { type, data } = req.body;
+  const record = {
+    type,
+    version: SCHEMA_VERSION,
+    createdAt: new Date().toISOString(),
+    data,
+  };
+
+  try {
+    for (let attempt = 0; attempt < MAX_ID_COLLISION_RETRIES; attempt++) {
+      const id = generateDesignId();
+      const stored = await putDesignIfAbsent(id, { id, ...record });
+      if (stored) {
+        return res.status(201).json({ id });
+      }
+    }
+    // Astronomically unlikely with 128-bit random ids.
+    return res.status(500).json({ error: "internal_error" });
+  } catch (err) {
+    console.error("POST /api/designs failed:", err);
+    return res.status(500).json({ error: "internal_error" });
+  }
+}
