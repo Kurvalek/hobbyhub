@@ -9,7 +9,9 @@
     "start": "vercel dev"
   },
   "dependencies": {
-    "@upstash/redis": "^1.34.3"
+    "@sparticuz/chromium": "^131.0.1",
+    "@upstash/redis": "^1.34.3",
+    "puppeteer-core": "^23.11.1"
   },
   "devDependencies": {
     "vercel": "^37.14.0"

@@ -1,10 +1,4 @@
-import { Redis } from "@upstash/redis";
-
-let client = null;
-function redis() {
-  if (!client) client = Redis.fromEnv();
-  return client;
-}
+import { redis } from "./redis.js";
 
 function designKey(id) {
   return `design:${id}`;

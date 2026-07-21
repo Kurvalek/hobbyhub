@@ -571,6 +571,138 @@
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
 
+// ── Shopify Storefront checkout config ─────────────────────────────────────
+// FILL THESE IN to connect the studio to your Shopify store. This studio runs
+// on its own Vercel domain (not the Shopify storefront), so checkout goes
+// through the Storefront API `cartCreate` mutation — the only origin-safe way
+// to attach a per-line-item property (`_design_id`) that the fulfillment
+// backend reads off the order. After creating the cart we redirect the buyer
+// to the returned checkoutUrl.
+//
+// The Storefront access token below is PUBLIC/client-safe by design (unlike
+// the Admin API key) — it's scoped only to unauthenticated storefront reads
+// and cart creation, so it's fine to ship in this static page.
+//
+// The kit entries below hold PRODUCT GIDs (not variant GIDs). Each flat-price
+// kit is a single-variant product, so we store the product GID (easy to read
+// off the admin URL — the number in Products → the kit → .../products/NUMBER)
+// and let the code resolve that product's first/default variant at checkout
+// time via the Storefront API (see resolveVariantId below). The product GID
+// looks like "gid://shopify/Product/1234567890".
+const SHOPIFY_STORE_DOMAIN = "0kfj40-r8.myshopify.com";
+// ⬇︎ THE ONLY FIELD LEFT TO FILL IN. Paste your Storefront API access token
+// here. To create one: Shopify admin → Settings → Apps and sales channels →
+// Develop apps → create an app → Storefront API scopes (enable
+// unauthenticated_write_checkouts, unauthenticated_read_checkouts, and
+// unauthenticated_read_product_listings) → Install app → copy the Storefront
+// API access token. This token is public/client-safe, so it's fine here.
+const SHOPIFY_STOREFRONT_TOKEN = "YOUR_PUBLIC_STOREFRONT_ACCESS_TOKEN";
+const SHOPIFY_STOREFRONT_API_VERSION = "2025-07";
+// Map from kit type to its Shopify PRODUCT GID. The first variant of each
+// product is resolved on demand (and cached) at checkout time.
+const SHOPIFY_KIT_PRODUCTS = {
+  "quilt": "gid://shopify/Product/9579160666333",
+  "cross-stitch": "gid://shopify/Product/9579160600797",
+};
+// Line-item property carried into the Shopify order; the fulfillment backend
+// keys off this exact name to trace a kit back to its design.
+const DESIGN_ID_ATTRIBUTE = "_design_id";
+
+// True until the placeholders above are replaced with real values. When still
+// unconfigured, the checkout button falls back to the save-only behavior so
+// the app keeps working before Shopify is wired up.
+function shopifyConfigured(type) {
+  const product = SHOPIFY_KIT_PRODUCTS[type];
+  return (
+    !!SHOPIFY_STORE_DOMAIN && !SHOPIFY_STORE_DOMAIN.startsWith("your-store") &&
+    !!SHOPIFY_STOREFRONT_TOKEN && !SHOPIFY_STOREFRONT_TOKEN.startsWith("YOUR_") &&
+    !!product && !product.includes("REPLACE_WITH")
+  );
+}
+
+// Session cache of product GID → resolved variant GID, so repeat checkouts in
+// the same page load don't re-query the Storefront API.
+const shopifyVariantCache = new Map();
+
+// Resolves a product GID to its first/default variant GID via the Storefront
+// API. Single-variant kit products have exactly one variant, which is the one
+// we add to the cart. Results are memoized in shopifyVariantCache. Throws a
+// clear error if the product or its variant can't be found.
+async function resolveVariantId(productGid) {
+  if (shopifyVariantCache.has(productGid)) return shopifyVariantCache.get(productGid);
+  const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`;
+  const query = `
+    query($id: ID!) {
+      product(id: $id) {
+        variants(first: 1) { nodes { id } }
+      }
+    }`;
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_TOKEN,
+    },
+    body: JSON.stringify({ query, variables: { id: productGid } }),
+  });
+  if (!res.ok) throw new Error(`Shopify variant lookup failed (HTTP ${res.status})`);
+  const body = await res.json();
+  if (body.errors && body.errors.length) {
+    throw new Error(body.errors[0].message || "Shopify GraphQL error");
+  }
+  const product = body.data && body.data.product;
+  if (!product) throw new Error("Shopify product not found — check the product GID");
+  const nodes = product.variants && product.variants.nodes;
+  const variantId = nodes && nodes[0] && nodes[0].id;
+  if (!variantId) throw new Error("Shopify product has no purchasable variant");
+  shopifyVariantCache.set(productGid, variantId);
+  return variantId;
+}
+
+// Creates a Shopify cart with a single kit line item that carries the studio
+// design id as a line-item attribute, and resolves to the hosted checkout URL.
+// Throws on userErrors or network/HTTP failure so callers can surface a clear
+// inline error instead of silently dropping the design link.
+async function addKitToShopifyCart({ variantId, designId }) {
+  const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`;
+  const query = `
+    mutation cartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
+        cart { checkoutUrl }
+        userErrors { field message }
+      }
+    }`;
+  const variables = {
+    input: {
+      lines: [{
+        merchandiseId: variantId,
+        quantity: 1,
+        attributes: [{ key: DESIGN_ID_ATTRIBUTE, value: designId }],
+      }],
+    },
+  };
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_TOKEN,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!res.ok) throw new Error(`Shopify cart create failed (HTTP ${res.status})`);
+  const body = await res.json();
+  if (body.errors && body.errors.length) {
+    throw new Error(body.errors[0].message || "Shopify GraphQL error");
+  }
+  const result = body.data && body.data.cartCreate;
+  if (result && result.userErrors && result.userErrors.length) {
+    throw new Error(result.userErrors[0].message || "Shopify cart error");
+  }
+  const checkoutUrl = result && result.cart && result.cart.checkoutUrl;
+  if (!checkoutUrl) throw new Error("Shopify cart create failed (no checkout URL)");
+  return checkoutUrl;
+}
+
 // ── Saved-quilt persistence (device-local, survives refresh/close) ─────────
 // Quilts are stored in the browser's localStorage under a versioned key so we
 // can migrate the shape later without clobbering older saves.
@@ -636,43 +768,74 @@ async function saveDesignToApi(type, data) {
   return body.id;
 }
 
-// Checkout button shared by the quilt and cross-stitch preview modals. Sends
-// the design to the design-store API once and remembers the returned id via
-// onSaved (persisted as `apiId` on the saved entry, so a design is never
-// uploaded twice). The local `id` is a device-only list key, and `bgImage`
-// is a reference photo that can exceed the API's payload cap — neither is
-// part of the kit, so both are stripped before upload.
+// Checkout button shared by the quilt and cross-stitch preview modals. On
+// click it (1) sends the design to the design-store API once and remembers the
+// returned id via onSaved (persisted as `apiId` on the saved entry, so a
+// design is never uploaded twice), then (2) creates a Shopify cart whose kit
+// line item carries that id as the `_design_id` attribute and redirects to the
+// hosted checkout. The local `id` is a device-only list key, and `bgImage` is
+// a reference photo that can exceed the API's payload cap — neither is part of
+// the kit, so both are stripped before upload. If Shopify isn't configured yet
+// (placeholders untouched), it falls back to save-only so the app still works.
 function KitCheckoutButton({ type, design, savedId, onSaved }) {
   const [state, setState] = useState(savedId ? { status: "done", id: savedId } : { status: "idle" });
-  const busy = state.status === "saving" || state.status === "done";
+  const busy = state.status === "saving" || state.status === "redirecting";
+  // Uploads the design if not already saved and returns its api id.
+  const ensureSaved = async () => {
+    if (savedId) return savedId;
+    if (state.status === "done" && state.id) return state.id;
+    const { id: _localId, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+    const id = await saveDesignToApi(type, data);
+    if (onSaved) onSaved(id);
+    return id;
+  };
   const submit = async () => {
     if (busy) return;
     setState({ status: "saving" });
+    let designId;
     try {
-      const { id: _localId, apiId: _apiId, bgImage: _bgImage, ...data } = design;
-      const id = await saveDesignToApi(type, data);
-      setState({ status: "done", id });
-      if (onSaved) onSaved(id);
+      designId = await ensureSaved();
     } catch (e) {
       console.warn("Design save failed:", e);
-      setState({ status: "error" });
+      setState({ status: "error", message: "Couldn't reach the kit service — try again" });
+      return;
+    }
+    // Not connected to Shopify yet — keep the design saved and stop here.
+    if (!shopifyConfigured(type)) {
+      setState({ status: "done", id: designId });
+      return;
+    }
+    setState({ status: "redirecting", id: designId });
+    try {
+      // Resolve the product GID to its first/default variant (cached), then
+      // create the cart with that variant carrying the design id.
+      const variantId = await resolveVariantId(SHOPIFY_KIT_PRODUCTS[type]);
+      const checkoutUrl = await addKitToShopifyCart({ variantId, designId });
+      window.location.href = checkoutUrl;
+    } catch (e) {
+      console.warn("Shopify checkout failed:", e);
+      setState({ status: "error", id: designId, message: "Checkout isn't set up yet — your design is saved (Kit ID " + designId + ")" });
     }
   };
+  const label = state.status === "saving" ? "Saving…"
+    : state.status === "redirecting" ? "Opening checkout…"
+    : state.status === "done" ? "Saved for checkout ✓"
+    : "Add to cart";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
       <button className="btn btn-dark" disabled={busy}
-        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontSize: 13, opacity: state.status === "saving" ? 0.7 : 1 }}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 20px", fontSize: 13, opacity: busy ? 0.7 : 1 }}
         onClick={submit}>
         <i className="iconoir-cart" style={{ fontSize: 16 }}/>
-        {state.status === "saving" ? "Saving…" : state.status === "done" ? "Saved for checkout ✓" : "Add to cart"}
+        {label}
       </button>
       {state.status === "done" && (
         <div style={{ fontSize: 11, color: "var(--warm-muted)", fontVariantNumeric: "tabular-nums" }}>
-          Kit ID {state.id} · checkout coming soon
+          Kit ID {state.id}
         </div>
       )}
       {state.status === "error" && (
-        <div style={{ fontSize: 11, color: "#B23A34" }}>Couldn't reach the kit service — try again</div>
+        <div style={{ fontSize: 11, color: "#B23A34" }}>{state.message || "Couldn't reach the kit service — try again"}</div>
       )}
     </div>
   );
@@ -2125,8 +2288,16 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
 }
 
 // ── Right-column blocks ───────────────────────────────────────────────────
-function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary }) {
+function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selIds, setShapes }) {
   const plusRef = useRef(null);
+  // Clicking a palette chip sets the active paint color, and—if objects are
+  // selected—recolors that selection (mirrors the color library popover).
+  const handleChip = (c) => {
+    setColor(c);
+    if (selIds && selIds.size > 0 && setShapes) {
+      setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
+    }
+  };
   return (
     <div className="card">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
@@ -2147,7 +2318,7 @@ function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary }) {
             <div key={i} style={{ position:'relative' }}
               onMouseEnter={e => { const b = e.currentTarget.querySelector('.rm'); if (b) b.style.opacity = 1; }}
               onMouseLeave={e => { const b = e.currentTarget.querySelector('.rm'); if (b) b.style.opacity = 0; }}>
-              <button className={`chip ${color?.name===c.name?"selected":""}`} onClick={()=>setColor(c)} style={{ background: c.hex }} title={c.name}/>
+              <button className={`chip ${color?.name===c.name?"selected":""}`} onClick={()=>handleChip(c)} style={{ background: c.hex }} title={c.name}/>
               <button className="rm" onClick={()=>setPinned(p => p.filter((_,j) => j !== i))}
                 style={{ position:'absolute', top:-3, right:-3, width:13, height:13, borderRadius:'50%', background:'var(--metime-black)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--metime-white)', opacity:0, transition:'opacity .15s', zIndex:5 }}>
                 <IcX/>
@@ -2745,6 +2916,8 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             pinned={pinned}
             setPinned={setPinned}
             setColor={setColor}
+            selIds={selIds}
+            setShapes={setShapes}
             onOpenLibrary={openLibrary}/>
           <FabricRow
             ref={backingRowRef}

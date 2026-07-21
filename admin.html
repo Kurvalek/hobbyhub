@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Studio — Fulfillment</title>
+<style>
+  :root {
+    --bg: #ffffff; --warm-bg: #FBFAF8; --fg: #2E2925; --muted: #8A8177;
+    --hairline: #E4DED5; --divider: #EDE8E0; --black: #1A1613;
+    --accent: #E8583A; --ok: #3B7A57; --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-sans); color: var(--fg); background: var(--warm-bg); }
+  a { color: inherit; }
+  header {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 18px 24px; border-bottom: 1px solid var(--black); background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  header .sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 24px 80px; }
+
+  /* Auth gate */
+  .gate { max-width: 380px; margin: 80px auto; background: var(--bg); border: 1px solid var(--black); border-radius: 12px; padding: 28px; }
+  .gate h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
+  .gate p { margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+  input[type=password], input[type=text] {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--hairline); border-radius: 8px;
+    font: inherit; background: var(--warm-bg); color: var(--fg);
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .btn { font: inherit; font-size: 13px; padding: 9px 16px; border-radius: 8px; cursor: pointer; border: 1px solid var(--black); background: var(--bg); color: var(--fg); transition: background .12s; }
+  .btn:hover { background: #f3efe8; }
+  .btn.dark { background: var(--black); color: #fff; border-color: var(--black); }
+  .btn.dark:hover { background: #333; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .pill { font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--bg); cursor: pointer; }
+  .pill.active { background: var(--black); color: #fff; border-color: var(--black); }
+  .spacer { flex: 1; }
+
+  /* Order cards */
+  .card { background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .card-head { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; }
+  .card-head:hover { background: var(--warm-bg); }
+  .order-name { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+  .order-meta { font-size: 12px; color: var(--muted); }
+  .badge { font-size: 11px; font-family: var(--font-mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--hairline); white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
+  .badge.new { background: #FFF3E9; border-color: #F3C9A8; color: #B25B1E; }
+  .badge.supplies_pulled { background: #EFF5FF; border-color: #B9D2F5; color: #2C5F9E; }
+  .badge.printed { background: #F1ECFB; border-color: #CFC0EE; color: #6A45B0; }
+  .badge.shipped { background: #ECF6EF; border-color: #B4DCC3; color: var(--ok); }
+
+  .card-body { border-top: 1px solid var(--divider); padding: 16px 18px; display: none; }
+  .card.open .card-body { display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } .wrap { padding: 16px; } }
+
+  h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .item { border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .item-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .item-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 10px; }
+  .warn { font-size: 12px; color: var(--accent); }
+
+  .supply { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
+  .supply input { width: 15px; height: 15px; accent-color: var(--black); }
+  .supply.checked span.name { text-decoration: line-through; color: var(--muted); }
+  .swatch { width: 15px; height: 15px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); flex-shrink: 0; }
+  .qty { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--fg); }
+  .code { font-family: var(--font-mono); color: var(--muted); font-size: 11px; }
+
+  .ship { font-size: 13px; line-height: 1.5; }
+  .ship .name { font-weight: 500; }
+  .status-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; font-size: 14px; }
+  .err { color: var(--accent); font-size: 13px; margin-top: 8px; }
+  .agg-box { background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const TOKEN_KEY = "studio_admin_token";
+const STATUSES = [
+  { id: "new", label: "New" },
+  { id: "supplies_pulled", label: "Supplies pulled" },
+  { id: "printed", label: "Printed" },
+  { id: "shipped", label: "Shipped" },
+];
+let state = {
+  token: sessionStorage.getItem(TOKEN_KEY) || "",
+  orders: [],
+  filter: "open",
+  openId: null,
+  error: "",
+  loading: false,
+};
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "class") el.className = attrs[k];
+    else if (k === "html") el.innerHTML = attrs[k];
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), attrs[k]);
+    else if (attrs[k] != null) el.setAttribute(k, attrs[k]);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    el.appendChild(typeof kid === "string" ? document.createTextNode(kid) : kid);
+  }
+  return el;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      Authorization: "Bearer " + state.token,
+      "Content-Type": "application/json",
+      ...(opts.headers || {}),
+    },
+  });
+  if (res.status === 401) { logout(); throw new Error("Unauthorized"); }
+  if (!res.ok) throw new Error("Request failed (" + res.status + ")");
+  return res.json();
+}
+
+function logout() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  state.token = "";
+  render();
+}
+
+// Fetches a rendered PDF with the admin token, then opens it in a new tab for
+// preview / print / save. A plain <a href> can't send the auth header, so we
+// pull the bytes ourselves and hand off an object URL.
+async function openPdf(btn, designId, doc) {
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Rendering…";
+  try {
+    const res = await fetch(
+      "/api/admin/render?designId=" + encodeURIComponent(designId) + "&doc=" + doc,
+      { headers: { Authorization: "Bearer " + state.token } }
+    );
+    if (!res.ok) throw new Error("Render failed (" + res.status + ")");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+async function loadOrders() {
+  state.loading = true; state.error = ""; render();
+  try {
+    const { orders } = await api("/api/admin/orders");
+    state.orders = orders || [];
+  } catch (e) {
+    state.error = e.message;
+  } finally {
+    state.loading = false; render();
+  }
+}
+
+async function patchOrder(id, body) {
+  const updated = await api("/api/admin/orders/" + encodeURIComponent(id), {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  const i = state.orders.findIndex(o => String(o.orderId) === String(id));
+  if (i >= 0) state.orders[i] = updated;
+  render();
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+    " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+// ---- Supply rendering -----------------------------------------------------
+function supplyRows(item) {
+  const rows = [];
+  const bom = item.bom;
+  if (!bom) return rows;
+  if (bom.type === "cross-stitch") {
+    if (bom.aida) rows.push({ key: "aida", label: `Aida ${bom.aida.count}ct${bom.aida.color ? " · " + bom.aida.color : ""}`, qty: `${bom.aida.w}" × ${bom.aida.h}"` });
+    if (bom.needle) rows.push({ key: "needle", label: bom.needle, qty: "1" });
+    for (const f of bom.floss) rows.push({ key: "floss:" + f.code, label: f.name, code: f.code, hex: f.hex, qty: f.skeins + (f.skeins === 1 ? " skein" : " skeins") });
+  } else if (bom.type === "quilt") {
+    for (const fab of bom.fabrics) rows.push({ key: "fab:" + (fab.code || fab.name), label: fab.name, code: fab.code, hex: fab.hex, qty: fab.yardsLabel });
+    if (bom.batting) rows.push({ key: "batting", label: "Batting", qty: `${bom.batting.w}" × ${bom.batting.h}"` });
+    if (bom.backing) rows.push({ key: "backing", label: "Backing fabric", qty: bom.backing.yardsLabel });
+    if (bom.binding) rows.push({ key: "binding", label: "Binding fabric", qty: bom.binding.yardsLabel });
+  }
+  return rows;
+}
+
+function itemView(order, item, idx) {
+  const checklist = order.checklist || {};
+  const scope = (item.lineItemId || idx) + "|";
+  const rows = supplyRows(item);
+
+  const supplyEls = rows.map(r => {
+    const ckey = scope + r.key;
+    const done = !!checklist[ckey];
+    return h("label", { class: "supply" + (done ? " checked" : "") },
+      h("input", { type: "checkbox", ...(done ? { checked: "checked" } : {}), onchange: async (e) => {
+        const next = { ...(order.checklist || {}) };
+        if (e.target.checked) next[ckey] = true; else delete next[ckey];
+        await patchOrder(order.orderId, { checklist: next });
+      }}),
+      r.hex ? h("span", { class: "swatch", style: "background:" + r.hex }) : null,
+      h("span", { class: "name" }, r.label),
+      r.code ? h("span", { class: "code" }, " DMC " + r.code) : null,
+      h("span", { class: "qty" }, r.qty),
+    );
+  });
+
+  const meta = [];
+  if (item.bom?.finishedStitches) meta.push(`${item.bom.finishedStitches.w}×${item.bom.finishedStitches.h} st`);
+  if (item.bom?.finishedInches && item.bom.type === "cross-stitch") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}" @14ct`);
+  if (item.bom?.finishedInches && item.bom.type === "quilt") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}"`);
+  if (item.designId) meta.push("design " + item.designId);
+
+  const chartLabel = item.type === "quilt" ? "Template PDF" : "Chart PDF";
+  const assets = item.designFound && item.designId
+    ? h("div", { class: "row", style: "margin-top:12px; gap:8px;" },
+        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, item.designId, "chart") }, chartLabel),
+        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, item.designId, "instructions") }, "Instructions PDF"),
+      )
+    : null;
+
+  return h("div", { class: "item" },
+    h("div", { class: "item-title" }, `${item.quantity}× ${item.title}`),
+    h("div", { class: "item-sub" }, [item.type, ...meta].filter(Boolean).join("  ·  ")),
+    !item.designFound
+      ? h("div", { class: "warn" }, item.designId ? "⚠ Design not found for id " + item.designId : "⚠ No design id on this line item")
+      : (supplyEls.length ? h("div", {}, ...supplyEls) : h("div", { class: "item-sub" }, "No supplies computed")),
+    assets,
+  );
+}
+
+function orderCard(order) {
+  const open = state.openId === order.orderId;
+  const head = h("div", { class: "card-head", onclick: () => { state.openId = open ? null : order.orderId; render(); } },
+    h("div", {},
+      h("div", { class: "order-name" }, order.orderName || ("#" + order.orderId)),
+      h("div", { class: "order-meta" }, [order.customer?.name, fmtDate(order.receivedAt || order.createdAt)].filter(Boolean).join(" · ")),
+    ),
+    h("div", { class: "spacer" }),
+    h("span", { class: "order-meta" }, order.items?.length ? order.items.length + (order.items.length === 1 ? " item" : " items") : ""),
+    h("span", { class: "badge " + order.status }, (STATUSES.find(s => s.id === order.status)?.label) || order.status),
+  );
+
+  const ship = order.shipping || {};
+  const shipEl = h("div", { class: "ship" },
+    h("div", { class: "name" }, ship.name || order.customer?.name || "—"),
+    ship.address1 ? h("div", {}, ship.address1) : null,
+    ship.address2 ? h("div", {}, ship.address2) : null,
+    (ship.city || ship.province || ship.zip) ? h("div", {}, [ship.city, ship.province, ship.zip].filter(Boolean).join(", ")) : null,
+    ship.country ? h("div", {}, ship.country) : null,
+    order.customer?.email ? h("div", { class: "code" }, order.customer.email) : null,
+  );
+
+  const statusActions = h("div", { class: "status-actions" },
+    ...STATUSES.map(s => h("button", {
+      class: "btn sm" + (order.status === s.id ? " dark" : ""),
+      onclick: () => patchOrder(order.orderId, { status: s.id }),
+    }, s.label)),
+  );
+
+  const body = h("div", { class: "card-body" },
+    h("div", { class: "grid2" },
+      h("div", {},
+        h("h3", { class: "sec" }, "Supplies to pull"),
+        ...(order.items || []).map((it, i) => itemView(order, it, i)),
+      ),
+      h("div", {},
+        h("h3", { class: "sec" }, "Ship to"),
+        shipEl,
+        statusActions,
+      ),
+    ),
+  );
+
+  return h("div", { class: "card" + (open ? " open" : "") }, head, body);
+}
+
+// Aggregate every supply across the currently filtered orders into one buy/pull
+// list — the "go to the shelf" summary.
+function aggregateView(orders) {
+  const floss = new Map();   // code -> { name, hex, skeins }
+  const fabric = new Map();  // name -> { code, hex, yards }
+  let aidaCount = 0, needles = 0, battingCount = 0;
+  for (const o of orders) {
+    for (const it of (o.items || [])) {
+      const bom = it.bom; if (!bom) continue;
+      const q = it.quantity || 1;
+      if (bom.type === "cross-stitch") {
+        if (bom.aida) aidaCount += q;
+        needles += q;
+        for (const f of bom.floss) {
+          const e = floss.get(f.code) || { name: f.name, hex: f.hex, skeins: 0 };
+          e.skeins += f.skeins * q; floss.set(f.code, e);
+        }
+      } else if (bom.type === "quilt") {
+        if (bom.batting) battingCount += q;
+        for (const fab of bom.fabrics) {
+          const e = fabric.get(fab.name) || { code: fab.code, hex: fab.hex, yards: 0 };
+          e.yards += (fab.yards || 0) * q; fabric.set(fab.name, e);
+        }
+      }
+    }
+  }
+  const rows = [];
+  if (aidaCount) rows.push({ label: "Aida cloth pieces", qty: aidaCount });
+  if (needles) rows.push({ label: "Tapestry needles", qty: needles });
+  if (battingCount) rows.push({ label: "Batting pieces", qty: battingCount });
+  const flossRows = [...floss.entries()].sort((a,b)=>b[1].skeins-a[1].skeins);
+  const fabricRows = [...fabric.entries()].sort((a,b)=>b[1].yards-a[1].yards);
+  if (!rows.length && !flossRows.length && !fabricRows.length) return null;
+
+  return h("div", { class: "agg-box" },
+    h("h3", { class: "sec" }, "Aggregate supplies · " + orders.length + " orders"),
+    ...rows.map(r => h("div", { class: "supply" }, h("span", { class: "name" }, r.label), h("span", { class: "qty" }, String(r.qty)))),
+    ...flossRows.map(([code, e]) => h("div", { class: "supply" },
+      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
+      h("span", { class: "name" }, e.name), h("span", { class: "code" }, " DMC " + code),
+      h("span", { class: "qty" }, e.skeins + " skeins"))),
+    ...fabricRows.map(([name, e]) => h("div", { class: "supply" },
+      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
+      h("span", { class: "name" }, name),
+      h("span", { class: "qty" }, (Math.round(e.yards * 8) / 8) + " yd"))),
+  );
+}
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+
+  if (!state.token) {
+    let val = "";
+    const input = h("input", { type: "password", placeholder: "Admin token", oninput: (e) => (val = e.target.value),
+      onkeydown: (e) => { if (e.key === "Enter") submit(); } });
+    const errEl = h("div", { class: "err" }, state.error || "");
+    const submit = () => {
+      if (!val) return;
+      state.token = val; sessionStorage.setItem(TOKEN_KEY, val); state.error = "";
+      loadOrders();
+    };
+    app.appendChild(h("div", { class: "gate" },
+      h("h2", {}, "Studio fulfillment"),
+      h("p", {}, "Enter your admin token to view incoming orders."),
+      input,
+      h("div", { style: "height:12px" }),
+      h("button", { class: "btn dark", style: "width:100%", onclick: submit }, "Unlock"),
+      errEl,
+    ));
+    return;
+  }
+
+  const filtered = state.orders.filter(o =>
+    state.filter === "all" ? true :
+    state.filter === "shipped" ? o.status === "shipped" :
+    o.status !== "shipped"
+  );
+
+  app.appendChild(h("header", {},
+    h("div", {}, h("h1", {}, "Fulfillment queue"), h("div", { class: "sub" }, state.orders.length + " orders total")),
+    h("button", { class: "btn sm", onclick: logout }, "Lock"),
+  ));
+
+  const wrap = h("div", { class: "wrap" });
+  wrap.appendChild(h("div", { class: "toolbar" },
+    ...[["open","To fulfill"],["shipped","Shipped"],["all","All"]].map(([id,label]) =>
+      h("button", { class: "pill" + (state.filter === id ? " active" : ""), onclick: () => { state.filter = id; render(); } }, label)),
+    h("div", { class: "spacer" }),
+    h("button", { class: "btn sm", onclick: loadOrders }, state.loading ? "Refreshing…" : "Refresh"),
+  ));
+
+  if (state.error) wrap.appendChild(h("div", { class: "err" }, state.error));
+
+  if (!state.loading && filtered.length === 0) {
+    wrap.appendChild(h("div", { class: "empty" }, "No orders here yet."));
+  } else {
+    const agg = aggregateView(filtered.filter(o => o.status !== "shipped"));
+    if (agg && state.filter !== "shipped") wrap.appendChild(agg);
+    filtered.forEach(o => wrap.appendChild(orderCard(o)));
+  }
+  app.appendChild(wrap);
+}
+
+if (state.token) loadOrders(); else render();
+</script>
+</body>
+</html>
