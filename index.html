@@ -253,6 +253,7 @@
   input[type=text]:focus, select:focus { border-color: var(--metime-almost-black); }
   select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%238A8580' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
   input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
   input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--warm-hairline); background: none; border-radius: 4px; cursor: pointer; }
 
   /* Buttons — metime design system (Figma node 20-1371).
@@ -367,9 +368,13 @@
   .xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--warm-hairline); background: var(--metime-cream); flex-shrink: 0; }
-  .xs-tool { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--warm-hairline); background: var(--metime-white); border-radius: 8px; cursor: pointer; color: var(--warm-fg-2); transition: all .12s; }
-  .xs-tool:hover { border-color: var(--metime-almost-black); }
-  .xs-tool.active { background: var(--metime-almost-black); color: var(--metime-white); border-color: var(--metime-almost-black); }
+  /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
+  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
+  .xs-tool:hover { background: var(--btn-secondary-bg-hover); }
+  .xs-tool:active { background: var(--btn-secondary-bg-active); }
+  .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
+  .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
   .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--metime-cream); min-width: 0; }
   .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; }
   .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--warm-hairline); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
@@ -427,13 +432,13 @@
   .pal-result-main { flex: 1; min-width: 0; }
   .pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
-  .pal-chip-check { width: 14px; height: 14px; accent-color: var(--metime-almost-black); cursor: pointer; margin: 0; }
+  .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
   .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
   .pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
   .pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
   .pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
-  .pal-check input { width: 15px; height: 15px; accent-color: var(--metime-almost-black); cursor: pointer; }
+  .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
   .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s; }
   .pal-btn:hover { background: var(--action-hover); }
@@ -2515,12 +2520,12 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             <IcUndo/>
           </button>
           {savedQuilts.length>0 && (
-            <button className="btn btn-sm" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
+            <button className="btn" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
               <IcBook/> My quilts ({savedQuilts.length})
             </button>
           )}
           <button
-            className="btn btn-sm"
+            className="btn"
             onClick={()=>setConfirmClear(true)}
             disabled={shapes.length === 0}
             title="Clear the quilt">
@@ -2528,16 +2533,16 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
           </button>
           {currentQuilt ? (
             <>
-              <button className="btn btn-sm" title="Save as a new copy"
+              <button className="btn" title="Save as a new copy"
                 onClick={()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);}}>
                 Save as…
               </button>
-              <button className="btn btn-sm btn-dark" title={`Update “${currentQuilt.name}”`} onClick={updateCurrentQuilt}>
+              <button className="btn btn-dark" title={`Update “${currentQuilt.name}”`} onClick={updateCurrentQuilt}>
                 {justSaved ? 'Saved ✓' : 'Save'}
               </button>
             </>
           ) : (
-            <button className="btn btn-sm btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
+            <button className="btn btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
               {justSaved ? 'Saved ✓' : 'Save quilt'}
             </button>
           )}
@@ -4203,30 +4208,30 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)}/>
           <IcGrid/> Grid
         </label>
-        <button className="btn btn-sm" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo size={15}/></button>
+        <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
         {savedStitches.length > 0 && (
-          <button className="btn btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
+          <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
             <IcBook/> My designs ({savedStitches.length})
           </button>
         )}
         {confirmClear ? (
           <span style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn-sm" onClick={() => setConfirmClear(false)}>Cancel</button>
-            <button className="btn btn-sm btn-dark" onClick={clearAll}>Clear all</button>
+            <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
+            <button className="btn btn-dark" onClick={clearAll}>Clear all</button>
           </span>
         ) : (
-          <button className="btn btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
+          <button className="btn" onClick={() => setConfirmClear(true)}>Clear</button>
         )}
         {currentStitch ? (
           <>
-            <button className="btn btn-sm" title="Save as a new copy"
+            <button className="btn" title="Save as a new copy"
               onClick={() => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); }}>Save as…</button>
-            <button className="btn btn-sm btn-dark" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
+            <button className="btn btn-dark" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
               {justSaved ? 'Saved ✓' : 'Save'}
             </button>
           </>
         ) : (
-          <button className="btn btn-sm btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>
+          <button className="btn btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>
             {justSaved ? 'Saved ✓' : 'Save design'}
           </button>
         )}
