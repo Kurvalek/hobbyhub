@@ -2182,11 +2182,43 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
   const [viewQuilt, setViewQuilt] = useState(null);
   const [showMyQuilts, setShowMyQuilts] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  // Id of the saved quilt currently open on the canvas (null for an unsaved
+  // design). Lets "Save" update in place instead of spawning a duplicate.
+  const [currentQuiltId, setCurrentQuiltId] = useState(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedFlashRef = useRef(null);
+  const flashSaved = useCallback(() => {
+    setJustSaved(true);
+    if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
+    savedFlashRef.current = setTimeout(() => setJustSaved(false), 1600);
+  }, []);
+  const currentQuilt = savedQuilts.find(q => q.id === currentQuiltId) || null;
+  // Snapshot every piece of editor state we persist. `id`/`name` are supplied
+  // by the caller so the same builder serves both "save new" and "update".
+  const buildQuiltRecord = (id, name) => ({
+    id, name, shapes: [...shapes], cols, rows, bs, preset, backing, binding, pinned: [...pinned],
+    qPattern, qSpacing, qColor, showQ, materials: { ...materials }, fw, fh, backCalc, bindCalc, grandTotal,
+    updatedAt: Date.now(),
+  });
+  const saveNewQuilt = () => {
+    const name = saveName.trim(); if (!name) return;
+    const id = Date.now();
+    setSavedQuilts(p => [buildQuiltRecord(id, name), ...p]);
+    setCurrentQuiltId(id);
+    setShowSave(false); setSaveName('');
+    flashSaved();
+  };
+  const updateCurrentQuilt = () => {
+    if (currentQuiltId == null) return;
+    setSavedQuilts(p => p.map(x => x.id === currentQuiltId ? buildQuiltRecord(currentQuiltId, x.name) : x));
+    flashSaved();
+  };
 
   // Restore a saved quilt back onto the editor canvas. Rebuilds every piece of
   // editor state we persisted so the design opens exactly as it was saved.
   const loadQuilt = useCallback((q) => {
     if (!q) return;
+    setCurrentQuiltId(q.id ?? null);
     historyRef.current = [];
     _setShapes(Array.isArray(q.shapes) ? q.shapes : []);
     setSelIds(new Set());
@@ -2407,9 +2439,21 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             title="Clear the quilt">
             Clear
           </button>
-          <button className="btn btn-sm btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
-            Save quilt
-          </button>
+          {currentQuilt ? (
+            <>
+              <button className="btn btn-sm" title="Save as a new copy"
+                onClick={()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);}}>
+                Save as…
+              </button>
+              <button className="btn btn-sm btn-dark" title={`Update “${currentQuilt.name}”`} onClick={updateCurrentQuilt}>
+                {justSaved ? 'Saved ✓' : 'Save'}
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
+              {justSaved ? 'Saved ✓' : 'Save quilt'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -2556,22 +2600,13 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
         <div className="overlay" onClick={()=>setShowSave(false)}>
           <div onClick={e=>e.stopPropagation()}
             style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:380,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)'}}>
-            <div style={{fontWeight:400,fontSize:24,marginBottom:16,fontFamily:"var(--font-display)",lineHeight:1.1}}>Save your quilt</div>
+            <div style={{fontWeight:400,fontSize:24,marginBottom:16,fontFamily:"var(--font-display)",lineHeight:1.1}}>{currentQuilt?'Save a copy':'Save your quilt'}</div>
             <input type="text" placeholder="Give your quilt a name…" value={saveName} onChange={e=>setSaveName(e.target.value)}
-              autoFocus onKeyDown={e=>{if(e.key==='Enter'&&saveName.trim()){
-                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,pinned:[...pinned],qPattern,qSpacing,qColor,showQ,
-                  materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
-                setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
-              }}}
+              autoFocus onKeyDown={e=>{if(e.key==='Enter')saveNewQuilt();}}
               style={{marginBottom:16}}/>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button className="btn" onClick={()=>setShowSave(false)}>Cancel</button>
-              <button className="btn btn-dark" onClick={()=>{
-                if(!saveName.trim()) return;
-                const q={id:Date.now(),name:saveName.trim(),shapes:[...shapes],cols,rows,bs,preset,backing,binding,pinned:[...pinned],qPattern,qSpacing,qColor,showQ,
-                  materials:{...materials},fw,fh,backCalc,bindCalc,grandTotal};
-                setSavedQuilts(p=>[q,...p]);setShowSave(false);setSaveName('');
-              }}>Save</button>
+              <button className="btn btn-dark" onClick={saveNewQuilt}>Save</button>
             </div>
           </div>
         </div>
@@ -3478,6 +3513,16 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const [viewStitch, setViewStitch] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [materialsOpen, setMaterialsOpen] = useState(true);
+  // Id of the saved design currently open, so "Save" updates it in place.
+  const [currentStitchId, setCurrentStitchId] = useState(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedFlashRef = useRef(null);
+  const flashSaved = useCallback(() => {
+    setJustSaved(true);
+    if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
+    savedFlashRef.current = setTimeout(() => setJustSaved(false), 1600);
+  }, []);
+  const currentStitch = savedStitches.find(d => d.id === currentStitchId) || null;
   // Color library popover (mirrors the quilt "My palette" + / library pattern).
   const [search, setSearch] = useState("");
   const [grp, setGrp] = useState("All");
@@ -3845,21 +3890,35 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   };
   const clearAll = () => { pushUndo(); cellsRef.current = new Array(W * H).fill(null); previewRef.current = null; redraw(); bump(); setConfirmClear(false); };
 
-  const saveDesign = () => {
-    const name = saveName.trim(); if (!name) return;
+  // Snapshot the design; `id`/`name` come from the caller so the same builder
+  // powers both "save new" and "update in place".
+  const buildStitchRecord = (id, name) => {
     const grid = serializeGrid(cellsRef.current);
     const s = computeStitchStats(cellsRef.current, W, H, pal);
-    const design = {
-      id: Date.now(), name, presetName: dims.name, w: W, h: H,
+    return {
+      id, name, presetName: dims.name, w: W, h: H,
       palette: pal, grid, bgImage: bg || null, fabric,
       stitches: s.total, colorsUsed: s.colors.length, colors: s.colors,
+      updatedAt: Date.now(),
     };
-    setSavedStitches(p => [design, ...p]);
+  };
+  const saveNewDesign = () => {
+    const name = saveName.trim(); if (!name) return;
+    const id = Date.now();
+    setSavedStitches(p => [buildStitchRecord(id, name), ...p]);
+    setCurrentStitchId(id);
     setShowSave(false); setSaveName('');
+    flashSaved();
+  };
+  const updateCurrentDesign = () => {
+    if (currentStitchId == null) return;
+    setSavedStitches(p => p.map(x => x.id === currentStitchId ? buildStitchRecord(currentStitchId, x.name) : x));
+    flashSaved();
   };
 
   const loadDesign = (d) => {
     if (!d) return;
+    setCurrentStitchId(d.id ?? null);
     undoRef.current = [];
     // Restore the design at its saved size. Setting dims re-runs the fit and
     // redraw effects (both keyed on W/H), so the board resizes to match the
@@ -3931,7 +3990,19 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
         ) : (
           <button className="btn btn-sm" onClick={() => setConfirmClear(true)}>Clear</button>
         )}
-        <button className="btn btn-sm btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>Save design</button>
+        {currentStitch ? (
+          <>
+            <button className="btn btn-sm" title="Save as a new copy"
+              onClick={() => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); }}>Save as…</button>
+            <button className="btn btn-sm btn-dark" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
+              {justSaved ? 'Saved ✓' : 'Save'}
+            </button>
+          </>
+        ) : (
+          <button className="btn btn-sm btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>
+            {justSaved ? 'Saved ✓' : 'Save design'}
+          </button>
+        )}
       </div>
       <div className="xs-body">
         <div className="xs-rail">
@@ -4065,12 +4136,12 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
         <div className="overlay" onClick={() => setShowSave(false)}>
           <div onClick={e => e.stopPropagation()}
             style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)' }}>
-            <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 16, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>Save your design</div>
+            <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 16, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{currentStitch ? 'Save a copy' : 'Save your design'}</div>
             <input type="text" placeholder="Give your design a name…" value={saveName} onChange={e => setSaveName(e.target.value)}
-              autoFocus onKeyDown={e => { if (e.key === 'Enter') saveDesign(); }} style={{ marginBottom: 16 }}/>
+              autoFocus onKeyDown={e => { if (e.key === 'Enter') saveNewDesign(); }} style={{ marginBottom: 16 }}/>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="btn" onClick={() => setShowSave(false)}>Cancel</button>
-              <button className="btn btn-dark" onClick={saveDesign}>Save</button>
+              <button className="btn btn-dark" onClick={saveNewDesign}>Save</button>
             </div>
           </div>
         </div>
