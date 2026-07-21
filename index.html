@@ -156,8 +156,11 @@
      that keeps the selected color + high-level totals visible; expanding slides
      the full panel in as a drawer over a backdrop. */
   .body { position: relative; transition: grid-template-columns .22s ease; }
-  .right-panel { position: relative; display: flex; flex-direction: column; }
-  .rp-close, .xs-rp-close { display: none; }
+  .right-panel { position: relative; display: flex; flex-direction: column; background: var(--metime-white); }
+  /* Higher specificity than .icon-btn so these stay hidden off-mobile regardless
+     of source order — otherwise the close button becomes an in-flow grid item
+     and pushes the panel to a wrapped column. */
+  .icon-btn.rp-close, .icon-btn.xs-rp-close { display: none; }
   .rp-backdrop { display: none; }
   .rp-rail { display: none; }
 
@@ -207,11 +210,11 @@
 
     /* Backdrop + floating close button for the expanded drawer */
     .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(46,41,37,0.32); z-index: 120; }
-    .rp-close, .xs-rp-close {
+    .icon-btn.rp-close, .icon-btn.xs-rp-close {
       display: inline-flex; position: absolute; top: 10px; right: 12px; z-index: 140;
       background: var(--metime-white); border: 1px solid var(--warm-hairline); box-shadow: var(--shadow-sticky);
     }
-    .rp-close:hover, .xs-rp-close:hover { background: var(--warm-hover); }
+    .icon-btn.rp-close:hover, .icon-btn.xs-rp-close:hover { background: var(--warm-hover); }
 
     /* The rail owns the toggle on mobile, so drop the header/top-bar copy.
        Higher specificity than .icon-btn so it wins regardless of source order. */
