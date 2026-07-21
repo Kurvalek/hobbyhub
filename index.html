@@ -2288,18 +2288,21 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
 }
 
 // ── Right-column blocks ───────────────────────────────────────────────────
-function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selIds, setShapes }) {
+function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selIds, setShapes, onRecolor }) {
   const plusRef = useRef(null);
   // Clicking a palette chip sets the active paint color, and—if objects are
-  // selected—recolors that selection (mirrors the color library popover).
+  // selected—recolors that selection. Two selection models are supported:
+  // the quilt's shape ids (selIds/setShapes) and, when `onRecolor` is given,
+  // a caller-provided recolor (e.g. the cross-stitch cell selection).
   const handleChip = (c) => {
     setColor(c);
+    if (onRecolor) { onRecolor(c); return; }
     if (selIds && selIds.size > 0 && setShapes) {
       setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
     }
   };
   return (
-    <div className="card">
+    <div className="card my-palette">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div className="label" style={{ marginBottom:0 }}>My palette</div>
         <button
@@ -2725,7 +2728,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
     const onDown = e => {
       const t = e.target;
       if (!(t instanceof Element)) return;
-      if (t.closest('.canvas-frame, .selection-toolbar, .popover, .popover-backdrop, .overlay')) return;
+      if (t.closest('.canvas-frame, .selection-toolbar, .popover, .popover-backdrop, .overlay, .my-palette')) return;
       setSelIds(new Set());
     };
     document.addEventListener('mousedown', onDown);
@@ -4253,6 +4256,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const deselect = () => { selRef.current = null; movingRef.current = false; dragRef.current = null; marqueeRef.current = null; setHasSel(false); scheduleRedraw(); };
 
+  // Recolor the active selection to `c` (used when a "My palette" chip is
+  // clicked while cells are selected). Repaints the selected cells and keeps
+  // the selection active with its new color.
+  const recolorSelection = (c) => {
+    const sel = selRef.current;
+    if (!sel || sel.cells.size === 0 || !c) return;
+    pushUndo();
+    const cells = cellsRef.current;
+    const map = new Map();
+    for (const i of sel.cells.keys()) { cells[i] = c.hex; map.set(i, c.hex); }
+    selRef.current = { ...sel, cells: map };
+    setHasSel(true);
+    redraw(); bump();
+  };
+
   const onPointerDown = (e) => {
     const cell = cellFromEvent(e); if (!cell) return;
     if (tool === 'text') {
@@ -4641,6 +4659,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             pinned={pal}
             setPinned={setPal}
             setColor={setColor}
+            onRecolor={hasSel ? recolorSelection : undefined}
             onOpenLibrary={openLibrary}/>
           <FabricRow
             label="Aida"
