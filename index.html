@@ -176,6 +176,15 @@
   .icon-btn:disabled { color: var(--btn-disabled-fg); cursor: not-allowed; }
   .icon-btn:disabled:hover { background: transparent; }
 
+  /* Toggle switch (pill on/off control) */
+  .switch { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: 12px; color: var(--warm-fg-2); user-select: none; }
+  .switch-track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--color-linen-800); border: 1px solid var(--btn-secondary-border); transition: background .12s, border-color .12s; flex-shrink: 0; }
+  .switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--metime-white); box-shadow: 0 1px 2px rgba(46,41,37,0.25); transition: transform .12s; }
+  .switch[aria-checked="true"] .switch-track { background: var(--color-taupe-900); border-color: var(--color-taupe-900); }
+  .switch[aria-checked="true"] .switch-knob { transform: translateX(14px); }
+  .switch:focus-visible { outline: none; }
+  .switch:focus-visible .switch-track { box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+
   /* Left tool rail */
   .tool-rail { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; background: var(--app-bg); border-right: var(--div-border); }
   .tool-rail .rail-spacer { flex: 1; }
@@ -2191,31 +2200,47 @@ function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
   );
 }
 
+// ── Switch (reusable pill on/off toggle) ──────────────────────────────────
+function Switch({ checked, onChange, label, title }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      className="switch"
+      title={title}
+      onClick={() => onChange(!checked)}>
+      <span className="switch-track"><span className="switch-knob"/></span>
+      {label && <span className="switch-label">{label}</span>}
+    </button>
+  );
+}
+
 // ── SizeBar (top of center canvas panel) ──────────────────────────────────
 function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabled, onClear, clearDisabled }) {
   return (
     <div className="size-bar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+      <div className="size-bar-slider">
+        <span className="size-bar-label">Block size</span>
+        <input
+          type="range"
+          min={2}
+          max={maxBs}
+          step={1}
+          value={bs}
+          onChange={e => onBsChange(+e.target.value)}/>
+        <span className="size-bar-value">{bs}"</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="size-bar-meta">
+          <span>cut {bs + SEAM}"</span>
+          <span>{cols} × {rows} blocks</span>
+          <span>{fw}" × {fh}"</span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button className="icon-btn" onClick={onUndo} disabled={undoDisabled} title="Undo (⌘Z)"><IcUndo/></button>
           <button className="btn" onClick={onClear} disabled={clearDisabled} title="Clear the quilt">Clear</button>
         </div>
-        <div className="size-bar-slider">
-          <span className="size-bar-label">Block size</span>
-          <input
-            type="range"
-            min={2}
-            max={maxBs}
-            step={1}
-            value={bs}
-            onChange={e => onBsChange(+e.target.value)}/>
-          <span className="size-bar-value">{bs}"</span>
-        </div>
-      </div>
-      <div className="size-bar-meta">
-        <span>cut {bs + SEAM}"</span>
-        <span>{cols} × {rows} blocks</span>
-        <span>{fw}" × {fh}"</span>
       </div>
     </div>
   );
@@ -4207,10 +4232,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)} style={{ width: 90 }}/>
           </div>
         )}
-        <label className="xs-ctrl" title="Toggle grid lines">
-          <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)}/>
-          <IcGrid/> Grid
-        </label>
         {savedStitches.length > 0 && (
           <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
             <IcBook/> My designs ({savedStitches.length})
@@ -4238,6 +4259,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div className="size-bar">
+            <Switch checked={showGrid} onChange={setShowGrid} label="Grid" title="Toggle grid lines"/>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
               {confirmClear ? (
