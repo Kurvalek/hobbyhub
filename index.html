@@ -93,6 +93,8 @@
     /* Shared button states */
     --btn-disabled-fg: var(--color-taupe-500);
     --btn-focus-ring: var(--color-taupe-100);
+    /* Pale taupe wash for icon/tool button hover (reads consistently over cream or white). */
+    --btn-tool-hover: rgba(18, 15, 6, 0.08);
 
     /* Surfaces */
     --surface-card: var(--metime-white);
@@ -166,7 +168,7 @@
 
   /* Icon button (used in header + tool rail + popover triggers) */
   .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
-  .icon-btn:hover { background: var(--btn-secondary-bg-hover); }
+  .icon-btn:hover { background: var(--btn-tool-hover); }
   .icon-btn:active { background: var(--btn-secondary-bg-active); }
   .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
@@ -370,12 +372,12 @@
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--warm-hairline); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
   .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
-  .xs-tool:hover { background: var(--btn-secondary-bg-hover); }
+  .xs-tool:hover { background: var(--btn-tool-hover); }
   .xs-tool:active { background: var(--btn-secondary-bg-active); }
   .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
   .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-  .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--metime-cream); min-width: 0; }
+  .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; background: var(--metime-cream); min-width: 0; }
   .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; }
   .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--warm-hairline); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
   .xs-panel-head { padding: 14px 16px 8px; }
@@ -2190,19 +2192,25 @@ function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
 }
 
 // ── SizeBar (top of center canvas panel) ──────────────────────────────────
-function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows }) {
+function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabled, onClear, clearDisabled }) {
   return (
     <div className="size-bar">
-      <div className="size-bar-slider">
-        <span className="size-bar-label">Block size</span>
-        <input
-          type="range"
-          min={2}
-          max={maxBs}
-          step={1}
-          value={bs}
-          onChange={e => onBsChange(+e.target.value)}/>
-        <span className="size-bar-value">{bs}"</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="icon-btn" onClick={onUndo} disabled={undoDisabled} title="Undo (⌘Z)"><IcUndo/></button>
+          <button className="btn" onClick={onClear} disabled={clearDisabled} title="Clear the quilt">Clear</button>
+        </div>
+        <div className="size-bar-slider">
+          <span className="size-bar-label">Block size</span>
+          <input
+            type="range"
+            min={2}
+            max={maxBs}
+            step={1}
+            value={bs}
+            onChange={e => onBsChange(+e.target.value)}/>
+          <span className="size-bar-value">{bs}"</span>
+        </div>
       </div>
       <div className="size-bar-meta">
         <span>cut {bs + SEAM}"</span>
@@ -2512,25 +2520,11 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             onApply={applyPreset}/>
         </div>
         <div className="header-right">
-          <button
-            className="icon-btn"
-            onClick={undo}
-            disabled={historyRef.current.length === 0}
-            title="Undo (⌘Z)">
-            <IcUndo/>
-          </button>
           {savedQuilts.length>0 && (
             <button className="btn" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
               <IcBook/> My quilts ({savedQuilts.length})
             </button>
           )}
-          <button
-            className="btn"
-            onClick={()=>setConfirmClear(true)}
-            disabled={shapes.length === 0}
-            title="Clear the quilt">
-            Clear
-          </button>
           {currentQuilt ? (
             <>
               <button className="btn" title="Save as a new copy"
@@ -2567,7 +2561,11 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             maxBs={maxBs}
             onBsChange={handleBsChange}
             fw={fw} fh={fh}
-            cols={cols} rows={rows}/>
+            cols={cols} rows={rows}
+            onUndo={undo}
+            undoDisabled={historyRef.current.length === 0}
+            onClear={()=>setConfirmClear(true)}
+            clearDisabled={shapes.length === 0}/>
           <div style={{flex:1,minHeight:0,position:'relative'}}>
             <GridCanvas cols={cols} rows={rows} shapes={shapes} setShapes={setShapes}
               selIds={selIds} setSelIds={setSelIds}
@@ -2722,7 +2720,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
                 {savedQuilts.map(q=>(
                   <div key={q.id} style={{display:'flex',gap:12,alignItems:'center',padding:12,border:'1px solid #E2DDD2',borderRadius:6,cursor:'pointer',transition:'background .1s'}}
-                    onClick={()=>loadQuilt(q)} title="Open on canvas"
+                    onClick={()=>{setViewQuilt(q);setShowMyQuilts(false);}} title="Preview"
                     onMouseEnter={e=>e.currentTarget.style.background='#EFE9DD'}
                     onMouseLeave={e=>e.currentTarget.style.background='#FFFFFF'}>
                     <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#FFFFFF',borderRadius:4,overflow:'hidden'}}>
@@ -2744,11 +2742,6 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
                       </div>
                     ) : (
                       <div style={{display:'flex',gap:2,alignItems:'center'}}>
-                        <button title="Preview supplies"
-                          onClick={e=>{e.stopPropagation();setViewQuilt(q);setShowMyQuilts(false);}}
-                          style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
-                          onMouseEnter={e=>e.currentTarget.style.color='var(--warm-fg)'}
-                          onMouseLeave={e=>e.currentTarget.style.color='var(--warm-muted)'}><IcEye/></button>
                         <button title="Delete quilt"
                           onClick={e=>{e.stopPropagation();setConfirmDeleteId(q.id);}}
                           style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex',padding:4}}
@@ -3644,6 +3637,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const [showPicker, setShowPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const adjustZoom = useCallback((delta) => {
+    setZoom(z => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, +(z + delta).toFixed(2))));
+  }, []);
+  const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(AIDA_FABRICS[0]);
   const [showFabric, setShowFabric] = useState(false);
   const [text, setText] = useState("");
@@ -3839,15 +3837,17 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const cellFromEvent = (e) => {
     const cv = canvasRef.current; const rect = cv.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / cellSize);
-    const y = Math.floor((e.clientY - rect.top) / cellSize);
+    const cs = cellSize * zoom;
+    const x = Math.floor((e.clientX - rect.left) / cs);
+    const y = Math.floor((e.clientY - rect.top) / cs);
     if (x < 0 || y < 0 || x >= W || y >= H) return null;
     return [x, y];
   };
   const cellClamped = (e) => {
     const cv = canvasRef.current; const rect = cv.getBoundingClientRect();
-    let x = Math.floor((e.clientX - rect.left) / cellSize);
-    let y = Math.floor((e.clientY - rect.top) / cellSize);
+    const cs = cellSize * zoom;
+    let x = Math.floor((e.clientX - rect.left) / cs);
+    let y = Math.floor((e.clientY - rect.top) / cs);
     return [Math.max(0, Math.min(W - 1, x)), Math.max(0, Math.min(H - 1, y))];
   };
 
@@ -4098,6 +4098,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       const tag = e.target.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+      if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) { e.preventDefault(); adjustZoom(+ZOOM_STEP); return; }
+      if ((e.metaKey || e.ctrlKey) && (e.key === '-' || e.key === '_')) { e.preventDefault(); adjustZoom(-ZOOM_STEP); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === '0') { e.preventDefault(); resetZoom(); return; }
       if (typing) return;
       if (e.key === 'Escape' && selRef.current) { deselect(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current) {
@@ -4111,7 +4114,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redraw, bump]);
+  }, [undo, redraw, bump, adjustZoom, resetZoom]);
 
   const addColor = (dmc) => {
     setPal(prev => prev.some(c => c.code === dmc.code) ? prev : [...prev, dmc]);
@@ -4208,19 +4211,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)}/>
           <IcGrid/> Grid
         </label>
-        <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
         {savedStitches.length > 0 && (
           <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
             <IcBook/> My designs ({savedStitches.length})
           </button>
-        )}
-        {confirmClear ? (
-          <span style={{ display: 'flex', gap: 6 }}>
-            <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
-            <button className="btn btn-dark" onClick={clearAll}>Clear all</button>
-          </span>
-        ) : (
-          <button className="btn" onClick={() => setConfirmClear(true)}>Clear</button>
         )}
         {currentStitch ? (
           <>
@@ -4242,10 +4236,26 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
           ))}
         </div>
-        <div className="xs-canvas-wrap" ref={wrapRef}>
-          <canvas ref={canvasRef} className="xs-canvas" width={W * cellSize} height={H * cellSize}
-            style={{ cursor: tool === 'select' ? (hasSel ? 'move' : 'default') : 'crosshair' }}
-            onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div className="size-bar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
+              {confirmClear ? (
+                <span style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
+                  <button className="btn btn-dark" onClick={clearAll}>Clear all</button>
+                </span>
+              ) : (
+                <button className="btn" onClick={() => setConfirmClear(true)}>Clear</button>
+              )}
+            </div>
+          </div>
+          <div className="xs-canvas-wrap" ref={wrapRef}>
+            <canvas ref={canvasRef} className="xs-canvas" width={W * cellSize} height={H * cellSize}
+              style={{ cursor: tool === 'select' ? (hasSel ? 'move' : 'default') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+              onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
+          </div>
+          <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
         </div>
         {hasSel && selRef.current && (
           <div style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
@@ -4396,7 +4406,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {savedStitches.map(d => (
                   <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #E2DDD2', borderRadius: 6, cursor: 'pointer', transition: 'background .1s' }}
-                    onClick={() => loadDesign(d)} title="Open on canvas"
+                    onClick={() => { setViewStitch(d); setShowMyStitches(false); }} title="Preview"
                     onMouseEnter={e => e.currentTarget.style.background = '#EFE9DD'}
                     onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}>
                     <div style={{ width: 64, height: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 4, overflow: 'hidden' }}>
@@ -4414,10 +4424,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <button title="Preview" onClick={e => { e.stopPropagation(); setViewStitch(d); setShowMyStitches(false); }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex', padding: 4 }}
-                          onMouseEnter={e => e.currentTarget.style.color = 'var(--warm-fg)'}
-                          onMouseLeave={e => e.currentTarget.style.color = 'var(--warm-muted)'}><IcEye/></button>
                         <button title="Delete design" onClick={e => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex', padding: 4 }}
                           onMouseEnter={e => e.currentTarget.style.color = 'var(--metime-tomato)'}
