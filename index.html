@@ -63,6 +63,37 @@
     --warm-divider-soft: #EFE9DD;
     --warm-hover: #EFE9DD;
 
+    /* Button design system (Figma: metime — design system, node 20-1371) */
+    --color-taupe-900: #120F06;
+    --color-taupe-700: #3D3625;
+    --color-taupe-600: #544D3A;
+    --color-taupe-500: #6B644F;
+    --color-taupe-100: #CEC9BE;
+    --color-linen-800: #D5D1BD;
+    --color-linen-600: #E9E7D9;
+    --color-linen-500: #F2F1E7;
+    --color-linen-300: #F7F6F0;
+    --color-linen-100: #FDFCFA;
+
+    /* Primary (filled) button */
+    --btn-primary-bg: var(--color-taupe-900);
+    --btn-primary-bg-hover: var(--color-taupe-600);
+    --btn-primary-bg-active: var(--color-taupe-700);
+    --btn-primary-bg-disabled: var(--color-linen-600);
+    --btn-primary-fg: var(--metime-white);
+    --btn-primary-fg-active: var(--color-taupe-100);
+
+    /* Secondary (outline) button */
+    --btn-secondary-bg: var(--color-linen-100);
+    --btn-secondary-bg-hover: var(--color-linen-300);
+    --btn-secondary-bg-active: var(--color-linen-500);
+    --btn-secondary-border: var(--color-linen-800);
+    --btn-secondary-fg: var(--color-taupe-900);
+
+    /* Shared button states */
+    --btn-disabled-fg: var(--color-taupe-500);
+    --btn-focus-ring: var(--color-taupe-100);
+
     /* Surfaces */
     --surface-card: var(--metime-white);
     --surface-canvas: var(--metime-white);
@@ -134,10 +165,13 @@
   .preset-pill .caret { display: inline-block; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-muted); margin-left: 2px; }
 
   /* Icon button (used in header + tool rail + popover triggers) */
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--warm-fg); cursor: pointer; transition: all .12s; padding: 0; }
-  .icon-btn:hover { background: var(--warm-hover); }
-  .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--metime-almost-black); color: var(--metime-white); }
-  .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
+  .icon-btn:hover { background: var(--btn-secondary-bg-hover); }
+  .icon-btn:active { background: var(--btn-secondary-bg-active); }
+  .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
+  .icon-btn[aria-pressed="true"]:hover, .icon-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .icon-btn:disabled { color: var(--btn-disabled-fg); cursor: not-allowed; }
   .icon-btn:disabled:hover { background: transparent; }
 
   /* Left tool rail */
@@ -221,11 +255,24 @@
   input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
   input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--warm-hairline); background: none; border-radius: 4px; cursor: pointer; }
 
-  /* Buttons */
-  .btn { padding: 7px 14px; font-size: 12px; font-family: var(--font-sans); font-weight: 500; border-radius: 4px; cursor: pointer; transition: all .12s; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); }
-  .btn:hover { background: var(--warm-hover); border-color: var(--warm-muted-2); }
-  .btn-dark { background: var(--action); color: var(--metime-white); border-color: var(--action); }
-  .btn-dark:hover { background: var(--action-hover); border-color: var(--action-hover); }
+  /* Buttons — metime design system (Figma node 20-1371).
+     Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary. */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; font-size: 12px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; border-radius: 4px; cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s; border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+  .btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
+  .btn:active { background: var(--btn-secondary-bg-active); }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .btn:disabled, .btn[disabled] { background: transparent; border-color: var(--btn-secondary-border); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
+
+  .btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
+  .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); color: var(--btn-primary-fg-active); }
+  .btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); }
+
+  .btn-tertiary { background: transparent; border: none; border-bottom: 1px solid var(--color-taupe-900); border-radius: 0; padding: 0 0 1px; color: var(--color-taupe-900); }
+  .btn-tertiary:hover { background: transparent; border-bottom-color: var(--color-taupe-600); color: var(--color-taupe-600); }
+  .btn-tertiary:active { background: transparent; border-bottom-color: var(--color-taupe-700); color: var(--color-taupe-700); }
+  .btn-tertiary:disabled, .btn-tertiary[disabled] { border-bottom-color: var(--btn-disabled-fg); color: var(--btn-disabled-fg); }
+
   .btn-sm { padding: 4px 10px; font-size: 11px; }
   .btn-xs { padding: 3px 8px; font-size: 11px; }
 
