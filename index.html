@@ -20,12 +20,14 @@
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
-  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Sohne-Semibold.woff2') format('woff2'); }
-  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Sohne-Bold.woff2') format('woff2'); }
+  /* Design rule: Söhne tops out at Medium — "bold" (600/700) resolves to the Medium cut. */
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/SohneMono-Regular.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/SohneMono-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/BCCivitas-Light.woff2') format('woff2'); }
-  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/BCCivitas-Regular.woff2') format('woff2'); }
+  /* Design rule: BC Civitas headers use the Medium cut, so the default (400) weight loads Medium. */
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/BCCivitas-Semibold.woff2') format('woff2'); }
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/BCCivitas-Bold.woff2') format('woff2'); }
