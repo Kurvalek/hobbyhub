@@ -149,13 +149,17 @@
   .panel::-webkit-scrollbar { width: 4px; }
   .panel::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
 
-  /* Collapsible right panel + mobile drawer.
-     On desktop the panel lives in the grid and collapses the whole column.
-     On small screens it becomes an absolute slide-in drawer with a backdrop. */
+  /* Collapsible right panel.
+     Desktop: the panel lives in the grid; the header toggle collapses the
+     whole column so the canvas expands.
+     Mobile: the panel collapses to a thin rail (mirroring the left tool rail)
+     that keeps the selected color + high-level totals visible; expanding slides
+     the full panel in as a drawer over a backdrop. */
   .body { position: relative; transition: grid-template-columns .22s ease; }
   .right-panel { position: relative; }
   .rp-close, .xs-rp-close { display: none; }
   .rp-backdrop { display: none; }
+  .rp-rail { display: none; }
 
   /* Desktop collapse: drop the trailing column and hide the panel */
   .body.rp-closed { grid-template-columns: 52px 1fr 0; }
@@ -163,9 +167,17 @@
   .xs-body.rp-closed > .xs-panel { display: none; }
   .xs-body.rp-closed .xs-materials { right: 16px; }
 
+  /* Thin collapsed rail contents (visible on mobile via the media query) */
+  .rp-rail-swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.18); cursor: pointer; padding: 0; background: none; box-shadow: 0 1px 2px rgba(46,41,37,0.12); flex-shrink: 0; }
+  .rp-rail-swatch.empty { border: 1px dashed var(--warm-hairline); }
+  .rp-rail-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; }
+  .rp-rail-stat b { font-family: var(--font-display); font-size: 15px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; color: var(--warm-fg); }
+  .rp-rail-stat span { font-size: 9px; color: var(--warm-muted); letter-spacing: .03em; }
+
   @media (max-width: 900px) {
-    /* Quilt: right panel becomes an absolute drawer inside .body */
-    .body, .body.rp-closed { grid-template-columns: 52px 1fr; }
+    /* Quilt: collapsed shows a 52px rail column; expanded overlays a drawer */
+    .body { grid-template-columns: 52px 1fr; }
+    .body.rp-closed { grid-template-columns: 52px 1fr 52px; }
     .right-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
@@ -173,25 +185,36 @@
       box-shadow: -12px 0 32px rgba(46,41,37,0.20);
       transform: translateX(0); transition: transform .22s ease;
     }
-    .body.rp-closed > .right-panel { display: flex; transform: translateX(105%); box-shadow: none; }
+    .body.rp-closed > .right-panel { display: flex; transform: translateX(105%); box-shadow: none; pointer-events: none; }
 
-    /* Cross-stitch: same drawer treatment */
+    /* Cross-stitch: same treatment (xs-body is flex; the rail is a flex item) */
     .xs-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
       box-shadow: -12px 0 32px rgba(46,41,37,0.20);
       transform: translateX(0); transition: transform .22s ease;
     }
-    .xs-body.rp-closed > .xs-panel { display: flex; transform: translateX(105%); box-shadow: none; }
+    .xs-body.rp-closed > .xs-panel { display: flex; transform: translateX(105%); box-shadow: none; pointer-events: none; }
     .xs-materials { right: 16px !important; bottom: 16px; }
 
-    /* Backdrop + floating close button shared by both drawers */
+    /* The thin collapsed rail */
+    .rp-rail {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 12px 6px; background: var(--app-bg); flex-shrink: 0; width: 52px;
+      border-left: 1px solid var(--metime-almost-black); z-index: 40; overflow: hidden;
+    }
+    .rp-rail .rail-divider { width: 24px; height: 1px; background: var(--warm-hairline); }
+
+    /* Backdrop + floating close button for the expanded drawer */
     .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(46,41,37,0.32); z-index: 120; }
     .rp-close, .xs-rp-close {
       display: inline-flex; position: absolute; top: 10px; right: 12px; z-index: 140;
       background: var(--metime-white); border: 1px solid var(--warm-hairline); box-shadow: var(--shadow-sticky);
     }
     .rp-close:hover, .xs-rp-close:hover { background: var(--warm-hover); }
+
+    /* The rail owns the toggle on mobile, so drop the header/top-bar copy */
+    .rp-toggle-header { display: none; }
 
     /* Tighten chrome so the canvas keeps as much room as possible */
     header { padding: 12px 14px; gap: 10px; }
@@ -2614,7 +2637,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             onApply={applyPreset}/>
         </div>
         <div className="header-right">
-          <button className="icon-btn" aria-expanded={panelOpen} aria-controls="quilt-detail-panel"
+          <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="quilt-detail-panel"
             title={panelOpen ? 'Hide details panel' : 'Show details panel'}
             onClick={()=>setPanelOpen(v=>!v)}>
             <IcPanel/>
@@ -2696,6 +2719,22 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
           <button className="rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
             <IcX/>
           </button>
+        )}
+        {!panelOpen && (
+          <div className="rp-rail">
+            <button className="icon-btn" aria-expanded={false} aria-controls="quilt-detail-panel"
+              title="Expand details panel" aria-label="Expand details panel" onClick={()=>setPanelOpen(true)}>
+              <IcPanel/>
+            </button>
+            <div className="rail-divider"/>
+            <button className={`rp-rail-swatch${color ? '' : ' empty'}`} onClick={()=>setPanelOpen(true)}
+              title={color ? `Current color: ${color.name}` : 'No color selected'}
+              style={color ? {background:color.hex} : undefined}/>
+            <div className="rp-rail-stat">
+              <b>{Math.round(grandTotal * 10) / 10}</b>
+              <span>yd</span>
+            </div>
+          </div>
         )}
         <div id="quilt-detail-panel" className="panel right-panel" style={{display:'flex',flexDirection:'column'}}>
           <MyPaletteCard
@@ -4302,7 +4341,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <div className="xs-sub">{W} × {H} stitches · ≈ {(W/14).toFixed(1)}" × {(H/14).toFixed(1)}" @14ct</div>
         </div>
         <div className="xs-topbar-spacer"/>
-        <button className="icon-btn" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
+        <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
           title={panelOpen ? 'Hide colors panel' : 'Show colors panel'}
           onClick={()=>setPanelOpen(v=>!v)}>
           <IcPanel/>
@@ -4378,6 +4417,26 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <button className="xs-rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
             <IcX/>
           </button>
+        )}
+        {!panelOpen && (
+          <div className="rp-rail">
+            <button className="icon-btn" aria-expanded={false} aria-controls="xs-detail-panel"
+              title="Expand colors panel" aria-label="Expand colors panel" onClick={()=>setPanelOpen(true)}>
+              <IcPanel/>
+            </button>
+            <div className="rail-divider"/>
+            <button className={`rp-rail-swatch${color ? '' : ' empty'}`} onClick={()=>setPanelOpen(true)}
+              title={color ? `Current color: DMC ${color.code} ${color.name}` : 'No color selected'}
+              style={color ? {background:color.hex} : undefined}/>
+            <div className="rp-rail-stat">
+              <b>{stats.total}</b>
+              <span>sts</span>
+            </div>
+            <div className="rp-rail-stat">
+              <b>{stats.colors.length}</b>
+              <span>cols</span>
+            </div>
+          </div>
         )}
         <div id="xs-detail-panel" className="xs-panel">
           {tool === 'text' && (
