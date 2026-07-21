@@ -274,6 +274,24 @@
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
   .proj-card.is-soon:hover { border-color: var(--warm-hairline); box-shadow: none; transform: none; }
 
+  /* Saved designs section (landing page) */
+  .saved-sec { margin-top: 40px; border-top: 1px solid var(--warm-divider-soft); padding-top: 24px; }
+  .saved-head { display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: var(--warm-fg); }
+  .saved-head-title { font-family: var(--font-display); font-size: 20px; line-height: 1.1; display: flex; align-items: center; gap: 8px; }
+  .saved-count { font-family: var(--font-mono); font-size: 12px; color: var(--warm-muted); background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 999px; padding: 1px 8px; }
+  .saved-chev { display: flex; color: var(--warm-muted); transition: transform 0.15s; }
+  .saved-chev.is-open { transform: rotate(180deg); }
+  .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+  .saved-card { display: flex; align-items: center; gap: 12px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; padding: 10px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; }
+  .saved-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 6px 18px rgba(46,41,37,0.12); transform: translateY(-2px); }
+  .saved-card:active { transform: translateY(0); }
+  .saved-thumb { width: 56px; height: 56px; flex-shrink: 0; background: #FFFFFF; border: 1px solid var(--warm-hairline); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .saved-info { flex: 1; min-width: 0; }
+  .saved-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-meta { font-size: 12px; color: var(--warm-muted); margin-top: 2px; }
+  .saved-badge { display: inline-block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warm-muted); }
+
   /* Cross-stitch editor */
   .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
   .xs-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
@@ -2125,7 +2143,7 @@ function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
-function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBacking = null, onBack }) {
+function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBacking = null, initialQuilt = null, onBack }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Lap / Throw");
   const [cols, setCols] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.w / 3))));
   const [rows, setRows] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.h / 3))));
@@ -2250,6 +2268,9 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
     setShowMyQuilts(false);
     setConfirmDeleteId(null);
   }, []);
+  // When launched from the landing page's saved list, drop that quilt onto the
+  // canvas immediately.
+  useEffect(() => { if (initialQuilt) loadQuilt(initialQuilt); }, []);
   const [showHints, setShowHints] = useState(false);
   // The library popover doubles as a fabric picker. `picker` is null when
   // closed, otherwise an object describing the active picker config:
@@ -2913,7 +2934,62 @@ const CRAFTS = [
   { id: "punch-needle", name: "Punch needle", desc: "Plan a punch needle project and yarn colors.", ready: false },
 ];
 
-function CraftSelector({ onSelect }) {
+// Tiny SVG preview of a quilt (same shape rendering as the "My quilts" list).
+function QuiltThumb({ q }) {
+  return (
+    <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+      {(q.shapes || []).map((s, i) => s.type === 'tri' ? (
+        <polygon key={i} points={s.dir === '/' ? (s.half === 'a' ? `${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}` : `${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`) : (s.half === 'a' ? `${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}` : `${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
+      ) : <rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(46,41,37,0.08)" strokeWidth="0.05"/>)}
+    </svg>
+  );
+}
+
+// Collapsible section on the landing page listing every saved quilt and
+// cross-stitch design (newest first). Clicking a card opens it on its canvas.
+function SavedDesigns({ onOpen }) {
+  const [open, setOpen] = useState(false);
+  const items = useMemo(() => {
+    const quilts = loadSavedQuilts().map(q => ({ ...q, _type: 'quilt' }));
+    const stitches = loadSavedStitches().map(d => ({ ...d, _type: 'stitch' }));
+    return [...quilts, ...stitches].sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
+  }, []);
+  if (!items.length) return null;
+  return (
+    <div className="saved-sec">
+      <button className="saved-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="saved-head-title">Saved designs <span className="saved-count">{items.length}</span></span>
+        <span className={`saved-chev${open ? ' is-open' : ''}`}><i className="iconoir-nav-arrow-down" style={{ fontSize: 18 }}/></span>
+      </button>
+      {open && (
+        <div className="saved-grid">
+          {items.map(it => (
+            <div key={it._type + '-' + it.id} className="saved-card" role="button" tabIndex={0}
+              title="Open on canvas"
+              onClick={() => onOpen(it._type, it)}
+              onKeyDown={e => e.key === 'Enter' && onOpen(it._type, it)}>
+              <div className="saved-thumb">
+                {it._type === 'quilt'
+                  ? <QuiltThumb q={it}/>
+                  : <StitchThumb w={it.w} h={it.h} cells={deserializeGrid(it.grid, it.w * it.h)} size={56} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
+              </div>
+              <div className="saved-info">
+                <div className="saved-name">{it.name}</div>
+                <div className="saved-meta">
+                  {it._type === 'quilt'
+                    ? <><span className="saved-badge">Quilt</span> · {it.fw}" × {it.fh}"</>
+                    : <><span className="saved-badge">Cross-stitch</span> · {it.w}×{it.h} · {it.colorsUsed} color{it.colorsUsed !== 1 ? 's' : ''}</>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CraftSelector({ onSelect, onOpenSaved }) {
   return (
     <div className="proj-page">
       <header className="proj-header">
@@ -2939,6 +3015,7 @@ function CraftSelector({ onSelect }) {
             </div>
           ))}
         </div>
+        <SavedDesigns onOpen={onOpenSaved}/>
       </div>
     </div>
   );
@@ -3466,7 +3543,7 @@ function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   return <canvas ref={ref} style={{ width: size, height: 'auto', display: 'block', imageRendering: 'pixelated', borderRadius: 4 }}/>;
 }
 
-function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
+function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack }) {
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,
   // rather than being forced into the currently active canvas size.
@@ -4016,6 +4093,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     setViewStitch(null); setShowMyStitches(false); setConfirmDeleteId(null);
     redraw(); bump();
   };
+  // Opened straight from the landing page's saved list: load it on mount.
+  useEffect(() => { if (initialDesign) loadDesign(initialDesign); }, []);
 
   const pickerResults = useMemo(() => {
     const q = pickerSearch.trim().toLowerCase();
@@ -4351,14 +4430,38 @@ function Root() {
   const [xsDone, setXsDone] = React.useState(false);
   const [xsPalette, setXsPalette] = React.useState(null);
   const [xsOpts, setXsOpts] = React.useState({});
+  // A saved item opened straight from the landing page: { type, item }.
+  const [openSaved, setOpenSaved] = React.useState(null);
 
   const resetAll = () => {
     setCraft(null); setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null);
     setXsPreset(null); setXsDone(false); setXsPalette(null); setXsOpts({});
+    setOpenSaved(null);
   };
 
+  // Opening a saved design bypasses the craft/size/palette steps and drops the
+  // user straight onto the matching editor with that design loaded.
+  if (openSaved) {
+    if (openSaved.type === 'quilt') {
+      return (
+        <>
+          <App initialPreset={openSaved.item.preset || 'Lap / Throw'}
+            initialPalette={openSaved.item.pinned || null}
+            initialQuilt={openSaved.item} onBack={resetAll}/>
+          <TweaksPanel/>
+        </>
+      );
+    }
+    return (
+      <CrossStitchApp
+        preset={{ name: openSaved.item.presetName || 'Custom', w: openSaved.item.w, h: openSaved.item.h }}
+        palette={openSaved.item.palette}
+        initialDesign={openSaved.item} onBack={resetAll}/>
+    );
+  }
+
   if (!craft) {
-    return <CraftSelector onSelect={setCraft}/>;
+    return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
   }
 
   if (craft === 'cross-stitch') {
