@@ -10,9 +10,26 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@7.9.0/css/iconoir.css" rel="stylesheet"/>
 <style>
+  /* Self-hosted brand type — Söhne (sans + mono) and BC Civitas (display).
+     Trial ("TEST") cuts as supplied. Dancing Script (Google) is kept only for
+     the cross-stitch text tool's optional script style. */
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Sohne-Light.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Sohne-Semibold.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Sohne-Bold.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/SohneMono-Regular.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/SohneMono-Medium.woff2') format('woff2'); }
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/BCCivitas-Light.woff2') format('woff2'); }
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/BCCivitas-Regular.woff2') format('woff2'); }
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/BCCivitas-Semibold.woff2') format('woff2'); }
+  @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/BCCivitas-Bold.woff2') format('woff2'); }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body, #root { height: 100%; }
 
@@ -58,10 +75,10 @@
     --shadow-sticky: 0 2px 8px rgba(46,41,37,0.08);
     --shadow-modal: 0 8px 32px rgba(46,41,37,0.14);
 
-    /* Fonts — per metime design system "02 - typography" */
-    --font-sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* Fonts — Söhne (body/sans), BC Civitas (display), Söhne Mono (mono). */
+    --font-sans: 'Söhne', sans-serif;
+    --font-display: 'BC Civitas', serif;
+    --font-mono: 'Söhne Mono', monospace;
 
     /* Type scale (Figma 02 - typography) — used at editorial moments;
        the dense tool UI keeps its smaller working sizes (11/12/13). */
@@ -2834,7 +2851,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.borderColor} onChange={e=>set('borderColor',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"'JetBrains Mono', ui-monospace, monospace", color:'var(--warm-muted)' }}>{t.borderColor}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.borderColor}</span>
         </div>
       </Row>
 
@@ -2842,7 +2859,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={4} step={0.5} value={t.borderWidth} onChange={e=>set('borderWidth',e.target.value)}
             style={{ width:80, accentColor:'#2E2925' }}/>
-          <span style={{ fontSize:10, fontFamily:"'JetBrains Mono', ui-monospace, monospace", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
         </div>
       </Row>
 
@@ -2850,7 +2867,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={12} step={1} value={t.radius} onChange={e=>set('radius',e.target.value)}
             style={{ width:80, accentColor:'#2E2925' }}/>
-          <span style={{ fontSize:10, fontFamily:"'JetBrains Mono', ui-monospace, monospace", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
         </div>
       </Row>
 
@@ -2858,7 +2875,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.appBg} onChange={e=>set('appBg',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"'JetBrains Mono', ui-monospace, monospace", color:'var(--warm-muted)' }}>{t.appBg}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.appBg}</span>
         </div>
       </Row>
 
@@ -2866,7 +2883,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.canvasBg} onChange={e=>set('canvasBg',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"'JetBrains Mono', ui-monospace, monospace", color:'var(--warm-muted)' }}>{t.canvasBg}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.canvasBg}</span>
         </div>
       </Row>
 
@@ -3494,9 +3511,9 @@ function CrossStitchPaletteSelector({ preset, onChoose, onSkip, onBack }) {
 // ── Cross-stitch: canvas editor ────────────────────────────────────────────
 const XS_DEFAULT_CODES = ["310","B5200","666","797","700","726","435","3806","3846","971"];
 const XS_FONTS = {
-  serif:  { label: "Serif",  family: '"Instrument Serif", Georgia, serif', weight: 400 },
-  sans:   { label: "Sans",   family: 'Figtree, Arial, sans-serif',         weight: 600 },
-  script: { label: "Script", family: '"Dancing Script", cursive',          weight: 700 },
+  serif:  { label: "Serif",  family: '"BC Civitas", serif',        weight: 400 },
+  sans:   { label: "Sans",   family: '"Söhne", sans-serif',        weight: 600 },
+  script: { label: "Script", family: '"Dancing Script", cursive',  weight: 700 },
 };
 // Render text to an offscreen canvas at 1px-per-stitch and return the list of
 // [dx,dy] cell offsets that are "on" — i.e. the text as stitches.
