@@ -150,27 +150,34 @@
   .panel::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
 
   /* Collapsible right panel.
-     Desktop: the panel lives in the grid; the header toggle collapses the
-     whole column so the canvas expands.
-     Mobile: the panel collapses to a thin rail (mirroring the left tool rail)
-     that keeps the selected color + high-level totals visible; expanding slides
-     the full panel in as a drawer over a backdrop. */
+     Both desktop and mobile collapse the panel to a thin rail (mirroring the
+     left tool rail) that keeps the selected color + high-level totals visible.
+     Expanding restores the full panel column on desktop, and slides it in as a
+     drawer over a backdrop on mobile. */
   .body { position: relative; transition: grid-template-columns .22s ease; }
-  .right-panel { position: relative; display: flex; flex-direction: column; background: var(--metime-white); }
+  .right-panel { position: relative; display: flex; flex-direction: column; background: var(--metime-white); border-left: 1px solid var(--metime-almost-black); }
   /* Higher specificity than .icon-btn so these stay hidden off-mobile regardless
      of source order — otherwise the close button becomes an in-flow grid item
      and pushes the panel to a wrapped column. */
   .icon-btn.rp-close, .icon-btn.xs-rp-close { display: none; }
   .rp-backdrop { display: none; }
-  .rp-rail { display: none; }
 
-  /* Desktop collapse: drop the trailing column and hide the panel */
-  .body.rp-closed { grid-template-columns: 52px 1fr 0; }
+  /* Collapsed: swap the full panel for the thin rail (all screen sizes) */
+  .body.rp-closed { grid-template-columns: 52px 1fr 52px; }
   .body.rp-closed > .right-panel { display: none; }
   .xs-body.rp-closed > .xs-panel { display: none; }
   .xs-body.rp-closed .xs-materials { right: 16px; }
 
-  /* Thin collapsed rail contents (visible on mobile via the media query) */
+  /* The thin collapsed rail (rendered only while collapsed, so it shows on
+     both desktop and mobile) */
+  .rp-rail {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    padding: 12px 6px; background: var(--app-bg); flex-shrink: 0; width: 52px;
+    border-left: 1px solid var(--metime-almost-black); z-index: 40; overflow: hidden;
+  }
+  .rp-rail .rail-divider { width: 24px; height: 1px; background: var(--warm-hairline); }
+
+  /* Thin collapsed rail contents (swatch + high-level stats) */
   .rp-rail-swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.18); cursor: pointer; padding: 0; background: none; box-shadow: 0 1px 2px rgba(46,41,37,0.12); flex-shrink: 0; }
   .rp-rail-swatch.empty { border: 1px dashed var(--warm-hairline); }
   .rp-rail-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; }
@@ -178,9 +185,9 @@
   .rp-rail-stat span { font-size: 9px; color: var(--warm-muted); letter-spacing: .03em; }
 
   @media (max-width: 900px) {
-    /* Quilt: collapsed shows a 52px rail column; expanded overlays a drawer */
+    /* Quilt: expanded overlays a drawer instead of using a grid column
+       (collapsed still shows the 52px rail column from the base rules) */
     .body { grid-template-columns: 52px 1fr; }
-    .body.rp-closed { grid-template-columns: 52px 1fr 52px; }
     .right-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
@@ -199,14 +206,6 @@
     }
     .xs-body.rp-closed > .xs-panel { display: flex; transform: translateX(105%); box-shadow: none; pointer-events: none; }
     .xs-materials { right: 16px !important; bottom: 16px; }
-
-    /* The thin collapsed rail */
-    .rp-rail {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      padding: 12px 6px; background: var(--app-bg); flex-shrink: 0; width: 52px;
-      border-left: 1px solid var(--metime-almost-black); z-index: 40; overflow: hidden;
-    }
-    .rp-rail .rail-divider { width: 24px; height: 1px; background: var(--warm-hairline); }
 
     /* Backdrop + floating close button for the expanded drawer */
     .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(46,41,37,0.32); z-index: 120; }
@@ -472,7 +471,7 @@
   .xs-topbar-spacer { flex: 1; }
   .xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
-  .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--warm-hairline); background: var(--metime-cream); flex-shrink: 0; }
+  .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
   .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
   .xs-tool:hover { background: var(--btn-tool-hover); }
@@ -482,7 +481,7 @@
   .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
   .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; background: var(--metime-cream); min-width: 0; }
   .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; }
-  .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--warm-hairline); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
+  .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--metime-almost-black); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
   .xs-panel-head { padding: 14px 16px 8px; }
   .xs-panel-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--warm-fg-2); text-transform: uppercase; }
   .xs-current { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--warm-divider-soft); }
@@ -2681,7 +2680,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
           helpRef={helpAnchor}/>
 
         {/* Center: canvas */}
-        <div className="panel" style={{display:'flex',flexDirection:'column',background:'var(--app-bg)'}}>
+        <div className="panel" style={{display:'flex',flexDirection:'column',background:'var(--app-bg)',borderRight:'none'}}>
           <SizeBar
             bs={bs}
             maxBs={maxBs}
