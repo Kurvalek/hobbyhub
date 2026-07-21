@@ -3557,10 +3557,12 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   const drawingRef = useRef(false);
   const startRef = useRef(null);
   const lastRef = useRef(null);
-  // Selection = a connected group of same-color stitches ("color group").
-  const selRef = useRef(null);   // {color, cells:Set<number>, minX,minY,maxX,maxY} | null
+  // Selection = one or more color groups. Stored as a Map of cell index -> hex
+  // so a selection can span multiple colors (shift-add or marquee).
+  const selRef = useRef(null);   // {cells:Map<number,string>, minX,minY,maxX,maxY} | null
   const dragRef = useRef(null);  // {dx,dy} in cells, while moving
   const movingRef = useRef(false);
+  const marqueeRef = useRef(null); // {x0,y0,x1,y1,add} while rubber-band selecting
   const [hasSel, setHasSel] = useState(false);
 
   const stats = useMemo(() => computeStitchStats(cellsRef.current, W, H, pal), [version, pal, W, H]);
@@ -3597,15 +3599,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     if (sel) {
       const dxo = movingRef.current && dragRef.current ? dragRef.current.dx : 0;
       const dyo = movingRef.current && dragRef.current ? dragRef.current.dy : 0;
-      ctx.fillStyle = sel.color;
-      for (const i of sel.cells) {
+      for (const [i, hex] of sel.cells) {
+        ctx.fillStyle = hex;
         ctx.fillRect(((i % W) + dxo) * cs, (Math.floor(i / W) + dyo) * cs, cs, cs);
       }
       const inSel = (xx, yy) => xx >= 0 && yy >= 0 && xx < W && yy < H && sel.cells.has(idx(xx, yy));
       ctx.strokeStyle = '#2563EB';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      for (const i of sel.cells) {
+      for (const i of sel.cells.keys()) {
         const x = i % W, y = Math.floor(i / W);
         const px = (x + dxo) * cs, py = (y + dyo) * cs;
         if (!inSel(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + cs, py); }
@@ -3614,6 +3616,19 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
         if (!inSel(x + 1, y)) { ctx.moveTo(px + cs, py); ctx.lineTo(px + cs, py + cs); }
       }
       ctx.stroke();
+    }
+    const mq = marqueeRef.current;
+    if (mq) {
+      const x = Math.min(mq.x0, mq.x1), y = Math.min(mq.y0, mq.y1);
+      const w = Math.abs(mq.x1 - mq.x0) + 1, h = Math.abs(mq.y1 - mq.y0) + 1;
+      ctx.save();
+      ctx.fillStyle = 'rgba(37,99,235,0.12)';
+      ctx.fillRect(x * cs, y * cs, w * cs, h * cs);
+      ctx.strokeStyle = '#2563EB';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(x * cs + 0.5, y * cs + 0.5, w * cs - 1, h * cs - 1);
+      ctx.restore();
     }
     if (showGrid && cs >= 5) {
       ctx.strokeStyle = 'rgba(46,41,37,0.12)';
@@ -3681,6 +3696,12 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     if (x < 0 || y < 0 || x >= W || y >= H) return null;
     return [x, y];
   };
+  const cellClamped = (e) => {
+    const cv = canvasRef.current; const rect = cv.getBoundingClientRect();
+    let x = Math.floor((e.clientX - rect.left) / cellSize);
+    let y = Math.floor((e.clientY - rect.top) / cellSize);
+    return [Math.max(0, Math.min(W - 1, x)), Math.max(0, Math.min(H - 1, y))];
+  };
 
   const lineCells = (x0, y0, x1, y1) => {
     const out = []; let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
@@ -3729,29 +3750,39 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   };
 
   // Collect the connected group of same-color stitches touching (sx,sy).
-  // Returns null when the cell is empty. 4-connectivity, with a bounding box
-  // so moves can be clamped to the grid.
+  // Returns a list of cell indices (empty when the cell is unstitched).
   const collectRegion = (sx, sy) => {
     const cells = cellsRef.current;
     const target = cells[idx(sx, sy)];
-    if (!target) return null;
+    if (!target) return [];
     const set = new Set();
+    const out = [];
     const stack = [[sx, sy]];
-    let minX = W, minY = H, maxX = 0, maxY = 0;
     while (stack.length) {
       const [x, y] = stack.pop();
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
       const k = idx(x, y);
       if (set.has(k) || cells[k] !== target) continue;
-      set.add(k);
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
+      set.add(k); out.push(k);
       stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
-    return { color: target, cells: set, minX, minY, maxX, maxY };
+    return out;
   };
 
-  const deselect = () => { selRef.current = null; movingRef.current = false; dragRef.current = null; setHasSel(false); scheduleRedraw(); };
+  // Wrap a cell-index -> hex Map into a selection object (or null when empty),
+  // computing the bounding box used to clamp moves to the grid.
+  const makeSel = (map) => {
+    if (!map || map.size === 0) return null;
+    let minX = W, minY = H, maxX = 0, maxY = 0;
+    for (const i of map.keys()) {
+      const x = i % W, y = Math.floor(i / W);
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    return { cells: map, minX, minY, maxX, maxY };
+  };
+
+  const deselect = () => { selRef.current = null; movingRef.current = false; dragRef.current = null; marqueeRef.current = null; setHasSel(false); scheduleRedraw(); };
 
   const onPointerDown = (e) => {
     const cell = cellFromEvent(e); if (!cell) return;
@@ -3770,17 +3801,45 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     }
     if (tool === 'select') {
       const k = idx(cell[0], cell[1]);
+      const cellHex = cellsRef.current[k];
       const sel = selRef.current;
       const inCurrent = sel && sel.cells.has(k);
-      if (!inCurrent) {
-        const region = collectRegion(cell[0], cell[1]);
-        if (!region) { deselect(); return; }
-        selRef.current = region; setHasSel(true);
+
+      if (e.shiftKey) {
+        if (cellHex) {
+          // Toggle the clicked color group in/out of the selection.
+          const region = collectRegion(cell[0], cell[1]);
+          const map = new Map(sel ? sel.cells : []);
+          const allIn = region.every(i => map.has(i));
+          for (const i of region) { if (allIn) map.delete(i); else map.set(i, cellHex); }
+          selRef.current = makeSel(map); setHasSel(!!selRef.current);
+          scheduleRedraw();
+        } else {
+          // Shift + drag on empty space: additive marquee.
+          e.currentTarget.setPointerCapture(e.pointerId);
+          marqueeRef.current = { x0: cell[0], y0: cell[1], x1: cell[0], y1: cell[1], add: true };
+          scheduleRedraw();
+        }
+        return;
       }
+
+      if (inCurrent) {
+        // Grab the existing selection to move it.
+        e.currentTarget.setPointerCapture(e.pointerId);
+        movingRef.current = true; startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
+        scheduleRedraw(); return;
+      }
+      if (cellHex) {
+        // Select this color group, ready to move.
+        const region = collectRegion(cell[0], cell[1]);
+        selRef.current = makeSel(new Map(region.map(i => [i, cellHex]))); setHasSel(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+        movingRef.current = true; startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
+        scheduleRedraw(); return;
+      }
+      // Empty space: rubber-band marquee (replaces the current selection).
       e.currentTarget.setPointerCapture(e.pointerId);
-      movingRef.current = true;
-      startRef.current = cell;
-      dragRef.current = { dx: 0, dy: 0 };
+      marqueeRef.current = { x0: cell[0], y0: cell[1], x1: cell[0], y1: cell[1], add: false };
       scheduleRedraw();
       return;
     }
@@ -3792,14 +3851,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   };
   const onPointerMove = (e) => {
     if (tool === 'select') {
-      if (!movingRef.current) return;
-      const cell = cellFromEvent(e); if (!cell) return;
-      const s = startRef.current, sel = selRef.current;
-      let dx = cell[0] - s[0], dy = cell[1] - s[1];
-      dx = Math.max(-sel.minX, Math.min(W - 1 - sel.maxX, dx));
-      dy = Math.max(-sel.minY, Math.min(H - 1 - sel.maxY, dy));
-      dragRef.current = { dx, dy };
-      scheduleRedraw();
+      if (movingRef.current) {
+        const cell = cellFromEvent(e); if (!cell) return;
+        const s = startRef.current, sel = selRef.current;
+        let dx = cell[0] - s[0], dy = cell[1] - s[1];
+        dx = Math.max(-sel.minX, Math.min(W - 1 - sel.maxX, dx));
+        dy = Math.max(-sel.minY, Math.min(H - 1 - sel.maxY, dy));
+        dragRef.current = { dx, dy };
+        scheduleRedraw();
+        return;
+      }
+      if (marqueeRef.current) {
+        const [cx, cy] = cellClamped(e);
+        marqueeRef.current = { ...marqueeRef.current, x1: cx, y1: cy };
+        scheduleRedraw();
+        return;
+      }
       return;
     }
     if (tool === 'text' && !drawingRef.current) {
@@ -3825,24 +3892,39 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   };
   const onPointerUp = () => {
     if (tool === 'select') {
-      if (!movingRef.current) return;
-      movingRef.current = false;
-      const sel = selRef.current, d = dragRef.current || { dx: 0, dy: 0 };
-      if (sel && (d.dx !== 0 || d.dy !== 0)) {
-        pushUndo();
-        const cells = cellsRef.current;
-        for (const i of sel.cells) cells[i] = null;
-        const moved = new Set();
-        for (const i of sel.cells) {
-          const nk = idx((i % W) + d.dx, Math.floor(i / W) + d.dy);
-          cells[nk] = sel.color; moved.add(nk);
+      if (movingRef.current) {
+        movingRef.current = false;
+        const sel = selRef.current, d = dragRef.current || { dx: 0, dy: 0 };
+        if (sel && (d.dx !== 0 || d.dy !== 0)) {
+          pushUndo();
+          const cells = cellsRef.current;
+          const entries = [...sel.cells];
+          for (const [i] of entries) cells[i] = null;
+          const moved = new Map();
+          for (const [i, hex] of entries) {
+            const nk = idx((i % W) + d.dx, Math.floor(i / W) + d.dy);
+            cells[nk] = hex; moved.set(nk, hex);
+          }
+          selRef.current = makeSel(moved);
+          bump();
         }
-        selRef.current = { color: sel.color, cells: moved,
-          minX: sel.minX + d.dx, maxX: sel.maxX + d.dx, minY: sel.minY + d.dy, maxY: sel.maxY + d.dy };
-        bump();
+        dragRef.current = null;
+        redraw();
+        return;
       }
-      dragRef.current = null;
-      redraw();
+      if (marqueeRef.current) {
+        const mq = marqueeRef.current; marqueeRef.current = null;
+        const x0 = Math.min(mq.x0, mq.x1), x1 = Math.max(mq.x0, mq.x1);
+        const y0 = Math.min(mq.y0, mq.y1), y1 = Math.max(mq.y0, mq.y1);
+        const cells = cellsRef.current;
+        const map = (mq.add && selRef.current) ? new Map(selRef.current.cells) : new Map();
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          const k = idx(x, y); const hex = cells[k]; if (hex) map.set(k, hex);
+        }
+        selRef.current = makeSel(map); setHasSel(!!selRef.current);
+        redraw();
+        return;
+      }
       return;
     }
     if (!drawingRef.current) return;
@@ -3851,7 +3933,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
     redraw(); bump();
   };
   const onPointerLeave = (e) => {
-    if (tool === 'select') { if (movingRef.current) onPointerUp(e); return; }
+    if (tool === 'select') { if (movingRef.current || marqueeRef.current) onPointerUp(e); return; }
     if (drawingRef.current) { onPointerUp(e); }
     else if (previewRef.current) { previewRef.current = null; scheduleRedraw(); }
   };
@@ -3859,7 +3941,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
   // Clear any hover/preview (and any selection) when switching tools.
   useEffect(() => {
     previewRef.current = null;
-    selRef.current = null; movingRef.current = false; dragRef.current = null; setHasSel(false);
+    selRef.current = null; movingRef.current = false; dragRef.current = null; marqueeRef.current = null; setHasSel(false);
     scheduleRedraw();
   }, [tool, scheduleRedraw]);
 
@@ -3874,7 +3956,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
         e.preventDefault();
         pushUndo();
         const cells = cellsRef.current;
-        for (const i of selRef.current.cells) cells[i] = null;
+        for (const i of selRef.current.cells.keys()) cells[i] = null;
         selRef.current = null; setHasSel(false);
         redraw(); bump();
       }
@@ -4019,8 +4101,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, onBack }) {
           <div style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 10, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
             borderRadius: 8, padding: '6px 10px', boxShadow: '0 4px 16px rgba(46,41,37,0.16)', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)' }}>
-            <span style={{ width: 14, height: 14, borderRadius: 3, border: '1px solid rgba(46,41,37,0.2)', background: selRef.current.color }}/>
-            <span><b>{selRef.current.cells.size}</b> stitches selected · drag to move · Delete to remove</span>
+            <span><b>{selRef.current.cells.size}</b> stitches ({new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}) · drag to move · shift-click to add · Delete to remove</span>
             <button className="btn btn-xs" onClick={deselect}>Deselect</button>
           </div>
         )}
