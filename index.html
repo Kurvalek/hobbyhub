@@ -149,6 +149,73 @@
   .panel::-webkit-scrollbar { width: 4px; }
   .panel::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
 
+  /* Collapsible right panel + mobile drawer.
+     On desktop the panel lives in the grid and collapses the whole column.
+     On small screens it becomes an absolute slide-in drawer with a backdrop. */
+  .body { position: relative; transition: grid-template-columns .22s ease; }
+  .right-panel { position: relative; }
+  .rp-close, .xs-rp-close { display: none; }
+  .rp-backdrop { display: none; }
+
+  /* Desktop collapse: drop the trailing column and hide the panel */
+  .body.rp-closed { grid-template-columns: 52px 1fr 0; }
+  .body.rp-closed > .right-panel { display: none; }
+  .xs-body.rp-closed > .xs-panel { display: none; }
+  .xs-body.rp-closed .xs-materials { right: 16px; }
+
+  @media (max-width: 900px) {
+    /* Quilt: right panel becomes an absolute drawer inside .body */
+    .body, .body.rp-closed { grid-template-columns: 52px 1fr; }
+    .right-panel {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: min(300px, 88vw); z-index: 130;
+      border-left: 1px solid var(--metime-almost-black);
+      box-shadow: -12px 0 32px rgba(46,41,37,0.20);
+      transform: translateX(0); transition: transform .22s ease;
+    }
+    .body.rp-closed > .right-panel { display: flex; transform: translateX(105%); box-shadow: none; }
+
+    /* Cross-stitch: same drawer treatment */
+    .xs-panel {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: min(300px, 88vw); z-index: 130;
+      box-shadow: -12px 0 32px rgba(46,41,37,0.20);
+      transform: translateX(0); transition: transform .22s ease;
+    }
+    .xs-body.rp-closed > .xs-panel { display: flex; transform: translateX(105%); box-shadow: none; }
+    .xs-materials { right: 16px !important; bottom: 16px; }
+
+    /* Backdrop + floating close button shared by both drawers */
+    .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(46,41,37,0.32); z-index: 120; }
+    .rp-close, .xs-rp-close {
+      display: inline-flex; position: absolute; top: 10px; right: 12px; z-index: 140;
+      background: var(--metime-white); border: 1px solid var(--warm-hairline); box-shadow: var(--shadow-sticky);
+    }
+    .rp-close:hover, .xs-rp-close:hover { background: var(--warm-hover); }
+
+    /* Tighten chrome so the canvas keeps as much room as possible */
+    header { padding: 12px 14px; gap: 10px; }
+    .xs-topbar { flex-wrap: wrap; row-gap: 8px; padding: 10px 14px; }
+    .xs-topbar-spacer { flex-basis: 100%; height: 0; }
+    .preset-pill { max-width: 200px; }
+    .canvas-scroll { padding: 12px; }
+    .xs-canvas-wrap { padding: 12px; }
+    .size-bar { flex-wrap: wrap; row-gap: 8px; padding: 10px 14px; }
+    .size-bar-slider { max-width: none; min-width: 160px; }
+  }
+
+  @media (max-width: 560px) {
+    header { grid-template-columns: auto 1fr auto; padding: 10px 12px; }
+    .header-center { display: none; }
+    .brand-mark { height: 22px; }
+    .btn { padding: 6px 9px; font-size: 11px; }
+    .header-right { gap: 5px; }
+    .size-bar-meta { display: none; }
+    .xs-title { font-size: 17px; }
+    .xs-topbar .btn { padding: 6px 9px; font-size: 11px; }
+    .hint-overlay { font-size: 10px; padding: 5px 10px; }
+  }
+
   /* Header */
   header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
   .header-left { display: flex; align-items: center; }
@@ -651,6 +718,7 @@ const IcTri     = ({ size=18 }) => <Svg size={size}><path d="M12 4 L21 20 L3 20 
 const IcHelp    = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></Svg>;
 const IcUndo    = ({ size=18 }) => <Svg size={size}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.7 3L3 13"/></Svg>;
 const IcBook    = ({ size=15 }) => <Svg size={size}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></Svg>;
+const IcPanel   = ({ size=18 }) => <Svg size={size}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></Svg>;
 const IcChevR   = ({ size=11 }) => <Svg size={size}><path d="m9 6-6 6V0z" fill="currentColor" stroke="none"/></Svg>;
 const IcSwap    = ({ size=14 }) => <Svg size={size}><path d="M16 3l4 4-4 4"/><path d="M4 7h16"/><path d="M8 21l-4-4 4-4"/><path d="M20 17H4"/></Svg>;
 const IcPen     = ({ size=18 }) => <Svg size={size}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></Svg>;
@@ -2252,6 +2320,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
   const [cols, setCols] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.w / 3))));
   const [rows, setRows] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.h / 3))));
   const [bs, setBs] = useState(3);
+  const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
   const [shapes, _setShapes] = useState([]);
   const historyRef = useRef([]);
   const setShapes = useCallback(updater => {
@@ -2545,6 +2614,11 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             onApply={applyPreset}/>
         </div>
         <div className="header-right">
+          <button className="icon-btn" aria-expanded={panelOpen} aria-controls="quilt-detail-panel"
+            title={panelOpen ? 'Hide details panel' : 'Show details panel'}
+            onClick={()=>setPanelOpen(v=>!v)}>
+            <IcPanel/>
+          </button>
           {savedQuilts.length>0 && (
             <button className="btn" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
               <IcBook/> My quilts ({savedQuilts.length})
@@ -2569,7 +2643,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
       </header>
 
       {/* Body */}
-      <div className="body">
+      <div className={`body${panelOpen ? '' : ' rp-closed'}`}>
 
         {/* Left tool rail */}
         <ToolRail
@@ -2617,7 +2691,13 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
         </div>
 
         {/* Right column */}
-        <div className="panel" style={{display:'flex',flexDirection:'column'}}>
+        {panelOpen && <div className="rp-backdrop" onClick={()=>setPanelOpen(false)}/>}
+        {panelOpen && (
+          <button className="rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
+            <IcX/>
+          </button>
+        )}
+        <div id="quilt-detail-panel" className="panel right-panel" style={{display:'flex',flexDirection:'column'}}>
           <MyPaletteCard
             color={color}
             pinned={pinned}
@@ -3638,6 +3718,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   // rather than being forced into the currently active canvas size.
   const [dims, setDims] = useState({ w: preset.w, h: preset.h, name: preset.name });
   const W = dims.w, H = dims.h;
+  const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
   const defaultPalette = useMemo(() => XS_DEFAULT_CODES.map(dmcByCode).filter(Boolean), []);
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
@@ -4221,6 +4302,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <div className="xs-sub">{W} × {H} stitches · ≈ {(W/14).toFixed(1)}" × {(H/14).toFixed(1)}" @14ct</div>
         </div>
         <div className="xs-topbar-spacer"/>
+        <button className="icon-btn" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
+          title={panelOpen ? 'Hide colors panel' : 'Show colors panel'}
+          onClick={()=>setPanelOpen(v=>!v)}>
+          <IcPanel/>
+        </button>
         {bg && (
           <label className="xs-ctrl" title="Toggle the tracing image">
             <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
@@ -4251,7 +4337,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           </button>
         )}
       </div>
-      <div className="xs-body">
+      <div className={`xs-body${panelOpen ? '' : ' rp-closed'}`}>
         <div className="xs-rail">
           {TOOLS.map(t => (
             <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
@@ -4287,7 +4373,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             <button className="btn btn-xs" onClick={deselect}>Deselect</button>
           </div>
         )}
-        <div className="xs-panel">
+        {panelOpen && <div className="rp-backdrop" onClick={()=>setPanelOpen(false)}/>}
+        {panelOpen && (
+          <button className="xs-rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
+            <IcX/>
+          </button>
+        )}
+        <div id="xs-detail-panel" className="xs-panel">
           {tool === 'text' && (
             <div style={{ borderBottom: '1px solid var(--warm-divider-soft)' }}>
               <div className="xs-panel-head"><div className="xs-panel-title">Text</div></div>
