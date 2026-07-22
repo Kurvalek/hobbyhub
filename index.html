@@ -242,6 +242,67 @@
     .hint-overlay { font-size: 10px; padding: 5px 10px; }
   }
 
+  /* ── Mobile: Canva-style bottom toolbar + bottom sheets ──────────────────
+     Mobile-only (<=900px). The vertical rails and the right drawer are replaced
+     by a fixed bottom toolbar and slide-up sheets. Everything reuses the
+     existing tokens/classes so the look is unchanged — only the layout moves. */
+  @media (max-width: 900px) {
+    /* Give the canvas room so the fixed bottom toolbar never covers it. */
+    .app, .xs-app { padding-bottom: calc(58px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+    /* Single-column body (rails + right drawer are not rendered on mobile). */
+    .body, .body.rp-closed { grid-template-columns: 1fr; }
+
+    .mobile-toolbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+      display: flex; align-items: center; gap: 4px; overflow-x: auto;
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+      background: var(--app-bg); border-top: 1px solid var(--metime-almost-black);
+      box-shadow: 0 -2px 6px rgba(46,41,37,0.08); -webkit-overflow-scrolling: touch;
+    }
+    .mobile-toolbar::-webkit-scrollbar { display: none; }
+    .mobile-toolbar .icon-btn { flex-shrink: 0; width: 40px; height: 40px; }
+    .mobile-toolbar-divider { flex-shrink: 0; width: 1px; height: 22px; background: var(--warm-hairline); margin: 0 4px; }
+    .mt-swatch { display: block; width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(46,41,37,0.18); }
+    .mt-swatch.empty { border: 1px dashed var(--warm-hairline); background: transparent; }
+
+    /* Selection toolbars become a contextual bar pinned above the toolbar.
+       Reuses the existing .selection-toolbar chrome; overrides the JS-computed
+       fixed coords with a bottom-anchored, full-width bar. */
+    .selection-toolbar.mobile-selbar {
+      position: fixed !important; left: 8px; right: 8px; top: auto !important;
+      bottom: calc(66px + env(safe-area-inset-bottom)); visibility: visible !important;
+      justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .selection-toolbar.mobile-selbar::after { display: none; }
+    .xs-selbar.mobile-selbar {
+      position: fixed !important; left: 8px !important; right: 8px !important; top: auto !important;
+      bottom: calc(66px + env(safe-area-inset-bottom)) !important; transform: none !important;
+      justify-content: center;
+    }
+
+    /* Bottom sheet chrome. */
+    .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(46,41,37,0.32); z-index: 200; }
+    .bottom-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
+      background: var(--metime-white); border-top: 1px solid var(--metime-almost-black);
+      border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(46,41,37,0.20);
+      display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 8px auto 2px; flex-shrink: 0; }
+    .bottom-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 12px 6px; flex-shrink: 0; }
+    .bottom-sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Center modal dialogs (.overlay) and the cross-stitch fabric picker become
+       bottom sheets on mobile. `!important` is required to override the cards'
+       inline styles; desktop keeps the centered dialog untouched. */
+    .overlay, .xs-picker { align-items: flex-end !important; }
+    .overlay > div, .xs-picker-card {
+      max-width: none !important; width: 100% !important; margin: 0 !important;
+      border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; overflow-y: auto !important;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+
   /* Header */
   header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
   .header-left { display: flex; align-items: center; }
@@ -916,6 +977,9 @@ const IcCircle  = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="8
 const IcImage   = ({ size=16 }) => <Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></Svg>;
 const IcText    = ({ size=18 }) => <Svg size={size}><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></Svg>;
 const IcFill    = ({ size=18 }) => <Svg size={size}><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></Svg>;
+const IcRuler   = ({ size=18 }) => <Svg size={size}><path d="M3 8.5 8.5 3 21 15.5 15.5 21z"/><path d="m7.5 9 1.5 1.5M10.5 6l1.5 1.5M6 12l1.5 1.5"/></Svg>;
+const IcList    = ({ size=18 }) => <Svg size={size}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></Svg>;
+const IcTiles   = ({ size=18 }) => <Svg size={size}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></Svg>;
 
 // ── Brand: metime wordmark ────────────────────────────────────────────────
 // Logotype set in "Sundae" by Taylor Penton; sourced from the metime design
@@ -1604,7 +1668,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // ── GridCanvas ────────────────────────────────────────────────────────────
 // Shape: { id, r, c, h, w, color }
 // selIds: Set<id> — lifted to App for cross-component access
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, pinned = [] }) {
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, pinned = [], isMobile = false }) {
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -2122,10 +2186,12 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       {selBounds && selIds.size > 0 && (
         <div
           ref={toolbarRef}
-          className={`selection-toolbar ${tbPos ? tbPos.mode : 'above'}`}
-          style={tbPos
-            ? { position:'fixed', left: tbPos.left, top: tbPos.top }
-            : { position:'fixed', left: 0, top: 0, visibility:'hidden' }}>
+          className={`selection-toolbar ${isMobile ? 'mobile-selbar' : (tbPos ? tbPos.mode : 'above')}`}
+          style={isMobile
+            ? undefined
+            : (tbPos
+              ? { position:'fixed', left: tbPos.left, top: tbPos.top }
+              : { position:'fixed', left: 0, top: 0, visibility:'hidden' })}>
           {singleTriPair ? <>
             <button
               ref={swatchRefA}
@@ -2353,6 +2419,72 @@ function Popover({ anchorRef, onClose, placement = 'right-bottom', children, wid
   );
 }
 
+// ── Mobile helpers (Canva-style bottom toolbar + bottom sheets) ───────────
+// All mobile-only; desktop keeps the existing rails/drawer/popovers untouched.
+function useIsMobile(query = '(max-width: 900px)') {
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = e => setM(e.matches);
+    mq.addEventListener('change', on);
+    setM(mq.matches);
+    return () => mq.removeEventListener('change', on);
+  }, [query]);
+  return m;
+}
+
+// A sheet that slides up from the bottom. Reuses the app's card/panel styling
+// so its contents look identical to the desktop panel/popover.
+function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85 }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <>
+      <div className="bottom-sheet-backdrop" onClick={onClose}/>
+      <div className="bottom-sheet" style={{ maxHeight: `${maxHeightVh}vh` }} role="dialog" aria-modal="true">
+        <div className="bottom-sheet-handle"/>
+        {(title || showClose) && (
+          <div className="bottom-sheet-head">
+            <span className="popover-title">{title}</span>
+            {showClose && (
+              <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={onClose} title="Close" aria-label="Close">
+                <IcX/>
+              </button>
+            )}
+          </div>
+        )}
+        <div className="bottom-sheet-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+// Fixed bottom toolbar. `items` is a flat list of tool/extras buttons; an item
+// with { divider:true } renders a hairline separator. Icon-only, reusing .icon-btn.
+function MobileToolbar({ items }) {
+  return (
+    <div className="mobile-toolbar" role="toolbar">
+      {items.map(it => it.divider
+        ? <span key={it.id} className="mobile-toolbar-divider" aria-hidden="true"/>
+        : (
+          <button
+            key={it.id}
+            className={`icon-btn${it.active ? ' active' : ''}`}
+            aria-pressed={it.active || undefined}
+            title={it.label}
+            aria-label={it.label}
+            onClick={it.onClick}>
+            {it.icon}
+          </button>
+        )
+      )}
+    </div>
+  );
+}
+
 // ── PresetPill (header center) ────────────────────────────────────────────
 function PresetPill({ preset, fw, fh, onApply }) {
   const ref = useRef(null);
@@ -2439,7 +2571,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
   filtered, color, setColor, selIds, setShapes,
   customs, setCustoms, setPinned, allColors,
   pinned, showMyPalette, onPick, onClear, title,
-  groups = GROUPS, suggested }) {
+  groups = GROUPS, suggested, isMobile = false }) {
   const [showCF, setShowCF] = useState(false);
   const [cName, setCName] = useState("");
   const [cHex, setCHex] = useState("#000000");
@@ -2455,8 +2587,8 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
     setPinned(p => p.find(x => x.name === c.name) ? p : [...p, c]);
     if (selIds.size > 0) setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
   };
-  return (
-    <Popover anchorRef={anchorRef} onClose={onClose} placement="left-anchored" width={320}>
+  const body = (
+    <>
       <div className="popover-header">
         <span className="popover-title">{title || 'Color library'}</span>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -2543,6 +2675,14 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
           )}
         </div>
       </div>
+    </>
+  );
+  // Mobile: the color library slides up as a bottom sheet (its own header
+  // carries the title + close, so the sheet chrome stays minimal).
+  if (isMobile) return <BottomSheet onClose={onClose} showClose={false}>{body}</BottomSheet>;
+  return (
+    <Popover anchorRef={anchorRef} onClose={onClose} placement="left-anchored" width={320}>
+      {body}
     </Popover>
   );
 }
@@ -2781,6 +2921,9 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
   const [rows, setRows] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.h / 3))));
   const [bs, setBs] = useState(3);
   const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
+  const isMobile = useIsMobile();
+  // Mobile bottom-sheet router: null | 'palette' | 'size' | 'fabrics' | 'pattern' | 'materials'
+  const [sheet, setSheet] = useState(null);
   const [shapes, _setShapes] = useState([]);
   const historyRef = useRef([]);
   const setShapes = useCallback(updater => {
@@ -3105,13 +3248,15 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
       {/* Body */}
       <div className={`body${panelOpen ? '' : ' rp-closed'}`}>
 
-        {/* Left tool rail */}
-        <ToolRail
-          tool={tool}
-          setTool={setTool}
-          onToggleHints={()=>setShowHints(v=>!v)}
-          hintsOn={showHints}
-          helpRef={helpAnchor}/>
+        {/* Left tool rail (desktop only; mobile uses the bottom toolbar) */}
+        {!isMobile && (
+          <ToolRail
+            tool={tool}
+            setTool={setTool}
+            onToggleHints={()=>setShowHints(v=>!v)}
+            hintsOn={showHints}
+            helpRef={helpAnchor}/>
+        )}
 
         {/* Center: canvas */}
         <div className="panel" style={{display:'flex',flexDirection:'column',background:'var(--app-bg)',borderRight:'none'}}>
@@ -3130,7 +3275,7 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
               selIds={selIds} setSelIds={setSelIds}
               tool={tool} selectedColor={color}
               quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}
-              zoom={zoom} pinned={pinned}/>
+              zoom={zoom} pinned={pinned} isMobile={isMobile}/>
             {showHints && (
               <div className="hint-overlay">
                 <span>Click to select · Drag to marquee</span>
@@ -3150,7 +3295,8 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             onStep={adjustZoom}/>
         </div>
 
-        {/* Right column */}
+        {/* Right column (desktop only; mobile uses the bottom toolbar + sheets) */}
+        {!isMobile && (<>
         {panelOpen && <div className="rp-backdrop" onClick={()=>setPanelOpen(false)}/>}
         {panelOpen && (
           <button className="rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
@@ -3230,7 +3376,87 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
             </div>
           </div>
         </div>
+        </>)}
+
+        {/* Mobile bottom toolbar (Canva-style): tools + extras that open sheets */}
+        {isMobile && (
+          <MobileToolbar items={[
+            { id:'select', label:'Select', icon:<IcCursor/>, active: tool==='select', onClick:()=>setTool('select') },
+            { id:'paint', label:'Square', icon:<IcSquare/>, active: tool==='paint', onClick:()=>setTool('paint') },
+            { id:'hst', label:'Triangle', icon:<IcTri/>, active: tool==='hst', onClick:()=>setTool('hst') },
+            { id:'d1', divider:true },
+            { id:'palette', label:'My palette', active: sheet==='palette',
+              icon:<span className={`mt-swatch${color?'':' empty'}`} style={color?{background:color.hex}:undefined}/>,
+              onClick:()=>setSheet(s=>s==='palette'?null:'palette') },
+            { id:'size', label:'Quilt size', icon:<IcRuler/>, active: sheet==='size', onClick:()=>setSheet(s=>s==='size'?null:'size') },
+            { id:'fabrics', label:'Backing & binding', icon:<IcTiles/>, active: sheet==='fabrics', onClick:()=>setSheet(s=>s==='fabrics'?null:'fabrics') },
+            { id:'pattern', label:'Quilt pattern', icon:<IcGrid/>, active: sheet==='pattern', onClick:()=>setSheet(s=>s==='pattern'?null:'pattern') },
+            { id:'materials', label:'Materials', icon:<IcList/>, active: sheet==='materials', onClick:()=>setSheet(s=>s==='materials'?null:'materials') },
+            { id:'d2', divider:true },
+            { id:'hints', label: showHints?'Hide hints':'Show hints', icon:<IcHelp/>, active: showHints, onClick:()=>setShowHints(v=>!v) },
+          ]}/>
+        )}
       </div>
+
+      {/* Mobile bottom sheets (desktop shows this content in the right panel). */}
+      {isMobile && sheet === 'palette' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="My palette">
+          <MyPaletteCard color={color} pinned={pinned} setPinned={setPinned} setColor={setColor}
+            selIds={selIds} setShapes={setShapes} onOpenLibrary={openLibrary}/>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'size' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Quilt size">
+          <div style={{ padding: '4px 6px 12px' }}>
+            {PRESETS.map(p => (
+              <button key={p.name} onClick={()=>{ applyPreset(p.name); setSheet(null); }}
+                style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%',
+                  padding:'11px 12px', borderRadius:6, border:'none',
+                  background: preset===p.name ? 'var(--warm-hover)' : 'transparent', cursor:'pointer',
+                  fontFamily:'var(--font-sans)', fontSize:14, color:'var(--warm-fg)', textAlign:'left' }}>
+                <span style={{ fontWeight: preset===p.name ? 500 : 400 }}>{p.name}</span>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:12, color:'var(--warm-muted)' }}>{p.w}" × {p.h}"</span>
+              </button>
+            ))}
+          </div>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'fabrics' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Backing & binding">
+          <FabricRow ref={backingRowRef} label="Backing" fabric={backing}
+            detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w · ${fmtY(backCalc.yards)}` : ''}
+            onClick={() => openColorPicker(backingRowRef, setBacking, backing ? () => setBacking(null) : null, 'Backing fabric')}/>
+          <FabricRow ref={bindingRowRef} label="Binding" fabric={binding}
+            detail={binding ? `${bindCalc.strips} strips · ${bindCalc.perimeter}" perim. · ${fmtY(bindCalc.yards)}` : ''}
+            onClick={() => openColorPicker(bindingRowRef, setBinding, binding ? () => setBinding(null) : null, 'Binding fabric')}/>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'pattern' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Quilt pattern">
+          <QuiltPatternBlock qPattern={qPattern} setQPattern={setQPattern} qSpacing={qSpacing} setQSpacing={setQSpacing}
+            qColor={qColor} setQColor={setQColor} onPickColor={openColorPicker} showQ={showQ} setShowQ={setShowQ}/>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'materials' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Materials">
+          <MaterialsBlock materials={materials} grandTotal={grandTotal} fmtY={fmtY}/>
+          <div style={{borderTop:'1px solid var(--warm-divider-soft)'}}>
+            <div style={{padding:'10px 16px 4px'}}><div className="label">Quilt top · by color</div></div>
+            {materials.items.length===0 ? (
+              <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
+            ) : materials.items.map(item=>(
+              <div key={item.name} className="mat-row">
+                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(46,41,37,0.10)',borderRadius:3,flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
+                  <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
+                </div>
+                <div style={{fontSize:14,fontWeight:600,fontVariantNumeric:'tabular-nums',color:'var(--warm-fg)'}}>{fmtY(item.yards)}</div>
+              </div>
+            ))}
+          </div>
+        </BottomSheet>
+      )}
 
       {/* Library popover. Anchored to whatever invoked it (My palette + or a
           fabric row); doubles as a fabric picker when `picker.onPick` is set. */}
@@ -3250,7 +3476,8 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
           showMyPalette={picker.showMyPalette}
           onPick={picker.onPick}
           onClear={picker.onClear}
-          title={picker.title}/>
+          title={picker.title}
+          isMobile={isMobile}/>
       )}
 
       {/* Clear confirm */}
@@ -4197,6 +4424,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const [dims, setDims] = useState({ w: preset.w, h: preset.h, name: preset.name });
   const W = dims.w, H = dims.h;
   const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
+  const isMobile = useIsMobile();
+  // Mobile bottom-sheet router: null | 'palette' | 'text' | 'materials'
+  const [sheet, setSheet] = useState(null);
   const defaultPalette = useMemo(() => XS_DEFAULT_CODES.map(dmcByCode).filter(Boolean), []);
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
@@ -4831,11 +5061,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         )}
       </div>
       <div className={`xs-body${panelOpen ? '' : ' rp-closed'}`}>
-        <div className="xs-rail">
-          {TOOLS.map(t => (
-            <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
-          ))}
-        </div>
+        {!isMobile && (
+          <div className="xs-rail">
+            {TOOLS.map(t => (
+              <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
+            ))}
+          </div>
+        )}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div className="size-bar">
             <Switch checked={showGrid} onChange={setShowGrid} label="Grid" title="Toggle grid lines"/>
@@ -4859,13 +5091,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
         </div>
         {hasSel && selRef.current && (
-          <div style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
+          <div className={isMobile ? 'xs-selbar mobile-selbar' : undefined} style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 10, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
             borderRadius: 8, padding: '6px 10px', boxShadow: '0 4px 16px rgba(46,41,37,0.16)', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)' }}>
             <span><b>{selRef.current.cells.size}</b> stitches ({new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}) · drag to move · shift-click to add · Delete to remove</span>
             <button className="btn btn-xs" onClick={deselect}>Deselect</button>
           </div>
         )}
+        {/* Right column (desktop only; mobile uses the bottom toolbar + sheets) */}
+        {!isMobile && (<>
         {panelOpen && <div className="rp-backdrop" onClick={()=>setPanelOpen(false)}/>}
         {panelOpen && (
           <button className="xs-rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
@@ -4962,7 +5196,90 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             ))}
           </div>
         </div>
+        </>)}
+
+        {/* Mobile bottom toolbar (Canva-style): tools + extras that open sheets */}
+        {isMobile && (
+          <MobileToolbar items={[
+            ...TOOLS.map(t => ({ id: t.id, label: t.label, icon: t.icon, active: tool === t.id,
+              onClick: () => { setTool(t.id); if (t.id === 'text') setSheet('text'); } })),
+            { id:'d1', divider:true },
+            { id:'palette', label:'My palette', active: sheet==='palette',
+              icon:<span className={`mt-swatch${color?'':' empty'}`} style={color?{background:color.hex}:undefined}/>,
+              onClick:()=>setSheet(s=>s==='palette'?null:'palette') },
+            { id:'fabric', label:'Aida fabric', icon:<IcTiles/>, onClick:()=>setShowFabric(true) },
+            { id:'materials', label:'Materials', icon:<IcList/>, active: sheet==='materials', onClick:()=>setSheet(s=>s==='materials'?null:'materials') },
+            { id:'d2', divider:true },
+            { id:'grid', label:'Grid', icon:<IcGrid/>, active: showGrid, onClick:()=>setShowGrid(v=>!v) },
+            ...(bg ? [{ id:'trace', label: showBg?'Hide trace':'Trace image', icon:<IcImage/>, active: showBg, onClick:()=>setShowBg(v=>!v) }] : []),
+          ]}/>
+        )}
       </div>
+
+      {/* Mobile bottom sheets (desktop shows this content in the right panel). */}
+      {isMobile && sheet === 'palette' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="My palette">
+          <MyPaletteCard color={color} pinned={pal} setPinned={setPal} setColor={setColor}
+            onRecolor={hasSel ? recolorSelection : undefined} onOpenLibrary={openLibrary}/>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'text' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Text">
+          <div style={{ padding: '2px 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input type="text" placeholder="Type text…" value={text} onChange={e => setText(e.target.value)}/>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {Object.keys(XS_FONTS).map(id => (
+                <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
+                  style={{ flex: 1, fontFamily: XS_FONTS[id].family, fontSize: 14 }}
+                  onClick={() => setTextFont(id)}>{XS_FONTS[id].label}</button>
+              ))}
+            </div>
+            <label className="xs-ctrl" style={{ gap: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
+              <input type="range" min={6} max={40} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }}/>
+              <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
+            </label>
+            <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Hover the canvas to place it, then click to stitch the text.</div>
+          </div>
+        </BottomSheet>
+      )}
+      {isMobile && sheet === 'materials' && (
+        <BottomSheet onClose={()=>setSheet(null)} title="Materials">
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div className="label" style={{ marginBottom: 0 }}>Materials</div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warm-muted)' }}>14 ct</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>Stitches</div>
+                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.total}</div>
+                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>of {stats.possible}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>Floss colors</div>
+                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.colors.length}</div>
+                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>used</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ borderTop: '1px solid var(--warm-divider-soft)' }}>
+            <div style={{ padding: '10px 16px 4px' }}><div className="label">Floss · by color</div></div>
+            {stats.colors.length === 0 ? (
+              <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic' }}>Add stitches to see your floss list.</div>
+            ) : stats.colors.map(c => (
+              <div key={c.hex} className="mat-row">
+                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(46,41,37,0.10)', borderRadius: 3, flexShrink: 0 }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>DMC {c.code}</div>
+                  <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--warm-fg)' }}>{c.count}</div>
+              </div>
+            ))}
+          </div>
+        </BottomSheet>
+      )}
 
       {/* Color library popover — same pattern as the quilt "My palette" + button. */}
       {picker && libraryAnchorRef.current && (
@@ -4978,7 +5295,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           setPinned={setPal}
           allColors={allColors}
           pinned={pal}
-          suggested={dmcSuggested}/>
+          suggested={dmcSuggested}
+          isMobile={isMobile}/>
       )}
 
       {showFabric && (
