@@ -1502,16 +1502,10 @@ const AIDA_FABRICS = [
 ];
 
 const PRESETS = [
-  { name:"Mug Rug", w:8, h:10 },
-  { name:"Mini", w:18, h:24 },
-  { name:"Stroller", w:30, h:36 },
-  { name:"Baby", w:36, h:52 },
-  { name:"Crib", w:40, h:60 },
-  { name:"Lap / Throw", w:52, h:65 },
-  { name:"Twin", w:65, h:90 },
-  { name:"Full", w:80, h:90 },
-  { name:"Queen", w:90, h:108 },
-  { name:"King", w:108, h:108 },
+  { name:"Coaster", w:5, h:5, kitQty:4 },
+  { name:"Wall hanging", w:24, h:36 },
+  { name:"Baby blanket", w:30, h:36 },
+  { name:"Throw", w:52, h:65 },
 ];
 const QUILT_PATTERNS = [
   { id:"none", label:"None" },
@@ -1601,16 +1595,10 @@ function extractColors(imageData, count) {
 }
 
 const PRESET_THEMES = {
-  "Mug Rug":     { c1:"#C83A2C", c2:"#F5F3EE", desc:"Quick weekend project" },
-  "Mini":        { c1:"#2C5080", c2:"#97B5D4", desc:"Great for gifting" },
-  "Stroller":    { c1:"#7AB08C", c2:"#F5D89A", desc:"Baby on the go" },
-  "Baby":        { c1:"#E8A0B0", c2:"#B8D4E0", desc:"Cozy for little ones" },
-  "Crib":        { c1:"#E8C060", c2:"#C07830", desc:"Sweet nursery size" },
-  "Lap / Throw": { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
-  "Twin":        { c1:"#6A3A78", c2:"#D4A8E0", desc:"Perfect for kids' rooms" },
-  "Full":        { c1:"#2C4A30", c2:"#7AAA80", desc:"Generous double coverage" },
-  "Queen":       { c1:"#4A3028", c2:"#9A7060", desc:"Master bedroom classic" },
-  "King":        { c1:"#2A2A2A", c2:"#808080", desc:"Grand statement piece" },
+  "Coaster":        { c1:"#C83A2C", c2:"#F5F3EE", desc:"You'll get enough material to make 4, but only one design." },
+  "Wall hanging":   { c1:"#2C5080", c2:"#97B5D4", desc:"An accent piece for any wall" },
+  "Baby blanket":   { c1:"#7AB08C", c2:"#F5D89A", desc:"Cozy for little ones" },
+  "Throw":          { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
 };
 
 function calcYardage(count, bs) {
@@ -2915,8 +2903,8 @@ function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabl
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
-function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack }) {
-  const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Lap / Throw");
+function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack }) {
+  const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
   const _initCols = Math.min(MAX, Math.max(2, Math.round(_initP.w / 3)));
   const _initRows = Math.min(MAX, Math.max(2, Math.round(_initP.h / 3)));
   const [cols, setCols] = useState(_initCols);
@@ -3156,6 +3144,10 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
     setSelIds(new Set());
   },[rows,cols]);
 
+  // Kit fabric multiplier: e.g. a Coaster kit ships enough material for 4
+  // (the user still designs only one), so all fabric yardage is scaled up.
+  const fabricMult = (PRESETS.find(x=>x.name===preset)?.kitQty) || 1;
+
   const materials = useMemo(()=>{
     const map=new Map();
     const add=(col,amt)=>{if(!col)return;if(!map.has(col.name))map.set(col.name,{...col,count:0});map.get(col.name).count+=amt;};
@@ -3164,14 +3156,14 @@ function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBack
       if(s.type==='tri') add(s.color,area*0.5);
       else add(s.color,area);
     }
-    const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs)})).sort((a,b)=>b.count-a.count);
+    const items=Array.from(map.values()).map(c=>{const y=calcYardage(c.count,bs);return{...c,...y,yards:y.yards*fabricMult};}).sort((a,b)=>b.count-a.count);
     const total=shapes.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
     return{items,total,possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
-  },[shapes,bs,rows,cols]);
+  },[shapes,bs,rows,cols,fabricMult]);
 
   const fw=cols*bs, fh=rows*bs;
-  const backCalc=useMemo(()=>calcBacking(fw,fh),[fw,fh]);
-  const bindCalc=useMemo(()=>calcBinding(fw,fh),[fw,fh]);
+  const backCalc=useMemo(()=>{const b=calcBacking(fw,fh);return{...b,yards:b.yards*fabricMult};},[fw,fh,fabricMult]);
+  const bindCalc=useMemo(()=>{const b=calcBinding(fw,fh);return{...b,yards:b.yards*fabricMult};},[fw,fh,fabricMult]);
   const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
 
   const maxBs = useMemo(() => {
@@ -3792,7 +3784,8 @@ function ProjectCard({ preset, onSelect }) {
   const cols = Math.min(MAX, Math.round(preset.w / bs));
   const rows = Math.min(MAX, Math.round(preset.h / bs));
   const topYards = calcYardage(Math.ceil(cols * rows / 2), bs).yards * 2;
-  const estCost = Math.ceil((topYards + backYards + bindYards) * 13 / 5) * 5;
+  const fabricMult = preset.kitQty || 1;
+  const estCost = Math.ceil((topYards + backYards + bindYards) * fabricMult * 13 / 5) * 5;
 
   return (
     <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
@@ -5585,7 +5578,7 @@ function Root() {
     if (openSaved.type === 'quilt') {
       return (
         <>
-          <App initialPreset={openSaved.item.preset || 'Lap / Throw'}
+          <App initialPreset={openSaved.item.preset || 'Throw'}
             initialPalette={openSaved.item.pinned || null}
             initialQuilt={openSaved.item} onBack={resetAll}/>
           <TweaksPanel/>
