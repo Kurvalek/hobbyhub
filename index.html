@@ -1601,20 +1601,35 @@ const PRESET_THEMES = {
   "Throw":          { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
 };
 
-function calcYardage(count, bs) {
+// Quilt-top yardage. `qty` is the kit multiplier (e.g. a Coaster kit makes 4):
+// we scale the patch COUNT and let the strip-nesting pack the extra pieces
+// across the fabric width, rather than multiplying a full-width yardage by qty.
+function calcYardage(count, bs, qty=1) {
+  count = count*qty;
   if (!count) return { yards:0, cutSize:bs+SEAM, strips:0 };
   const cut=bs+SEAM, pps=Math.max(1,Math.floor(WOF/cut)), strips=Math.ceil(count/pps);
   return { yards: Math.ceil((strips*cut/36)*8)/8, cutSize:cut, strips };
 }
-function calcBacking(w,h) {
+function calcBacking(w,h,qty=1) {
+  // Multi-unit kit of small pieces: nest the qty backing panels across the
+  // usable fabric width instead of buying qty × a full-width single panel.
+  if (qty > 1) {
+    const cutW=w+2, cutH=h+2;                       // 1" margin per side, per unit
+    const perRow=Math.max(1, Math.floor(WOF/cutW));
+    const rows=Math.ceil(qty/perRow);
+    const total=rows*cutH;                          // length of WOF-wide fabric
+    const pieceW=Math.min(qty,perRow)*cutW;
+    return { yards:Math.ceil((total/36)*8)/8, backingW:pieceW, backingH:total, widths:1 };
+  }
   const bW=w+8, bH=h+8;
   const wA=Math.ceil(bW/WOF), wB=Math.ceil(bH/WOF);
   const pickA=wA*bH<=wB*bW, widths=pickA?wA:wB, total=pickA?wA*bH:wB*bW;
   return { yards:Math.ceil((total/36)*8)/8, backingW:bW, backingH:bH, widths };
 }
-function calcBinding(w,h) {
-  const perim=2*(w+h), strips=Math.ceil((perim+10)/WOF);
-  return { yards:Math.ceil((strips*2.5/36)*8)/8, strips, perimeter:perim };
+function calcBinding(w,h,qty=1) {
+  // Binding is linear trim: total length = qty × perimeter, cut into WOF strips.
+  const perim=2*(w+h), totalPerim=perim*qty, strips=Math.ceil((totalPerim+10)/WOF);
+  return { yards:Math.ceil((strips*2.5/36)*8)/8, strips, perimeter:totalPerim };
 }
 function fmtY(y) {
   if (!y) return "0 yd";
@@ -3145,8 +3160,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   },[rows,cols]);
 
   // Kit fabric multiplier: e.g. a Coaster kit ships enough material for 4
-  // (the user still designs only one), so all fabric yardage is scaled up.
-  const fabricMult = (PRESETS.find(x=>x.name===preset)?.kitQty) || 1;
+  // (the user still designs only one). We pass this qty into the yardage
+  // calcs so the extra units nest across the fabric width instead of naively
+  // multiplying a full-width single-piece yardage by 4.
+  const kitQty = (PRESETS.find(x=>x.name===preset)?.kitQty) || 1;
 
   const materials = useMemo(()=>{
     const map=new Map();
@@ -3156,14 +3173,14 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       if(s.type==='tri') add(s.color,area*0.5);
       else add(s.color,area);
     }
-    const items=Array.from(map.values()).map(c=>{const y=calcYardage(c.count,bs);return{...c,...y,yards:y.yards*fabricMult};}).sort((a,b)=>b.count-a.count);
+    const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs,kitQty)})).sort((a,b)=>b.count-a.count);
     const total=shapes.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
     return{items,total,possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
-  },[shapes,bs,rows,cols,fabricMult]);
+  },[shapes,bs,rows,cols,kitQty]);
 
   const fw=cols*bs, fh=rows*bs;
-  const backCalc=useMemo(()=>{const b=calcBacking(fw,fh);return{...b,yards:b.yards*fabricMult};},[fw,fh,fabricMult]);
-  const bindCalc=useMemo(()=>{const b=calcBinding(fw,fh);return{...b,yards:b.yards*fabricMult};},[fw,fh,fabricMult]);
+  const backCalc=useMemo(()=>calcBacking(fw,fh,kitQty),[fw,fh,kitQty]);
+  const bindCalc=useMemo(()=>calcBinding(fw,fh,kitQty),[fw,fh,kitQty]);
   const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
 
   const maxBs = useMemo(() => {
@@ -3778,14 +3795,14 @@ function QuiltThumb({ preset }) {
 
 function ProjectCard({ preset, onSelect }) {
   const theme = PRESET_THEMES[preset.name] || {};
-  const backYards = calcBacking(preset.w, preset.h).yards;
-  const bindYards = calcBinding(preset.w, preset.h).yards;
+  const kitQty = preset.kitQty || 1;
+  const backYards = calcBacking(preset.w, preset.h, kitQty).yards;
+  const bindYards = calcBinding(preset.w, preset.h, kitQty).yards;
   const bs = 3;
   const cols = Math.min(MAX, Math.round(preset.w / bs));
   const rows = Math.min(MAX, Math.round(preset.h / bs));
-  const topYards = calcYardage(Math.ceil(cols * rows / 2), bs).yards * 2;
-  const fabricMult = preset.kitQty || 1;
-  const estCost = Math.ceil((topYards + backYards + bindYards) * fabricMult * 13 / 5) * 5;
+  const topYards = calcYardage(Math.ceil(cols * rows / 2), bs, kitQty).yards * 2;
+  const estCost = Math.ceil((topYards + backYards + bindYards) * 13 / 5) * 5;
 
   return (
     <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
