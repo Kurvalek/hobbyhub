@@ -2915,16 +2915,21 @@ function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabl
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
-function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBacking = null, initialQuilt = null, onBack }) {
+function App({ initialPreset = "Lap / Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Lap / Throw");
-  const [cols, setCols] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.w / 3))));
-  const [rows, setRows] = useState(Math.min(MAX, Math.max(2, Math.round(_initP.h / 3))));
+  const _initCols = Math.min(MAX, Math.max(2, Math.round(_initP.w / 3)));
+  const _initRows = Math.min(MAX, Math.max(2, Math.round(_initP.h / 3)));
+  const [cols, setCols] = useState(_initCols);
+  const [rows, setRows] = useState(_initRows);
   const [bs, setBs] = useState(3);
   const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
   const isMobile = useIsMobile();
   // Mobile bottom-sheet router: null | 'palette' | 'size' | 'fabrics' | 'pattern' | 'materials'
   const [sheet, setSheet] = useState(null);
-  const [shapes, _setShapes] = useState([]);
+  const [shapes, _setShapes] = useState(() =>
+    (initialTemplate && typeof initialTemplate.build === 'function')
+      ? initialTemplate.build({ cols: _initCols, rows: _initRows })
+      : []);
   const historyRef = useRef([]);
   const setShapes = useCallback(updater => {
     _setShapes(prev => {
@@ -3916,47 +3921,186 @@ function ProjectSelector({ onSelect }) {
   );
 }
 
-function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
-  const samples = useMemo(
-    () => SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) })),
-    []
-  );
+// ── Setup: templates + shared photo uploader ───────────────────────────────
+// Split a length into `n` near-equal integer segments → [[start,size],…].
+function tplSegments(total, n) {
+  const segs = []; let acc = 0;
+  for (let i = 0; i < n; i++) {
+    const size = Math.round(total * (i + 1) / n) - Math.round(total * i / n);
+    segs.push([acc, size]); acc += size;
+  }
+  return segs;
+}
+// How many "patches" a quilt pattern tiles into, scaled to the grid.
+function tplPatchCount(cols, rows) {
+  const unit = Math.max(2, Math.round(Math.min(cols, rows) / 8));
+  return { nx: Math.max(2, Math.round(cols / unit)), ny: Math.max(2, Math.round(rows / unit)) };
+}
+const tplKona = n => konaByName(n) || KONA[0];
+function tplTriPoints(s) {
+  const { r, c, w, h } = s;
+  if (s.dir === '/') return s.half === 'a'
+    ? `${c},${r} ${c + w},${r} ${c},${r + h}`
+    : `${c + w},${r} ${c + w},${r + h} ${c},${r + h}`;
+  return s.half === 'a'
+    ? `${c},${r} ${c + w},${r} ${c + w},${r + h}`
+    : `${c},${r} ${c},${r + h} ${c + w},${r + h}`;
+}
+
+// Size-adaptive quilt starter layouts. build({cols,rows}) → shapes[] (same
+// shape objects the editor paints), so they tile/scale to any chosen preset.
+const QUILT_TEMPLATES = [
+  { id: 'blank', name: 'Blank', desc: 'Start from an empty canvas.', build: () => [] },
+  {
+    id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating two-color squares.',
+    build: ({ cols, rows }) => {
+      const a = tplKona('Navy'), b = tplKona('White');
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: (ri + ci) % 2 ? a : b });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 patchwork, tiled.',
+    build: ({ cols, rows }) => {
+      const a = tplKona('Rich Red'), b = tplKona('White');
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: ((ri % 3) + (ci % 3)) % 2 === 0 ? a : b });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'railfence', name: 'Rail Fence', desc: 'Woven strips of three fabrics.',
+    build: ({ cols, rows }) => {
+      const rails = [tplKona('Navy'), tplKona('Mustard'), tplKona('Natural')];
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        const horiz = (Math.floor(ri / 3) + Math.floor(ci / 3)) % 2 === 0;
+        const idx = (horiz ? ri : ci) % 3;
+        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: rails[idx] });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'hst', name: 'Half-Square Triangles', desc: 'A grid of two-tone triangle blocks.',
+    build: ({ cols, rows }) => {
+      const a = tplKona('Navy'), b = tplKona('White');
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w <= 0 || h <= 0) return;
+        const pid = `hst-${ri}-${ci}`, flip = (ri + ci) % 2 === 0;
+        out.push({ id: pid + 'a', r, c, w, h, type: 'tri', color: flip ? a : b, dir: '/', half: 'a', pairId: pid });
+        out.push({ id: pid + 'b', r, c, w, h, type: 'tri', color: flip ? b : a, dir: '/', half: 'b', pairId: pid });
+      }));
+      return out;
+    }
+  },
+];
+
+// Compact 3×5 uppercase font for the cross-stitch alphabet sampler.
+const TPL_FONT35 = {
+  A:['111','101','111','101','101'], B:['110','101','110','101','110'], C:['111','100','100','100','111'],
+  D:['110','101','101','101','110'], E:['111','100','110','100','111'], F:['111','100','110','100','100'],
+  G:['111','100','101','101','111'], H:['101','101','111','101','101'], I:['111','010','010','010','111'],
+  J:['111','001','001','101','111'], K:['101','101','110','101','101'], L:['100','100','100','100','111'],
+  M:['101','111','111','101','101'], N:['101','111','111','111','101'], O:['111','101','101','101','111'],
+  P:['111','101','111','100','100'], Q:['111','101','101','111','011'], R:['110','101','110','101','101'],
+  S:['111','100','111','001','111'], T:['111','010','010','010','010'], U:['101','101','101','101','111'],
+  V:['101','101','101','101','010'], W:['101','101','111','111','101'], X:['101','101','010','101','101'],
+  Y:['101','101','010','010','010'], Z:['111','001','010','100','111'],
+};
+const tplDmcHex = (code, fallback) => (dmcByCode(code) || {}).hex || fallback;
+// Distinct DMC color objects present in a cell-hex grid (for palette pre-seed).
+function xsColorsFromGrid(grid) {
+  if (!grid) return [];
+  const seen = new Set(), out = [];
+  for (const hex of grid) { if (hex && !seen.has(hex)) { seen.add(hex); const d = DMC.find(c => c.hex === hex); if (d) out.push(d); } }
+  return out;
+}
+function tplHeartGrid({ w, h }) {
+  const grid = new Array(w * h).fill(null), red = tplDmcHex('666', '#E31D42');
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const nx = (x / (w - 1)) * 2 - 1, ny = 1 - (y / (h - 1)) * 2;
+    const xs = nx * 1.1, ys = ny * 1.1 - 0.15;
+    const v = Math.pow(xs * xs + ys * ys - 1, 3) - xs * xs * ys * ys * ys;
+    if (v < 0) grid[y * w + x] = red;
+  }
+  return grid;
+}
+function tplBorderGrid({ w, h }) {
+  const grid = new Array(w * h).fill(null), c = tplDmcHex('797', '#1F3A93');
+  const t = Math.max(1, Math.round(Math.min(w, h) / 12));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (x < t || x >= w - t || y < t || y >= h - t) grid[y * w + x] = c; }
+  return grid;
+}
+function tplSamplerGrid({ w, h }) {
+  const grid = new Array(w * h).fill(null), ink = tplDmcHex('310', '#000000'), frame = tplDmcHex('797', '#1F3A93');
+  const t = 1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (x < t || x >= w - t || y < t || y >= h - t) grid[y * w + x] = frame; }
+  const gw = 3, gh = 5, gap = 1, pad = t + 1;
+  let cx = pad, cy = pad + 1;
+  for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+    const g = TPL_FONT35[ch]; if (!g) continue;
+    if (cx + gw > w - pad) { cx = pad; cy += gh + 1; }
+    if (cy + gh > h - pad) break;
+    for (let ry = 0; ry < gh; ry++) for (let rx = 0; rx < gw; rx++) {
+      if (g[ry][rx] === '1') { const X = cx + rx, Y = cy + ry; if (X < w && Y < h) grid[Y * w + X] = ink; }
+    }
+    cx += gw + gap;
+  }
+  return grid;
+}
+// Size-adaptive cross-stitch starter charts. build({w,h}) → cell-hex array
+// (same format as an auto-generated design / autoGrid).
+const CROSS_STITCH_TEMPLATES = [
+  { id: 'blank', name: 'Blank', desc: 'Start from an empty grid.', build: ({ w, h }) => new Array(w * h).fill(null) },
+  { id: 'heart', name: 'Heart', desc: 'A centered heart motif.', build: tplHeartGrid },
+  { id: 'border', name: 'Simple Border', desc: 'A tidy frame around the edges.', build: tplBorderGrid },
+  { id: 'sampler', name: 'Alphabet Sampler', desc: 'A classic ABC sampler band.', build: tplSamplerGrid },
+];
+
+// Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
+// color → a ready-to-stitch design (shared by the cross-stitch template step).
+function buildGridFromImage(img, chosen, W, H) {
+  if (!img || !chosen || !chosen.length) return null;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const scale = Math.max(W / img.width, H / img.height);
+  const sw = W / scale, sh = H / scale, sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  let data; try { data = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; }
+  const grid = new Array(W * H).fill(null);
+  for (let i = 0; i < W * H; i++) {
+    if (data[i * 4 + 3] < 100) continue;
+    const near = nearestInList({ r: data[i * 4], g: data[i * 4 + 1], b: data[i * 4 + 2] }, chosen);
+    grid[i] = near ? near.hex : null;
+  }
+  return grid;
+}
+
+// Reusable photo → palette uploader. Manages its own file/extraction state and
+// reports the kept colors + image (+ any option toggles) via onApply. Used by
+// the quilt palette page (Kona) and the cross-stitch template page (DMC).
+function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, applyLabel = 'Use these colors', hint, options = [], onApply }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [extracted, setExtracted] = useState(null);
   const [pool, setPool] = useState([]);
   const [locked, setLocked] = useState(() => new Set());
-  const [useAsBacking, setUseAsBacking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [opts, setOpts] = useState(() => { const o = {}; options.forEach(d => o[d.key] = d.default ?? false); return o; });
   const fileRef = useRef(null);
-
-  const PALETTE_SIZE = 8;
-  const shuffle = arr => {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  };
-  const toggleLock = useCallback(name => {
-    setLocked(prev => {
-      const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
-      return next;
-    });
-  }, []);
-  // Reshuffle only the unchecked swatches; checked ones stay put in place.
-  const regenerate = useCallback(() => {
-    if (!pool.length) return;
-    setExtracted(prev => {
-      if (!prev) return prev;
-      const lockedNames = new Set(prev.filter(c => locked.has(c.name)).map(c => c.name));
-      const fill = shuffle(pool.filter(c => !lockedNames.has(c.name)));
-      let fi = 0;
-      return prev.map(c => (lockedNames.has(c.name) ? c : (fill[fi++] || c)));
-    });
-  }, [pool, locked]);
+  const imgElRef = useRef(null);
+  const idOf = c => c[idKey];
 
   const handleFile = useCallback(file => {
     if (!file || !file.type.startsWith('image/')) return;
@@ -3966,125 +4110,238 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
       const src = ev.target.result;
       const img = new Image();
       img.onload = () => {
-        const maxDim = 140;
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const cv = document.createElement('canvas');
-        cv.width = w; cv.height = h;
-        const ctx = cv.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        let pixels;
-        try { pixels = ctx.getImageData(0, 0, w, h); }
-        catch (e) { setBusy(false); return; }
-        const raw = extractColors(pixels, 32);
-        const seen = new Set(), colors = [];
-        for (const c of raw) {
-          const k = nearestKona(c);
-          if (k && !seen.has(k.name)) { seen.add(k.name); colors.push(k); }
-        }
-        setImgSrc(src);
-        setPool(colors);
-        setLocked(new Set());
-        setExtracted(colors.slice(0, Math.min(PALETTE_SIZE, colors.length)));
-        setBusy(false);
+        imgElRef.current = img;
+        const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+        let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setBusy(false); return; }
+        const raw = extractColors(pixels, count), seen = new Set(), colors = [];
+        for (const c of raw) { const k = nearest(c); if (k && !seen.has(k[idKey])) { seen.add(k[idKey]); colors.push(k); } }
+        setImgSrc(src); setPool(colors); setLocked(new Set());
+        setExtracted(colors.slice(0, Math.min(paletteSize, colors.length))); setBusy(false);
       };
       img.onerror = () => setBusy(false);
       img.src = src;
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [nearest, idKey, paletteSize, count]);
 
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); fileRef.current && (fileRef.current.value = ''); };
-
-  // Only the swatches the user checked ("kept") should be added to their
-  // palette. The unchecked swatches are just candidate slots they shuffle
-  // through with Regenerate, so passing all of `extracted` would inflate the
-  // palette with colors the user never selected. If nothing is checked we
-  // fall back to the full extracted set (the simple "upload & use" path).
-  const applySelection = useCallback(() => {
+  const toggleLock = useCallback(id => { setLocked(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }, []);
+  const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const regenerate = useCallback(() => {
+    if (!pool.length) return;
+    setExtracted(prev => {
+      if (!prev) return prev;
+      const lk = new Set(prev.filter(c => locked.has(idOf(c))).map(idOf));
+      const fill = shuffle(pool.filter(c => !lk.has(idOf(c)))); let fi = 0;
+      return prev.map(c => lk.has(idOf(c)) ? c : (fill[fi++] || c));
+    });
+  }, [pool, locked]);
+  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; fileRef.current && (fileRef.current.value = ''); };
+  const apply = () => {
     if (!extracted || !extracted.length) return;
-    const kept = extracted.filter(c => locked.has(c.name));
+    const kept = extracted.filter(c => locked.has(idOf(c)));
     const chosen = kept.length ? kept : extracted;
-    onChoose(
-      chosen,
-      useAsBacking ? { name: 'Photo backing', hex: chosen[0].hex, image: imgSrc } : null
-    );
-  }, [extracted, locked, useAsBacking, imgSrc, onChoose]);
+    onApply(chosen, { imgSrc, imgEl: imgElRef.current, options: opts });
+  };
 
+  return (
+    <section className="pal-section">
+      <div className="pal-section-head">
+        <div className="pal-section-title">Upload an Image</div>
+        {hint && <div className="pal-section-sub">{hint}</div>}
+      </div>
+      {!extracted && (
+        <div className={`pal-upload${drag ? ' drag' : ''}`}
+          onClick={() => fileRef.current && fileRef.current.click()}
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
+          <div className="pal-upload-icon"><IcImage size={28}/></div>
+          <div className="pal-upload-title">{busy ? 'Reading colors…' : 'Drop an image here or click to browse'}</div>
+          <div className="pal-upload-sub">JPG, PNG, or WebP</div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>
+        </div>
+      )}
+      {extracted && (
+        <div className="pal-result">
+          <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
+          <div className="pal-result-main">
+            <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
+            <div className="pal-result-swatches">
+              {extracted.map(c => {
+                const isLocked = locked.has(idOf(c));
+                return (
+                  <label key={idOf(c)} className={`pal-chip${isLocked ? ' locked' : ''}`} title={c.code ? `DMC ${c.code} · ${c.name}` : `${c.name} ${c.hex}`}>
+                    <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(idOf(c))}/>
+                    <span className="pal-chip-color" style={{ background: c.hex }}/>
+                    <span className="pal-chip-label">{c.code ? `${c.code} ${c.name}` : c.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {options.map(d => (
+              <label key={d.key} className="pal-check">
+                <input type="checkbox" checked={!!opts[d.key]} onChange={e => setOpts(o => ({ ...o, [d.key]: e.target.checked }))}/>
+                {d.label}
+              </label>
+            ))}
+            <div className="pal-actions">
+              <button className="pal-btn" onClick={apply}>{applyLabel}</button>
+              {pool.length > 1 && (
+                <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                  </svg>
+                  Regenerate
+                </button>
+              )}
+              <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Thumbnails render the actual template output (built at a small size).
+function QuiltTemplateThumb({ tpl, preset }) {
+  const cols = 12, rows = Math.max(4, Math.round(12 * (preset.h / preset.w)));
+  const shapes = useMemo(() => tpl.build({ cols, rows }), [tpl, cols, rows]);
+  return (
+    <svg viewBox={`0 0 ${cols} ${rows}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', background: 'var(--metime-cream)' }}>
+      <rect width={cols} height={rows} fill="var(--metime-cream)"/>
+      {shapes.map((s, i) => s.type === 'tri'
+        ? <polygon key={i} points={tplTriPoints(s)} fill={s.color.hex}/>
+        : <rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex}/>)}
+      <rect width={cols} height={rows} fill="none" stroke="rgba(46,41,37,0.12)" strokeWidth="0.1"/>
+    </svg>
+  );
+}
+function StitchTemplateThumb({ tpl, preset }) {
+  const w = Math.min(36, preset.w), h = Math.max(4, Math.round(w * (preset.h / preset.w)));
+  const grid = useMemo(() => tpl.build({ w, h }), [tpl, w, h]);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', background: '#fff' }}>
+      <rect width={w} height={h} fill="#fff"/>
+      {grid.map((hex, i) => hex ? <rect key={i} x={i % w} y={Math.floor(i / w)} width={1} height={1} fill={hex}/> : null)}
+      <rect width={w} height={h} fill="none" stroke="rgba(46,41,37,0.12)" strokeWidth="0.08"/>
+    </svg>
+  );
+}
+
+// Generic template-step shell (reused by quilt + cross-stitch). Optional
+// uploadNode renders a PhotoUpload above the template grid.
+function TemplateStep({ title, subheading, backLabel, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
   return (
     <div className="proj-page">
       <header className="proj-header">
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to projects</button>
+        <button className="back-link" onClick={onBack}>← {backLabel}</button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick a color palette</h1>
+          <h1 className="proj-heading">{title}</h1>
+          <p className="proj-subheading">{subheading}</p>
+        </div>
+        {uploadNode}
+        <section className="pal-section">
+          <div className="pal-section-head">
+            <div className="pal-section-title">{uploadNode ? 'Or pick a template' : 'Templates'}</div>
+            <div className="pal-section-sub">Starter layouts scale to your chosen size.</div>
+          </div>
+          <div className="tmpl-grid">
+            {templates.map(t => (
+              <button key={t.id} className="tmpl-card" onClick={() => onChoose(t)} title={`Use "${t.name}"`}>
+                <div className="tmpl-card-thumb">{renderThumb(t)}</div>
+                <div className="tmpl-card-body">
+                  <div className="tmpl-card-name">{t.name}</div>
+                  <div className="tmpl-card-desc">{t.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="pal-section">
+          <button className="pal-skip" onClick={onSkip}>Skip for now — start from a blank canvas →</button>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// Quilt template step (template-only; the photo uploader lives on the palette page).
+function TemplateSelector({ preset, onChoose, onSkip, onBack }) {
+  const p = PRESETS.find(x => x.name === preset) || PRESETS[0];
+  return (
+    <TemplateStep
+      title="Pick a template"
+      subheading={`Give your ${preset} a head start with a patchwork layout — or skip to a blank canvas.`}
+      backLabel="Back to sizes" onBack={onBack}
+      templates={QUILT_TEMPLATES}
+      renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p}/>}
+      onChoose={onChoose} onSkip={onSkip}/>
+  );
+}
+
+// Cross-stitch template step (template choices + "upload a photo to guide your design").
+function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack }) {
+  const uploadNode = (
+    <PhotoUpload
+      nearest={nearestDMC} idKey="code" paletteSize={10} count={24}
+      applyLabel="Use this photo"
+      hint="We'll match the top colors to DMC floss. You can auto-generate a design from it and trace it on the canvas."
+      options={[
+        { key: 'autoGen', label: 'Auto-generate a stitch design from this image', default: true },
+        { key: 'useAsBg', label: 'Show the image behind the canvas to trace it', default: true },
+      ]}
+      onApply={(chosen, { imgSrc, imgEl, options }) => {
+        const autoGrid = options.autoGen ? buildGridFromImage(imgEl, chosen, preset.w, preset.h) : null;
+        onChoose({ template: null, colors: chosen, opts: { bgImage: options.useAsBg ? imgSrc : null, autoGrid } });
+      }}/>
+  );
+  return (
+    <TemplateStep
+      title="Pick a template or upload a photo"
+      subheading={`Start your ${preset.name} from a ready-made chart, a photo to trace, or skip to a blank grid.`}
+      backLabel="Back to sizes" onBack={onBack}
+      templates={CROSS_STITCH_TEMPLATES}
+      renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
+      uploadNode={uploadNode}
+      onChoose={t => {
+        const grid = t.build(preset);
+        const hasCells = grid && grid.some(Boolean);
+        onChoose({ template: t, colors: xsColorsFromGrid(grid), opts: { bgImage: null, autoGrid: hasCells ? grid : null } });
+      }}
+      onSkip={onSkip}/>
+  );
+}
+
+function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
+  const samples = useMemo(
+    () => SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) })),
+    []
+  );
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body pal-body">
+        <button className="back-link" onClick={onBack}>← Back to templates</button>
+        <div className="proj-intro">
+          <h1 className="proj-heading">Pick a palette or upload a photo</h1>
           <p className="proj-subheading">Start your {presetName} with a set of fabrics — choose a sample, pull colors from a photo, or skip for now.</p>
         </div>
 
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Upload an Image</div>
-            <div className="pal-section-sub">We'll read the top colors from your photo and turn them into a fabric palette.</div>
-          </div>
-          {!extracted && (
-            <div
-              className={`pal-upload${drag ? ' drag' : ''}`}
-              onClick={() => fileRef.current && fileRef.current.click()}
-              onDragOver={e => { e.preventDefault(); setDrag(true); }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
-              <div className="pal-upload-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
-                </svg>
-              </div>
-              <div className="pal-upload-title">{busy ? 'Reading colors…' : 'Drop an image here or click to browse'}</div>
-              <div className="pal-upload-sub">JPG, PNG, or WebP</div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-                onChange={e => handleFile(e.target.files[0])}/>
-            </div>
-          )}
-          {extracted && (
-            <div className="pal-result">
-              <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
-              <div className="pal-result-main">
-                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
-                <div className="pal-result-swatches">
-                  {extracted.map((c, i) => {
-                    const isLocked = locked.has(c.name);
-                    return (
-                      <label key={c.name} className={`pal-chip${isLocked ? ' locked' : ''}`} title={`${c.name} ${c.hex}`}>
-                        <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(c.name)}/>
-                        <span className="pal-chip-color" style={{ background: c.hex }}/>
-                        <span className="pal-chip-label">{c.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                <label className="pal-check">
-                  <input type="checkbox" checked={useAsBacking} onChange={e => setUseAsBacking(e.target.checked)}/>
-                  Use this image as the backing fabric
-                </label>
-                <div className="pal-actions">
-                  <button className="pal-btn" onClick={applySelection}>Use these colors</button>
-                  {pool.length > 1 && (
-                    <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-                        <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-                      </svg>
-                      Regenerate
-                    </button>
-                  )}
-                  <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
+        <PhotoUpload
+          nearest={nearestKona} idKey="name" paletteSize={8} count={32}
+          applyLabel="Use these colors"
+          hint="We'll read the top colors from your photo and turn them into a fabric palette."
+          options={[{ key: 'useAsBacking', label: 'Use this image as the backing fabric', default: true }]}
+          onApply={(chosen, { imgSrc, options }) => onChoose(chosen, options.useAsBacking ? { name: 'Photo backing', hex: chosen[0].hex, image: imgSrc } : null)}/>
 
         <section className="pal-section">
           <div className="pal-section-head">
@@ -4155,187 +4412,40 @@ function CrossStitchSizeSelector({ onSelect, onBack }) {
 }
 
 // ── Cross-stitch: palette / image selector ─────────────────────────────────
-function CrossStitchPaletteSelector({ preset, onChoose, onSkip, onBack }) {
+function CrossStitchPaletteSelector({ preset, seedColors, onChoose, onSkip, onBack }) {
   const samples = useMemo(() => DMC_PALETTES.map(p => ({ name: p.name, colors: resolveDmcPalette(p) })), []);
-  const [imgSrc, setImgSrc] = useState(null);
-  const [extracted, setExtracted] = useState(null);
-  const [pool, setPool] = useState([]);
-  const [locked, setLocked] = useState(() => new Set());
-  const [autoGen, setAutoGen] = useState(true);
-  const [useAsBg, setUseAsBg] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState(false);
-  const fileRef = useRef(null);
-  const imgElRef = useRef(null);
-  const PALETTE_SIZE = 10;
-
-  const handleFile = useCallback(file => {
-    if (!file || !file.type.startsWith('image/')) return;
-    setBusy(true);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const src = ev.target.result;
-      const img = new Image();
-      img.onload = () => {
-        imgElRef.current = img;
-        const maxDim = 160;
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const cv = document.createElement('canvas');
-        cv.width = w; cv.height = h;
-        const ctx = cv.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        let pixels;
-        try { pixels = ctx.getImageData(0, 0, w, h); }
-        catch (e) { setBusy(false); return; }
-        const raw = extractColors(pixels, 24);
-        const seen = new Set(), colors = [];
-        for (const c of raw) {
-          const k = nearestDMC(c);
-          if (k && !seen.has(k.code)) { seen.add(k.code); colors.push(k); }
-        }
-        setImgSrc(src);
-        setPool(colors);
-        setLocked(new Set());
-        setExtracted(colors.slice(0, Math.min(PALETTE_SIZE, colors.length)));
-        setBusy(false);
-      };
-      img.onerror = () => setBusy(false);
-      img.src = src;
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const toggleLock = useCallback(code => {
-    setLocked(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; });
-  }, []);
-
-  const shuffle = arr => {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a;
-  };
-  // Reshuffle only the unchecked swatches; checked ones stay put in place.
-  const regenerate = useCallback(() => {
-    if (!pool.length) return;
-    setExtracted(prev => {
-      if (!prev) return prev;
-      const lockedCodes = new Set(prev.filter(c => locked.has(c.code)).map(c => c.code));
-      const fill = shuffle(pool.filter(c => !lockedCodes.has(c.code)));
-      let fi = 0;
-      return prev.map(c => (lockedCodes.has(c.code) ? c : (fill[fi++] || c)));
-    });
-  }, [pool, locked]);
-
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; fileRef.current && (fileRef.current.value = ''); };
-
-  // Sample the uploaded image into the stitch grid, snapping each cell to the
-  // nearest color in the chosen palette → a ready-to-stitch design.
-  const generateGrid = useCallback((chosen) => {
-    const img = imgElRef.current;
-    if (!img || !chosen.length) return null;
-    const W = preset.w, H = preset.h;
-    const cv = document.createElement('canvas');
-    cv.width = W; cv.height = H;
-    const ctx = cv.getContext('2d');
-    const scale = Math.max(W / img.width, H / img.height);
-    const sw = W / scale, sh = H / scale;
-    const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
-    let data;
-    try { data = ctx.getImageData(0, 0, W, H).data; }
-    catch (e) { return null; }
-    const grid = new Array(W * H).fill(null);
-    for (let i = 0; i < W * H; i++) {
-      const a = data[i * 4 + 3];
-      if (a < 100) continue;
-      const near = nearestInList({ r: data[i * 4], g: data[i * 4 + 1], b: data[i * 4 + 2] }, chosen);
-      grid[i] = near ? near.hex : null;
-    }
-    return grid;
-  }, [preset]);
-
-  const applySelection = useCallback(() => {
-    if (!extracted || !extracted.length) return;
-    const kept = extracted.filter(c => locked.has(c.code));
-    const chosen = kept.length ? kept : extracted;
-    const autoGrid = autoGen ? generateGrid(chosen) : null;
-    onChoose(chosen, { bgImage: useAsBg ? imgSrc : null, autoGrid });
-  }, [extracted, locked, autoGen, useAsBg, imgSrc, generateGrid, onChoose]);
-
+  const hasSeed = seedColors && seedColors.length > 0;
   return (
     <div className="proj-page">
       <header className="proj-header">
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to sizes</button>
+        <button className="back-link" onClick={onBack}>← Back to templates</button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick your floss colors</h1>
-          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — pull colors from a photo, choose a set, or skip and pick as you stitch.</p>
+          <h1 className="proj-heading">Pick a palette</h1>
+          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — {hasSeed ? 'keep the colors from your design, ' : ''}choose a set, or skip and pick as you stitch.</p>
         </div>
 
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Upload an Image</div>
-            <div className="pal-section-sub">We'll match the top colors to DMC floss. You can auto-generate a design from it or trace over it on the canvas.</div>
-          </div>
-          {!extracted && (
-            <div className={`pal-upload${drag ? ' drag' : ''}`}
-              onClick={() => fileRef.current && fileRef.current.click()}
-              onDragOver={e => { e.preventDefault(); setDrag(true); }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
-              <div className="pal-upload-icon"><IcImage size={28}/></div>
-              <div className="pal-upload-title">{busy ? 'Reading colors…' : 'Drop an image here or click to browse'}</div>
-              <div className="pal-upload-sub">JPG, PNG, or WebP</div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-                onChange={e => handleFile(e.target.files[0])}/>
+        {hasSeed && (
+          <section className="pal-section">
+            <div className="pal-section-head">
+              <div className="pal-section-title">Colors from your design</div>
+              <div className="pal-section-sub">Pulled from your photo or template — use them as your starting palette.</div>
             </div>
-          )}
-          {extracted && (
-            <div className="pal-result">
-              <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
-              <div className="pal-result-main">
-                <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} DMC colors matched — check the ones to keep (they're the palette used). Leave all unchecked to use them all.</div>
-                <div className="pal-result-swatches">
-                  {extracted.map(c => {
-                    const isLocked = locked.has(c.code);
-                    return (
-                      <label key={c.code} className={`pal-chip${isLocked ? ' locked' : ''}`} title={`DMC ${c.code} · ${c.name}`}>
-                        <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(c.code)}/>
-                        <span className="pal-chip-color" style={{ background: c.hex }}/>
-                        <span className="pal-chip-label">{c.code} {c.name}</span>
-                      </label>
-                    );
-                  })}
+            <div className="pal-grid">
+              <button className="pal-card" onClick={() => onChoose(seedColors)}>
+                <div className="pal-swatches">
+                  {seedColors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
                 </div>
-                <label className="pal-check">
-                  <input type="checkbox" checked={autoGen} onChange={e => setAutoGen(e.target.checked)}/>
-                  Auto-generate a stitch design from this image
-                </label>
-                <label className="pal-check">
-                  <input type="checkbox" checked={useAsBg} onChange={e => setUseAsBg(e.target.checked)}/>
-                  Show the image behind the canvas to trace it
-                </label>
-                <div className="pal-actions">
-                  <button className="pal-btn" onClick={applySelection}>Start stitching</button>
-                  {pool.length > 1 && (
-                    <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-                        <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-                      </svg>
-                      Regenerate
-                    </button>
-                  )}
-                  <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
+                <div className="pal-card-body">
+                  <div className="pal-card-name">Design palette</div>
+                  <div className="pal-card-meta">{seedColors.length} flosses</div>
                 </div>
-              </div>
+              </button>
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="pal-section">
           <div className="pal-section-head">
@@ -4344,7 +4454,7 @@ function CrossStitchPaletteSelector({ preset, onChoose, onSkip, onBack }) {
           </div>
           <div className="pal-grid">
             {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, { bgImage: null, autoGrid: null })}>
+              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
                 <div className="pal-swatches">
                   {s.colors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
                 </div>
@@ -5445,11 +5555,16 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 function Root() {
   const [craft, setCraft] = React.useState(null);
   const [selectedPreset, setSelectedPreset] = React.useState(null);
+  const [templateDone, setTemplateDone] = React.useState(false);
+  const [quiltTemplate, setQuiltTemplate] = React.useState(null);
   const [paletteDone, setPaletteDone] = React.useState(false);
   const [palette, setPalette] = React.useState(null);
   const [backingFabric, setBackingFabric] = React.useState(null);
   // Cross-stitch flow state
   const [xsPreset, setXsPreset] = React.useState(null);
+  const [xsTemplateDone, setXsTemplateDone] = React.useState(false);
+  const [xsTemplate, setXsTemplate] = React.useState(null);
+  const [xsSeedColors, setXsSeedColors] = React.useState(null);
   const [xsDone, setXsDone] = React.useState(false);
   const [xsPalette, setXsPalette] = React.useState(null);
   const [xsOpts, setXsOpts] = React.useState({});
@@ -5457,8 +5572,10 @@ function Root() {
   const [openSaved, setOpenSaved] = React.useState(null);
 
   const resetAll = () => {
-    setCraft(null); setSelectedPreset(null); setPaletteDone(false); setPalette(null); setBackingFabric(null);
-    setXsPreset(null); setXsDone(false); setXsPalette(null); setXsOpts({});
+    setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
+    setPaletteDone(false); setPalette(null); setBackingFabric(null);
+    setXsPreset(null); setXsTemplateDone(false); setXsTemplate(null); setXsSeedColors(null);
+    setXsDone(false); setXsPalette(null); setXsOpts({});
     setOpenSaved(null);
   };
 
@@ -5492,13 +5609,28 @@ function Root() {
       return <CrossStitchSizeSelector onBack={() => setCraft(null)}
         onSelect={name => setXsPreset(STITCH_PRESETS.find(p => p.name === name))}/>;
     }
+    if (!xsTemplateDone) {
+      return (
+        <CrossStitchTemplateSelector
+          preset={xsPreset}
+          onBack={() => setXsPreset(null)}
+          onChoose={({ template, colors, opts }) => {
+            setXsTemplate(template);
+            setXsSeedColors(colors && colors.length ? colors : null);
+            setXsOpts(opts || {});
+            setXsTemplateDone(true);
+          }}
+          onSkip={() => { setXsTemplate(null); setXsSeedColors(null); setXsOpts({}); setXsTemplateDone(true); }}/>
+      );
+    }
     if (!xsDone) {
       return (
         <CrossStitchPaletteSelector
           preset={xsPreset}
-          onBack={() => setXsPreset(null)}
-          onChoose={(pal, opts) => { setXsPalette(pal); setXsOpts(opts || {}); setXsDone(true); }}
-          onSkip={() => { setXsPalette(null); setXsOpts({}); setXsDone(true); }}/>
+          seedColors={xsSeedColors}
+          onBack={() => setXsTemplateDone(false)}
+          onChoose={pal => { setXsPalette(pal); setXsDone(true); }}
+          onSkip={() => { setXsPalette(null); setXsDone(true); }}/>
       );
     }
     return (
@@ -5510,18 +5642,27 @@ function Root() {
   if (!selectedPreset) {
     return <ProjectSelector onSelect={setSelectedPreset}/>;
   }
+  if (!templateDone) {
+    return (
+      <TemplateSelector
+        preset={selectedPreset}
+        onBack={() => setSelectedPreset(null)}
+        onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
+        onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
+    );
+  }
   if (!paletteDone) {
     return (
       <PaletteSelector
         presetName={selectedPreset}
-        onBack={() => setSelectedPreset(null)}
+        onBack={() => setTemplateDone(false)}
         onChoose={(pal, back) => { setPalette(pal); setBackingFabric(back || null); setPaletteDone(true); }}
         onSkip={() => { setPalette(null); setBackingFabric(null); setPaletteDone(true); }}/>
     );
   }
   return (
     <>
-      <App initialPreset={selectedPreset} initialPalette={palette} initialBacking={backingFabric} onBack={resetAll}/>
+      <App initialPreset={selectedPreset} initialPalette={palette} initialBacking={backingFabric} initialTemplate={quiltTemplate} onBack={resetAll}/>
       <TweaksPanel/>
     </>
   );
