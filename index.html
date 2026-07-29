@@ -1425,24 +1425,24 @@ function nearestInList({ r, g, b }, list) {
 // Cross-stitch sizes are measured in stitches (grid count). Finished inches
 // depend on Aida fabric count; we show finished size at 14-count (most common).
 const STITCH_PRESETS = [
-  { name:"Coaster", w:40, h:40, desc:"Quick starter motif" },
+  { name:"Coaster Set", w:40, h:40, desc:"Quick starter motif" },
   { name:"Bookmark", w:30, h:120, desc:"Tall and skinny" },
-  { name:"Greeting Card", w:60, h:80, desc:"Little gift-sized art" },
   { name:"Small Hoop", w:70, h:70, desc:"Fits a 5\" hoop" },
-  { name:"Sampler", w:100, h:100, desc:"Classic square sampler" },
   { name:"Medium Hoop", w:120, h:120, desc:"Fits an 8\" hoop" },
-  { name:"Portrait", w:140, h:180, desc:"Detailed vertical piece" },
-  { name:"Large", w:200, h:200, desc:"Big, detailed project" },
 ];
 const STITCH_THEMES = {
-  "Coaster":      { c1:"#C83A2C", c2:"#F5D89A", desc:"Quick starter motif" },
+  "Coaster Set":  { c1:"#C83A2C", c2:"#F5D89A", desc:"Quick starter motif" },
   "Bookmark":     { c1:"#2C5080", c2:"#97B5D4", desc:"Tall and skinny" },
-  "Greeting Card":{ c1:"#7AB08C", c2:"#F5D89A", desc:"Little gift-sized art" },
   "Small Hoop":   { c1:"#E8A0B0", c2:"#B8D4E0", desc:"Fits a 5\" hoop" },
-  "Sampler":      { c1:"#6A3A78", c2:"#D4A8E0", desc:"Classic square sampler" },
   "Medium Hoop":  { c1:"#2C4A30", c2:"#7AAA80", desc:"Fits an 8\" hoop" },
-  "Portrait":     { c1:"#4A3028", c2:"#9A7060", desc:"Detailed vertical piece" },
-  "Large":        { c1:"#2A2A2A", c2:"#808080", desc:"Big, detailed project" },
+};
+// Product photos shown on the cross-stitch "What size?" cards, keyed by preset
+// name. Missing entries fall back to the plain colored thumb so nothing breaks.
+const STITCH_IMAGES = {
+  "Coaster Set": "assets/products/cross-stitch-coasters.jpg",
+  "Bookmark":    "assets/products/cross-stitch-bookmark.jpg",
+  "Small Hoop":  "assets/products/cross-stitch-small-hoop.jpg",
+  "Medium Hoop": "assets/products/cross-stitch-medium-hoop.jpg",
 };
 // Curated DMC starter palettes (referenced by floss code).
 const DMC_PALETTES = [
@@ -3824,6 +3824,13 @@ const CRAFTS = [
   { id: "cross-stitch", name: "Cross-stitch", desc: "Chart a cross-stitch pattern stitch by stitch.", ready: true },
   { id: "punch-needle", name: "Punch needle", desc: "Plan a punch needle project and yarn colors.", ready: false },
 ];
+// Cover photos shown on the "What are you making?" craft cards, keyed by craft
+// id. Missing entries render no thumb so the card still works.
+const CRAFT_IMAGES = {
+  "quilt":        "assets/products/quilt-baby-quilt.jpg",
+  "cross-stitch": "assets/products/cross-stitch-medium-hoop.jpg",
+  "punch-needle": "assets/products/punch-needle-wall-hanging.jpg",
+};
 
 // Tiny SVG preview of a saved quilt (same shape rendering as the "My quilts" list).
 function SavedQuiltThumb({ q }) {
@@ -3898,6 +3905,9 @@ function CraftSelector({ onSelect, onOpenSaved }) {
               role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
               onClick={() => c.ready && onSelect(c.id)}
               onKeyDown={e => e.key === "Enter" && c.ready && onSelect(c.id)}>
+              {CRAFT_IMAGES[c.id] && (
+                <div className="proj-card-thumb has-photo"><img src={CRAFT_IMAGES[c.id]} alt={c.name}/></div>
+              )}
               <div className="proj-card-body">
                 <div className="proj-card-name">{c.name}</div>
                 <div className="proj-card-desc">{c.desc}</div>
@@ -3912,13 +3922,14 @@ function CraftSelector({ onSelect, onOpenSaved }) {
   );
 }
 
-function ProjectSelector({ onSelect }) {
+function ProjectSelector({ onSelect, onBack }) {
   return (
     <div className="proj-page">
       <header className="proj-header">
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body">
+        {onBack && <button className="back-link" onClick={onBack}>← Back</button>}
         <div className="proj-intro">
           <h1 className="proj-heading">What size?</h1>
           <p className="proj-subheading">Choose a size to start planning your quilt.</p>
@@ -4389,10 +4400,13 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
 function StitchSizeCard({ preset, onSelect }) {
   const theme = STITCH_THEMES[preset.name] || {};
   const inW = (preset.w / 14).toFixed(1), inH = (preset.h / 14).toFixed(1);
+  const image = STITCH_IMAGES[preset.name];
   return (
     <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
-      <div className="proj-card-thumb" style={{ aspectRatio: `${preset.w} / ${preset.h}`, maxHeight: 120, background: theme.c2 || '#EFE9DD' }}/>
+      {image
+        ? <div className="proj-card-thumb has-photo"><img src={image} alt={preset.name}/></div>
+        : <div className="proj-card-thumb" style={{ aspectRatio: `${preset.w} / ${preset.h}`, maxHeight: 120, background: theme.c2 || '#EFE9DD' }}/>}
       <div className="proj-card-body">
         <div className="proj-card-name">{preset.name}</div>
         <div className="proj-card-dims">{preset.w} × {preset.h} stitches</div>
@@ -5652,7 +5666,7 @@ function Root() {
   }
 
   if (!selectedPreset) {
-    return <ProjectSelector onSelect={setSelectedPreset}/>;
+    return <ProjectSelector onSelect={setSelectedPreset} onBack={() => setCraft(null)}/>;
   }
   if (!templateDone) {
     return (
