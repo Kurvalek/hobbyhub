@@ -499,6 +499,8 @@
   .proj-card:active { transform: translateY(0); }
   .proj-card-thumb { overflow: hidden; background: var(--metime-cream); flex-shrink: 0; }
   .proj-card-thumb svg { display: block; width: 100%; height: auto; }
+  .proj-card-thumb.has-photo { aspect-ratio: 4 / 3; }
+  .proj-card-thumb.has-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .proj-card-body { padding: 13px 15px 15px; flex: 1; }
   .proj-card-name { font-size: 15px; font-weight: 600; color: var(--warm-fg); margin-bottom: 3px; }
   .proj-card-dims { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-bottom: 2px; }
@@ -1586,6 +1588,15 @@ const PRESET_THEMES = {
   "Wall hanging":   { c1:"#2C5080", c2:"#97B5D4", desc:"An accent piece for any wall" },
   "Baby blanket":   { c1:"#7AB08C", c2:"#F5D89A", desc:"Cozy for little ones" },
   "Throw":          { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
+};
+
+// Product photos shown on the quilt "What size?" cards, keyed by preset name.
+// Missing entries fall back to the generated QuiltThumb so nothing breaks.
+const PRESET_IMAGES = {
+  "Coaster":      "assets/products/quilt-coasters.jpg",
+  "Wall hanging": "assets/products/quilt-wall-hanging.jpg",
+  "Baby blanket": "assets/products/quilt-baby-quilt.jpg",
+  "Throw":        "assets/products/quilt-throw.jpg",
 };
 
 // Quilt-top yardage. `qty` is the kit multiplier (e.g. a Coaster kit makes 4):
@@ -3790,10 +3801,14 @@ function ProjectCard({ preset, onSelect }) {
   const rows = Math.min(MAX, Math.round(preset.h / bs));
   const topYards = calcYardage(Math.ceil(cols * rows / 2), bs, kitQty).yards * 2;
   const estCost = Math.ceil((topYards + backYards + bindYards) * 13 / 5) * 5;
+  const image = PRESET_IMAGES[preset.name];
 
   return (
     <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
+      {image
+        ? <div className="proj-card-thumb has-photo"><img src={image} alt={preset.name}/></div>
+        : <div className="proj-card-thumb"><QuiltThumb preset={preset}/></div>}
       <div className="proj-card-body">
         <div className="proj-card-name">{preset.name}</div>
         <div className="proj-card-dims">{preset.w}" × {preset.h}"</div>
