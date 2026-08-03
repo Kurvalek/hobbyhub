@@ -497,8 +497,12 @@
      stretch to fill the row on desktop; at narrow widths it still resolves to a
      single column, so mobile stacking is unchanged. max-width keeps cards sane
      on very wide screens. Shared by the craft picker and both size selectors. */
-  .proj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(188px, 1fr)); grid-auto-rows: 1fr; gap: 18px; max-width: 1200px; }
+  /* Size grids stay 4 / 2 / 1 across so we never get an orphan 3+1 row;
+     cards use 1fr so they expand to fill the row. Craft picker keeps auto-fit. */
+  .proj-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 18px; max-width: 1200px; }
   .craft-grid { grid-template-columns: repeat(auto-fit, minmax(188px, 1fr)); max-width: 1200px; }
+  @media (max-width: 900px) { .proj-grid:not(.craft-grid) { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .proj-grid:not(.craft-grid) { grid-template-columns: 1fr; } }
   .proj-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; display: flex; flex-direction: column; }
   .proj-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .proj-card:active { transform: translateY(0); }
@@ -622,7 +626,8 @@
   .pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
 
   /* Template selector */
-  .tmpl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .tmpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .tmpl-grid { grid-template-columns: repeat(2, 1fr); } }
   .tmpl-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; }
   .tmpl-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .tmpl-card:active { transform: translateY(0); }
@@ -651,7 +656,7 @@
     .proj-intro { margin-bottom: 28px; }
     .pal-section { margin-bottom: 28px; }
     .pal-upload { max-width: none; padding: 24px 16px; }
-    .tmpl-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); max-width: none; gap: 12px; }
+    .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .pal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
     .pal-result { flex-direction: column; gap: 14px; }
     .pal-result-preview { width: 100%; height: 160px; }
