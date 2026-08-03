@@ -595,7 +595,7 @@
   .pal-card-meta { font-size: 11px; color: var(--warm-muted); margin-top: 2px; }
 
   /* Upload */
-  .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 50%; box-sizing: border-box; }
+  .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 100%; box-sizing: border-box; }
   .pal-upload:hover, .pal-upload.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
   .pal-upload-icon { color: var(--warm-muted); margin-bottom: 8px; display: inline-flex; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: var(--warm-fg); }
@@ -633,6 +633,30 @@
   .tmpl-card-desc { font-size: 12px; color: var(--warm-muted); }
   .back-link { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--warm-muted); cursor: pointer; border: none; background: none; padding: 0; margin-bottom: 14px; font-family: inherit; }
   .back-link:hover { color: var(--warm-fg); }
+
+  /* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
+  .pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .pal-suggest-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pal-suggest-swatch { width: 44px; height: 44px; border-radius: 8px; border: 1px solid rgba(46,41,37,0.15); cursor: pointer; padding: 0; transition: transform .1s; }
+  .pal-suggest-swatch:hover { transform: scale(1.06); }
+  .pal-suggest-rm { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: var(--metime-black); color: var(--metime-white); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .pal-suggest-code { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
+  .pal-suggest-add { width: 44px; height: 44px; border-radius: 8px; border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
+  .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
+
+  /* Mobile-friendly project setup screens (size / template / palette steps). */
+  @media (max-width: 640px) {
+    .proj-body { padding: 24px 16px 56px; }
+    .proj-heading { font-size: 26px; }
+    .proj-intro { margin-bottom: 28px; }
+    .pal-section { margin-bottom: 28px; }
+    .pal-upload { max-width: none; padding: 24px 16px; }
+    .tmpl-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); max-width: none; gap: 12px; }
+    .pal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .pal-result { flex-direction: column; gap: 14px; }
+    .pal-result-preview { width: 100%; height: 160px; }
+    .pal-actions { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
@@ -4234,6 +4258,84 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
   );
 }
 
+// Upload-only photo picker for the cross-stitch template step. It just captures
+// the image (as a data URL) and hands it forward — NO color extraction here.
+// All color work (suggested palette, swapping) happens on the palette step.
+function PhotoDrop({ hint, onChoose }) {
+  const [imgSrc, setImgSrc] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef(null);
+  const handleFile = useCallback(file => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setBusy(true);
+    const reader = new FileReader();
+    reader.onload = ev => { setImgSrc(ev.target.result); setBusy(false); };
+    reader.onerror = () => setBusy(false);
+    reader.readAsDataURL(file);
+  }, []);
+  const reset = () => { setImgSrc(null); fileRef.current && (fileRef.current.value = ''); };
+  return (
+    <section className="pal-section">
+      <div className="pal-section-head">
+        <div className="pal-section-title">Upload a photo</div>
+        {hint && <div className="pal-section-sub">{hint}</div>}
+      </div>
+      {!imgSrc ? (
+        <div className={`pal-upload${drag ? ' drag' : ''}`}
+          onClick={() => fileRef.current && fileRef.current.click()}
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
+          <div className="pal-upload-icon"><IcImage size={28}/></div>
+          <div className="pal-upload-title">{busy ? 'Loading…' : 'Drop a photo here or click to browse'}</div>
+          <div className="pal-upload-sub">JPG, PNG, or WebP</div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>
+        </div>
+      ) : (
+        <div className="pal-result">
+          <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
+          <div className="pal-result-main">
+            <div className="pal-section-sub" style={{ marginBottom: 12 }}>We'll suggest a palette from this photo on the next step and use it to guide your design.</div>
+            <div className="pal-actions">
+              <button className="pal-btn" onClick={() => onChoose(imgSrc)}>Use this photo</button>
+              <button className="pal-btn secondary" onClick={reset}>Choose another</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Compact searchable DMC floss picker (anchored popover). Used on the palette
+// step to swap a suggested color for a different floss.
+function DmcPicker({ anchorRef, onClose, onPick }) {
+  const [q, setQ] = useState('');
+  const list = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const base = s ? DMC.filter(c => c.code.toLowerCase().includes(s) || c.name.toLowerCase().includes(s)) : DMC;
+    return base.slice(0, 240);
+  }, [q]);
+  return (
+    <Popover anchorRef={anchorRef} onClose={onClose} placement="bottom-start" width={264}>
+      <div className="popover-header">
+        <span className="popover-title">Pick a floss</span>
+        <button onClick={onClose} className="icon-btn" style={{ width: 24, height: 24 }} title="Close"><IcX/></button>
+      </div>
+      <div className="popover-body" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
+        <input type="text" placeholder="Search DMC code or name…" value={q} onChange={e => setQ(e.target.value)}/>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 4 }}>
+          {list.map((c, i) => (
+            <button key={`${c.code}${i}`} className="chip" onClick={() => { onPick(c); onClose(); }} style={{ background: c.hex }} title={`DMC ${c.code} · ${c.name}`}/>
+          ))}
+          {!list.length && <div style={{ gridColumn: '1/-1', fontSize: 12, color: 'var(--warm-muted)', padding: '12px 0', textAlign: 'center' }}>No matches</div>}
+        </div>
+      </div>
+    </Popover>
+  );
+}
+
 // Thumbnails render the actual template output (built at a small size).
 function QuiltTemplateThumb({ tpl, preset }) {
   const cols = 12, rows = Math.max(4, Math.round(12 * (preset.h / preset.w)));
@@ -4314,35 +4416,24 @@ function TemplateSelector({ preset, onChoose, onSkip, onBack }) {
   );
 }
 
-// Cross-stitch template step (template choices + "upload a photo to guide your design").
+// Cross-stitch template step: pick a template OR upload a photo. No color
+// selection here — the photo is carried forward and all color work (suggested
+// palette from the photo, sample palettes) happens on the next (palette) step.
 function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack }) {
   const uploadNode = (
-    <PhotoUpload
-      nearest={nearestDMC} idKey="code" paletteSize={10} count={24}
-      applyLabel="Use this photo"
-      hint="We'll match the top colors to DMC floss. You can auto-generate a design from it and trace it on the canvas."
-      options={[
-        { key: 'autoGen', label: 'Auto-generate a stitch design from this image', default: true },
-        { key: 'useAsBg', label: 'Show the image behind the canvas to trace it', default: true },
-      ]}
-      onApply={(chosen, { imgSrc, imgEl, options }) => {
-        const autoGrid = options.autoGen ? buildGridFromImage(imgEl, chosen, preset.w, preset.h) : null;
-        onChoose({ template: null, colors: chosen, opts: { bgImage: options.useAsBg ? imgSrc : null, autoGrid } });
-      }}/>
+    <PhotoDrop
+      hint="Upload a photo to guide your design — we'll suggest a palette from it on the next step."
+      onChoose={imgSrc => onChoose({ template: null, photo: imgSrc })}/>
   );
   return (
     <TemplateStep
       title="Pick a template or upload a photo"
-      subheading={`Start your ${preset.name} from a ready-made chart, a photo to trace, or skip to a blank grid.`}
+      subheading={`Start your ${preset.name} from a ready-made chart, a photo to guide your design, or skip to a blank grid.`}
       backLabel="Back to sizes" onBack={onBack}
       templates={CROSS_STITCH_TEMPLATES}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
       uploadNode={uploadNode}
-      onChoose={t => {
-        const grid = t.build(preset);
-        const hasCells = grid && grid.some(Boolean);
-        onChoose({ template: t, colors: xsColorsFromGrid(grid), opts: { bgImage: null, autoGrid: hasCells ? grid : null } });
-      }}
+      onChoose={t => onChoose({ template: t, photo: null })}
       onSkip={onSkip}/>
   );
 }
@@ -4442,10 +4533,58 @@ function CrossStitchSizeSelector({ onSelect, onBack }) {
   );
 }
 
-// ── Cross-stitch: palette / image selector ─────────────────────────────────
-function CrossStitchPaletteSelector({ preset, seedColors, onChoose, onSkip, onBack }) {
+// ── Cross-stitch: palette selector ─────────────────────────────────────────
+// All color selection happens here. If a photo was uploaded on the previous
+// step, we extract a suggested palette from it (editable — swap/remove/add via
+// the DMC floss picker). Choosing a palette (suggested or sample) auto-generates
+// the design from the photo + that palette and enables the trace overlay.
+function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack }) {
   const samples = useMemo(() => DMC_PALETTES.map(p => ({ name: p.name, colors: resolveDmcPalette(p) })), []);
-  const hasSeed = seedColors && seedColors.length > 0;
+  const imgElRef = useRef(null);
+  const [sugg, setSugg] = useState([]);
+  const [ready, setReady] = useState(!photo);
+  const [swapIdx, setSwapIdx] = useState(null);       // index being swapped/added
+  const swapAnchor = useRef(null);
+
+  useEffect(() => {
+    if (!photo) { setSugg([]); setReady(true); return; }
+    let cancelled = false;
+    setReady(false);
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      imgElRef.current = img;
+      const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+      let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setReady(true); return; }
+      const raw = extractColors(pixels, 24), seen = new Set(), colors = [];
+      for (const c of raw) { const k = nearestDMC(c); if (k && !seen.has(k.code)) { seen.add(k.code); colors.push(k); } }
+      setSugg(colors.slice(0, 10));
+      setReady(true);
+    };
+    img.onerror = () => setReady(true);
+    img.src = photo;
+    return () => { cancelled = true; };
+  }, [photo]);
+
+  // Build the opts (auto-generated design + trace overlay) for a chosen palette.
+  const optsFor = colors => {
+    if (!photo) return {};
+    const autoGrid = imgElRef.current ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h) : null;
+    return { autoGrid, bgImage: photo };
+  };
+  const openSwap = (e, i) => { swapAnchor.current = e.currentTarget; setSwapIdx(i); };
+  const pickSwap = c => {
+    setSugg(prev => {
+      const n = [...prev];
+      if (swapIdx >= n.length) n.push(c); else n[swapIdx] = c;
+      return n;
+    });
+  };
+  const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
+
   return (
     <div className="proj-page">
       <header className="proj-header">
@@ -4455,26 +4594,37 @@ function CrossStitchPaletteSelector({ preset, seedColors, onChoose, onSkip, onBa
         <button className="back-link" onClick={onBack}>← Back to templates</button>
         <div className="proj-intro">
           <h1 className="proj-heading">Pick a palette</h1>
-          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — {hasSeed ? 'keep the colors from your design, ' : ''}choose a set, or skip and pick as you stitch.</p>
+          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — {photo ? 'tweak the palette we pulled from your photo, ' : ''}choose a set, or skip and pick as you stitch.</p>
         </div>
 
-        {hasSeed && (
+        {photo && (
           <section className="pal-section">
             <div className="pal-section-head">
-              <div className="pal-section-title">Colors from your design</div>
-              <div className="pal-section-sub">Pulled from your photo or template — use them as your starting palette.</div>
+              <div className="pal-section-title">Suggested palette from your photo</div>
+              <div className="pal-section-sub">Tap a color to swap it for a different floss, or remove it. We'll build your design from these.</div>
             </div>
-            <div className="pal-grid">
-              <button className="pal-card" onClick={() => onChoose(seedColors)}>
-                <div className="pal-swatches">
-                  {seedColors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
+            {!ready ? (
+              <div className="pal-busy">Reading colors from your photo…</div>
+            ) : (
+              <div className="pal-result">
+                <img className="pal-result-preview" src={photo} alt="Your uploaded photo"/>
+                <div className="pal-result-main">
+                  <div className="pal-suggest">
+                    {sugg.map((c, i) => (
+                      <div key={`${c.code}-${i}`} className="pal-suggest-item">
+                        <button className="pal-suggest-swatch" style={{ background: c.hex }} onClick={e => openSwap(e, i)} title={`DMC ${c.code} ${c.name} — tap to swap`}/>
+                        <button className="pal-suggest-rm" onClick={() => removeAt(i)} title="Remove color" aria-label="Remove color">×</button>
+                        <span className="pal-suggest-code">{c.code}</span>
+                      </div>
+                    ))}
+                    <button className="pal-suggest-add" onClick={e => openSwap(e, sugg.length)} title="Add a color" aria-label="Add a color">+</button>
+                  </div>
+                  <div className="pal-actions">
+                    <button className="pal-btn" disabled={!sugg.length} onClick={() => onChoose(sugg, optsFor(sugg))}>Use this palette</button>
+                  </div>
                 </div>
-                <div className="pal-card-body">
-                  <div className="pal-card-name">Design palette</div>
-                  <div className="pal-card-meta">{seedColors.length} flosses</div>
-                </div>
-              </button>
-            </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -4485,7 +4635,7 @@ function CrossStitchPaletteSelector({ preset, seedColors, onChoose, onSkip, onBa
           </div>
           <div className="pal-grid">
             {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
+              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, optsFor(s.colors))}>
                 <div className="pal-swatches">
                   {s.colors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
                 </div>
@@ -4502,6 +4652,9 @@ function CrossStitchPaletteSelector({ preset, seedColors, onChoose, onSkip, onBa
           <button className="pal-skip" onClick={onSkip}>Skip for now — I'll pick colors in the editor →</button>
         </section>
       </div>
+      {swapIdx !== null && (
+        <DmcPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
+      )}
     </div>
   );
 }
@@ -5595,7 +5748,7 @@ function Root() {
   const [xsPreset, setXsPreset] = React.useState(null);
   const [xsTemplateDone, setXsTemplateDone] = React.useState(false);
   const [xsTemplate, setXsTemplate] = React.useState(null);
-  const [xsSeedColors, setXsSeedColors] = React.useState(null);
+  const [xsPhoto, setXsPhoto] = React.useState(null);
   const [xsDone, setXsDone] = React.useState(false);
   const [xsPalette, setXsPalette] = React.useState(null);
   const [xsOpts, setXsOpts] = React.useState({});
@@ -5605,7 +5758,7 @@ function Root() {
   const resetAll = () => {
     setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
     setPaletteDone(false); setPalette(null); setBackingFabric(null);
-    setXsPreset(null); setXsTemplateDone(false); setXsTemplate(null); setXsSeedColors(null);
+    setXsPreset(null); setXsTemplateDone(false); setXsTemplate(null); setXsPhoto(null);
     setXsDone(false); setXsPalette(null); setXsOpts({});
     setOpenSaved(null);
   };
@@ -5645,23 +5798,31 @@ function Root() {
         <CrossStitchTemplateSelector
           preset={xsPreset}
           onBack={() => setXsPreset(null)}
-          onChoose={({ template, colors, opts }) => {
+          onChoose={({ template, photo }) => {
             setXsTemplate(template);
-            setXsSeedColors(colors && colors.length ? colors : null);
-            setXsOpts(opts || {});
+            setXsPhoto(photo || null);
+            if (template) {
+              // Seed the design from the template grid; color work is next.
+              const grid = template.build(xsPreset);
+              const hasCells = grid && grid.some(Boolean);
+              setXsOpts({ bgImage: null, autoGrid: hasCells ? grid : null });
+            } else {
+              // Photo (or nothing yet): the design + trace are built on the palette step.
+              setXsOpts({});
+            }
             setXsTemplateDone(true);
           }}
-          onSkip={() => { setXsTemplate(null); setXsSeedColors(null); setXsOpts({}); setXsTemplateDone(true); }}/>
+          onSkip={() => { setXsTemplate(null); setXsPhoto(null); setXsOpts({}); setXsTemplateDone(true); }}/>
       );
     }
     if (!xsDone) {
       return (
         <CrossStitchPaletteSelector
           preset={xsPreset}
-          seedColors={xsSeedColors}
+          photo={xsPhoto}
           onBack={() => setXsTemplateDone(false)}
-          onChoose={pal => { setXsPalette(pal); setXsDone(true); }}
-          onSkip={() => { setXsPalette(null); setXsDone(true); }}/>
+          onChoose={(pal, extra) => { setXsPalette(pal && pal.length ? pal : null); if (extra) setXsOpts(o => ({ ...o, ...extra })); setXsDone(true); }}
+          onSkip={() => { setXsPalette(null); if (xsPhoto) setXsOpts(o => ({ ...o, bgImage: xsPhoto })); setXsDone(true); }}/>
       );
     }
     return (
