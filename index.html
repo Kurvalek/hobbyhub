@@ -649,8 +649,23 @@
   .pal-suggest-add { width: 44px; height: 44px; border-radius: 8px; border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
   .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
 
+  /* Backing-fabric picker: theme filter pills + dense swatch grid. */
+  .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+  .fabric-filter:not(.active):hover { background: var(--warm-hover); border-color: var(--warm-muted-2); }
+  .fabric-filter.active { background: var(--action); border-color: var(--action); color: var(--metime-white); }
+  .fabric-filter-count { font-family: var(--font-mono); font-size: 11px; opacity: 0.7; }
+  .fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .fabric-card { padding: 0; border: 1px solid var(--warm-hairline); border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface-card); font: inherit; transition: box-shadow .15s, border-color .15s, transform .12s; }
+  .fabric-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 6px 18px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .fabric-card:active { transform: translateY(0); }
+  .fabric-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+
   /* Mobile-friendly project setup screens (size / template / palette steps). */
   @media (max-width: 640px) {
+    .fabric-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .fabric-filters { gap: 6px; }
+    .fabric-filter { padding: 5px 12px; font-size: 12px; }
     .proj-body { padding: 24px 16px 56px; }
     .proj-heading { font-size: 26px; }
     .proj-intro { margin-bottom: 28px; }
@@ -666,6 +681,7 @@
 </head>
 <body>
 <div id="root"></div>
+<script src="assets/fabrics-manifest.js"></script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
 
@@ -4341,6 +4357,34 @@ function DmcPicker({ anchorRef, onClose, onPick }) {
   );
 }
 
+// Compact searchable Kona cotton picker (anchored popover). Quilt equivalent of
+// DmcPicker — used on the quilt palette step to swap a suggested fabric color.
+function KonaPicker({ anchorRef, onClose, onPick }) {
+  const [q, setQ] = useState('');
+  const list = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const base = s ? KONA.filter(c => c.name.toLowerCase().includes(s)) : KONA;
+    return base.slice(0, 240);
+  }, [q]);
+  return (
+    <Popover anchorRef={anchorRef} onClose={onClose} placement="bottom-start" width={264}>
+      <div className="popover-header">
+        <span className="popover-title">Pick a fabric</span>
+        <button onClick={onClose} className="icon-btn" style={{ width: 24, height: 24 }} title="Close"><IcX/></button>
+      </div>
+      <div className="popover-body" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
+        <input type="text" placeholder="Search Kona color name…" value={q} onChange={e => setQ(e.target.value)}/>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 4 }}>
+          {list.map((c, i) => (
+            <button key={`${c.name}${i}`} className="chip" onClick={() => { onPick(c); onClose(); }} style={{ background: c.hex }} title={c.name}/>
+          ))}
+          {!list.length && <div style={{ gridColumn: '1/-1', fontSize: 12, color: 'var(--warm-muted)', padding: '12px 0', textAlign: 'center' }}>No matches</div>}
+        </div>
+      </div>
+    </Popover>
+  );
+}
+
 // Thumbnails render the actual template output (built at a small size).
 function QuiltTemplateThumb({ tpl, preset }) {
   const cols = 12, rows = Math.max(4, Math.round(12 * (preset.h / preset.w)));
@@ -4414,7 +4458,7 @@ function TemplateSelector({ preset, onChoose, onSkip, onBack }) {
     <TemplateStep
       title="Pick a template"
       subheading={`Give your ${preset} a head start with a patchwork layout — or skip to a blank canvas.`}
-      backLabel="Back to sizes" onBack={onBack}
+      backLabel="Back to palette" onBack={onBack}
       templates={QUILT_TEMPLATES}
       renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p}/>}
       onChoose={onChoose} onSkip={onSkip}/>
@@ -4443,10 +4487,88 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack }) {
   );
 }
 
-function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
-  const samples = useMemo(
-    () => SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) })),
-    []
+// ── Quilt: backing fabric step ─────────────────────────────────────────────
+// Ruby Star Society backing fabrics for the quilt "Pick a backing fabric" step.
+// HOW IMAGES ARE SOURCED: swatch images are self-hosted under
+// assets/fabrics/<collection>/<file>.jpg. The list of collections and files is
+// generated into assets/fabrics-manifest.js (window.RSS_COLLECTIONS) — see the
+// banner in that file for how to regenerate. Each collection carries `cats`
+// (theme filters) which every flattened fabric inherits.
+// Any card whose image fails to load hides itself (see FabricCard's onError), so
+// a broken/missing asset never leaves a broken image or breaks the page.
+// TO ADD OR EDIT FABRICS: drop images into assets/fabrics/<collection>/ and
+// regenerate the manifest (do not hand-edit the flattened list below).
+const FABRIC_CATEGORIES = [
+  { id: 'all',      label: 'All' },
+  { id: 'simple',   label: 'Simple' },
+  { id: 'florals',  label: 'Florals' },
+  { id: 'animals',  label: 'Animals' },
+  { id: 'food',     label: 'Food' },
+  { id: 'nature',   label: 'Nature' },
+  { id: 'holidays', label: 'Holidays' },
+  { id: 'novelty',  label: 'Novelty' },
+];
+const RUBY_STAR_FABRICS = (window.RSS_COLLECTIONS || []).flatMap(c =>
+  c.files.map(f => ({
+    name: c.label,
+    collection: c.slug,
+    cats: c.cats,
+    // filenames contain spaces — encode so the URL resolves
+    image: encodeURI(`assets/fabrics/${c.slug}/${f}`),
+  }))
+);
+
+// Average a representative hex color from a loaded image. Draws to a small
+// offscreen canvas and averages the visible pixels; guards against canvas taint
+// (cross-origin images without CORS headers) with try/catch, falling back to a
+// neutral hex so a chosen backing always yields a usable color.
+function sampleImageHex(img) {
+  try {
+    const maxDim = 48, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 125) continue; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    if (!n) return '#C9BFB2';
+    return rgbToHex(r / n, g / n, b / n);
+  } catch (e) { return '#C9BFB2'; }
+}
+
+// A single fabric swatch card. Compact (image-only, name in tooltip) so the grid
+// can stay dense. Hides itself if its image can't load so a broken/missing asset
+// never leaves an empty broken-image box on the page.
+function FabricCard({ fab, onChoose }) {
+  const [hidden, setHidden] = useState(false);
+  if (hidden) return null;
+  return (
+    <button className="fabric-card" onClick={() => onChoose(fab)} title={`Use "${fab.name}"`}>
+      <img className="fabric-thumb" src={fab.image} alt={fab.name} loading="lazy" onError={() => setHidden(true)}/>
+    </button>
+  );
+}
+
+// Quilt backing-fabric step: pick a Ruby Star print or upload your own fabric.
+// Whatever is chosen is loaded, a representative hex is sampled, and we emit
+// { name, hex, image } — the palette step then pulls a Kona palette from it.
+function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
+  const [cat, setCat] = useState('all');
+  // Local swatches are same-origin, so no crossOrigin needed — sampleImageHex
+  // can read the pixels and the palette step gets a real auto-suggestion.
+  const chooseFromImage = (name, image) => {
+    const img = new Image();
+    img.onload = () => onChoose({ name, hex: sampleImageHex(img), image });
+    img.onerror = () => onChoose({ name, hex: '#C9BFB2', image });
+    img.src = image;
+  };
+  const cats = useMemo(() => FABRIC_CATEGORIES.map(c => ({
+    ...c,
+    count: c.id === 'all' ? RUBY_STAR_FABRICS.length : RUBY_STAR_FABRICS.filter(f => f.cats.includes(c.id)).length,
+  })).filter(c => c.id === 'all' || c.count > 0), []);
+  const shown = useMemo(
+    () => cat === 'all' ? RUBY_STAR_FABRICS : RUBY_STAR_FABRICS.filter(f => f.cats.includes(cat)),
+    [cat]
   );
   return (
     <div className="proj-page">
@@ -4454,18 +4576,129 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to templates</button>
+        <button className="back-link" onClick={onBack}>← Back to sizes</button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick a palette or upload a photo</h1>
-          <p className="proj-subheading">Start your {presetName} with a set of fabrics — choose a sample, pull colors from a photo, or skip for now.</p>
+          <h1 className="proj-heading">Pick a backing fabric</h1>
+          <p className="proj-subheading">Choose a backing for your {preset} — pick a Ruby Star Society print or upload your own fabric. We'll pull a palette from it on the next step.</p>
         </div>
 
-        <PhotoUpload
-          nearest={nearestKona} idKey="name" paletteSize={8} count={32}
-          applyLabel="Use these colors"
-          hint="We'll read the top colors from your photo and turn them into a fabric palette."
-          options={[{ key: 'useAsBacking', label: 'Use this image as the backing fabric', default: true }]}
-          onApply={(chosen, { imgSrc, options }) => onChoose(chosen, options.useAsBacking ? { name: 'Photo backing', hex: chosen[0].hex, image: imgSrc } : null)}/>
+        <section className="pal-section">
+          <div className="pal-section-head">
+            <div className="pal-section-title">Ruby Star fabrics</div>
+            <div className="pal-section-sub">Tap a fabric to use it as your backing.</div>
+          </div>
+          <div className="fabric-filters">
+            {cats.map(c => (
+              <button
+                key={c.id}
+                className={`fabric-filter${cat === c.id ? ' active' : ''}`}
+                onClick={() => setCat(c.id)}>
+                {c.label} <span className="fabric-filter-count">{c.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="fabric-grid">
+            {shown.map((f, i) => (
+              <FabricCard key={`${f.image}-${i}`} fab={f} onChoose={fab => chooseFromImage(fab.name, fab.image)}/>
+            ))}
+          </div>
+        </section>
+
+        <PhotoDrop
+          hint="Use a photo of your own fabric — we'll suggest a palette from it on the next step."
+          onChoose={imgSrc => chooseFromImage('Your fabric', imgSrc)}/>
+
+        <section className="pal-section">
+          <button className="pal-skip" onClick={onSkip}>Skip for now — I'll choose a backing later →</button>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// ── Quilt: palette selector ────────────────────────────────────────────────
+// Mirrors CrossStitchPaletteSelector. Backing was chosen on the previous step;
+// if it carries an image we extract an editable suggested Kona palette from it
+// (swap/remove/add via KonaPicker). Sample palettes remain available. Returns
+// ONLY the palette (backing is already set upstream).
+function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
+  const samples = useMemo(() => SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) })), []);
+  const photo = backing && backing.image;
+  const [sugg, setSugg] = useState([]);
+  const [ready, setReady] = useState(!photo);
+  const [swapIdx, setSwapIdx] = useState(null);
+  const swapAnchor = useRef(null);
+
+  useEffect(() => {
+    if (!photo) { setSugg([]); setReady(true); return; }
+    let cancelled = false;
+    setReady(false);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (cancelled) return;
+      const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+      let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setReady(true); return; }
+      const raw = extractColors(pixels, 24), seen = new Set(), colors = [];
+      for (const c of raw) { const k = nearestKona(c); if (k && !seen.has(k.name)) { seen.add(k.name); colors.push(k); } }
+      setSugg(colors.slice(0, 8));
+      setReady(true);
+    };
+    img.onerror = () => setReady(true);
+    img.src = photo;
+    return () => { cancelled = true; };
+  }, [photo]);
+
+  const openSwap = (e, i) => { swapAnchor.current = e.currentTarget; setSwapIdx(i); };
+  const pickSwap = c => setSugg(prev => { const n = [...prev]; if (swapIdx >= n.length) n.push(c); else n[swapIdx] = c; return n; });
+  const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
+  const shortName = n => (n && n.length > 9) ? n.slice(0, 9) : n;
+
+  return (
+    <div className="proj-page">
+      <header className="proj-header">
+        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+      </header>
+      <div className="proj-body pal-body">
+        <button className="back-link" onClick={onBack}>← Back to backing fabric</button>
+        <div className="proj-intro">
+          <h1 className="proj-heading">Pick a palette</h1>
+          <p className="proj-subheading">Start your {presetName} with Kona cotton — {photo ? 'tweak the palette we pulled from your fabric, ' : ''}choose a set, or skip and pick colors as you go.</p>
+        </div>
+
+        {photo && (
+          <section className="pal-section">
+            <div className="pal-section-head">
+              <div className="pal-section-title">Suggested palette from your fabric</div>
+              <div className="pal-section-sub">Tap a color to swap it for a different Kona cotton, or remove it. We'll build your palette from these.</div>
+            </div>
+            {!ready ? (
+              <div className="pal-busy">Reading colors from your fabric…</div>
+            ) : (
+              <div className="pal-result">
+                <img className="pal-result-preview" src={photo} alt="Your backing fabric"/>
+                <div className="pal-result-main">
+                  <div className="pal-suggest">
+                    {sugg.map((c, i) => (
+                      <div key={`${c.name}-${i}`} className="pal-suggest-item">
+                        <button className="pal-suggest-swatch" style={{ background: c.hex }} onClick={e => openSwap(e, i)} title={`${c.name} — tap to swap`}/>
+                        <button className="pal-suggest-rm" onClick={() => removeAt(i)} title="Remove color" aria-label="Remove color">×</button>
+                        <span className="pal-suggest-code">{shortName(c.name)}</span>
+                      </div>
+                    ))}
+                    <button className="pal-suggest-add" onClick={e => openSwap(e, sugg.length)} title="Add a color" aria-label="Add a color">+</button>
+                  </div>
+                  <div className="pal-actions">
+                    <button className="pal-btn" disabled={!sugg.length} onClick={() => onChoose(sugg)}>Use this palette</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="pal-section">
           <div className="pal-section-head">
@@ -4474,7 +4707,7 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
           </div>
           <div className="pal-grid">
             {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, null)}>
+              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
                 <div className="pal-swatches">
                   {s.colors.map((c, i) => (
                     <span key={i} className="pal-swatch" style={{ background: c.hex }} title={c.name}/>
@@ -4493,6 +4726,9 @@ function PaletteSelector({ presetName, onChoose, onSkip, onBack }) {
           <button className="pal-skip" onClick={onSkip}>Skip for now — I'll pick colors in the editor →</button>
         </section>
       </div>
+      {swapIdx !== null && (
+        <KonaPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
+      )}
     </div>
   );
 }
@@ -5749,6 +5985,7 @@ function Root() {
   const [paletteDone, setPaletteDone] = React.useState(false);
   const [palette, setPalette] = React.useState(null);
   const [backingFabric, setBackingFabric] = React.useState(null);
+  const [quiltBackingDone, setQuiltBackingDone] = React.useState(false);
   // Cross-stitch flow state
   const [xsPreset, setXsPreset] = React.useState(null);
   const [xsTemplateDone, setXsTemplateDone] = React.useState(false);
@@ -5762,7 +5999,7 @@ function Root() {
 
   const resetAll = () => {
     setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
-    setPaletteDone(false); setPalette(null); setBackingFabric(null);
+    setPaletteDone(false); setPalette(null); setBackingFabric(null); setQuiltBackingDone(false);
     setXsPreset(null); setXsTemplateDone(false); setXsTemplate(null); setXsPhoto(null);
     setXsDone(false); setXsPalette(null); setXsOpts({});
     setOpenSaved(null);
@@ -5839,22 +6076,32 @@ function Root() {
   if (!selectedPreset) {
     return <ProjectSelector onSelect={setSelectedPreset} onBack={() => setCraft(null)}/>;
   }
-  if (!templateDone) {
+  if (!quiltBackingDone) {
     return (
-      <TemplateSelector
+      <QuiltBackingSelector
         preset={selectedPreset}
         onBack={() => setSelectedPreset(null)}
-        onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
-        onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
+        onChoose={b => { setBackingFabric(b); setQuiltBackingDone(true); }}
+        onSkip={() => { setBackingFabric(null); setQuiltBackingDone(true); }}/>
     );
   }
   if (!paletteDone) {
     return (
       <PaletteSelector
         presetName={selectedPreset}
-        onBack={() => setTemplateDone(false)}
-        onChoose={(pal, back) => { setPalette(pal); setBackingFabric(back || null); setPaletteDone(true); }}
-        onSkip={() => { setPalette(null); setBackingFabric(null); setPaletteDone(true); }}/>
+        backing={backingFabric}
+        onBack={() => setQuiltBackingDone(false)}
+        onChoose={pal => { setPalette(pal); setPaletteDone(true); }}
+        onSkip={() => { setPalette(null); setPaletteDone(true); }}/>
+    );
+  }
+  if (!templateDone) {
+    return (
+      <TemplateSelector
+        preset={selectedPreset}
+        onBack={() => setPaletteDone(false)}
+        onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
+        onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
     );
   }
   return (

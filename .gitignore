@@ -3,3 +3,11 @@ node_modules/
 .env
 .env.local
 .DS_Store
+Thumbs.db
+.mobtest/
+
+# Ruby Star fabric "ruler" reference shots are not used by the app — keep them
+# on disk but out of the repo (see assets/fabrics-manifest.js).
+assets/fabrics/**/[Rr]uler/
+assets/fabrics/**/ruler (new colors)/
+assets/fabrics/**/*.zip
