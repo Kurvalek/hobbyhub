@@ -2936,14 +2936,14 @@ function Switch({ checked, onChange, label, title }) {
 }
 
 // ── SizeBar (top of center canvas panel) ──────────────────────────────────
-function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabled, onClear, clearDisabled }) {
+function SizeBar({ bs, minBs = 2, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabled, onClear, clearDisabled }) {
   return (
     <div className="size-bar">
       <div className="size-bar-slider">
         <span className="size-bar-label">Block size</span>
         <input
           type="range"
-          min={2}
+          min={minBs}
           max={maxBs}
           step={1}
           value={bs}
@@ -2968,18 +2968,23 @@ function SizeBar({ bs, maxBs, onBsChange, fw, fh, cols, rows, onUndo, undoDisabl
 // ── App ───────────────────────────────────────────────────────────────────
 function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
-  const _initCols = Math.min(MAX, Math.max(2, Math.round(_initP.w / 3)));
-  const _initRows = Math.min(MAX, Math.max(2, Math.round(_initP.h / 3)));
+  // Clamp the starting block size to what this preset allows (Coaster tops out
+  // at 2" and can go to 1"), so the size control opens in a coherent range.
+  const _initMinBs = initialPreset === 'Coaster' ? 1 : 2;
+  const _initMaxBs = Math.max(_initMinBs, Math.min(12, Math.floor(Math.min(_initP.w, _initP.h) / 2)));
+  const _initBs = Math.max(_initMinBs, Math.min(_initMaxBs, 3));
+  const _initCols = Math.min(MAX, Math.max(2, Math.round(_initP.w / _initBs)));
+  const _initRows = Math.min(MAX, Math.max(2, Math.round(_initP.h / _initBs)));
   const [cols, setCols] = useState(_initCols);
   const [rows, setRows] = useState(_initRows);
-  const [bs, setBs] = useState(3);
+  const [bs, setBs] = useState(_initBs);
   const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
   const isMobile = useIsMobile();
   // Mobile bottom-sheet router: null | 'palette' | 'size' | 'fabrics' | 'pattern' | 'materials'
   const [sheet, setSheet] = useState(null);
   const [shapes, _setShapes] = useState(() =>
     (initialTemplate && typeof initialTemplate.build === 'function')
-      ? initialTemplate.build({ cols: _initCols, rows: _initRows })
+      ? initialTemplate.build({ cols: _initCols, rows: _initRows, palette: initialPalette })
       : []);
   const historyRef = useRef([]);
   const setShapes = useCallback(updater => {
@@ -3231,25 +3236,31 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const bindCalc=useMemo(()=>calcBinding(fw,fh,kitQty),[fw,fh,kitQty]);
   const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
 
+  // Smallest allowed block size. Most quilts stop at 2" blocks, but Coasters
+  // are small enough that 1" blocks are useful, so we relax the floor there.
+  const minBsFor = name => (name === 'Coaster' ? 1 : 2);
+  const minBs = useMemo(() => minBsFor(preset), [preset]);
+
   const maxBs = useMemo(() => {
     const p = PRESETS.find(x => x.name === preset);
     if (!p) return 12;
-    return Math.max(2, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
-  }, [preset]);
+    return Math.max(minBs, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
+  }, [preset, minBs]);
 
   const applyPreset = name => {
     setPreset(name);
     const p = PRESETS.find(x => x.name === name);
     if (!p) return;
-    const presetMaxBs = Math.max(2, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
-    const v = Math.max(2, Math.min(presetMaxBs, bs));
+    const presetMinBs = minBsFor(name);
+    const presetMaxBs = Math.max(presetMinBs, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
+    const v = Math.max(presetMinBs, Math.min(presetMaxBs, bs));
     if (v !== bs) setBs(v);
     setCols(Math.min(MAX, Math.max(2, Math.round(p.w / v))));
     setRows(Math.min(MAX, Math.max(2, Math.round(p.h / v))));
   };
 
   const handleBsChange = newBs => {
-    const v = Math.max(2, Math.min(maxBs, Math.round(newBs)));
+    const v = Math.max(minBs, Math.min(maxBs, Math.round(newBs)));
     setBs(v);
     const p = PRESETS.find(x => x.name === preset);
     if (!p) return;
@@ -3324,6 +3335,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         <div className="panel" style={{display:'flex',flexDirection:'column',background:'var(--app-bg)',borderRight:'none'}}>
           <SizeBar
             bs={bs}
+            minBs={minBs}
             maxBs={maxBs}
             onBsChange={handleBsChange}
             fw={fw} fh={fh}
@@ -4010,6 +4022,12 @@ function tplPatchCount(cols, rows) {
   return { nx: Math.max(2, Math.round(cols / unit)), ny: Math.max(2, Math.round(rows / unit)) };
 }
 const tplKona = n => konaByName(n) || KONA[0];
+// Pick the i-th color from the chosen palette, falling back to a named Kona
+// default when there's no palette or it's shorter than the template needs.
+// This lets a template "wear" the palette the user picked on the palette step
+// while still looking right (two-/three-tone) for a skipped or short palette.
+const tplColor = (palette, i, fallbackName) =>
+  (palette && palette[i]) ? palette[i] : tplKona(fallbackName);
 function tplTriPoints(s) {
   const { r, c, w, h } = s;
   if (s.dir === '/') return s.half === 'a'
@@ -4020,14 +4038,16 @@ function tplTriPoints(s) {
     : `${c},${r} ${c},${r + h} ${c + w},${r + h}`;
 }
 
-// Size-adaptive quilt starter layouts. build({cols,rows}) → shapes[] (same
-// shape objects the editor paints), so they tile/scale to any chosen preset.
+// Size-adaptive quilt starter layouts. build({cols,rows,palette}) → shapes[]
+// (same shape objects the editor paints), so they tile/scale to any chosen
+// preset. When `palette` (the colors picked on the palette step) is supplied,
+// each layout colors its patches from it; otherwise it uses sensible defaults.
 const QUILT_TEMPLATES = [
   { id: 'blank', name: 'Blank', desc: 'Start from an empty canvas.', build: () => [] },
   {
     id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating two-color squares.',
-    build: ({ cols, rows }) => {
-      const a = tplKona('Navy'), b = tplKona('White');
+    build: ({ cols, rows, palette }) => {
+      const a = tplColor(palette, 0, 'Navy'), b = tplColor(palette, 1, 'White');
       const { nx, ny } = tplPatchCount(cols, rows);
       const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
       sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
@@ -4038,8 +4058,8 @@ const QUILT_TEMPLATES = [
   },
   {
     id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 patchwork, tiled.',
-    build: ({ cols, rows }) => {
-      const a = tplKona('Rich Red'), b = tplKona('White');
+    build: ({ cols, rows, palette }) => {
+      const a = tplColor(palette, 0, 'Rich Red'), b = tplColor(palette, 1, 'White');
       const { nx, ny } = tplPatchCount(cols, rows);
       const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
       sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
@@ -4050,8 +4070,8 @@ const QUILT_TEMPLATES = [
   },
   {
     id: 'railfence', name: 'Rail Fence', desc: 'Woven strips of three fabrics.',
-    build: ({ cols, rows }) => {
-      const rails = [tplKona('Navy'), tplKona('Mustard'), tplKona('Natural')];
+    build: ({ cols, rows, palette }) => {
+      const rails = [tplColor(palette, 0, 'Navy'), tplColor(palette, 1, 'Mustard'), tplColor(palette, 2, 'Natural')];
       const { nx, ny } = tplPatchCount(cols, rows);
       const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
       sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
@@ -4064,8 +4084,8 @@ const QUILT_TEMPLATES = [
   },
   {
     id: 'hst', name: 'Half-Square Triangles', desc: 'A grid of two-tone triangle blocks.',
-    build: ({ cols, rows }) => {
-      const a = tplKona('Navy'), b = tplKona('White');
+    build: ({ cols, rows, palette }) => {
+      const a = tplColor(palette, 0, 'Navy'), b = tplColor(palette, 1, 'White');
       const { nx, ny } = tplPatchCount(cols, rows);
       const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
       sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
@@ -4385,10 +4405,12 @@ function KonaPicker({ anchorRef, onClose, onPick }) {
   );
 }
 
-// Thumbnails render the actual template output (built at a small size).
-function QuiltTemplateThumb({ tpl, preset }) {
+// Thumbnails render the actual template output (built at a small size). When a
+// palette is supplied it previews the template in those colors, matching what
+// the studio will build when the template is selected.
+function QuiltTemplateThumb({ tpl, preset, palette }) {
   const cols = 12, rows = Math.max(4, Math.round(12 * (preset.h / preset.w)));
-  const shapes = useMemo(() => tpl.build({ cols, rows }), [tpl, cols, rows]);
+  const shapes = useMemo(() => tpl.build({ cols, rows, palette }), [tpl, cols, rows, palette]);
   return (
     <svg viewBox={`0 0 ${cols} ${rows}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', background: 'var(--metime-cream)' }}>
       <rect width={cols} height={rows} fill="var(--metime-cream)"/>
@@ -4452,15 +4474,15 @@ function TemplateStep({ title, subheading, backLabel, onBack, templates, renderT
 }
 
 // Quilt template step (template-only; the photo uploader lives on the palette page).
-function TemplateSelector({ preset, onChoose, onSkip, onBack }) {
+function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
   const p = PRESETS.find(x => x.name === preset) || PRESETS[0];
   return (
     <TemplateStep
       title="Pick a template"
-      subheading={`Give your ${preset} a head start with a patchwork layout — or skip to a blank canvas.`}
+      subheading={`Give your ${preset} a head start with a patchwork layout${palette && palette.length ? ' in your palette' : ''} — or skip to a blank canvas.`}
       backLabel="Back to palette" onBack={onBack}
       templates={QUILT_TEMPLATES}
-      renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p}/>}
+      renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p} palette={palette}/>}
       onChoose={onChoose} onSkip={onSkip}/>
   );
 }
@@ -6099,6 +6121,7 @@ function Root() {
     return (
       <TemplateSelector
         preset={selectedPreset}
+        palette={palette}
         onBack={() => setPaletteDone(false)}
         onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
         onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
