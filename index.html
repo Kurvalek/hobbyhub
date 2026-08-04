@@ -5999,6 +5999,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   );
 }
 
+// Depth of each step in the setup flow, so the History integration can tell a
+// forward move (push a new entry) from a backward move (reverse one step).
+const STEP_DEPTH = {
+  'craft': 0,
+  'q-size': 1, 'q-backing': 2, 'q-palette': 3, 'q-template': 4, 'q-editor': 5,
+  'xs-size': 1, 'xs-template': 2, 'xs-palette': 3, 'xs-editor': 4,
+  'saved': 1,
+};
+
 function Root() {
   const [craft, setCraft] = React.useState(null);
   const [selectedPreset, setSelectedPreset] = React.useState(null);
@@ -6027,6 +6036,73 @@ function Root() {
     setOpenSaved(null);
   };
 
+  // ── Browser Back = previous step ──────────────────────────────────────────
+  // The screens above are a plain state machine with no URL, so the browser's
+  // Back button used to leave the app entirely. We mirror the current step into
+  // the History API: push an entry when the user moves forward, and reverse
+  // exactly one step on `popstate`. The in-app "Back" links route through
+  // history.back() too, so both paths behave identically and stay in sync.
+  const stepKey = React.useMemo(() => {
+    if (openSaved) return 'saved';
+    if (!craft) return 'craft';
+    if (craft === 'cross-stitch') {
+      if (!xsPreset) return 'xs-size';
+      if (!xsTemplateDone) return 'xs-template';
+      if (!xsDone) return 'xs-palette';
+      return 'xs-editor';
+    }
+    if (!selectedPreset) return 'q-size';
+    if (!quiltBackingDone) return 'q-backing';
+    if (!paletteDone) return 'q-palette';
+    if (!templateDone) return 'q-template';
+    return 'q-editor';
+  }, [openSaved, craft, xsPreset, xsTemplateDone, xsDone, selectedPreset, quiltBackingDone, paletteDone, templateDone]);
+
+  const stepRef = React.useRef(stepKey); stepRef.current = stepKey;
+  const prevStepRef = React.useRef(stepKey);
+  const isPoppingRef = React.useRef(false);
+
+  // Reverse a single step. Returns true if it actually moved (so popstate knows
+  // whether a transition happened); 'craft' returns false to let the browser
+  // navigate away from the site as usual.
+  const goBack = () => {
+    switch (stepRef.current) {
+      case 'q-editor':    setTemplateDone(false); return true;
+      case 'q-template':  setPaletteDone(false); return true;
+      case 'q-palette':   setQuiltBackingDone(false); return true;
+      case 'q-backing':   setSelectedPreset(null); return true;
+      case 'q-size':      setCraft(null); return true;
+      case 'xs-editor':   setXsDone(false); return true;
+      case 'xs-palette':  setXsTemplateDone(false); return true;
+      case 'xs-template': setXsPreset(null); return true;
+      case 'xs-size':     setCraft(null); return true;
+      case 'saved':       resetAll(); return true;
+      default:            return false;
+    }
+  };
+  const goBackRef = React.useRef(goBack); goBackRef.current = goBack;
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.history.replaceState({ step: stepRef.current }, '');
+    const onPop = () => { if (goBackRef.current()) isPoppingRef.current = true; };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // A popstate-driven change already consumed a history entry — don't push.
+    if (isPoppingRef.current) { isPoppingRef.current = false; prevStepRef.current = stepKey; return; }
+    if (stepKey === prevStepRef.current) return;
+    const d = STEP_DEPTH[stepKey] ?? 0, pd = STEP_DEPTH[prevStepRef.current] ?? 0;
+    // Forward move: add an entry so Back returns here. Backward/reset not via a
+    // pop (e.g. the editor's "Back to projects"): collapse onto the current entry.
+    if (d > pd) window.history.pushState({ step: stepKey }, '');
+    else window.history.replaceState({ step: stepKey }, '');
+    prevStepRef.current = stepKey;
+  }, [stepKey]);
+
   // Opening a saved design bypasses the craft/size/palette steps and drops the
   // user straight onto the matching editor with that design loaded.
   if (openSaved) {
@@ -6054,14 +6130,14 @@ function Root() {
 
   if (craft === 'cross-stitch') {
     if (!xsPreset) {
-      return <CrossStitchSizeSelector onBack={() => setCraft(null)}
+      return <CrossStitchSizeSelector onBack={() => window.history.back()}
         onSelect={name => setXsPreset(STITCH_PRESETS.find(p => p.name === name))}/>;
     }
     if (!xsTemplateDone) {
       return (
         <CrossStitchTemplateSelector
           preset={xsPreset}
-          onBack={() => setXsPreset(null)}
+          onBack={() => window.history.back()}
           onChoose={({ template, photo }) => {
             setXsTemplate(template);
             setXsPhoto(photo || null);
@@ -6084,7 +6160,7 @@ function Root() {
         <CrossStitchPaletteSelector
           preset={xsPreset}
           photo={xsPhoto}
-          onBack={() => setXsTemplateDone(false)}
+          onBack={() => window.history.back()}
           onChoose={(pal, extra) => { setXsPalette(pal && pal.length ? pal : null); if (extra) setXsOpts(o => ({ ...o, ...extra })); setXsDone(true); }}
           onSkip={() => { setXsPalette(null); if (xsPhoto) setXsOpts(o => ({ ...o, bgImage: xsPhoto })); setXsDone(true); }}/>
       );
@@ -6096,13 +6172,13 @@ function Root() {
   }
 
   if (!selectedPreset) {
-    return <ProjectSelector onSelect={setSelectedPreset} onBack={() => setCraft(null)}/>;
+    return <ProjectSelector onSelect={setSelectedPreset} onBack={() => window.history.back()}/>;
   }
   if (!quiltBackingDone) {
     return (
       <QuiltBackingSelector
         preset={selectedPreset}
-        onBack={() => setSelectedPreset(null)}
+        onBack={() => window.history.back()}
         onChoose={b => { setBackingFabric(b); setQuiltBackingDone(true); }}
         onSkip={() => { setBackingFabric(null); setQuiltBackingDone(true); }}/>
     );
@@ -6112,7 +6188,7 @@ function Root() {
       <PaletteSelector
         presetName={selectedPreset}
         backing={backingFabric}
-        onBack={() => setQuiltBackingDone(false)}
+        onBack={() => window.history.back()}
         onChoose={pal => { setPalette(pal); setPaletteDone(true); }}
         onSkip={() => { setPalette(null); setPaletteDone(true); }}/>
     );
@@ -6122,7 +6198,7 @@ function Root() {
       <TemplateSelector
         preset={selectedPreset}
         palette={palette}
-        onBack={() => setPaletteDone(false)}
+        onBack={() => window.history.back()}
         onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
         onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
     );
