@@ -883,13 +883,34 @@ async function saveDesignToApi(type, data) {
   return body.id;
 }
 
+// Serializes a design for the API: drops local-only fields (`id`, `apiId`,
+// `bgImage`) and any embedded photo data — a photo backing stores its image
+// as a ~500 KB data URL in `backing.image`, which the server never renders
+// and which blows past the API's payload cap (photo fabrics keep small asset
+// URLs, which pass through untouched). Returns a fresh object; the saved
+// design is never mutated.
+function apiSafeDesign(design) {
+  const { id: _id, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+  const stripPhoto = (o) => {
+    if (!o || typeof o !== "object") return o;
+    if (typeof o.image === "string" && o.image.startsWith("data:")) {
+      const { image: _image, ...rest } = o;
+      return rest;
+    }
+    return o;
+  };
+  if (data.backing) data.backing = stripPhoto(data.backing);
+  if (data.binding) data.binding = stripPhoto(data.binding);
+  if (Array.isArray(data.pinned)) data.pinned = data.pinned.map(stripPhoto);
+  return data;
+}
+
 // Renders a design to a PDF on the server (POST /api/render) and triggers a
 // download in the browser. `doc` is "chart" (quilt: template + per-piece cut
 // list) or "instructions" (assembly steps). No upload/storage round-trip —
-// the design travels in the request body — so the same local-only fields the
-// kit doesn't need (`id`, `apiId`, `bgImage`) are stripped before sending.
+// the design travels in the request body.
 async function downloadDesignPdf(type, design, doc) {
-  const { id: _id, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+  const data = apiSafeDesign(design);
   const res = await fetch("/api/render", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -915,10 +936,10 @@ async function downloadDesignPdf(type, design, doc) {
 // returned id via onSaved (persisted as `apiId` on the saved entry, so a
 // design is never uploaded twice), then (2) creates a Shopify cart whose kit
 // line item carries that id as the `_design_id` attribute and redirects to the
-// hosted checkout. The local `id` is a device-only list key, and `bgImage` is
-// a reference photo that can exceed the API's payload cap — neither is part of
-// the kit, so both are stripped before upload. If Shopify isn't configured yet
-// (placeholders untouched), it falls back to save-only so the app still works.
+// hosted checkout. Local-only fields and embedded photo data are stripped via
+// apiSafeDesign so the upload stays under the API's payload cap. If Shopify
+// isn't configured yet (placeholders untouched), it falls back to save-only so
+// the app still works.
 function KitCheckoutButton({ type, design, savedId, onSaved }) {
   const [state, setState] = useState(savedId ? { status: "done", id: savedId } : { status: "idle" });
   const busy = state.status === "saving" || state.status === "redirecting";
@@ -926,7 +947,7 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
   const ensureSaved = async () => {
     if (savedId) return savedId;
     if (state.status === "done" && state.id) return state.id;
-    const { id: _localId, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+    const data = apiSafeDesign(design);
     const id = await saveDesignToApi(type, data);
     if (onSaved) onSaved(id);
     return id;
@@ -996,7 +1017,7 @@ function QuiltPdfButtons({ design }) {
       await downloadDesignPdf("quilt", design, doc);
     } catch (e) {
       console.warn("PDF download failed:", e);
-      setError("Couldn't generate the PDF — make sure the kit service is running.");
+      setError("Couldn't generate the PDF — please try again in a moment.");
     } finally {
       setBusy(null);
     }
