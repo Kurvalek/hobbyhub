@@ -11,3 +11,8 @@ Thumbs.db
 assets/fabrics/**/[Rr]uler/
 assets/fabrics/**/ruler (new colors)/
 assets/fabrics/**/*.zip
+
+# Cross-stitch template source images are build-time inputs only — the app ships
+# the baked data (assets/stitch-templates-data.js). Regenerate with
+# tools/gen-stitch-templates.mjs. Keep on disk, out of the repo/deploy.
+assets/stitch-templates/

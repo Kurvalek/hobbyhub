@@ -631,8 +631,8 @@
   .tmpl-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; }
   .tmpl-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .tmpl-card:active { transform: translateY(0); }
-  .tmpl-card-thumb { background: var(--metime-cream); }
-  .tmpl-card-thumb svg { display: block; width: 100%; height: auto; }
+  .tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
+  .tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
   .tmpl-card-body { padding: 10px 13px 13px; }
   .tmpl-card-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); margin-bottom: 2px; }
   .tmpl-card-desc { font-size: 12px; color: var(--warm-muted); }
@@ -682,6 +682,7 @@
 <body>
 <div id="root"></div>
 <script src="assets/fabrics-manifest.js"></script>
+<script src="assets/stitch-templates-data.js"></script>
 <script type="text/babel">
 const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
 
@@ -4099,19 +4100,6 @@ const QUILT_TEMPLATES = [
   },
 ];
 
-// Compact 3×5 uppercase font for the cross-stitch alphabet sampler.
-const TPL_FONT35 = {
-  A:['111','101','111','101','101'], B:['110','101','110','101','110'], C:['111','100','100','100','111'],
-  D:['110','101','101','101','110'], E:['111','100','110','100','111'], F:['111','100','110','100','100'],
-  G:['111','100','101','101','111'], H:['101','101','111','101','101'], I:['111','010','010','010','111'],
-  J:['111','001','001','101','111'], K:['101','101','110','101','101'], L:['100','100','100','100','111'],
-  M:['101','111','111','101','101'], N:['101','111','111','111','101'], O:['111','101','101','101','111'],
-  P:['111','101','111','100','100'], Q:['111','101','101','111','011'], R:['110','101','110','101','101'],
-  S:['111','100','111','001','111'], T:['111','010','010','010','010'], U:['101','101','101','101','111'],
-  V:['101','101','101','101','010'], W:['101','101','111','111','101'], X:['101','101','010','101','101'],
-  Y:['101','101','010','010','010'], Z:['111','001','010','100','111'],
-};
-const tplDmcHex = (code, fallback) => (dmcByCode(code) || {}).hex || fallback;
 // Distinct DMC color objects present in a cell-hex grid (for palette pre-seed).
 function xsColorsFromGrid(grid) {
   if (!grid) return [];
@@ -4119,47 +4107,54 @@ function xsColorsFromGrid(grid) {
   for (const hex of grid) { if (hex && !seen.has(hex)) { seen.add(hex); const d = DMC.find(c => c.hex === hex); if (d) out.push(d); } }
   return out;
 }
-function tplHeartGrid({ w, h }) {
-  const grid = new Array(w * h).fill(null), red = tplDmcHex('666', '#E31D42');
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const nx = (x / (w - 1)) * 2 - 1, ny = 1 - (y / (h - 1)) * 2;
-    const xs = nx * 1.1, ys = ny * 1.1 - 0.15;
-    const v = Math.pow(xs * xs + ys * ys - 1, 3) - xs * xs * ys * ys * ys;
-    if (v < 0) grid[y * w + x] = red;
+// Size-catered cross-stitch starter charts. Real chart data lives in
+// assets/stitch-templates-data.js (window.STITCH_TEMPLATE_DATA) — baked from the
+// curated inspiration images by tools/gen-stitch-templates.mjs. Each entry is a
+// canonical W×H chart (colors + RLE); build({w,h}) decodes it once and nearest-
+// neighbour resamples to the requested size, so a single chart scales to every
+// preset that offers it.
+function xsDecodeChart(entry) {
+  if (entry._grid) return entry._grid;                       // memoized native grid
+  const grid = new Array(entry.w * entry.h).fill(null);
+  let pos = 0;
+  for (const tok of entry.rle.split(' ')) {
+    const dot = tok.indexOf('.');
+    const idx = parseInt(tok.slice(0, dot), 36), run = parseInt(tok.slice(dot + 1), 36);
+    const hex = idx ? entry.colors[idx - 1] : null;
+    for (let k = 0; k < run; k++) grid[pos++] = hex;
   }
+  entry._grid = grid;
   return grid;
 }
-function tplBorderGrid({ w, h }) {
-  const grid = new Array(w * h).fill(null), c = tplDmcHex('797', '#1F3A93');
-  const t = Math.max(1, Math.round(Math.min(w, h) / 12));
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (x < t || x >= w - t || y < t || y >= h - t) grid[y * w + x] = c; }
-  return grid;
-}
-function tplSamplerGrid({ w, h }) {
-  const grid = new Array(w * h).fill(null), ink = tplDmcHex('310', '#000000'), frame = tplDmcHex('797', '#1F3A93');
-  const t = 1;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (x < t || x >= w - t || y < t || y >= h - t) grid[y * w + x] = frame; }
-  const gw = 3, gh = 5, gap = 1, pad = t + 1;
-  let cx = pad, cy = pad + 1;
-  for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
-    const g = TPL_FONT35[ch]; if (!g) continue;
-    if (cx + gw > w - pad) { cx = pad; cy += gh + 1; }
-    if (cy + gh > h - pad) break;
-    for (let ry = 0; ry < gh; ry++) for (let rx = 0; rx < gw; rx++) {
-      if (g[ry][rx] === '1') { const X = cx + rx, Y = cy + ry; if (X < w && Y < h) grid[Y * w + X] = ink; }
+// Nearest-neighbour resample a src (sw×sh) hex/null grid to dw×dh.
+function xsResampleGrid(src, sw, sh, dw, dh) {
+  if (sw === dw && sh === dh) return src.slice();
+  const out = new Array(dw * dh).fill(null);
+  for (let y = 0; y < dh; y++) {
+    const sy = Math.min(sh - 1, Math.floor((y + 0.5) * sh / dh));
+    for (let x = 0; x < dw; x++) {
+      const sx = Math.min(sw - 1, Math.floor((x + 0.5) * sw / dw));
+      out[y * dw + x] = src[sy * sw + sx];
     }
-    cx += gw + gap;
   }
-  return grid;
+  return out;
 }
-// Size-adaptive cross-stitch starter charts. build({w,h}) → cell-hex array
-// (same format as an auto-generated design / autoGrid).
+const STITCH_BLANK_TEMPLATE = {
+  id: 'blank', name: 'Blank', desc: 'Start from an empty grid.', presets: null,
+  build: ({ w, h }) => new Array(w * h).fill(null),
+};
 const CROSS_STITCH_TEMPLATES = [
-  { id: 'blank', name: 'Blank', desc: 'Start from an empty grid.', build: ({ w, h }) => new Array(w * h).fill(null) },
-  { id: 'heart', name: 'Heart', desc: 'A centered heart motif.', build: tplHeartGrid },
-  { id: 'border', name: 'Simple Border', desc: 'A tidy frame around the edges.', build: tplBorderGrid },
-  { id: 'sampler', name: 'Alphabet Sampler', desc: 'A classic ABC sampler band.', build: tplSamplerGrid },
+  STITCH_BLANK_TEMPLATE,
+  ...(window.STITCH_TEMPLATE_DATA || []).map(entry => ({
+    id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
+    build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
+  })),
 ];
+// Templates offered for a given preset (Blank first, then size-catered charts).
+function stitchTemplatesFor(preset) {
+  const name = preset && preset.name;
+  return CROSS_STITCH_TEMPLATES.filter(t => !t.presets || t.presets.includes(name));
+}
 
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
 // color → a ready-to-stitch design (shared by the cross-stitch template step).
@@ -4422,7 +4417,9 @@ function QuiltTemplateThumb({ tpl, preset, palette }) {
   );
 }
 function StitchTemplateThumb({ tpl, preset }) {
-  const w = Math.min(36, preset.w), h = Math.max(4, Math.round(w * (preset.h / preset.w)));
+  // Preview at (roughly) the real stitch resolution so detailed image-derived
+  // charts stay legible — capped so huge canvases don't render 14k+ SVG rects.
+  const w = Math.min(90, preset.w), h = Math.max(4, Math.round(w * (preset.h / preset.w)));
   const grid = useMemo(() => tpl.build({ w, h }), [tpl, w, h]);
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', background: '#fff' }}>
@@ -4501,7 +4498,7 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack }) {
       title="Pick a template or upload a photo"
       subheading={`Start your ${preset.name} from a ready-made chart, a photo to guide your design, or skip to a blank grid.`}
       backLabel="Back to sizes" onBack={onBack}
-      templates={CROSS_STITCH_TEMPLATES}
+      templates={stitchTemplatesFor(preset)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
       uploadNode={uploadNode}
       onChoose={t => onChoose({ template: t, photo: null })}
