@@ -1,4 +1,10 @@
 import { esc, htmlDoc } from "./helpers.js";
+import { quiltCutList, fmtInches } from "../cutlist.js";
+
+// "X"" for squares, "X" × Y"" for rectangles.
+function cutSizeLabel(cutW, cutH) {
+  return cutW === cutH ? fmtInches(cutW) : `${fmtInches(cutW)} × ${fmtInches(cutH)}`;
+}
 
 // Renders eighths-of-a-yard as a tidy fraction (matches the studio's fmtY).
 function fmtY(y) {
@@ -58,29 +64,67 @@ export function quiltTemplateHtml(record) {
     <rect x="0" y="0" width="${cols}" height="${rows}" fill="none" stroke="#1A1613" stroke-width="0.08"/>
   </svg>`;
 
-  const items = (d.materials && d.materials.items) || [];
-  const cutRows = items
+  // Per-piece cut list, computed from the actual placed shapes.
+  const cut = quiltCutList(d);
+
+  const squareRows = cut.squares
     .map(
-      (it) => `<tr>
-        <td><span class="swatch" style="background:${esc(it.hex)}"></span></td>
-        <td class="mono">${esc(it.code || "")}</td>
-        <td>${esc(it.name || "Fabric")}</td>
-        <td class="mono">${it.strips != null ? it.strips : "—"}</td>
-        <td class="mono">${it.cutSize != null ? it.cutSize + '"' : "—"}</td>
-        <td class="mono">${fmtY(it.yards || 0)}</td>
+      (g) => `<tr>
+        <td><span class="swatch" style="background:${esc(g.hex)}"></span></td>
+        <td class="mono">${esc(g.code || "")}</td>
+        <td>${esc(g.name || "Fabric")}</td>
+        <td class="mono">${esc(cutSizeLabel(g.cutW, g.cutH))}</td>
+        <td class="mono"><b>${g.qty}</b></td>
       </tr>`
     )
     .join("");
+  const squareTable = cut.squares.length
+    ? `<h2 class="sec">Cut these squares — Kona Cotton</h2>
+    <table class="legend">
+      <thead><tr><th>Color</th><th>Kona</th><th>Name</th><th>Cut size</th><th>Pieces</th></tr></thead>
+      <tbody>${squareRows}</tbody>
+    </table>`
+    : "";
+
+  const hstRows = cut.hsts
+    .map(
+      (g) => `<tr>
+        <td>
+          <span class="swatch" style="background:${esc(g.aHex)}"></span>
+          <span class="swatch" style="background:${esc(g.bHex)}"></span>
+        </td>
+        <td>${esc(g.aName)}${g.aCode ? ` <span class="mono muted">${esc(g.aCode)}</span>` : ""} + ${esc(g.bName)}${g.bCode ? ` <span class="mono muted">${esc(g.bCode)}</span>` : ""}</td>
+        <td class="mono">${esc(fmtInches(g.finished))}${g.square ? "" : ` × ${esc(fmtInches(g.finishedH))}`}</td>
+        <td class="mono">${esc(fmtInches(g.cutSquare))}</td>
+        <td class="mono">${g.squaresPerColor} / color</td>
+        <td class="mono"><b>${g.units}</b></td>
+      </tr>`
+    )
+    .join("");
+  const hstTable = cut.hasHst
+    ? `<h2 class="sec">Half-square triangles</h2>
+    <table class="legend">
+      <thead><tr><th>Colors</th><th>Kona</th><th>Finished</th><th>Cut squares</th><th>Squares</th><th>Units</th></tr></thead>
+      <tbody>${hstRows}</tbody>
+    </table>
+    <div class="tip"><b>Making HSTs (2-at-a-time):</b> Cut the squares above (the listed number of each color). Pair one of each color right sides together, draw a diagonal line corner to corner, sew ¼" from each side of the line, then cut along the line and press open — each pair yields two units. Trim each unit square before piecing.</div>`
+    : "";
 
   const backing = d.backing && d.backCalc ? fmtY(d.backCalc.yards) : null;
   const binding = d.binding && d.bindCalc ? fmtY(d.bindCalc.yards) : null;
   const batting = fw && fh ? `${fw + 8}" × ${fh + 8}"` : null;
-
-  const extras = [
-    backing ? `<tr><td colspan="5">Backing fabric</td><td class="mono">${backing}</td></tr>` : "",
-    binding ? `<tr><td colspan="5">Binding fabric (2.5" strips)</td><td class="mono">${binding}</td></tr>` : "",
-    batting ? `<tr><td colspan="5">Batting (cut oversized)</td><td class="mono">${batting}</td></tr>` : "",
+  const extraRows = [
+    backing ? `<tr><td>Backing fabric</td><td class="mono">${backing}</td></tr>` : "",
+    binding ? `<tr><td>Binding fabric (2.5" strips)</td><td class="mono">${binding}</td></tr>` : "",
+    batting ? `<tr><td>Batting (cut oversized)</td><td class="mono">${batting}</td></tr>` : "",
   ].join("");
+  const extrasTable = extraRows
+    ? `<h2 class="sec">Backing, binding &amp; batting</h2>
+    <table class="legend">
+      <thead><tr><th>Item</th><th>Amount</th></tr></thead>
+      <tbody>${extraRows}</tbody>
+    </table>`
+    : "";
 
   const body = `
     <div class="doc-head">
@@ -96,12 +140,10 @@ export function quiltTemplateHtml(record) {
       </div>
     </div>
     <div style="text-align:center; margin: 4px 0 10px;">${svg}</div>
-    <h2 class="sec">Cutting list — Kona Cotton</h2>
-    <table class="legend">
-      <thead><tr><th>Color</th><th>Kona</th><th>Name</th><th>Strips</th><th>Cut size</th><th>Yardage</th></tr></thead>
-      <tbody>${cutRows}${extras}</tbody>
-    </table>
-    <div class="tip">Cut measurements include a ¼" seam allowance and assume 40" width-of-fabric. Add 10–15% for shrinkage. Backing is cut 4" larger than the top on every side.</div>`;
+    ${squareTable}
+    ${hstTable}
+    ${extrasTable}
+    <div class="tip">All cut measurements include a ¼" seam allowance and assume 40" width-of-fabric. Add 10–15% for shrinkage. Backing is cut 4" larger than the top on every side.</div>`;
 
   return htmlDoc({
     title: `${name} — template`,

@@ -1,5 +1,6 @@
 import { esc, htmlDoc } from "./helpers.js";
 import { designToBom } from "../bom.js";
+import { quiltCutList, fmtInches } from "../cutlist.js";
 
 function stepsList(steps) {
   return `<ol class="steps">${steps.map((s) => `<li>${s}</li>`).join("")}</ol>`;
@@ -57,6 +58,11 @@ function crossStitchInstructions(record, bom) {
 function quiltInstructions(record, bom) {
   const d = record.data || {};
   const name = d.name || record.id || "Your quilt";
+  const cols = d.cols || 0;
+  const rowsCount = d.rows || 0;
+  const bs = d.bs || null;
+  const cut = quiltCutList(d);
+
   const rows = [];
   for (const fab of bom?.fabrics || [])
     rows.push({ swatch: fab.hex, label: `Kona ${fab.code ? fab.code + " — " : ""}${fab.name}`, qty: fab.yardsLabel });
@@ -64,15 +70,44 @@ function quiltInstructions(record, bom) {
   if (bom?.backing) rows.push({ label: "Backing fabric", qty: bom.backing.yardsLabel });
   if (bom?.binding) rows.push({ label: "Binding fabric", qty: bom.binding.yardsLabel });
 
-  const steps = [
-    "<b>Cut your strips.</b> Follow the cutting list on the template sheet. Cut strips selvage-to-selvage, then sub-cut into the block size shown. Every measurement already includes a ¼\" seam allowance.",
-    "<b>Lay out the blocks.</b> Arrange your cut pieces to match the placement diagram on the template sheet. Snap a photo before you start sewing so you can put pieces back if they shift.",
-    "<b>Piece in rows.</b> Sew blocks together into horizontal rows with a scant ¼\" seam. Press seams for adjoining rows in opposite directions so they nest.",
-    "<b>Join the rows.</b> Sew rows together, matching seams. Press. Your finished quilt top is complete.",
-    "<b>Baste the layers.</b> Layer backing (right side down), batting, then the top (right side up). Smooth flat and pin or spray baste.",
-    "<b>Quilt it.</b> Quilt as desired — straight lines, following the seams, or free-motion. Work from the center out.",
-    "<b>Bind the edges.</b> Trim the excess batting and backing. Sew the 2.5\" binding strips end to end, fold in half, and attach around the edge, mitering the corners.",
-  ];
+  // A one-line summary of what to cut, so the instructions stand on their own
+  // even next to the template sheet.
+  const cutSummary = [];
+  if (cut.totals.squarePieces)
+    cutSummary.push(`${cut.totals.squarePieces} square${cut.totals.squarePieces === 1 ? "" : "s"}`);
+  if (cut.totals.hstUnits)
+    cutSummary.push(`${cut.totals.hstUnits} half-square-triangle unit${cut.totals.hstUnits === 1 ? "" : "s"}`);
+  const cutSummaryText = cutSummary.length ? cutSummary.join(" and ") : "the pieces on the template sheet";
+
+  const steps = [];
+  steps.push(
+    `<b>Cut your pieces.</b> Following the cutting list on the template sheet, cut ${cutSummaryText}. Every square measurement already includes a ¼" seam allowance, so cut on the lines.`
+  );
+  if (cut.hasHst) {
+    steps.push(
+      `<b>Make the half-square triangles.</b> For each color pair, layer one square of each color right sides together, draw a diagonal line corner to corner, and sew ¼" from each side of the line. Cut along the line and press open — each pair makes two units. Trim every unit square before piecing.`
+    );
+  }
+  steps.push(
+    `<b>Lay out the top.</b> Arrange your pieces into the ${rowsCount && cols ? `${rowsCount} row${rowsCount === 1 ? "" : "s"} of ${cols}` : "grid"} shown on the placement diagram${bs ? ` (each block finishes at ${fmtInches(bs)})` : ""}. Snap a photo before sewing so you can restore the layout if pieces shift.`
+  );
+  steps.push(
+    `<b>Piece each row.</b> Sew the pieces in each horizontal row together with a scant ¼" seam. Press the seams of adjoining rows in opposite directions so they nest when you join them.`
+  );
+  steps.push(
+    `<b>Join the rows.</b> Sew the ${rowsCount ? `${rowsCount} rows` : "rows"} together in order, matching seams as you go. Press — your quilt top is complete${bom?.finishedInches ? ` at ${bom.finishedInches.w}" × ${bom.finishedInches.h}"` : ""}.`
+  );
+  steps.push(
+    `<b>Baste the layers.</b> Layer the backing (right side down), batting, then the quilt top (right side up). Smooth flat and pin or spray baste.`
+  );
+  steps.push(
+    `<b>Quilt it.</b> Quilt as desired — straight lines, following the seams, or free-motion. Work from the center outward.`
+  );
+  if (bom?.binding) {
+    steps.push(
+      `<b>Bind the edges.</b> Trim the excess batting and backing flush with the top. Sew the 2.5" binding strips end to end, fold in half lengthwise, and attach around the edge, mitering the corners.`
+    );
+  }
 
   const body = `
     <div class="doc-head">
@@ -82,6 +117,7 @@ function quiltInstructions(record, bom) {
       </div>
       <div class="doc-meta">
         ${bom?.finishedInches ? `<div><b>${bom.finishedInches.w}" × ${bom.finishedInches.h}"</b> finished</div>` : ""}
+        ${cols && rowsCount ? `<div>${cols} × ${rowsCount} blocks${bs ? ` · ${fmtInches(bs)} each` : ""}</div>` : ""}
         <div class="brand">metime</div>
       </div>
     </div>

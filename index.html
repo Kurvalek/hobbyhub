@@ -883,6 +883,33 @@ async function saveDesignToApi(type, data) {
   return body.id;
 }
 
+// Renders a design to a PDF on the server (POST /api/render) and triggers a
+// download in the browser. `doc` is "chart" (quilt: template + per-piece cut
+// list) or "instructions" (assembly steps). No upload/storage round-trip —
+// the design travels in the request body — so the same local-only fields the
+// kit doesn't need (`id`, `apiId`, `bgImage`) are stripped before sending.
+async function downloadDesignPdf(type, design, doc) {
+  const { id: _id, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+  const res = await fetch("/api/render", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, data, doc }),
+  });
+  if (!res.ok) throw new Error(`render failed (HTTP ${res.status})`);
+  const blob = await res.blob();
+  const cd = res.headers.get("Content-Disposition") || "";
+  const m = cd.match(/filename="([^"]+)"/);
+  const filename = (m && m[1]) || `${(design.name || type).toString().replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${doc}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Checkout button shared by the quilt and cross-stitch preview modals. On
 // click it (1) sends the design to the design-store API once and remembers the
 // returned id via onSaved (persisted as `apiId` on the saved entry, so a
@@ -952,6 +979,42 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
       {state.status === "error" && (
         <div style={{ fontSize: 11, color: "#B23A34" }}>{state.message || "Couldn't reach the kit service — try again"}</div>
       )}
+    </div>
+  );
+}
+
+// Two "Download PDF" buttons for a quilt: the cut list & template, and the
+// assembly instructions. Both hit /api/render (server-side HTML → PDF); each
+// manages its own busy state so a slow render doesn't block the other.
+function QuiltPdfButtons({ design }) {
+  const [busy, setBusy] = useState(null); // "chart" | "instructions" | null
+  const [error, setError] = useState(null);
+  const go = async (doc) => {
+    if (busy) return;
+    setBusy(doc); setError(null);
+    try {
+      await downloadDesignPdf("quilt", design, doc);
+    } catch (e) {
+      console.warn("PDF download failed:", e);
+      setError("Couldn't generate the PDF — make sure the kit service is running.");
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div className="label" style={{ fontSize: 11 }}>Download for making</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-sm" disabled={!!busy} style={{ opacity: busy && busy !== "chart" ? 0.6 : 1 }}
+          onClick={() => go("chart")}>
+          {busy === "chart" ? "Preparing…" : "Cut list & template"}
+        </button>
+        <button className="btn btn-sm" disabled={!!busy} style={{ opacity: busy && busy !== "instructions" ? 0.6 : 1 }}
+          onClick={() => go("instructions")}>
+          {busy === "instructions" ? "Preparing…" : "Instructions"}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 11, color: "#B23A34" }}>{error}</div>}
     </div>
   );
 }
@@ -3700,13 +3763,16 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                       </div>
                     ))}
                   </div>
-                  <div style={{padding:'12px 20px',borderTop:'1px solid #EFE9DD',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <div>
-                      <div style={{fontSize:11,color:'var(--warm-muted)'}}>Grand total</div>
-                      <div style={{fontSize:20,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(q.grandTotal)}</div>
+                  <div style={{padding:'12px 20px',borderTop:'1px solid #EFE9DD',display:'flex',flexDirection:'column',gap:12}}>
+                    <QuiltPdfButtons design={q}/>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div>
+                        <div style={{fontSize:11,color:'var(--warm-muted)'}}>Grand total</div>
+                        <div style={{fontSize:20,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(q.grandTotal)}</div>
+                      </div>
+                      <KitCheckoutButton type="quilt" design={q} savedId={q.apiId}
+                        onSaved={id=>setSavedQuilts(p=>p.map(x=>x.id===q.id?{...x,apiId:id}:x))}/>
                     </div>
-                    <KitCheckoutButton type="quilt" design={q} savedId={q.apiId}
-                      onSaved={id=>setSavedQuilts(p=>p.map(x=>x.id===q.id?{...x,apiId:id}:x))}/>
                   </div>
                 </div>
               </div>
