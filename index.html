@@ -600,16 +600,28 @@
   .pal-section-head { margin-bottom: 14px; }
   .pal-section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--warm-fg-2); }
   .pal-section-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; }
-  .pal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
-  .pal-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; text-align: left; }
-  .pal-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .pal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+  /* Sample palette card — Figma metime design system node 2138:1989 */
+  .pal-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    padding: 14px; background: var(--metime-white);
+    border: 1px solid var(--metime-almost-black); border-radius: 2px;
+    cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
+    text-align: left; font: inherit; color: inherit;
+  }
+  .pal-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .pal-card:active { transform: translateY(0); }
-  .pal-card.selected { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black) inset; }
-  .pal-swatches { display: flex; width: 100%; }
-  .pal-swatch { flex: 1; height: 56px; display: block; }
-  .pal-card-body { padding: 11px 14px 13px; }
-  .pal-card-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); }
-  .pal-card-meta { font-size: 11px; color: var(--warm-muted); margin-top: 2px; }
+  .pal-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
+  .pal-swatches { display: flex; align-items: center; height: 38px; }
+  .pal-swatch {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--metime-almost-black); box-sizing: border-box;
+    margin-left: -10px; display: block; position: relative;
+  }
+  .pal-swatch:first-child { margin-left: 0; }
+  .pal-card-body { padding: 0; min-width: 0; }
+  .pal-card-name { font-size: 16px; font-weight: 500; color: var(--warm-fg); line-height: 1.25; }
+  .pal-card-meta { font-size: 14px; font-weight: 400; color: var(--warm-fg); line-height: 1.25; margin-top: 0; }
 
   /* Upload */
   .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 100%; box-sizing: border-box; }
@@ -621,6 +633,45 @@
   .pal-result-preview { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--warm-hairline); }
   .pal-result-main { flex: 1; min-width: 0; }
   .pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+
+  /* Suggested palette from image — Figma metime design system node 2138:2019 */
+  .pal-from-image {
+    display: flex; gap: 28px; align-items: flex-start;
+    background: var(--metime-white); border: 1px solid var(--metime-almost-black);
+    border-radius: 2px; padding: 19px; box-sizing: border-box;
+  }
+  .pal-from-image-preview {
+    width: 146px; height: 146px; object-fit: cover; flex-shrink: 0;
+    border: 1px solid var(--metime-almost-black); display: block;
+  }
+  .pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 32px; align-items: flex-start; }
+  .pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .pal-from-image-swatch {
+    position: relative; width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--metime-almost-black); box-sizing: border-box;
+    padding: 0; cursor: pointer; overflow: hidden;
+  }
+  .pal-from-image-x {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(245, 243, 238, 0.72); color: var(--metime-almost-black);
+    opacity: 0; transition: opacity .12s; pointer-events: none;
+  }
+  .pal-from-image-x svg { width: 22px; height: 22px; }
+  @media (hover: hover) and (pointer: fine) {
+    .pal-from-image-swatch:hover .pal-from-image-x { opacity: 1; }
+  }
+  .pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
+  .pal-from-image-add {
+    width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+    border: 1px dashed var(--metime-almost-black); background: var(--metime-white);
+    color: var(--metime-almost-black); font-size: 28px; line-height: 1; font-weight: 400;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0; font-family: inherit;
+  }
+  .pal-from-image-add:hover { background: var(--warm-hover); }
+  .pal-from-image-use {
+    height: 40px; padding: 0 24px; border-radius: 4px; font-size: 18px; font-weight: 500;
+  }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
   .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
@@ -689,6 +740,12 @@
     .pal-result { flex-direction: column; gap: 14px; }
     .pal-result-preview { width: 100%; height: 160px; }
     .pal-actions { flex-wrap: wrap; }
+    .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; }
+    .pal-from-image-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 220px; }
+    .pal-from-image-main { gap: 20px; width: 100%; }
+    .pal-from-image-swatch, .pal-from-image-add { width: 52px; height: 52px; }
+    .pal-from-image-add { font-size: 24px; }
+    .pal-from-image-use { width: 100%; justify-content: center; }
   }
 </style>
 </head>
@@ -1599,7 +1656,7 @@ const STITCH_IMAGES = {
 // earthy vibe — soft blues, terracotta, peach, sage, and warm neutrals —
 // matching the sample moodboards used for cross-stitch starters.
 const DMC_PALETTES = [
-  { name: "Play Blue & Cork", codes: ["797", "794", "945", "301", "3776", "3865"] },
+  { name: "Vintage Blue", codes: ["797", "794", "945", "301", "3776", "3865"] },
   { name: "Cottage Floral",   codes: ["210", "3821", "3866", "402", "754", "3051", "932"] },
   { name: "Warm Retro",       codes: ["977", "799", "921", "3341", "3827", "3865"] },
   { name: "Meadow Mist",      codes: ["Ecru", "523", "503", "834", "520", "642"] },
@@ -1664,7 +1721,7 @@ const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
 // Suggested Kona starter palettes. Tuned to the same muted, earthy vibe as the
 // cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm neutrals.
 const SUGGESTED_PALETTES = [
-  { name: "Play Blue & Cork",    colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
+  { name: "Vintage Blue",        colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
   { name: "Cottage Floral",      colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Ballet Slipper", "Palm", "Iron"] },
   { name: "Warm Retro",          colors: ["Butterscotch", "Dresden Blue", "Terracotta", "Peach", "Bone"] },
   { name: "Meadow Mist",         colors: ["Oyster", "Stone", "Overcast", "Straw", "Ivy", "Bone"] },
@@ -4925,10 +4982,72 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
   );
 }
 
+// Suggested palette from an image (Figma 2138:2019). Circles remove on click;
+// on touch, first tap arms (shows ×) and second tap deletes. + opens the picker.
+function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette' }) {
+  const isMobile = useIsMobile();
+  const [armedIdx, setArmedIdx] = useState(null);
+  const addRef = useRef(null);
+
+  useEffect(() => { setArmedIdx(null); }, [colors.length]);
+  useEffect(() => {
+    if (armedIdx === null) return undefined;
+    const onDoc = e => {
+      if (e.target.closest && e.target.closest('.pal-from-image-swatch')) return;
+      setArmedIdx(null);
+    };
+    document.addEventListener('pointerdown', onDoc);
+    return () => document.removeEventListener('pointerdown', onDoc);
+  }, [armedIdx]);
+
+  const onSwatchClick = i => {
+    if (isMobile) {
+      if (armedIdx === i) { onRemove(i); setArmedIdx(null); }
+      else setArmedIdx(i);
+      return;
+    }
+    onRemove(i);
+  };
+
+  return (
+    <div className="pal-from-image">
+      <img className="pal-from-image-preview" src={photo} alt={alt}/>
+      <div className="pal-from-image-main">
+        <div className="pal-from-image-swatches">
+          {colors.map((c, i) => (
+            <button
+              key={`${colorKey(c)}-${i}`}
+              type="button"
+              className={`pal-from-image-swatch${armedIdx === i ? ' armed' : ''}`}
+              style={{ background: c.hex }}
+              title={titleOf(c)}
+              aria-label={isMobile && armedIdx === i ? `Remove ${titleOf(c)}` : titleOf(c)}
+              onClick={() => onSwatchClick(i)}>
+              <span className="pal-from-image-x" aria-hidden="true"><IcX/></span>
+            </button>
+          ))}
+          <button
+            ref={addRef}
+            type="button"
+            className="pal-from-image-add"
+            title="Add a color"
+            aria-label="Add a color"
+            onClick={() => onAdd(addRef)}>
+            +
+          </button>
+        </div>
+        <button type="button" className="btn btn-dark pal-from-image-use" disabled={!colors.length} onClick={onUse}>
+          {useLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Quilt: palette selector ────────────────────────────────────────────────
 // Mirrors CrossStitchPaletteSelector. Backing was chosen on the previous step;
 // if it carries an image we extract an editable suggested Kona palette from it
-// (swap/remove/add via KonaPicker). Sample palettes remain available. Returns
+// (remove/add via KonaPicker). Sample palettes remain available. Returns
 // ONLY the palette (backing is already set upstream).
 function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
   const samples = useMemo(() => SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) })), []);
@@ -4963,10 +5082,8 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
     return () => { cancelled = true; };
   }, [photo]);
 
-  const openSwap = (e, i) => { swapAnchor.current = e.currentTarget; setSwapIdx(i); };
   const pickSwap = c => setSugg(prev => { const n = [...prev]; if (swapIdx >= n.length) n.push(c); else n[swapIdx] = c; return n; });
   const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
-  const shortName = n => (n && n.length > 9) ? n.slice(0, 9) : n;
 
   return (
     <div className="proj-page">
@@ -4984,29 +5101,20 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
           <section className="pal-section">
             <div className="pal-section-head">
               <div className="pal-section-title">Suggested palette from your fabric</div>
-              <div className="pal-section-sub">Tap a color to swap it for a different Kona cotton, or remove it. We'll build your palette from these.</div>
+              <div className="pal-section-sub">Click a color to remove it · + to add. On touch: tap once for ×, tap again to remove.</div>
             </div>
             {!ready ? (
               <div className="pal-busy">Reading colors from your fabric…</div>
             ) : (
-              <div className="pal-result">
-                <img className="pal-result-preview" src={photo} alt="Your backing fabric"/>
-                <div className="pal-result-main">
-                  <div className="pal-suggest">
-                    {sugg.map((c, i) => (
-                      <div key={`${c.name}-${i}`} className="pal-suggest-item">
-                        <button className="pal-suggest-swatch" style={{ background: c.hex }} onClick={e => openSwap(e, i)} title={`${c.name} — tap to swap`}/>
-                        <button className="pal-suggest-rm" onClick={() => removeAt(i)} title="Remove color" aria-label="Remove color">×</button>
-                        <span className="pal-suggest-code">{shortName(c.name)}</span>
-                      </div>
-                    ))}
-                    <button className="pal-suggest-add" onClick={e => openSwap(e, sugg.length)} title="Add a color" aria-label="Add a color">+</button>
-                  </div>
-                  <div className="pal-actions">
-                    <button className="pal-btn" disabled={!sugg.length} onClick={() => onChoose(sugg)}>Use this palette</button>
-                  </div>
-                </div>
-              </div>
+              <ImagePaletteEditor
+                photo={photo}
+                alt="Your backing fabric"
+                colors={sugg}
+                colorKey={c => c.name}
+                titleOf={c => c.name}
+                onRemove={removeAt}
+                onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+                onUse={() => onChoose(sugg)}/>
             )}
           </section>
         )}
@@ -5021,7 +5129,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
               <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
                 <div className="pal-swatches">
                   {s.colors.map((c, i) => (
-                    <span key={i} className="pal-swatch" style={{ background: c.hex }} title={c.name}/>
+                    <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }} title={c.name}/>
                   ))}
                 </div>
                 <div className="pal-card-body">
@@ -5087,7 +5195,7 @@ function CrossStitchSizeSelector({ onSelect, onBack }) {
 
 // ── Cross-stitch: palette selector ─────────────────────────────────────────
 // All color selection happens here. If a photo was uploaded on the previous
-// step, we extract a suggested palette from it (editable — swap/remove/add via
+// step, we extract a suggested palette from it (editable — remove/add via
 // the DMC floss picker). Choosing a palette (suggested or sample) auto-generates
 // the design from the photo + that palette and enables the trace overlay.
 function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack }) {
@@ -5127,7 +5235,6 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
     const autoGrid = imgElRef.current ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h) : null;
     return { autoGrid, bgImage: photo };
   };
-  const openSwap = (e, i) => { swapAnchor.current = e.currentTarget; setSwapIdx(i); };
   const pickSwap = c => {
     setSugg(prev => {
       const n = [...prev];
@@ -5153,29 +5260,20 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
           <section className="pal-section">
             <div className="pal-section-head">
               <div className="pal-section-title">Suggested palette from your photo</div>
-              <div className="pal-section-sub">Tap a color to swap it for a different floss, or remove it. We'll build your design from these.</div>
+              <div className="pal-section-sub">Click a color to remove it · + to add. On touch: tap once for ×, tap again to remove.</div>
             </div>
             {!ready ? (
               <div className="pal-busy">Reading colors from your photo…</div>
             ) : (
-              <div className="pal-result">
-                <img className="pal-result-preview" src={photo} alt="Your uploaded photo"/>
-                <div className="pal-result-main">
-                  <div className="pal-suggest">
-                    {sugg.map((c, i) => (
-                      <div key={`${c.code}-${i}`} className="pal-suggest-item">
-                        <button className="pal-suggest-swatch" style={{ background: c.hex }} onClick={e => openSwap(e, i)} title={`DMC ${c.code} ${c.name} — tap to swap`}/>
-                        <button className="pal-suggest-rm" onClick={() => removeAt(i)} title="Remove color" aria-label="Remove color">×</button>
-                        <span className="pal-suggest-code">{c.code}</span>
-                      </div>
-                    ))}
-                    <button className="pal-suggest-add" onClick={e => openSwap(e, sugg.length)} title="Add a color" aria-label="Add a color">+</button>
-                  </div>
-                  <div className="pal-actions">
-                    <button className="pal-btn" disabled={!sugg.length} onClick={() => onChoose(sugg, optsFor(sugg))}>Use this palette</button>
-                  </div>
-                </div>
-              </div>
+              <ImagePaletteEditor
+                photo={photo}
+                alt="Your uploaded photo"
+                colors={sugg}
+                colorKey={c => c.code}
+                titleOf={c => `DMC ${c.code} ${c.name}`}
+                onRemove={removeAt}
+                onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+                onUse={() => onChoose(sugg, optsFor(sugg))}/>
             )}
           </section>
         )}
@@ -5189,7 +5287,9 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
             {samples.map(s => (
               <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, optsFor(s.colors))}>
                 <div className="pal-swatches">
-                  {s.colors.map((c, i) => <span key={i} className="pal-swatch" style={{ background: c.hex }} title={`DMC ${c.code} ${c.name}`}/>)}
+                  {s.colors.map((c, i) => (
+                    <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }} title={`DMC ${c.code} ${c.name}`}/>
+                  ))}
                 </div>
                 <div className="pal-card-body">
                   <div className="pal-card-name">{s.name}</div>
