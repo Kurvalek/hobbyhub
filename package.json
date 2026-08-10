@@ -6,7 +6,8 @@
     "node": "22.x"
   },
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "gen:fabric-thumbs": "node tools/gen-fabric-thumbs.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium": "^149.0.0",
