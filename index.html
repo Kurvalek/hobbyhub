@@ -309,17 +309,22 @@
   .header-center { display: flex; align-items: center; justify-content: center; }
   .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
-  /* Brand wordmark (metime) — icon mark on narrow screens to free header space */
+  /* Brand wordmark (metime) — canvas headers use the compact icon on narrow
+     screens so Save keeps padding; setup/proj pages keep the full wordmark. */
   .brand { display: inline-flex; align-items: center; color: var(--metime-almost-black); text-decoration: none; line-height: 0; }
   .brand-mark { height: 28px; width: auto; display: block; }
   .brand-icon { display: none; height: 28px; width: 28px; object-fit: contain; }
   @media (max-width: 900px) {
-    .brand-mark { display: none; }
-    .brand-icon { display: block; }
-    .header-right .btn { white-space: nowrap; }
+    .app .brand-mark,
+    .xs-app .brand-mark { display: none; }
+    .app .brand-icon,
+    .xs-app .brand-icon { display: block; }
+    .app .header-right .btn,
+    .xs-app .header-right .btn { white-space: nowrap; }
   }
   @media (max-width: 560px) {
-    .brand-icon { height: 26px; width: 26px; }
+    .app .brand-icon,
+    .xs-app .brand-icon { height: 26px; width: 26px; }
   }
 
   /* Preset pill (header center) */
@@ -1127,9 +1132,10 @@ const IcRuler   = ({ size=18 }) => <Svg size={size}><path d="M3 8.5 8.5 3 21 15.
 const IcList    = ({ size=18 }) => <Svg size={size}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></Svg>;
 const IcTiles   = ({ size=18 }) => <Svg size={size}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></Svg>;
 
-// ── Brand: metime wordmark (+ compact icon on mobile) ─────────────────────
-// Logotype set in "Sundae" by Taylor Penton. On narrow screens the wide
-// wordmark is swapped for the favicon mark so header actions (Save) keep padding.
+// ── Brand: metime wordmark (+ compact icon on canvas headers) ─────────────
+// Logotype set in "Sundae" by Taylor Penton. On quilt/cross-stitch canvas
+// pages the wide wordmark swaps for the favicon mark so Save keeps padding;
+// setup pages always show the full wordmark.
 const MetimeLogo = () => (
   <>
     <img className="brand-mark" src="assets/metime-logo.png" alt="metime"/>
@@ -1589,14 +1595,16 @@ const STITCH_IMAGES = {
   "Small Hoop":  "assets/products/cross-stitch-small-hoop.jpg",
   "Medium Hoop": "assets/products/cross-stitch-medium-hoop.jpg",
 };
-// Curated DMC starter palettes (referenced by floss code).
+// Curated DMC starter palettes (referenced by floss code). Tuned to a muted,
+// earthy vibe — soft blues, terracotta, peach, sage, and warm neutrals —
+// matching the sample moodboards used for cross-stitch starters.
 const DMC_PALETTES = [
-  { name:"Garden Bloom", codes:["472","471","3346","3705","3706","742","726","3865"] },
-  { name:"Ocean Breeze", codes:["3766","807","518","517","311","964","3865","747"] },
-  { name:"Autumn Harvest", codes:["720","721","922","3826","3852","869","730","3865"] },
-  { name:"Berry Sweet", codes:["600","602","604","3607","153","209","3865","310"] },
-  { name:"Earth & Stone", codes:["3031","640","642","644","822","3866","310","3865"] },
-  { name:"Sunset Warmth", codes:["606","608","740","742","972","349","816","3865"] },
+  { name: "Play Blue & Cork", codes: ["797", "794", "945", "301", "3776", "3865"] },
+  { name: "Cottage Floral",   codes: ["210", "3821", "3866", "402", "754", "3051", "932"] },
+  { name: "Warm Retro",       codes: ["977", "799", "921", "3341", "3827", "3865"] },
+  { name: "Meadow Mist",      codes: ["Ecru", "523", "503", "834", "520", "642"] },
+  { name: "Guava Lagoon",     codes: ["743", "733", "367", "3771", "722", "351", "993", "931"] },
+  { name: "Sunflower Toast",  codes: ["832", "422", "3033", "3857", "3863", "794"] },
 ];
 function dmcByCode(code) { return DMC.find(c => c.code === code); }
 function resolveDmcPalette(pal) { return pal.codes.map(dmcByCode).filter(Boolean); }
@@ -1653,19 +1661,21 @@ const QUILT_PATTERNS = [
 const WOF=40, SEAM=0.5, MAX=60;
 const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
 
+// Suggested Kona starter palettes. Tuned to the same muted, earthy vibe as the
+// cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm neutrals.
 const SUGGESTED_PALETTES = [
-  { name: "Coastal",    colors: ["Navy","Dusty Blue","Robin Egg","Natural","White"] },
-  { name: "Prairie",    colors: ["Mustard","Cinnamon","Sage","Bone","Chocolate"] },
-  { name: "Berry Jam",  colors: ["Burgundy","Plum","Wisteria","Woodrose","Ivory"] },
-  { name: "Orchard",    colors: ["Rich Red","Orange","Sunflower","Basil","Natural"] },
-  { name: "Slate",      colors: ["Charcoal","Steel","Ash","Robin Egg","White"] },
-  { name: "Forest",     colors: ["Evergreen","Basil","Moss","Honey","Bone"] },
-  { name: "Desert",     colors: ["Flame","Sand","Putty","Espresso","Ivory"] },
-  { name: "Coral Reef", colors: ["Coral","Turquoise","Aqua","Butter","White"] },
-  { name: "Harvest",    colors: ["Orange","Chestnut","Mustard","Fern","Bone"] },
-  { name: "Tidepool",   colors: ["Peacock","Lagoon","Pool","Seafoam","Snow"] },
-  { name: "Cotton Candy", colors: ["Peony","Lavender","Baby Blue","Mint","Butter"] },
-  { name: "Twilight Jewel", colors: ["Midnight","Berry","Jade Green","Wine","Bone"] },
+  { name: "Play Blue & Cork",    colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
+  { name: "Cottage Floral",      colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Ballet Slipper", "Palm", "Iron"] },
+  { name: "Warm Retro",          colors: ["Butterscotch", "Dresden Blue", "Terracotta", "Peach", "Bone"] },
+  { name: "Meadow Mist",         colors: ["Oyster", "Stone", "Overcast", "Straw", "Ivy", "Bone"] },
+  { name: "Guava Lagoon",        colors: ["Lemon", "Artichoke", "Dill", "Peach", "Creamsicle", "Nectarine", "Fog", "Regatta"] },
+  { name: "Sunflower Toast",     colors: ["Artichoke", "Straw", "Lingerie", "Brick", "Biscuit", "Blue Bell"] },
+  { name: "Mediterranean Clay",  colors: ["Spice", "Nectarine", "Ivory", "Blue Bell", "Summer Pear", "Evergreen"] },
+  { name: "Muted Earth",         colors: ["Lingerie", "Foxglove", "Caramel", "Suede", "Steel", "Biscuit", "Espresso"] },
+  { name: "Antique Fiber",       colors: ["Natural", "Doeskin", "Ash", "Chestnut", "Mustard", "Espresso"] },
+  { name: "Storybook",           colors: ["Flame", "Ballet Slipper", "Midnight", "Zucchini", "Wine", "Baby Blue"] },
+  { name: "Coastal Sage",        colors: ["Oyster", "Overcast", "Fog", "Dresden Blue", "Straw", "Bone"] },
+  { name: "Desert Clay",         colors: ["Ice Peach", "Terracotta", "Spice", "Biscuit", "Lingerie", "Brick"] },
 ];
 
 // ── Palette helpers ─────────────────────────────────────────────────────────
