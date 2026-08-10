@@ -1804,7 +1804,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // ── GridCanvas ────────────────────────────────────────────────────────────
 // Shape: { id, r, c, h, w, color }
 // selIds: Set<id> — lifted to App for cross-component access
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, pinned = [], isMobile = false }) {
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false }) {
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -1818,6 +1818,13 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const [paletteSlot, setPaletteSlot] = useState(null);
   const sRef = useRef(shapes); useEffect(()=>{sRef.current=shapes;},[shapes]);
   const selRef = useRef(selIds); useEffect(()=>{selRef.current=selIds;},[selIds]);
+
+  const cancelPointerInteraction = useCallback(() => {
+    dragRef.current = null;
+    setGhost(null);
+    setMarquee(null);
+  }, []);
+  const { isGestureActive } = useCanvasPinchZoom(scrollRef, zoom, onZoomChange, cancelPointerInteraction);
 
   const H=9;
   const toCell = e => {
@@ -1867,7 +1874,13 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   };
 
   const onDown = useCallback(e=>{
-    if(e.button!==0) return; e.preventDefault();
+    if(e.button!==0) return;
+    // Second finger / active pinch owns the gesture — don't start a draw/select.
+    if(isGestureActive() || !e.isPrimary) {
+      cancelPointerInteraction();
+      return;
+    }
+    e.preventDefault();
     ref.current.setPointerCapture(e.pointerId);
     const {px,py,rect,r,c}=toCell(e);
     const cur=sRef.current, sids=selRef.current;
@@ -1919,9 +1932,10 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         setGhost({r,c,h:1,w:1});
       }
     }
-  },[tool,rows,cols,setShapes,setSelIds]);
+  },[tool,rows,cols,setShapes,setSelIds,isGestureActive,cancelPointerInteraction]);
 
   const onMove = useCallback(e=>{
+    if(isGestureActive()) return;
     const {px,py,rect,r,c}=toCell(e); const d=dragRef.current; const sids=selRef.current;
     if(!d){
       if(sids.size>0){
@@ -1966,9 +1980,13 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
         return {...s,r:nr,c:nc,h:Math.min(nh,rows-nr),w:Math.min(nw,cols-nc)};
       }));
     }
-  },[tool,rows,cols,setShapes,setSelIds]);
+  },[tool,rows,cols,setShapes,setSelIds,isGestureActive]);
 
   const onUp = useCallback(e=>{
+    if(isGestureActive()) {
+      cancelPointerInteraction();
+      return;
+    }
     const d=dragRef.current;
     if(d?.type==='create'&&ghost){
       if(tool==='hst'){
@@ -1995,7 +2013,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
       }
     }
     dragRef.current=null; setGhost(null); setMarquee(null);
-  },[ghost,marquee,selectedColor,tool,setShapes,setSelIds]);
+  },[ghost,marquee,selectedColor,tool,setShapes,setSelIds,isGestureActive,cancelPointerInteraction]);
 
   useEffect(()=>{
     const handleKey = e => {
@@ -2970,6 +2988,139 @@ function MaterialsBlock({ materials, grandTotal, fmtY }) {
   );
 }
 
+// ── Canvas pinch / ctrl-wheel zoom (shared by quilt + cross-stitch) ───────
+// Zoom is applied by resizing content; pan is the scroll container. Pinch and
+// ctrl/cmd+wheel update zoom while anchoring the focal point under the fingers
+// (or cursor). Two-finger drag also pans. Drawing tools must bail while a
+// multi-touch gesture is active — call isGestureActive() from pointer handlers.
+function clampZoom(z) {
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, +(+z).toFixed(3)));
+}
+function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart) {
+  const zoomRef = useRef(zoom);
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
+  const pendingScrollRef = useRef(null);
+  const activeRef = useRef(false);
+  const onZoomChangeRef = useRef(onZoomChange);
+  const onGestureStartRef = useRef(onGestureStart);
+
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { onZoomChangeRef.current = onZoomChange; }, [onZoomChange]);
+  useEffect(() => { onGestureStartRef.current = onGestureStart; }, [onGestureStart]);
+
+  useLayoutEffect(() => {
+    const p = pendingScrollRef.current;
+    if (!p) return;
+    pendingScrollRef.current = null;
+    p.el.scrollLeft = p.left;
+    p.el.scrollTop = p.top;
+  }, [zoom]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !onZoomChange) return undefined;
+
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+    const setZoomAnchored = (nextZoom, clientX, clientY) => {
+      const prev = zoomRef.current;
+      const z = clampZoom(nextZoom);
+      if (Math.abs(z - prev) < 0.001) return;
+      const rect = el.getBoundingClientRect();
+      const vx = clientX - rect.left;
+      const vy = clientY - rect.top;
+      pendingScrollRef.current = {
+        el,
+        left: (el.scrollLeft + vx) * (z / prev) - vx,
+        top: (el.scrollTop + vy) * (z / prev) - vy,
+      };
+      zoomRef.current = z;
+      onZoomChangeRef.current(z);
+    };
+
+    const beginPinch = () => {
+      const pts = [...pointersRef.current.values()];
+      if (pts.length < 2) return;
+      pinchRef.current = {
+        startDist: Math.max(1, dist(pts[0], pts[1])),
+        startZoom: zoomRef.current,
+        lastMid: mid(pts[0], pts[1]),
+      };
+      if (!activeRef.current) {
+        activeRef.current = true;
+        onGestureStartRef.current?.();
+      }
+    };
+
+    const onPointerDown = (e) => {
+      if (e.pointerType === 'mouse') return;
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointersRef.current.size >= 2) {
+        beginPinch();
+        e.preventDefault();
+      }
+    };
+
+    const onPointerMove = (e) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointersRef.current.size < 2 || !pinchRef.current) return;
+      e.preventDefault();
+      const pts = [...pointersRef.current.values()];
+      const m = mid(pts[0], pts[1]);
+      const p = pinchRef.current;
+      el.scrollLeft += p.lastMid.x - m.x;
+      el.scrollTop += p.lastMid.y - m.y;
+      p.lastMid = m;
+      setZoomAnchored(p.startZoom * (dist(pts[0], pts[1]) / p.startDist), m.x, m.y);
+    };
+
+    const endPointer = (e) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.delete(e.pointerId);
+      if (pointersRef.current.size >= 2) {
+        beginPinch();
+      } else {
+        pinchRef.current = null;
+        if (pointersRef.current.size === 0) activeRef.current = false;
+      }
+    };
+
+    const onWheel = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.01);
+      setZoomAnchored(zoomRef.current * factor, e.clientX, e.clientY);
+    };
+
+    // Safari page-zoom gesture — keep it from hijacking the canvas.
+    const onGesture = (e) => { e.preventDefault(); };
+
+    el.addEventListener('pointerdown', onPointerDown, true);
+    el.addEventListener('pointermove', onPointerMove, true);
+    el.addEventListener('pointerup', endPointer, true);
+    el.addEventListener('pointercancel', endPointer, true);
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('gesturestart', onGesture, { passive: false });
+    el.addEventListener('gesturechange', onGesture, { passive: false });
+
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown, true);
+      el.removeEventListener('pointermove', onPointerMove, true);
+      el.removeEventListener('pointerup', endPointer, true);
+      el.removeEventListener('pointercancel', endPointer, true);
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('gesturestart', onGesture);
+      el.removeEventListener('gesturechange', onGesture);
+    };
+  }, [scrollRef, onZoomChange]);
+
+  const isGestureActive = useCallback(() => activeRef.current, []);
+  return { isGestureActive };
+}
+
 // ── ZoomBar (bottom of center canvas panel) ───────────────────────────────
 function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
   const pct = Math.round(zoom * 100);
@@ -3434,7 +3585,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
               selIds={selIds} setSelIds={setSelIds}
               tool={tool} selectedColor={color}
               quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}
-              zoom={zoom} pinned={pinned} isMobile={isMobile}/>
+              zoom={zoom} onZoomChange={setZoom} pinned={pinned} isMobile={isMobile}/>
             {showHints && (
               <div className="hint-overlay">
                 <span>Click to select · Drag to marquee</span>
@@ -5257,6 +5408,18 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     rafRef.current = requestAnimationFrame(() => { rafRef.current = 0; redrawRef.current(); });
   }, []);
 
+  const cancelPointerInteraction = useCallback(() => {
+    drawingRef.current = false;
+    movingRef.current = false;
+    dragRef.current = null;
+    marqueeRef.current = null;
+    previewRef.current = null;
+    startRef.current = null;
+    lastRef.current = null;
+    scheduleRedraw();
+  }, [scheduleRedraw]);
+  const { isGestureActive } = useCanvasPinchZoom(wrapRef, zoom, setZoom, cancelPointerInteraction);
+
   // Fit the grid to the available space; recompute on resize.
   useLayoutEffect(() => {
     const fit = () => {
@@ -5403,6 +5566,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
 
   const onPointerDown = (e) => {
+    if (isGestureActive() || !e.isPrimary) {
+      cancelPointerInteraction();
+      return;
+    }
     const cell = cellFromEvent(e); if (!cell) return;
     if (tool === 'text') {
       if (!textStamp.length) return;
@@ -5468,6 +5635,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     else if (tool === 'eraser') { cellsRef.current[idx(cell[0], cell[1])] = null; scheduleRedraw(); }
   };
   const onPointerMove = (e) => {
+    if (isGestureActive()) return;
     if (tool === 'select') {
       if (movingRef.current) {
         const cell = cellFromEvent(e); if (!cell) return;
@@ -5509,6 +5677,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
   };
   const onPointerUp = () => {
+    if (isGestureActive()) {
+      cancelPointerInteraction();
+      return;
+    }
     if (tool === 'select') {
       if (movingRef.current) {
         movingRef.current = false;
