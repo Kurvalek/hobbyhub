@@ -232,14 +232,13 @@
   }
 
   @media (max-width: 560px) {
-    header { grid-template-columns: auto 1fr auto; padding: 10px 12px; }
+    header { grid-template-columns: auto 1fr auto; padding: 10px 12px; gap: 8px; }
     .header-center { display: none; }
-    .brand-mark { height: 22px; }
-    .btn { padding: 6px 9px; font-size: 11px; }
-    .header-right { gap: 5px; }
+    .btn { padding: 6px 12px; font-size: 11px; }
+    .header-right { gap: 6px; }
     .size-bar-meta { display: none; }
     .xs-title { font-size: 17px; }
-    .xs-topbar .btn { padding: 6px 9px; font-size: 11px; }
+    .xs-topbar .btn { padding: 6px 12px; font-size: 11px; }
     .hint-overlay { font-size: 10px; padding: 5px 10px; }
   }
 
@@ -310,9 +309,18 @@
   .header-center { display: flex; align-items: center; justify-content: center; }
   .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
-  /* Brand wordmark (metime SVG) */
+  /* Brand wordmark (metime) — icon mark on narrow screens to free header space */
   .brand { display: inline-flex; align-items: center; color: var(--metime-almost-black); text-decoration: none; line-height: 0; }
   .brand-mark { height: 28px; width: auto; display: block; }
+  .brand-icon { display: none; height: 28px; width: 28px; object-fit: contain; }
+  @media (max-width: 900px) {
+    .brand-mark { display: none; }
+    .brand-icon { display: block; }
+    .header-right .btn { white-space: nowrap; }
+  }
+  @media (max-width: 560px) {
+    .brand-icon { height: 26px; width: 26px; }
+  }
 
   /* Preset pill (header center) */
   .preset-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 16px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 999px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--warm-fg); cursor: pointer; transition: all .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1119,12 +1127,14 @@ const IcRuler   = ({ size=18 }) => <Svg size={size}><path d="M3 8.5 8.5 3 21 15.
 const IcList    = ({ size=18 }) => <Svg size={size}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></Svg>;
 const IcTiles   = ({ size=18 }) => <Svg size={size}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></Svg>;
 
-// ── Brand: metime wordmark ────────────────────────────────────────────────
-// Logotype set in "Sundae" by Taylor Penton; sourced from the metime design
-// system in Figma and embedded as paths so the wordmark uses currentColor and
-// the wave can be themed via the --metime-wave CSS variable.
-const MetimeLogo = ({ className = "brand-mark" }) => (
-  <img className={className} src="assets/metime-logo.png" alt="metime"/>
+// ── Brand: metime wordmark (+ compact icon on mobile) ─────────────────────
+// Logotype set in "Sundae" by Taylor Penton. On narrow screens the wide
+// wordmark is swapped for the favicon mark so header actions (Save) keep padding.
+const MetimeLogo = () => (
+  <>
+    <img className="brand-mark" src="assets/metime-logo.png" alt="metime"/>
+    <img className="brand-icon" src="assets/metime-icon.png" alt=""/>
+  </>
 );
 
 // ── Data ──────────────────────────────────────────────────────────────────
