@@ -277,7 +277,7 @@
     .xs-selbar.mobile-selbar {
       position: fixed !important; left: 8px !important; right: 8px !important; top: auto !important;
       bottom: calc(66px + env(safe-area-inset-bottom)) !important; transform: none !important;
-      justify-content: center;
+      justify-content: center; flex-wrap: wrap; row-gap: 6px;
     }
 
     /* Bottom sheet chrome. */
@@ -5617,8 +5617,12 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const selRef = useRef(null);   // {cells:Map<number,string>, minX,minY,maxX,maxY} | null
   const dragRef = useRef(null);  // {dx,dy} in cells, while moving
   const movingRef = useRef(false);
+  const dupRef = useRef(false);    // Alt/Option held → the drag leaves the original behind
+  const pressRef = useRef(null);   // press awaiting the drag threshold: tap = pick a color group, drag = marquee
   const marqueeRef = useRef(null); // {x0,y0,x1,y1,add} while rubber-band selecting
+  const antsRef = useRef(0);       // marching-ants dash offset
   const [hasSel, setHasSel] = useState(false);
+  const [selCursor, setSelCursor] = useState(null); // 'move' | 'copy' when hovering the selection
 
   const stats = useMemo(() => computeStitchStats(cellsRef.current, W, H, pal), [version, pal, W, H]);
 
@@ -5642,7 +5646,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     const cells = cellsRef.current;
     const sel = selRef.current;
-    const lifting = movingRef.current && sel;
+    // A move lifts the stitches off the board; a duplicate leaves them in place.
+    const lifting = movingRef.current && sel && !dupRef.current;
     for (let i = 0; i < cells.length; i++) {
       if (!cells[i]) continue;
       if (lifting && sel.cells.has(i)) continue;
@@ -5659,18 +5664,26 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         ctx.fillRect(((i % W) + dxo) * cs, (Math.floor(i / W) + dyo) * cs, cs, cs);
       }
       const inSel = (xx, yy) => xx >= 0 && yy >= 0 && xx < W && yy < H && sel.cells.has(idx(xx, yy));
-      ctx.strokeStyle = '#2563EB';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
+      const edge = new Path2D();
       for (const i of sel.cells.keys()) {
         const x = i % W, y = Math.floor(i / W);
         const px = (x + dxo) * cs, py = (y + dyo) * cs;
-        if (!inSel(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + cs, py); }
-        if (!inSel(x, y + 1)) { ctx.moveTo(px, py + cs); ctx.lineTo(px + cs, py + cs); }
-        if (!inSel(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + cs); }
-        if (!inSel(x + 1, y)) { ctx.moveTo(px + cs, py); ctx.lineTo(px + cs, py + cs); }
+        if (!inSel(x, y - 1)) { edge.moveTo(px, py); edge.lineTo(px + cs, py); }
+        if (!inSel(x, y + 1)) { edge.moveTo(px, py + cs); edge.lineTo(px + cs, py + cs); }
+        if (!inSel(x - 1, y)) { edge.moveTo(px, py); edge.lineTo(px, py + cs); }
+        if (!inSel(x + 1, y)) { edge.moveTo(px + cs, py); edge.lineTo(px + cs, py + cs); }
       }
-      ctx.stroke();
+      // Marching ants: a light underlay plus animated dark dashes, so the
+      // boundary stays legible over both pale fabric and dark stitches.
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+      ctx.stroke(edge);
+      ctx.strokeStyle = '#1B1917';
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = -antsRef.current;
+      ctx.stroke(edge);
+      ctx.restore();
     }
     const mq = marqueeRef.current;
     if (mq) {
@@ -5714,6 +5727,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const cancelPointerInteraction = useCallback(() => {
     drawingRef.current = false;
     movingRef.current = false;
+    dupRef.current = false;
+    pressRef.current = null;
     dragRef.current = null;
     marqueeRef.current = null;
     previewRef.current = null;
@@ -5742,6 +5757,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   // before paint, leaving the canvas drawn at a stale cell size.
   useLayoutEffect(() => { redraw(); }, [redraw]);
 
+  // Crawl the selection outline while a selection exists.
+  useEffect(() => {
+    if (!hasSel) { antsRef.current = 0; return undefined; }
+    const t = setInterval(() => { antsRef.current = (antsRef.current + 1) % 8; scheduleRedraw(); }, 110);
+    return () => clearInterval(t);
+  }, [hasSel, scheduleRedraw]);
+
   useEffect(() => {
     if (!bg) { bgImgRef.current = null; redraw(); return; }
     const img = new Image();
@@ -5753,6 +5775,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const undo = useCallback(() => {
     if (!undoRef.current.length) return;
     cellsRef.current = undoRef.current.pop();
+    // The stitches the selection referred to may not exist any more, so drop it.
+    selRef.current = null; movingRef.current = false; dupRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
     redraw(); bump();
   }, [redraw, bump]);
 
@@ -5851,7 +5877,52 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     return { cells: map, minX, minY, maxX, maxY };
   };
 
-  const deselect = () => { selRef.current = null; movingRef.current = false; dragRef.current = null; marqueeRef.current = null; setHasSel(false); scheduleRedraw(); };
+  const deselect = () => {
+    selRef.current = null; movingRef.current = false; dupRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null); scheduleRedraw();
+  };
+
+  // Write the selected stitches at an offset as a single undo step. 'move'
+  // lifts them (source cells cleared first, so a selection can overlap its own
+  // old footprint); 'copy' leaves the originals behind. Either way the
+  // selection follows the stitches so it can be dragged again right away.
+  const commitSelection = (dx, dy, mode) => {
+    const sel = selRef.current;
+    if (!sel || (dx === 0 && dy === 0)) return;
+    pushUndo();
+    const cells = cellsRef.current;
+    const entries = [...sel.cells];
+    if (mode === 'move') for (const [i] of entries) cells[i] = null;
+    const next = new Map();
+    for (const [i, hex] of entries) {
+      const nk = idx((i % W) + dx, Math.floor(i / W) + dy);
+      cells[nk] = hex; next.set(nk, hex);
+    }
+    selRef.current = makeSel(next);
+    setHasSel(true);
+    redraw(); bump();
+  };
+
+  const deleteSelection = () => {
+    const sel = selRef.current; if (!sel) return;
+    pushUndo();
+    const cells = cellsRef.current;
+    for (const i of sel.cells.keys()) cells[i] = null;
+    selRef.current = null; movingRef.current = false; dupRef.current = false; dragRef.current = null;
+    setHasSel(false); setSelCursor(null);
+    redraw(); bump();
+  };
+
+  // Duplicate via the toolbar button or Cmd/Ctrl-D — the touch path, since a
+  // phone has no Option key. Drops the copy two stitches down-right, or back
+  // up-left when the selection already sits against the bottom/right edge.
+  const duplicateSelection = () => {
+    const sel = selRef.current; if (!sel) return;
+    let dx = Math.min(2, W - 1 - sel.maxX), dy = Math.min(2, H - 1 - sel.maxY);
+    if (dx === 0 && dy === 0) { dx = Math.max(-2, -sel.minX); dy = Math.max(-2, -sel.minY); }
+    commitSelection(dx, dy, 'copy');
+  };
 
   // Recolor the active selection to `c` (used when a "My palette" chip is
   // clicked while cells are selected). Repaints the selected cells and keeps
@@ -5889,46 +5960,20 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     if (tool === 'select') {
       const k = idx(cell[0], cell[1]);
-      const cellHex = cellsRef.current[k];
       const sel = selRef.current;
-      const inCurrent = sel && sel.cells.has(k);
-
-      if (e.shiftKey) {
-        if (cellHex) {
-          // Toggle the clicked color group in/out of the selection.
-          const region = collectRegion(cell[0], cell[1]);
-          const map = new Map(sel ? sel.cells : []);
-          const allIn = region.every(i => map.has(i));
-          for (const i of region) { if (allIn) map.delete(i); else map.set(i, cellHex); }
-          selRef.current = makeSel(map); setHasSel(!!selRef.current);
-          scheduleRedraw();
-        } else {
-          // Shift + drag on empty space: additive marquee.
-          e.currentTarget.setPointerCapture(e.pointerId);
-          marqueeRef.current = { x0: cell[0], y0: cell[1], x1: cell[0], y1: cell[1], add: true };
-          scheduleRedraw();
-        }
-        return;
-      }
-
-      if (inCurrent) {
-        // Grab the existing selection to move it.
-        e.currentTarget.setPointerCapture(e.pointerId);
-        movingRef.current = true; startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
-        scheduleRedraw(); return;
-      }
-      if (cellHex) {
-        // Select this color group, ready to move.
-        const region = collectRegion(cell[0], cell[1]);
-        selRef.current = makeSel(new Map(region.map(i => [i, cellHex]))); setHasSel(true);
-        e.currentTarget.setPointerCapture(e.pointerId);
-        movingRef.current = true; startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
-        scheduleRedraw(); return;
-      }
-      // Empty space: rubber-band marquee (replaces the current selection).
       e.currentTarget.setPointerCapture(e.pointerId);
-      marqueeRef.current = { x0: cell[0], y0: cell[1], x1: cell[0], y1: cell[1], add: false };
-      scheduleRedraw();
+      if (sel && sel.cells.has(k) && !e.shiftKey) {
+        // Grab the existing selection to move it (Alt/Option leaves a copy).
+        movingRef.current = true; dupRef.current = e.altKey;
+        startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
+        scheduleRedraw(); return;
+      }
+      // Anywhere else the press is still ambiguous: a drag becomes a marquee,
+      // a tap picks the color group under the finger. Resolved in move/up.
+      pressRef.current = {
+        cell, x: e.clientX, y: e.clientY, add: e.shiftKey,
+        slop: e.pointerType === 'mouse' ? 3 : 8,
+      };
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -5941,12 +5986,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (isGestureActive()) return;
     if (tool === 'select') {
       if (movingRef.current) {
-        const cell = cellFromEvent(e); if (!cell) return;
+        const [cx, cy] = cellClamped(e);
         const s = startRef.current, sel = selRef.current;
-        let dx = cell[0] - s[0], dy = cell[1] - s[1];
-        dx = Math.max(-sel.minX, Math.min(W - 1 - sel.maxX, dx));
-        dy = Math.max(-sel.minY, Math.min(H - 1 - sel.maxY, dy));
+        // Clamp the offset to the grid: the group slides along the edge rather
+        // than being clipped, so no stitches are ever lost off-board.
+        let dx = Math.max(-sel.minX, Math.min(W - 1 - sel.maxX, cx - s[0]));
+        let dy = Math.max(-sel.minY, Math.min(H - 1 - sel.maxY, cy - s[1]));
         dragRef.current = { dx, dy };
+        dupRef.current = e.altKey; // Option can be pressed or released mid-drag
+        setSelCursor(e.altKey ? 'copy' : 'move');
         scheduleRedraw();
         return;
       }
@@ -5956,6 +6004,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         scheduleRedraw();
         return;
       }
+      const p = pressRef.current;
+      if (p) {
+        // Past the slop radius the press was a drag after all — rubber-band
+        // from where it started, over stitches or bare fabric alike.
+        if (Math.abs(e.clientX - p.x) > p.slop || Math.abs(e.clientY - p.y) > p.slop) {
+          pressRef.current = null;
+          const [cx, cy] = cellClamped(e);
+          marqueeRef.current = { x0: p.cell[0], y0: p.cell[1], x1: cx, y1: cy, add: p.add };
+          scheduleRedraw();
+        }
+        return;
+      }
+      const hover = cellFromEvent(e);
+      const over = !!(hover && selRef.current && selRef.current.cells.has(idx(hover[0], hover[1])));
+      setSelCursor(over ? (e.altKey ? 'copy' : 'move') : null);
       return;
     }
     if (tool === 'text' && !drawingRef.current) {
@@ -5986,22 +6049,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     if (tool === 'select') {
       if (movingRef.current) {
-        movingRef.current = false;
-        const sel = selRef.current, d = dragRef.current || { dx: 0, dy: 0 };
-        if (sel && (d.dx !== 0 || d.dy !== 0)) {
-          pushUndo();
-          const cells = cellsRef.current;
-          const entries = [...sel.cells];
-          for (const [i] of entries) cells[i] = null;
-          const moved = new Map();
-          for (const [i, hex] of entries) {
-            const nk = idx((i % W) + d.dx, Math.floor(i / W) + d.dy);
-            cells[nk] = hex; moved.set(nk, hex);
-          }
-          selRef.current = makeSel(moved);
-          bump();
-        }
-        dragRef.current = null;
+        const d = dragRef.current || { dx: 0, dy: 0 };
+        const dup = dupRef.current;
+        movingRef.current = false; dupRef.current = false; dragRef.current = null;
+        commitSelection(d.dx, d.dy, dup ? 'copy' : 'move');
         redraw();
         return;
       }
@@ -6018,6 +6069,23 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         redraw();
         return;
       }
+      const p = pressRef.current;
+      if (p) {
+        pressRef.current = null;
+        const hex = cellsRef.current[idx(p.cell[0], p.cell[1])];
+        if (hex) {
+          // Tap a stitch: take its whole contiguous color group. With Shift the
+          // group toggles in and out of the current selection.
+          const region = collectRegion(p.cell[0], p.cell[1]);
+          const map = (p.add && selRef.current) ? new Map(selRef.current.cells) : new Map();
+          const allIn = p.add && region.every(i => map.has(i));
+          for (const i of region) { if (allIn) map.delete(i); else map.set(i, hex); }
+          selRef.current = makeSel(map); setHasSel(!!selRef.current);
+        } else if (!p.add) {
+          deselect();
+        }
+        redraw();
+      }
       return;
     }
     if (!drawingRef.current) return;
@@ -6026,7 +6094,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     redraw(); bump();
   };
   const onPointerLeave = (e) => {
-    if (tool === 'select') { if (movingRef.current || marqueeRef.current) onPointerUp(e); return; }
+    if (tool === 'select') {
+      if (movingRef.current || marqueeRef.current) onPointerUp(e);
+      else { pressRef.current = null; setSelCursor(null); }
+      return;
+    }
     if (drawingRef.current) { onPointerUp(e); }
     else if (previewRef.current) { previewRef.current = null; scheduleRedraw(); }
   };
@@ -6034,7 +6106,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   // Clear any hover/preview (and any selection) when switching tools.
   useEffect(() => {
     previewRef.current = null;
-    selRef.current = null; movingRef.current = false; dragRef.current = null; marqueeRef.current = null; setHasSel(false);
+    selRef.current = null; movingRef.current = false; dupRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
     scheduleRedraw();
   }, [tool, scheduleRedraw]);
 
@@ -6047,14 +6121,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       if ((e.metaKey || e.ctrlKey) && (e.key === '-' || e.key === '_')) { e.preventDefault(); adjustZoom(-ZOOM_STEP); return; }
       if ((e.metaKey || e.ctrlKey) && e.key === '0') { e.preventDefault(); resetZoom(); return; }
       if (typing) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && selRef.current) {
+        e.preventDefault(); duplicateSelection(); return;
+      }
       if (e.key === 'Escape' && selRef.current) { deselect(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current) {
         e.preventDefault();
-        pushUndo();
-        const cells = cellsRef.current;
-        for (const i of selRef.current.cells.keys()) cells[i] = null;
-        selRef.current = null; setHasSel(false);
-        redraw(); bump();
+        deleteSelection();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -6122,7 +6195,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   }, [pickerSearch]);
 
   const TOOLS = [
-    { id: 'select', label: 'Select & move', icon: <IcCursor/> },
+    { id: 'select', label: 'Select, move & copy', icon: <IcCursor/> },
     { id: 'pen', label: 'Draw', icon: <IcPen/> },
     { id: 'eraser', label: 'Erase', icon: <IcErase/> },
     { id: 'fill', label: 'Fill area', icon: <IcFill/> },
@@ -6201,17 +6274,30 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           </div>
           <div className="xs-canvas-wrap" ref={wrapRef}>
             <canvas ref={canvasRef} className="xs-canvas" width={W * cellSize} height={H * cellSize}
-              style={{ cursor: tool === 'select' ? (hasSel ? 'move' : 'default') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+              style={{ cursor: tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
           </div>
           <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
         </div>
         {hasSel && selRef.current && (
-          <div className={isMobile ? 'xs-selbar mobile-selbar' : undefined} style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
+          <div className={`xs-selbar${isMobile ? ' mobile-selbar' : ''}`} style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 10, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
             borderRadius: 8, padding: '6px 10px', boxShadow: '0 4px 16px rgba(46,41,37,0.16)', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)' }}>
-            <span><b>{selRef.current.cells.size}</b> stitches ({new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}) · drag to move · shift-click to add · Delete to remove</span>
-            <button className="btn btn-xs" onClick={deselect}>Deselect</button>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              <b>{selRef.current.cells.size}</b> stitches · {new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}
+            </span>
+            {!isMobile && (
+              <span style={{ color: 'var(--warm-muted)', whiteSpace: 'nowrap' }}>
+                drag to move · ⌥drag to copy · shift-click to add
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button className="btn btn-xs" onClick={duplicateSelection} title="Duplicate (Ctrl/Cmd D)"
+                style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcCopy/> Duplicate</button>
+              <button className="btn btn-xs" onClick={deleteSelection} title="Delete these stitches (Delete)"
+                style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcTrash/> Delete</button>
+              <button className="btn btn-xs btn-dark" onClick={deselect} title="Deselect (Esc)">Done</button>
+            </span>
           </div>
         )}
         {/* Right column (desktop only; mobile uses the bottom toolbar + sheets) */}
