@@ -5640,11 +5640,14 @@ function rasterizeText(text, font, sizeCells) {
 // Small canvas preview of a stitch grid (used in the saved-designs list/preview).
 function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   const ref = useRef(null);
+  // Fit the grid inside a size x size box at its own aspect ratio, so tall
+  // strips (30x120 bookmarks) and wide grids are contained rather than cropped
+  // by the caller's square thumb box.
+  const scale = Math.min(size / w, size / h);
+  const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const ctx = cv.getContext('2d');
-    const scale = Math.min(size / w, size / h);
-    const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
     cv.width = cw; cv.height = ch;
     ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = bg; ctx.fillRect(0, 0, cw, ch);
@@ -5653,8 +5656,8 @@ function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
       ctx.fillStyle = cells[i];
       ctx.fillRect((i % w) * scale, Math.floor(i / w) * scale, Math.ceil(scale), Math.ceil(scale));
     }
-  }, [w, h, cells, size, bg]);
-  return <canvas ref={ref} style={{ width: size, height: 'auto', display: 'block', imageRendering: 'pixelated', borderRadius: 4 }}/>;
+  }, [w, h, cells, cw, ch, scale, bg]);
+  return <canvas ref={ref} style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated', borderRadius: 4 }}/>;
 }
 
 function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack }) {
