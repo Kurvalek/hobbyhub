@@ -124,9 +124,17 @@ function Canvas(W, H) {
 // metime brand tokens used by the authored charts (see the :root block in
 // index.html). Each snaps to its nearest DMC floss during quantization, so the
 // studio palette, floss list and kit costing all still work off real flosses.
+//
+// Every bookmark is stitched edge to edge on one of the four neutrals below —
+// shell, ice, slate, ink. The picker previews a bookmark as a bare strip on a
+// white card and the studio draws it on white aida, so anything lighter (the
+// linen-600/Ecru and cream these grounds replaced) reads as unstitched fabric
+// and the bookmark stops looking like a bookmark. One ground per design, spread
+// light to dark, so the four cards don't read as one swatch.
 const BRAND = {
-  linen:  '#E9E7D9',   // --color-linen-600  → Ecru
+  linen:  '#D5D1BD',   // --color-linen-800  → 453 Shell Gray Light
   cream:  '#F5F3EE',   // --metime-cream     → 3866 Mocha Brn Ult Vy Lt
+  ice:    '#CCD6EB',   // --metime-ice       → 3747 Blue Violet Vy Lt
   slate:  '#707F87',   // setup-card border  → 3768 Gray Green Dark
   ink:    '#120F06',   // --color-taupe-900  → 3371 Black Brown
   tomato: '#E8583A',   // --metime-tomato    → 608 Burnt Orange Bright
@@ -157,9 +165,9 @@ function drawLeafStack(cv) {
   cv.frame(2, BRAND.slate);
 }
 
-// Bookmark 2 — a blocky fish on still linen, nose up, tail fanning out below.
+// Bookmark 2 — a blocky fish on still water, nose up, tail fanning out below.
 function drawLittleFish(cv) {
-  cv.fill(BRAND.linen);
+  cv.fill(BRAND.ice);
   const cx = 15;
   // Forked tail — two lobes sharing the center line, so the trailing edge dips
   // into a shallow notch — then the body over it so the join reads as one fish.
@@ -188,28 +196,31 @@ function drawLittleFish(cv) {
   cv.ellipse(cx, 86, 2.4, 2.4, BRAND.tomato);
 }
 
-// Bookmark 3 — an all-over scatter of petals and little blooms.
+// Bookmark 3 — an all-over scatter of petals and little blooms on a slate field.
+// The petals that used to be slate are stitched in cream now that slate is the
+// ground; the rest of the scatter keeps its warm tones, which read against it.
 function drawPetalScatter(cv) {
+  cv.fill(BRAND.slate);
   // { x, y, a: angle, len, w, hex } petals; blooms get a ring of five.
   const petals = [
     { x: 8,  y: 9,   a: 20,  len: 8,  w: 2.6, hex: BRAND.tomato },
-    { x: 22, y: 14,  a: -35, len: 7,  w: 2.4, hex: BRAND.slate },
+    { x: 22, y: 14,  a: -35, len: 7,  w: 2.4, hex: BRAND.cream },
     { x: 13, y: 22,  a: 70,  len: 6,  w: 2.2, hex: BRAND.golden },
     { x: 25, y: 28,  a: 15,  len: 7,  w: 2.4, hex: BRAND.ink },
     { x: 6,  y: 33,  a: -25, len: 8,  w: 2.6, hex: BRAND.coral },
     { x: 17, y: 40,  a: 45,  len: 7,  w: 2.4, hex: BRAND.tomato },
     { x: 27, y: 47,  a: -60, len: 6,  w: 2.2, hex: BRAND.golden },
-    { x: 5,  y: 52,  a: 30,  len: 7,  w: 2.4, hex: BRAND.slate },
+    { x: 5,  y: 52,  a: 30,  len: 7,  w: 2.4, hex: BRAND.cream },
     { x: 15, y: 58,  a: -15, len: 8,  w: 2.6, hex: BRAND.ink },
     { x: 25, y: 66,  a: 40,  len: 7,  w: 2.4, hex: BRAND.coral },
     { x: 7,  y: 70,  a: -50, len: 6,  w: 2.2, hex: BRAND.golden },
     { x: 16, y: 78,  a: 25,  len: 8,  w: 2.6, hex: BRAND.tomato },
-    { x: 27, y: 85,  a: -20, len: 6,  w: 2.2, hex: BRAND.slate },
+    { x: 27, y: 85,  a: -20, len: 6,  w: 2.2, hex: BRAND.cream },
     { x: 6,  y: 90,  a: 55,  len: 7,  w: 2.4, hex: BRAND.ink },
     { x: 18, y: 97,  a: -40, len: 7,  w: 2.4, hex: BRAND.coral },
     { x: 26, y: 104, a: 20,  len: 6,  w: 2.2, hex: BRAND.tomato },
     { x: 8,  y: 108, a: -18, len: 8,  w: 2.6, hex: BRAND.golden },
-    { x: 19, y: 114, a: 35,  len: 6,  w: 2.2, hex: BRAND.slate },
+    { x: 19, y: 114, a: 35,  len: 6,  w: 2.2, hex: BRAND.cream },
   ];
   for (const p of petals) cv.ray(p.x, p.y, p.a, p.len, 1.2, p.w, p.hex);
   const blooms = [
@@ -223,9 +234,9 @@ function drawPetalScatter(cv) {
   }
 }
 
-// Bookmark 4 — a bold ribbon of coral shapes with a soft echo.
+// Bookmark 4 — a bold ribbon of coral shapes with a soft echo, on ink.
 function drawCoralWave(cv) {
-  cv.fill(BRAND.cream);
+  cv.fill(BRAND.ink);
   // Four comma/bean shapes alternating side to side, each shadowed by a pale
   // echo one stitch out so the silhouette stays crisp against the ground.
   for (let i = 0; i < 4; i++) {
@@ -256,9 +267,9 @@ const DESIGNS = [
   { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: 'A vase of summer blooms.',         presets: ['Small Hoop', 'Medium Hoop'],              w: 104, h: 104, bgTol: 52, colors: 14 },
   { file: 'alphabet.png',     id: 'alphabet',     name: 'Alphabet Sampler',  desc: 'A classic bordered ABC sampler.',  presets: ['Medium Hoop'],                            w: 112, h: 112, bgTol: 60, colors: 6 },
   { draw: drawLeafStack,      id: 'leaf-stack',   name: 'Cutout Leaves',     desc: 'Five paper-cut leaves in a frame.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
-  { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: 'One blocky fish, head to tail.',   presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
-  { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: 'Petals tossed across bare linen.', presets: ['Bookmark'],                               w: 30,  h: 120, colors: 5 },
-  { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: 'A bold ribbon of coral shapes.',   presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
+  { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: 'One blocky fish on still water.',  presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
+  { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: 'Petals tossed across a slate field.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
+  { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: 'A bold coral ribbon on ink.',      presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
 ];
 
 function readPNG(file) {
