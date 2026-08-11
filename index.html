@@ -5762,14 +5762,28 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const selRef = useRef(null);   // {cells:Map<number,string>, minX,minY,maxX,maxY} | null
   const dragRef = useRef(null);  // {dx,dy} in cells, while moving
   const movingRef = useRef(false);
-  const dupRef = useRef(false);    // Alt/Option held → the drag leaves the original behind
   const pressRef = useRef(null);   // press awaiting the drag threshold: tap = pick a color group, drag = marquee
   const marqueeRef = useRef(null); // {x0,y0,x1,y1,add} while rubber-band selecting
   const antsRef = useRef(0);       // marching-ants dash offset
   const [hasSel, setHasSel] = useState(false);
   const [selCursor, setSelCursor] = useState(null); // 'move' | 'copy' when hovering the selection
+  // The selection lives in a ref because the pointer handlers rewrite it every
+  // frame, so its *contents* changing (shift-add, recolor, lift) needs an
+  // explicit nudge to repaint the selection bar.
+  const [, setSelTick] = useState(0);
+  const touchSel = () => { setHasSel(!!selRef.current); setSelTick(t => t + 1); };
 
-  const stats = useMemo(() => computeStitchStats(cellsRef.current, W, H, pal), [version, pal, W, H]);
+  // Counts describe what the board will look like once a floating selection
+  // lands, so the float is composited in before tallying.
+  const stats = useMemo(() => {
+    const sel = selRef.current;
+    let cells = cellsRef.current;
+    if (sel && sel.floating) {
+      cells = cells.slice();
+      for (const [i, hex] of sel.cells) cells[i] = hex;
+    }
+    return computeStitchStats(cells, W, H, pal);
+  }, [version, pal, W, H]);
 
   const idx = (x, y) => y * W + x;
 
@@ -5792,11 +5806,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     const cells = cellsRef.current;
     const sel = selRef.current;
-    // A move lifts the stitches off the board; a duplicate leaves them in place.
-    const lifting = movingRef.current && sel && !dupRef.current;
+    // The grid never holds a floating layer, so it paints as-is; the float is
+    // composited on top below and only merges in when it is committed.
     for (let i = 0; i < cells.length; i++) {
       if (!cells[i]) continue;
-      if (lifting && sel.cells.has(i)) continue;
       ctx.fillStyle = cells[i];
       ctx.fillRect((i % W) * cs, Math.floor(i / W) * cs, cs, cs);
     }
@@ -5873,7 +5886,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const cancelPointerInteraction = useCallback(() => {
     drawingRef.current = false;
     movingRef.current = false;
-    dupRef.current = false;
     pressRef.current = null;
     dragRef.current = null;
     marqueeRef.current = null;
@@ -5919,10 +5931,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const pushUndo = () => { undoRef.current.push(cellsRef.current.slice()); if (undoRef.current.length > 40) undoRef.current.shift(); };
   const undo = useCallback(() => {
+    // An uncommitted float is undone by dropping it and putting the grid back
+    // the way it was before the lift — no undo entry is consumed, because none
+    // was recorded yet.
+    const sel = selRef.current;
+    if (sel && sel.floating) {
+      cellsRef.current = sel.before;
+      selRef.current = null; movingRef.current = false;
+      dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+      setHasSel(false); setSelCursor(null);
+      redraw(); bump();
+      return;
+    }
     if (!undoRef.current.length) return;
     cellsRef.current = undoRef.current.pop();
     // The stitches the selection referred to may not exist any more, so drop it.
-    selRef.current = null; movingRef.current = false; dupRef.current = false;
+    selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
     setHasSel(false); setSelCursor(null);
     redraw(); bump();
@@ -6011,8 +6035,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
 
   // Wrap a cell-index -> hex Map into a selection object (or null when empty),
-  // computing the bounding box used to clamp moves to the grid.
-  const makeSel = (map) => {
+  // computing the bounding box used to clamp moves to the grid. `keep` carries
+  // the floating-layer bookkeeping over when a live float is re-positioned.
+  const makeSel = (map, keep) => {
     if (!map || map.size === 0) return null;
     let minX = W, minY = H, maxX = 0, maxY = 0;
     for (const i of map.keys()) {
@@ -6020,54 +6045,122 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       if (x < minX) minX = x; if (x > maxX) maxX = x;
       if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
-    return { cells: map, minX, minY, maxX, maxY };
+    return {
+      cells: map, minX, minY, maxX, maxY,
+      floating: !!(keep && keep.floating),   // lifted off the grid, not yet stamped
+      before: (keep && keep.before) || null, // grid snapshot from just before the lift
+      srcKeys: (keep && keep.srcKeys) || null, // cells emptied by the lift (a move)
+      copy: !!(keep && keep.copy),
+    };
   };
 
-  const deselect = () => {
-    selRef.current = null; movingRef.current = false; dupRef.current = false;
-    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
-    setHasSel(false); setSelCursor(null); scheduleRedraw();
+  // Anywhere inside the selection's bounds grabs it, not just the stitched
+  // cells — an outlined shape is hollow in the middle, and grabbing it there
+  // should move the shape rather than start a new marquee.
+  const inSelBounds = (sel, x, y) => !!sel && x >= sel.minX && x <= sel.maxX && y >= sel.minY && y <= sel.maxY;
+
+  // ── Floating selection layer ──────────────────────────────────────────────
+  // A selection that is being moved or duplicated is *lifted* out of the grid
+  // and composited on top of it at draw time. Nothing under the float is
+  // touched until it is committed, so it can be nudged around all day and the
+  // stitches it passes over come straight back. The whole lift → drag → commit
+  // cycle is one undo step, recorded from the pre-lift snapshot.
+  const liftSelection = (copy) => {
+    const sel = selRef.current;
+    if (!sel || sel.floating) return;
+    const before = cellsRef.current.slice();
+    const srcKeys = [...sel.cells.keys()];
+    // A move empties its source cells straight away; a copy leaves them.
+    if (!copy) for (const i of srcKeys) cellsRef.current[i] = null;
+    selRef.current = { ...sel, floating: true, before, srcKeys, copy };
   };
 
-  // Write the selected stitches at an offset as a single undo step. 'move'
-  // lifts them (source cells cleared first, so a selection can overlap its own
-  // old footprint); 'copy' leaves the originals behind. Either way the
-  // selection follows the stitches so it can be dragged again right away.
-  const commitSelection = (dx, dy, mode) => {
+  // Option can be pressed or released mid-drag: re-derive the grid from the
+  // pre-lift snapshot rather than trying to patch it.
+  const setFloatCopy = (copy) => {
+    const sel = selRef.current;
+    if (!sel || !sel.floating || sel.copy === copy) return;
+    cellsRef.current = sel.before.slice();
+    if (!copy) for (const i of sel.srcKeys) cellsRef.current[i] = null;
+    selRef.current = { ...sel, copy };
+  };
+
+  // Stamp the float into the grid. Returns true when something was committed.
+  const commitFloat = () => {
+    const sel = selRef.current;
+    if (!sel || !sel.floating) return false;
+    undoRef.current.push(sel.before);
+    if (undoRef.current.length > 40) undoRef.current.shift();
+    const cells = cellsRef.current;
+    for (const [i, hex] of sel.cells) cells[i] = hex;
+    selRef.current = { ...sel, floating: false, before: null, srcKeys: null, copy: false };
+    bump();
+    return true;
+  };
+
+  // Throw the float away and put the grid back as it was before the lift.
+  const cancelFloat = () => {
+    const sel = selRef.current;
+    if (!sel || !sel.floating) return false;
+    cellsRef.current = sel.before;
+    selRef.current = null; movingRef.current = false;
+    dragRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
+    bump();
+    return true;
+  };
+
+  // Re-key the selection to a new position. No grid writes while floating.
+  const offsetSelection = (dx, dy) => {
     const sel = selRef.current;
     if (!sel || (dx === 0 && dy === 0)) return;
-    pushUndo();
-    const cells = cellsRef.current;
-    const entries = [...sel.cells];
-    if (mode === 'move') for (const [i] of entries) cells[i] = null;
     const next = new Map();
-    for (const [i, hex] of entries) {
-      const nk = idx((i % W) + dx, Math.floor(i / W) + dy);
-      cells[nk] = hex; next.set(nk, hex);
-    }
-    selRef.current = makeSel(next);
-    setHasSel(true);
-    redraw(); bump();
+    for (const [i, hex] of sel.cells) next.set(idx((i % W) + dx, Math.floor(i / W) + dy), hex);
+    selRef.current = makeSel(next, sel);
+  };
+
+  // Ending a selection places whatever is floating. Anything that replaces or
+  // drops the selection routes through here, so a float is never orphaned.
+  const deselect = () => {
+    commitFloat();
+    selRef.current = null; movingRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null); redraw();
   };
 
   const deleteSelection = () => {
     const sel = selRef.current; if (!sel) return;
-    pushUndo();
-    const cells = cellsRef.current;
-    for (const i of sel.cells.keys()) cells[i] = null;
-    selRef.current = null; movingRef.current = false; dupRef.current = false; dragRef.current = null;
+    if (sel.floating) {
+      // The float is discarded rather than stamped. A lifted move already
+      // emptied its source cells, so that needs an undo point; a floating copy
+      // never touched the grid, so dropping it changes nothing.
+      if (!sel.copy) {
+        undoRef.current.push(sel.before);
+        if (undoRef.current.length > 40) undoRef.current.shift();
+      }
+    } else {
+      pushUndo();
+      for (const i of sel.cells.keys()) cellsRef.current[i] = null;
+    }
+    selRef.current = null; movingRef.current = false; dragRef.current = null;
     setHasSel(false); setSelCursor(null);
     redraw(); bump();
   };
 
   // Duplicate via the toolbar button or Cmd/Ctrl-D — the touch path, since a
-  // phone has no Option key. Drops the copy two stitches down-right, or back
-  // up-left when the selection already sits against the bottom/right edge.
+  // phone has no Option key. The copy floats two stitches down-right (or back
+  // up-left against the bottom/right edge) so it can be dragged into place
+  // without damaging the original underneath.
   const duplicateSelection = () => {
-    const sel = selRef.current; if (!sel) return;
+    const sel0 = selRef.current; if (!sel0) return;
+    commitFloat();               // an existing float becomes the "original"
+    liftSelection(true);
+    const sel = selRef.current;
     let dx = Math.min(2, W - 1 - sel.maxX), dy = Math.min(2, H - 1 - sel.maxY);
     if (dx === 0 && dy === 0) { dx = Math.max(-2, -sel.minX); dy = Math.max(-2, -sel.minY); }
-    commitSelection(dx, dy, 'copy');
+    offsetSelection(dx, dy);
+    touchSel();
+    redraw(); bump();
   };
 
   // Recolor the active selection to `c` (used when a "My palette" chip is
@@ -6076,12 +6169,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const recolorSelection = (c) => {
     const sel = selRef.current;
     if (!sel || sel.cells.size === 0 || !c) return;
-    pushUndo();
     const cells = cellsRef.current;
+    // A floating layer recolors in place — it folds into the pending commit
+    // rather than becoming an undo step of its own.
+    if (!sel.floating) pushUndo();
     const map = new Map();
-    for (const i of sel.cells.keys()) { cells[i] = c.hex; map.set(i, c.hex); }
+    for (const i of sel.cells.keys()) { if (!sel.floating) cells[i] = c.hex; map.set(i, c.hex); }
     selRef.current = { ...sel, cells: map };
-    setHasSel(true);
+    touchSel();
     redraw(); bump();
   };
 
@@ -6105,13 +6200,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       return;
     }
     if (tool === 'select') {
-      const k = idx(cell[0], cell[1]);
       const sel = selRef.current;
       e.currentTarget.setPointerCapture(e.pointerId);
-      if (sel && sel.cells.has(k) && !e.shiftKey) {
-        // Grab the existing selection to move it (Alt/Option leaves a copy).
-        movingRef.current = true; dupRef.current = e.altKey;
-        startRef.current = cell; dragRef.current = { dx: 0, dy: 0 };
+      if (sel && inSelBounds(sel, cell[0], cell[1]) && !e.shiftKey) {
+        // Grab the selection. Nothing lifts until the pointer actually moves,
+        // so a plain click inside a selection is a no-op.
+        movingRef.current = true;
+        startRef.current = cell; dragRef.current = { dx: 0, dy: 0, lifted: false, canToggleCopy: !sel.floating };
         scheduleRedraw(); return;
       }
       // Anywhere else the press is still ambiguous: a drag becomes a marquee,
@@ -6133,14 +6228,24 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (tool === 'select') {
       if (movingRef.current) {
         const [cx, cy] = cellClamped(e);
-        const s = startRef.current, sel = selRef.current;
+        const s = startRef.current, d = dragRef.current;
+        let sel = selRef.current;
         // Clamp the offset to the grid: the group slides along the edge rather
         // than being clipped, so no stitches are ever lost off-board.
         let dx = Math.max(-sel.minX, Math.min(W - 1 - sel.maxX, cx - s[0]));
         let dy = Math.max(-sel.minY, Math.min(H - 1 - sel.maxY, cy - s[1]));
-        dragRef.current = { dx, dy };
-        dupRef.current = e.altKey; // Option can be pressed or released mid-drag
-        setSelCursor(e.altKey ? 'copy' : 'move');
+        if (!d.lifted && (dx !== 0 || dy !== 0)) {
+          // First real movement: lift the stitches into the floating layer.
+          if (!sel.floating) liftSelection(e.altKey);
+          else if (e.altKey) { commitFloat(); liftSelection(true); }
+          d.lifted = true;
+          touchSel(); // once per drag, so the bar can say it is floating
+        } else if (d.lifted && d.canToggleCopy) {
+          setFloatCopy(e.altKey);
+        }
+        sel = selRef.current;
+        dragRef.current = { ...d, dx, dy };
+        setSelCursor(sel.copy ? 'copy' : 'move');
         scheduleRedraw();
         return;
       }
@@ -6163,7 +6268,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         return;
       }
       const hover = cellFromEvent(e);
-      const over = !!(hover && selRef.current && selRef.current.cells.has(idx(hover[0], hover[1])));
+      const over = !!(hover && inSelBounds(selRef.current, hover[0], hover[1]));
       setSelCursor(over ? (e.altKey ? 'copy' : 'move') : null);
       return;
     }
@@ -6196,13 +6301,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (tool === 'select') {
       if (movingRef.current) {
         const d = dragRef.current || { dx: 0, dy: 0 };
-        const dup = dupRef.current;
-        movingRef.current = false; dupRef.current = false; dragRef.current = null;
-        commitSelection(d.dx, d.dy, dup ? 'copy' : 'move');
-        redraw();
+        movingRef.current = false; dragRef.current = null;
+        // The float keeps its new home; the grid underneath is still untouched.
+        offsetSelection(d.dx, d.dy);
+        redraw(); bump();
         return;
       }
       if (marqueeRef.current) {
+        commitFloat();
         const mq = marqueeRef.current; marqueeRef.current = null;
         const x0 = Math.min(mq.x0, mq.x1), x1 = Math.max(mq.x0, mq.x1);
         const y0 = Math.min(mq.y0, mq.y1), y1 = Math.max(mq.y0, mq.y1);
@@ -6211,13 +6317,16 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
           const k = idx(x, y); const hex = cells[k]; if (hex) map.set(k, hex);
         }
-        selRef.current = makeSel(map); setHasSel(!!selRef.current);
+        selRef.current = makeSel(map); touchSel();
         redraw();
         return;
       }
       const p = pressRef.current;
       if (p) {
         pressRef.current = null;
+        // Picking somewhere else ends the current selection, so place the float
+        // before reading the grid under the tap.
+        commitFloat();
         const hex = cellsRef.current[idx(p.cell[0], p.cell[1])];
         if (hex) {
           // Tap a stitch: take its whole contiguous color group. With Shift the
@@ -6226,7 +6335,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           const map = (p.add && selRef.current) ? new Map(selRef.current.cells) : new Map();
           const allIn = p.add && region.every(i => map.has(i));
           for (const i of region) { if (allIn) map.delete(i); else map.set(i, hex); }
-          selRef.current = makeSel(map); setHasSel(!!selRef.current);
+          selRef.current = makeSel(map); touchSel();
         } else if (!p.add) {
           deselect();
         }
@@ -6249,10 +6358,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     else if (previewRef.current) { previewRef.current = null; scheduleRedraw(); }
   };
 
-  // Clear any hover/preview (and any selection) when switching tools.
+  // Switching tools ends the selection, which places any floating layer first.
   useEffect(() => {
     previewRef.current = null;
-    selRef.current = null; movingRef.current = false; dupRef.current = false;
+    commitFloat();
+    selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
     setHasSel(false); setSelCursor(null);
     scheduleRedraw();
@@ -6285,12 +6395,20 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     setColor(dmc);
     setShowPicker(false); setPickerSearch("");
   };
-  const clearAll = () => { pushUndo(); cellsRef.current = new Array(W * H).fill(null); previewRef.current = null; redraw(); bump(); setConfirmClear(false); };
+  const clearAll = () => {
+    // Drop any float first so one undo restores the board as it was before the
+    // lift, rather than the half-lifted grid.
+    cancelFloat();
+    pushUndo();
+    cellsRef.current = new Array(W * H).fill(null); previewRef.current = null;
+    redraw(); bump(); setConfirmClear(false);
+  };
 
   // Snapshot the design; `id`/`name` come from the caller so the same builder
   // powers both "save new" and "update in place".
   const buildStitchRecord = (id, name) => {
     const grid = serializeGrid(cellsRef.current);
+    // Callers commit any float first, so this always sees the finished board.
     const s = computeStitchStats(cellsRef.current, W, H, pal);
     return {
       id, name, presetName: dims.name, w: W, h: H,
@@ -6301,6 +6419,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
   const saveNewDesign = () => {
     const name = saveName.trim(); if (!name) return;
+    // Saving places a floating selection — what you see is what gets stored.
+    if (commitFloat()) redraw();
     const id = Date.now();
     setSavedStitches(p => [buildStitchRecord(id, name), ...p]);
     setCurrentStitchId(id);
@@ -6309,6 +6429,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
   const updateCurrentDesign = () => {
     if (currentStitchId == null) return;
+    if (commitFloat()) redraw();
     setSavedStitches(p => p.map(x => x.id === currentStitchId ? buildStitchRecord(currentStitchId, x.name) : x));
     flashSaved();
   };
@@ -6317,6 +6438,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (!d) return;
     setCurrentStitchId(d.id ?? null);
     undoRef.current = [];
+    // The incoming grid replaces everything, so any float is simply dropped.
+    selRef.current = null; movingRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
     // Restore the design at its saved size. Setting dims re-runs the fit and
     // redraw effects (both keyed on W/H), so the board resizes to match the
     // grid instead of the grid being squeezed into the active canvas size.
@@ -6426,7 +6551,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
         </div>
         {hasSel && selRef.current && (
-          <div className={`xs-selbar${isMobile ? ' mobile-selbar' : ''}`} style={{ position: 'absolute', top: 12, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
+          // Floats just under the size bar so it never collides with it.
+          <div className={`xs-selbar${isMobile ? ' mobile-selbar' : ''}`} style={{ position: 'absolute', top: 58, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 10, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
             borderRadius: 8, padding: '6px 10px', boxShadow: '0 4px 16px rgba(46,41,37,0.16)', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)' }}>
             <span style={{ whiteSpace: 'nowrap' }}>
@@ -6434,7 +6560,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             </span>
             {!isMobile && (
               <span style={{ color: 'var(--warm-muted)', whiteSpace: 'nowrap' }}>
-                drag to move · ⌥drag to copy · shift-click to add
+                {selRef.current.floating
+                  ? 'floating above the design · Done places it'
+                  : 'drag to move · ⌥drag to copy · shift-click to add'}
               </span>
             )}
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
