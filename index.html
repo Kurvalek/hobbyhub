@@ -624,17 +624,17 @@
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     width: 100%; height: 100%; min-width: 0; box-sizing: border-box;
     padding: 14px; background: var(--metime-white);
-    border: 1px solid var(--metime-almost-black); border-radius: 2px;
+    border: 1px solid #707F87; border-radius: 2px;
     cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
     text-align: left; font: inherit; color: inherit;
   }
   .pal-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .pal-card:active { transform: translateY(0); }
-  .pal-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
+  .pal-card.selected { box-shadow: 0 0 0 2px #707F87; }
   .pal-swatches { display: flex; align-items: center; height: 38px; width: 100%; }
   .pal-swatch {
     width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-    border: 1px solid var(--metime-almost-black); box-sizing: border-box;
+    border: 1px solid #707F87; box-sizing: border-box;
     margin-left: -10px; display: block; position: relative;
   }
   .pal-swatch:first-child { margin-left: 0; }
@@ -656,19 +656,19 @@
   /* Suggested palette from image — Figma metime design system node 2138:2019 */
   .pal-from-image {
     display: flex; gap: 28px; align-items: flex-start;
-    background: var(--metime-white); border: 1px solid var(--metime-almost-black);
+    background: var(--metime-white); border: 1px solid #707F87;
     border-radius: 2px; padding: 19px; box-sizing: border-box;
     width: min(100%, 66.666%); max-width: 100%;
   }
   .pal-from-image-preview {
     width: 146px; height: 146px; object-fit: cover; flex-shrink: 0;
-    border: 1px solid var(--metime-almost-black); display: block;
+    border: 1px solid #707F87; display: block;
   }
   .pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 32px; align-items: flex-start; }
   .pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .pal-from-image-swatch {
     position: relative; width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-    border: 1px solid var(--metime-almost-black); box-sizing: border-box;
+    border: 1px solid #707F87; box-sizing: border-box;
     padding: 0; cursor: pointer; overflow: hidden;
   }
   .pal-from-image-x {
@@ -683,7 +683,7 @@
   .pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
   .pal-from-image-add {
     width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-    border: 1px dashed var(--metime-almost-black); background: var(--metime-white);
+    border: 1px dashed #707F87; background: var(--metime-white);
     color: var(--metime-almost-black); font-size: 28px; line-height: 1; font-weight: 400;
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; font-family: inherit;
