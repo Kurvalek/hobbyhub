@@ -596,10 +596,14 @@
 
   /* Palette selector page */
   .pal-body { max-width: none; }
+  /* Palette-step intro — keep BC Civitas heading; body in Söhne #25211e */
+  .pal-body .proj-heading { color: #25211e; }
+  .pal-body .proj-subheading { font-size: 14px; font-weight: 300; color: #25211e; }
   .pal-section { margin-bottom: 36px; }
   .pal-section-head { margin-bottom: 14px; }
-  .pal-section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--warm-fg-2); }
-  .pal-section-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; }
+  /* Palette-step section labels — Söhne Kräftig / Leicht, #25211e (Figma 2151) */
+  .pal-section-title { font-size: 14px; font-weight: 500; letter-spacing: 0; color: #25211e; }
+  .pal-section-sub { font-size: 14px; font-weight: 300; color: #25211e; margin-top: 3px; }
   /* Even rows that divide both 6 (DMC) and 12 (Kona) sample counts:
      6 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
   .pal-grid {
@@ -619,7 +623,8 @@
     .pal-grid { grid-template-columns: 1fr; }
   }
   /* Sample palette card — Figma metime design system node 2138:1989.
-     Sized for up to 8 overlapping 38px swatches (≈234px) plus padding. */
+     Sized for up to 8 overlapping 38px swatches (≈234px) plus padding.
+     Box border #707F87; swatch stroke = 1pt inset black @ 50%. */
   .pal-card {
     display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
     width: 100%; height: 100%; min-width: 0; box-sizing: border-box;
@@ -634,13 +639,14 @@
   .pal-swatches { display: flex; align-items: center; height: 38px; width: 100%; }
   .pal-swatch {
     width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-    border: 1px solid #707F87; box-sizing: border-box;
-    margin-left: -10px; display: block; position: relative;
+    border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box; margin-left: -10px; display: block; position: relative;
   }
   .pal-swatch:first-child { margin-left: 0; }
   .pal-card-body { padding: 0; min-width: 0; width: 100%; }
-  .pal-card-name { font-size: 16px; font-weight: 500; color: var(--warm-fg); line-height: 1.25; }
-  .pal-card-meta { font-size: 14px; font-weight: 400; color: var(--warm-fg); line-height: 1.25; margin-top: 0; }
+  /* Figma: Söhne Kräftig 16 / Leicht 14, black */
+  .pal-card-name { font-size: 16px; font-weight: 500; color: #000000; line-height: normal; }
+  .pal-card-meta { font-size: 14px; font-weight: 300; color: #000000; line-height: normal; margin-top: 0; }
 
   /* Upload */
   .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 100%; box-sizing: border-box; }
@@ -668,8 +674,8 @@
   .pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .pal-from-image-swatch {
     position: relative; width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-    border: 1px solid #707F87; box-sizing: border-box;
-    padding: 0; cursor: pointer; overflow: hidden;
+    border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box; padding: 0; cursor: pointer; overflow: hidden;
   }
   .pal-from-image-x {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -684,7 +690,7 @@
   .pal-from-image-add {
     width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
     border: 1px dashed #707F87; background: var(--metime-white);
-    color: var(--metime-almost-black); font-size: 28px; line-height: 1; font-weight: 400;
+    color: #1F1E1D; font-size: 28px; line-height: 1; font-weight: 400;
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; font-family: inherit;
   }
@@ -706,6 +712,18 @@
   .pal-btn.secondary { background: transparent; color: var(--warm-fg); }
   .pal-btn.secondary:hover { background: var(--warm-hover); }
   .pal-skip-row { display: flex; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; }
+  /* Skip for now — Figma 2151:263; box border overridden to #707F87 */
+  .pal-skip-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 10px 18px; border-radius: 6px;
+    border: 1px solid #707F87; background: var(--metime-white);
+    color: #25211e; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    line-height: normal; cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .pal-skip-btn:hover { background: var(--color-linen-300); }
+  .pal-skip-btn:active { background: var(--color-linen-500); }
+  .pal-skip-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
 
   /* Template selector */
@@ -719,8 +737,16 @@
   .tmpl-card-body { padding: 10px 13px 13px; }
   .tmpl-card-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); margin-bottom: 2px; }
   .tmpl-card-desc { font-size: 12px; color: var(--warm-muted); }
-  .back-link { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--warm-muted); cursor: pointer; border: none; background: none; padding: 0; margin-bottom: 14px; font-family: inherit; }
-  .back-link:hover { color: var(--warm-fg); }
+  /* Back link — tertiary text style (Figma Button Tertiary Medium): Söhne Kräftig 14, taupe-900 + underline */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 20px;
+    color: var(--color-taupe-900); cursor: pointer;
+    border: none; border-bottom: 1px solid var(--color-taupe-900); border-radius: 0;
+    background: none; padding: 0 0 1px; margin-bottom: 14px;
+  }
+  .back-link:hover { color: var(--color-taupe-600); border-bottom-color: var(--color-taupe-600); }
+  .back-link:active { color: var(--color-taupe-700); border-bottom-color: var(--color-taupe-700); }
 
   /* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
   .pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
@@ -4800,7 +4826,7 @@ function TemplateStep({ title, subheading, backLabel, onBack, templates, renderT
           </div>
         </section>
         <section className="pal-section pal-skip-row">
-          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
+          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
     </div>
@@ -4994,7 +5020,7 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
           onChoose={imgSrc => chooseFromImage('Your fabric', imgSrc)}/>
 
         <section className="pal-section pal-skip-row">
-          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
+          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
     </div>
@@ -5161,7 +5187,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
         </section>
 
         <section className="pal-section pal-skip-row">
-          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
+          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
       {swapIdx !== null && (
@@ -5320,7 +5346,7 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
         </section>
 
         <section className="pal-section pal-skip-row">
-          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
+          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
       {swapIdx !== null && (
