@@ -4521,21 +4521,69 @@ function xsResampleGrid(src, sw, sh, dw, dh) {
   }
   return out;
 }
-const STITCH_BLANK_TEMPLATE = {
-  id: 'blank', name: 'Blank', desc: 'Start from an empty grid.', presets: null,
-  build: ({ w, h }) => new Array(w * h).fill(null),
-};
-const CROSS_STITCH_TEMPLATES = [
-  STITCH_BLANK_TEMPLATE,
-  ...(window.STITCH_TEMPLATE_DATA || []).map(entry => ({
-    id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
-    build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
-  })),
-];
-// Templates offered for a given preset (Blank first, then size-catered charts).
+// There's no "Blank" card in the grid — "Skip for now" is the empty-grid route.
+const CROSS_STITCH_TEMPLATES = (window.STITCH_TEMPLATE_DATA || []).map(entry => ({
+  id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
+  build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
+}));
+// Size-catered charts offered for a given preset.
 function stitchTemplatesFor(preset) {
   const name = preset && preset.name;
   return CROSS_STITCH_TEMPLATES.filter(t => !t.presets || t.presets.includes(name));
+}
+
+// ── Dressing a template chart in the user's palette ────────────────────────
+// Templates ship in metime brand colors (snapped to their nearest DMC floss —
+// see tools/gen-stitch-templates.mjs). Picking a palette on the next step has to
+// override those defaults without flattening the design, so we map the chart's
+// colors onto the palette by role instead of just recoloring cell by cell.
+// Relative luminance, 0–1.
+function xsLuma(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+}
+// The chart's colors in role order: most-stitched first.
+function xsGridRoles(grid) {
+  const counts = new Map();
+  for (const hex of grid) if (hex) counts.set(hex, (counts.get(hex) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([hex, count]) => ({ hex, count }));
+}
+// Re-dress a template design in `palette` (an array of DMC color objects):
+//   • a stitched ground — the top color, when it covers most of the chart —
+//     stays a ground: it takes the palette color closest to it in luminance, so
+//     linen stays light and a dark field stays dark, and then sits out the rest;
+//   • which of the remaining palette colors get used is decided by dominance,
+//     walking the palette in the order the user sees it, so a design that needs
+//     fewer colors than the palette offers takes its leading ones;
+//   • which motif color gets which is decided by tone: both lists are sorted by
+//     luminance and paired off, so the design's light/dark structure — and with
+//     it the contrast that makes the motif read — survives the swap;
+//   • a palette shorter than the design cycles rather than dropping colors, so
+//     motif detail is never lost, just carried in fewer tones.
+function xsRecolorGrid(grid, palette) {
+  if (!grid || !palette || !palette.length) return grid;
+  const roles = xsGridRoles(grid);
+  const pal = palette.map(c => c && c.hex).filter(Boolean);
+  if (!roles.length || !pal.length) return grid;
+  const map = new Map();
+  let motifs = roles, pool = pal;
+  if (roles[0].count > grid.length * 0.35) {
+    const groundLuma = xsLuma(roles[0].hex);
+    const ground = pal.reduce((best, h) =>
+      Math.abs(xsLuma(h) - groundLuma) < Math.abs(xsLuma(best) - groundLuma) ? h : best, pal[0]);
+    const rest = pal.filter(h => h !== ground);
+    // A one-color palette leaves nothing for the motif, so the ground keeps its
+    // default rather than flattening the design into a single block of color.
+    map.set(roles[0].hex, rest.length ? ground : roles[0].hex);
+    motifs = roles.slice(1);
+    pool = rest.length ? rest : pal;
+  }
+  if (motifs.length) {
+    const byLuma = arr => [...arr].sort((a, b) => xsLuma(a) - xsLuma(b));
+    const tones = byLuma(motifs.map((_, i) => pool[i % pool.length]));
+    byLuma(motifs.map(r => r.hex)).forEach((hex, i) => map.set(hex, tones[i]));
+  }
+  return grid.map(hex => hex ? (map.get(hex) || hex) : null);
 }
 
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
@@ -5277,7 +5325,7 @@ function CrossStitchSizeSelector({ onSelect, onBack }) {
 // step, we extract a suggested palette from it (editable — remove/add via
 // the DMC floss picker). Choosing a palette (suggested or sample) auto-generates
 // the design from the photo + that palette and enables the trace overlay.
-function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack }) {
+function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip, onBack }) {
   const samples = useMemo(() => DMC_PALETTES.map(p => ({ name: p.name, colors: resolveDmcPalette(p) })), []);
   const imgElRef = useRef(null);
   const [sugg, setSugg] = useState([]);
@@ -5335,7 +5383,11 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
             <h1 className="proj-heading">Pick a palette</h1>
             <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
           </div>
-          <p className="proj-subheading">Pick the floss colors you would like to use for your {preset.name}. You can always change these later.</p>
+          <p className="proj-subheading">
+            {template
+              ? `Pick the floss colors you would like to use for your ${preset.name} — “${template.name}” will be restitched in them. You can always change these later.`
+              : `Pick the floss colors you would like to use for your ${preset.name}. You can always change these later.`}
+          </p>
         </div>
 
         {photo && (
@@ -6652,9 +6704,37 @@ function Root() {
         <CrossStitchPaletteSelector
           preset={xsPreset}
           photo={xsPhoto}
+          template={xsTemplate}
           onBack={() => window.history.back()}
-          onChoose={(pal, extra) => { setXsPalette(pal && pal.length ? pal : null); if (extra) setXsOpts(o => ({ ...o, ...extra })); setXsDone(true); }}
-          onSkip={() => { setXsPalette(null); if (xsPhoto) setXsOpts(o => ({ ...o, bgImage: xsPhoto })); setXsDone(true); }}/>
+          onChoose={(pal, extra) => {
+            const colors = pal && pal.length ? pal : null;
+            setXsPalette(colors);
+            setXsOpts(o => {
+              const next = { ...o, ...(extra || null) };
+              // A chosen palette overrides the template's default brand colors.
+              // We always re-dress the template's own chart rather than whatever
+              // grid is in state, so stepping back here and picking a different
+              // palette recolors the original instead of a recolored copy.
+              // (A photo-traced design is already built from the palette.)
+              if (xsTemplate) {
+                const chart = xsTemplate.build(xsPreset);
+                next.autoGrid = colors ? xsRecolorGrid(chart, colors) : chart;
+              }
+              return next;
+            });
+            setXsDone(true);
+          }}
+          onSkip={() => {
+            setXsPalette(null);
+            setXsOpts(o => {
+              const next = { ...o };
+              if (xsPhoto) next.bgImage = xsPhoto;
+              // No palette — back to the template's brand colors.
+              if (xsTemplate) next.autoGrid = xsTemplate.build(xsPreset);
+              return next;
+            });
+            setXsDone(true);
+          }}/>
       );
     }
     return (
