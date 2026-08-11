@@ -504,8 +504,8 @@
   .proj-header { padding: 14px 20px; display: flex; align-items: center; gap: 16px; border-bottom: none; box-shadow: none; background-color: var(--metime-cream); background-image: repeating-linear-gradient(to right, var(--metime-almost-black) 0, var(--metime-almost-black) 3px, transparent 3px, transparent 7px); background-repeat: no-repeat; background-size: 100% 1px; background-position: bottom left; flex-shrink: 0; }
   .proj-body { flex: 1; overflow-y: auto; padding: 48px 48px 64px; }
   .proj-intro { margin-bottom: 40px; }
-  .proj-heading { font-family: var(--font-display); font-size: 34px; line-height: 1.15; color: var(--warm-fg); margin-bottom: 6px; }
-  .proj-subheading { font-size: 14px; color: var(--warm-muted); }
+  .proj-heading { font-family: var(--font-display); font-size: 36px; line-height: 1.15; letter-spacing: -0.5px; color: #25211e; margin-bottom: 6px; }
+  .proj-subheading { font-size: 14px; color: #3c3833; }
   /* auto-fit (not auto-fill) collapses empty trailing tracks so the cards
      stretch to fill the row on desktop; at narrow widths it still resolves to a
      single column, so mobile stacking is unchanged. max-width keeps cards sane
@@ -596,19 +596,21 @@
 
   /* Palette selector page */
   .pal-body { max-width: none; }
-  /* Palette-step intro — keep BC Civitas heading; body in Söhne #25211e */
-  .pal-body .proj-heading { color: #25211e; }
-  .pal-body .proj-subheading { font-size: 14px; font-weight: 300; color: #25211e; }
+  /* Setup-step intro — heading row carries the top-right skip (Figma 2151:266) */
+  .pal-head-row { display: flex; align-items: center; gap: 16px; }
+  .pal-head-row .proj-heading { flex: 1; min-width: 0; margin-bottom: 0; }
+  .pal-head-row + .proj-subheading { margin-top: 6px; }
+  .pal-body .proj-subheading { font-size: 14px; font-weight: 400; color: #3c3833; }
   .pal-section { margin-bottom: 36px; }
   .pal-section-head { margin-bottom: 14px; }
-  /* Palette-step section labels — Söhne Kräftig / Leicht, #25211e (Figma 2151) */
-  .pal-section-title { font-size: 14px; font-weight: 500; letter-spacing: 0; color: #25211e; }
-  .pal-section-sub { font-size: 14px; font-weight: 300; color: #25211e; margin-top: 3px; }
+  /* Palette-step section labels — Söhne Kräftig 20 / Buch 13 (Figma 2151:261) */
+  .pal-section-title { font-size: 20px; font-weight: 500; letter-spacing: 0; color: #25211e; }
+  .pal-section-sub { font-size: 13px; font-weight: 400; color: #3c3833; margin-top: 3px; }
   /* Even rows that divide both 6 (DMC) and 12 (Kona) sample counts:
-     6 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
+     6 / 4 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
   .pal-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-auto-rows: 1fr;
     gap: 14px;
     width: 100%;
@@ -616,37 +618,40 @@
   @media (min-width: 1800px) {
     .pal-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   }
+  @media (max-width: 1200px) {
+    .pal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
   @media (max-width: 900px) {
     .pal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 480px) {
     .pal-grid { grid-template-columns: 1fr; }
   }
-  /* Sample palette card — Figma metime design system node 2138:1989.
-     Sized for up to 8 overlapping 38px swatches (≈234px) plus padding.
+  /* Sample palette card — Figma metime design system node 2151:47.
+     Sized for up to 8 overlapping 32px swatches plus padding.
      Box border #707F87; swatch stroke = 1pt inset black @ 50%. */
   .pal-card {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
     width: 100%; height: 100%; min-width: 0; box-sizing: border-box;
-    padding: 14px; background: var(--metime-white);
-    border: 1px solid #707F87; border-radius: 2px;
+    padding: 16px 12px 12px; background: var(--metime-white);
+    border: 1px solid #707F87; border-radius: 4px;
     cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
     text-align: left; font: inherit; color: inherit;
   }
   .pal-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .pal-card:active { transform: translateY(0); }
   .pal-card.selected { box-shadow: 0 0 0 2px #707F87; }
-  .pal-swatches { display: flex; align-items: center; height: 38px; width: 100%; }
+  .pal-swatches { display: flex; align-items: center; height: 32px; width: 100%; }
   .pal-swatch {
-    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
     border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
-    box-sizing: border-box; margin-left: -10px; display: block; position: relative;
+    box-sizing: border-box; margin-left: -6px; display: block; position: relative;
   }
   .pal-swatch:first-child { margin-left: 0; }
-  .pal-card-body { padding: 0; min-width: 0; width: 100%; }
-  /* Figma: Söhne Kräftig 16 / Leicht 14, black */
-  .pal-card-name { font-size: 16px; font-weight: 500; color: #000000; line-height: normal; }
-  .pal-card-meta { font-size: 14px; font-weight: 300; color: #000000; line-height: normal; margin-top: 0; }
+  .pal-card-body { padding: 10px 0 0; min-width: 0; width: 100%; }
+  /* Figma: Söhne Kräftig 14 / Buch 13 */
+  .pal-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
+  .pal-card-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
 
   /* Upload */
   .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 100%; box-sizing: border-box; }
@@ -659,21 +664,23 @@
   .pal-result-main { flex: 1; min-width: 0; }
   .pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
 
-  /* Suggested palette from image — Figma metime design system node 2138:2019 */
+  /* Suggested palette from image — Figma metime design system node 2151:24 */
   .pal-from-image {
-    display: flex; gap: 28px; align-items: flex-start;
+    display: flex; gap: 20px; align-items: flex-start;
     background: var(--metime-white); border: 1px solid #707F87;
-    border-radius: 2px; padding: 19px; box-sizing: border-box;
-    width: min(100%, 66.666%); max-width: 100%;
+    border-radius: 4px; padding: 25px 16px 16px; box-sizing: border-box;
+    width: min(100%, 71.5%); max-width: 100%;
   }
   .pal-from-image-preview {
-    width: 146px; height: 146px; object-fit: cover; flex-shrink: 0;
-    border: 1px solid #707F87; display: block;
+    width: 100px; height: 100px; object-fit: cover; flex-shrink: 0;
+    border: none; display: block; box-sizing: border-box;
+    /* outline (not inset box-shadow) so the stroke paints over the image content */
+    outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px;
   }
-  .pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 32px; align-items: flex-start; }
-  .pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
+  .pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .pal-from-image-swatch {
-    position: relative; width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+    position: relative; width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
     border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
     box-sizing: border-box; padding: 0; cursor: pointer; overflow: hidden;
   }
@@ -688,15 +695,15 @@
   }
   .pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
   .pal-from-image-add {
-    width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
-    border: 1px dashed #707F87; background: var(--metime-white);
-    color: #1F1E1D; font-size: 28px; line-height: 1; font-weight: 400;
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    border: 1px dashed #9A958C; background: var(--metime-white);
+    color: #3c3833; font-size: 20px; line-height: 1; font-weight: 400;
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; font-family: inherit;
   }
   .pal-from-image-add:hover { background: var(--warm-hover); }
   .pal-from-image-use {
-    height: 40px; padding: 0 24px; border-radius: 4px; font-size: 18px; font-weight: 500;
+    padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; line-height: normal;
   }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
@@ -737,16 +744,19 @@
   .tmpl-card-body { padding: 10px 13px 13px; }
   .tmpl-card-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); margin-bottom: 2px; }
   .tmpl-card-desc { font-size: 12px; color: var(--warm-muted); }
-  /* Back link — tertiary text style (Figma Button Tertiary Medium): Söhne Kräftig 14, taupe-900 + underline */
+  /* Back link — tertiary text style (Figma Button Tertiary Medium): Söhne Kräftig 14, taupe-900.
+     Chevron sits outside the underline so only the label is underlined. */
   .back-link {
-    display: inline-flex; align-items: center; gap: 5px;
+    display: inline-flex; align-items: center; gap: 6px;
     font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 20px;
     color: var(--color-taupe-900); cursor: pointer;
-    border: none; border-bottom: 1px solid var(--color-taupe-900); border-radius: 0;
-    background: none; padding: 0 0 1px; margin-bottom: 14px;
+    border: none; border-radius: 0;
+    background: none; padding: 0; margin-bottom: 14px;
   }
-  .back-link:hover { color: var(--color-taupe-600); border-bottom-color: var(--color-taupe-600); }
-  .back-link:active { color: var(--color-taupe-700); border-bottom-color: var(--color-taupe-700); }
+  .back-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .back-link span { border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+  .back-link:hover { color: var(--color-taupe-600); }
+  .back-link:active { color: var(--color-taupe-700); }
 
   /* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
   .pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
@@ -776,9 +786,11 @@
     .fabric-filters { gap: 6px; }
     .fabric-filter { padding: 5px 12px; font-size: 12px; }
     .proj-body { padding: 24px 16px 56px; }
-    .proj-heading { font-size: 26px; }
+    .proj-heading { font-size: 28px; }
     .proj-intro { margin-bottom: 28px; }
+    .pal-head-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .pal-section { margin-bottom: 28px; }
+    .pal-section-title { font-size: 18px; }
     .pal-upload { max-width: none; padding: 24px 16px; }
     .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .pal-grid { gap: 12px; }
@@ -788,8 +800,8 @@
     .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; width: 100%; }
     .pal-from-image-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 220px; }
     .pal-from-image-main { gap: 20px; width: 100%; }
-    .pal-from-image-swatch, .pal-from-image-add { width: 52px; height: 52px; }
-    .pal-from-image-add { font-size: 24px; }
+    .pal-from-image-swatch, .pal-from-image-add { width: 48px; height: 48px; }
+    .pal-from-image-add { font-size: 20px; }
     .pal-from-image-use { width: 100%; justify-content: center; }
   }
 </style>
@@ -1206,6 +1218,7 @@ const IcSearch  = () => <Svg><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-
 const IcPin     = ({ on }) => <Svg><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill={on?"currentColor":"none"}/></Svg>;
 const IcX       = () => <Svg><path d="M18 6 6 18M6 6l12 12"/></Svg>;
 const IcPlus    = () => <Svg><path d="M12 5v14M5 12h14"/></Svg>;
+const IcCaretL  = () => <Svg><path d="m15 18-6-6 6-6"/></Svg>;
 const IcLayers  = () => <Svg><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></Svg>;
 const IcTrash   = () => <Svg><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>;
 const IcCopy    = () => <Svg><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
@@ -1702,10 +1715,10 @@ const STITCH_IMAGES = {
 // matching the sample moodboards used for cross-stitch starters.
 const DMC_PALETTES = [
   { name: "Vintage Blue", codes: ["797", "794", "945", "301", "3776", "3865"] },
-  { name: "Cottage Floral",   codes: ["210", "3821", "3866", "402", "754", "3051", "932"] },
+  { name: "Cottage Floral",   codes: ["210", "3821", "3866", "402", "3051", "932"] },
   { name: "Warm Retro",       codes: ["977", "799", "921", "3341", "3827", "3865"] },
   { name: "Meadow Mist",      codes: ["Ecru", "523", "503", "834", "520", "642"] },
-  { name: "Guava Lagoon",     codes: ["743", "733", "367", "3771", "722", "351", "993", "931"] },
+  { name: "Guava Lagoon",     codes: ["733", "367", "3771", "351", "993", "931"] },
   { name: "Sunflower Toast",  codes: ["832", "422", "3033", "3857", "3863", "794"] },
 ];
 function dmcByCode(code) { return DMC.find(c => c.code === code); }
@@ -1767,13 +1780,13 @@ const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
 // cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm neutrals.
 const SUGGESTED_PALETTES = [
   { name: "Vintage Blue",        colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
-  { name: "Cottage Floral",      colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Ballet Slipper", "Palm", "Iron"] },
+  { name: "Cottage Floral",      colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Palm", "Iron"] },
   { name: "Warm Retro",          colors: ["Butterscotch", "Dresden Blue", "Terracotta", "Peach", "Bone"] },
   { name: "Meadow Mist",         colors: ["Oyster", "Stone", "Overcast", "Straw", "Ivy", "Bone"] },
-  { name: "Guava Lagoon",        colors: ["Lemon", "Artichoke", "Dill", "Peach", "Creamsicle", "Nectarine", "Fog", "Regatta"] },
+  { name: "Guava Lagoon",        colors: ["Lemon", "Dill", "Peach", "Nectarine", "Fog", "Regatta"] },
   { name: "Sunflower Toast",     colors: ["Artichoke", "Straw", "Lingerie", "Brick", "Biscuit", "Blue Bell"] },
   { name: "Mediterranean Clay",  colors: ["Spice", "Nectarine", "Ivory", "Blue Bell", "Summer Pear", "Evergreen"] },
-  { name: "Muted Earth",         colors: ["Lingerie", "Foxglove", "Caramel", "Suede", "Steel", "Biscuit", "Espresso"] },
+  { name: "Muted Earth",         colors: ["Lingerie", "Foxglove", "Caramel", "Steel", "Biscuit", "Espresso"] },
   { name: "Antique Fiber",       colors: ["Natural", "Doeskin", "Ash", "Chestnut", "Mustard", "Espresso"] },
   { name: "Storybook",           colors: ["Flame", "Ballet Slipper", "Midnight", "Zucchini", "Wine", "Baby Blue"] },
   { name: "Coastal Sage",        colors: ["Oyster", "Overcast", "Fog", "Dresden Blue", "Straw", "Bone"] },
@@ -4355,7 +4368,7 @@ function ProjectSelector({ onSelect, onBack }) {
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body">
-        {onBack && <button className="back-link" onClick={onBack}>← Back</button>}
+        {onBack && <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>}
         <div className="proj-intro">
           <h1 className="proj-heading">What size?</h1>
           <p className="proj-subheading">Choose a size to start planning your quilt.</p>
@@ -4600,7 +4613,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
   return (
     <section className="pal-section">
       <div className="pal-section-head">
-        <div className="pal-section-title">Upload an Image</div>
+        <div className="pal-section-title">Upload an image</div>
         {hint && <div className="pal-section-sub">{hint}</div>}
       </div>
       {!extracted && (
@@ -4795,16 +4808,19 @@ function StitchTemplateThumb({ tpl, preset }) {
 
 // Generic template-step shell (reused by quilt + cross-stitch). Optional
 // uploadNode renders a PhotoUpload above the template grid.
-function TemplateStep({ title, subheading, backLabel, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
+function TemplateStep({ title, subheading, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
   return (
     <div className="proj-page">
       <header className="proj-header">
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← {backLabel}</button>
+        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
         <div className="proj-intro">
-          <h1 className="proj-heading">{title}</h1>
+          <div className="pal-head-row">
+            <h1 className="proj-heading">{title}</h1>
+            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
+          </div>
           <p className="proj-subheading">{subheading}</p>
         </div>
         {uploadNode}
@@ -4840,7 +4856,7 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
     <TemplateStep
       title="Pick a template"
       subheading={`Give your ${preset} a head start with a patchwork layout${palette && palette.length ? ' in your palette' : ''} — or skip to a blank canvas.`}
-      backLabel="Back to palette" onBack={onBack}
+      onBack={onBack}
       templates={QUILT_TEMPLATES}
       renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p} palette={palette}/>}
       onChoose={onChoose} onSkip={onSkip}/>
@@ -4860,7 +4876,7 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack }) {
     <TemplateStep
       title="Pick a template or upload a photo"
       subheading={`Start your ${preset.name} from a ready-made chart, a photo to guide your design, or skip to a blank grid.`}
-      backLabel="Back to sizes" onBack={onBack}
+      onBack={onBack}
       templates={stitchTemplatesFor(preset)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
       uploadNode={uploadNode}
@@ -4987,9 +5003,12 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to sizes</button>
+        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick a backing fabric</h1>
+          <div className="pal-head-row">
+            <h1 className="proj-heading">Pick a backing fabric</h1>
+            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
+          </div>
           <p className="proj-subheading">Choose a backing for your {preset} — pick a Ruby Star Society print or upload your own fabric. We'll pull a palette from it on the next step.</p>
         </div>
 
@@ -5136,17 +5155,19 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to backing fabric</button>
+        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick a palette</h1>
-          <p className="proj-subheading">Start your {presetName} with Kona cotton — {photo ? 'tweak the palette we pulled from your fabric, ' : ''}choose a set, or skip and pick colors as you go.</p>
+          <div className="pal-head-row">
+            <h1 className="proj-heading">Pick a palette</h1>
+            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
+          </div>
+          <p className="proj-subheading">Pick the fabric colors you would like to use for your {presetName}. You can always change these later.</p>
         </div>
 
         {photo && (
           <section className="pal-section">
             <div className="pal-section-head">
-              <div className="pal-section-title">Suggested palette from your fabric</div>
-              <div className="pal-section-sub">Click a color to remove it · + to add. On touch: tap once for ×, tap again to remove.</div>
+              <div className="pal-section-title">Suggested palette</div>
             </div>
             {!ready ? (
               <div className="pal-busy">Reading colors from your fabric…</div>
@@ -5166,7 +5187,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
 
         <section className="pal-section">
           <div className="pal-section-head">
-            <div className="pal-section-title">Sample Palettes</div>
+            <div className="pal-section-title">Sample palettes</div>
             <div className="pal-section-sub">Curated fabric combinations to get you going fast.</div>
           </div>
           <div className="pal-grid">
@@ -5225,7 +5246,7 @@ function CrossStitchSizeSelector({ onSelect, onBack }) {
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body">
-        <button className="back-link" onClick={onBack}>← Back</button>
+        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
         <div className="proj-intro">
           <h1 className="proj-heading">What size?</h1>
           <p className="proj-subheading">Pick a canvas size for your cross-stitch — measured in stitches. Finished dimensions shown for 14-count Aida.</p>
@@ -5295,17 +5316,19 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
       </header>
       <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}>← Back to templates</button>
+        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
         <div className="proj-intro">
-          <h1 className="proj-heading">Pick a palette</h1>
-          <p className="proj-subheading">Start your {preset.name} with DMC 6-strand floss — {photo ? 'tweak the palette we pulled from your photo, ' : ''}choose a set, or skip and pick as you stitch.</p>
+          <div className="pal-head-row">
+            <h1 className="proj-heading">Pick a palette</h1>
+            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
+          </div>
+          <p className="proj-subheading">Pick the floss colors you would like to use for your {preset.name}. You can always change these later.</p>
         </div>
 
         {photo && (
           <section className="pal-section">
             <div className="pal-section-head">
-              <div className="pal-section-title">Suggested palette from your photo</div>
-              <div className="pal-section-sub">Click a color to remove it · + to add. On touch: tap once for ×, tap again to remove.</div>
+              <div className="pal-section-title">Suggested palette</div>
             </div>
             {!ready ? (
               <div className="pal-busy">Reading colors from your photo…</div>
@@ -5325,7 +5348,7 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
 
         <section className="pal-section">
           <div className="pal-section-head">
-            <div className="pal-section-title">Floss Palettes</div>
+            <div className="pal-section-title">Sample palettes</div>
             <div className="pal-section-sub">Curated DMC combinations to get you going fast.</div>
           </div>
           <div className="pal-grid">
