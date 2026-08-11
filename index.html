@@ -5767,9 +5767,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const movingRef = useRef(false);
   const pressRef = useRef(null);   // press awaiting the drag threshold: tap = pick a color group, drag = marquee
   const marqueeRef = useRef(null); // {x0,y0,x1,y1,add} while rubber-band selecting
+  const resizeRef = useRef(null);  // {handle, start:{minX..maxY}} while dragging a handle
   const antsRef = useRef(0);       // marching-ants dash offset
   const [hasSel, setHasSel] = useState(false);
-  const [selCursor, setSelCursor] = useState(null); // 'move' | 'copy' when hovering the selection
+  const [selCursor, setSelCursor] = useState(null); // css cursor while over the selection
+  // Aspect-ratio lock for corner resizes. Shift flips it, so the keyboard
+  // convention still works and touch has a control of its own.
+  const [lockRatio, setLockRatio] = useState(false);
   // The selection lives in a ref because the pointer handlers rewrite it every
   // frame, so its *contents* changing (shift-add, recolor, lift) needs an
   // explicit nudge to repaint the selection bar.
@@ -5846,6 +5850,27 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       ctx.lineDashOffset = -antsRef.current;
       ctx.stroke(edge);
       ctx.restore();
+      // Resize handles on the bounding box. Drawn in screen pixels (divided by
+      // the zoom the canvas is scaled by) so they stay a constant, tappable
+      // size, and filled white over a dark ring so they read on any stitch.
+      const f = selFrame(sel);
+      const hx0 = (f.minX + dxo) * cs, hx1 = (f.maxX + 1 + dxo) * cs;
+      const hy0 = (f.minY + dyo) * cs, hy1 = (f.maxY + 1 + dyo) * cs;
+      const hs = 9 / zoom;
+      ctx.save();
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.strokeStyle = 'rgba(27,25,23,0.55)';
+      ctx.setLineDash([3 / zoom, 3 / zoom]);
+      ctx.strokeRect(hx0, hy0, hx1 - hx0, hy1 - hy0);
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#1B1917';
+      for (const [, fx, fy] of SEL_HANDLES) {
+        const px = hx0 + (hx1 - hx0) * fx - hs / 2, py = hy0 + (hy1 - hy0) * fy - hs / 2;
+        ctx.fillRect(px, py, hs, hs);
+        ctx.strokeRect(px, py, hs, hs);
+      }
+      ctx.restore();
     }
     const mq = marqueeRef.current;
     if (mq) {
@@ -5873,7 +5898,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       for (let y = 0; y <= H; y += 10) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
       ctx.stroke();
     }
-  }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H]);
+  }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H, zoom]);
 
   // Keep a ref to the latest redraw so a queued animation frame always paints
   // with current state. Without this, the rafRef dedupe guard below can let a
@@ -5892,6 +5917,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     pressRef.current = null;
     dragRef.current = null;
     marqueeRef.current = null;
+    resizeRef.current = null;
     previewRef.current = null;
     startRef.current = null;
     lastRef.current = null;
@@ -6054,13 +6080,53 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       before: (keep && keep.before) || null, // grid snapshot from just before the lift
       srcKeys: (keep && keep.srcKeys) || null, // cells emptied by the lift (a move)
       copy: !!(keep && keep.copy),
+      src: (keep && keep.src) || null,       // pristine pattern to resample resizes from
+      box: (keep && keep.box) || null,       // resize frame, when it is wider than the stitches
     };
+  };
+
+  // The handle frame. After a downscale the outer row or column of a sparse
+  // motif can sample to nothing, so the frame the user dragged is remembered
+  // separately from the box the stitches actually occupy.
+  const selFrame = (sel) => sel.box || { minX: sel.minX, minY: sel.minY, maxX: sel.maxX, maxY: sel.maxY };
+
+  // Resize handles, as fractions along the frame. Corners scale both axes,
+  // edges scale one.
+  const SEL_HANDLES = [
+    ['nw', 0, 0, 'nwse-resize'], ['n', 0.5, 0, 'ns-resize'], ['ne', 1, 0, 'nesw-resize'],
+    ['e', 1, 0.5, 'ew-resize'], ['se', 1, 1, 'nwse-resize'], ['s', 0.5, 1, 'ns-resize'],
+    ['sw', 0, 1, 'nesw-resize'], ['w', 0, 0.5, 'ew-resize'],
+  ];
+  // Which handle a pointer is on, in client space so the target keeps its size
+  // at any zoom. Touch gets a much larger radius than the drawn dot, capped
+  // against the frame so the middle of a small selection stays grabbable.
+  const handleAt = (e) => {
+    const sel = selRef.current, cv = canvasRef.current;
+    if (!sel || !cv) return null;
+    const rect = cv.getBoundingClientRect();
+    const z = cellSize * zoom;
+    const f = selFrame(sel);
+    const x0 = rect.left + f.minX * z, x1 = rect.left + (f.maxX + 1) * z;
+    const y0 = rect.top + f.minY * z, y1 = rect.top + (f.maxY + 1) * z;
+    const reach = Math.min(
+      e.pointerType === 'mouse' ? 11 : 24,
+      Math.max(8, Math.min(x1 - x0, y1 - y0) * 0.4));
+    let best = null, bestD = Infinity;
+    for (const [id, fx, fy, cursor] of SEL_HANDLES) {
+      const d = Math.hypot(e.clientX - (x0 + (x1 - x0) * fx), e.clientY - (y0 + (y1 - y0) * fy));
+      if (d <= reach && d < bestD) { best = { id, cursor }; bestD = d; }
+    }
+    return best;
   };
 
   // Anywhere inside the selection's bounds grabs it, not just the stitched
   // cells — an outlined shape is hollow in the middle, and grabbing it there
   // should move the shape rather than start a new marquee.
-  const inSelBounds = (sel, x, y) => !!sel && x >= sel.minX && x <= sel.maxX && y >= sel.minY && y <= sel.maxY;
+  const inSelBounds = (sel, x, y) => {
+    if (!sel) return false;
+    const f = selFrame(sel);
+    return x >= f.minX && x <= f.maxX && y >= f.minY && y <= f.maxY;
+  };
 
   // ── Floating selection layer ──────────────────────────────────────────────
   // A selection that is being moved or duplicated is *lifted* out of the grid
@@ -6073,9 +6139,16 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (!sel || sel.floating) return;
     const before = cellsRef.current.slice();
     const srcKeys = [...sel.cells.keys()];
+    // Keep the pattern at its lifted size and origin. Every resize resamples
+    // from this, so scaling down and back up costs nothing until it commits.
+    const sw = sel.maxX - sel.minX + 1, sh = sel.maxY - sel.minY + 1;
+    const src = { w: sw, h: sh, cells: new Map() };
+    for (const [i, hex] of sel.cells) {
+      src.cells.set((Math.floor(i / W) - sel.minY) * sw + (i % W - sel.minX), hex);
+    }
     // A move empties its source cells straight away; a copy leaves them.
     if (!copy) for (const i of srcKeys) cellsRef.current[i] = null;
-    selRef.current = { ...sel, floating: true, before, srcKeys, copy };
+    selRef.current = { ...sel, floating: true, before, srcKeys, copy, src };
   };
 
   // Option can be pressed or released mid-drag: re-derive the grid from the
@@ -6096,7 +6169,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (undoRef.current.length > 40) undoRef.current.shift();
     const cells = cellsRef.current;
     for (const [i, hex] of sel.cells) cells[i] = hex;
-    selRef.current = { ...sel, floating: false, before: null, srcKeys: null, copy: false };
+    // Once stamped, the stitches are the selection again: the resize frame and
+    // the pristine copy belong to the finished lift, not to what comes next.
+    selRef.current = { ...sel, floating: false, before: null, srcKeys: null, copy: false, src: null, box: null };
     bump();
     return true;
   };
@@ -6107,7 +6182,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (!sel || !sel.floating) return false;
     cellsRef.current = sel.before;
     selRef.current = null; movingRef.current = false;
-    dragRef.current = null; pressRef.current = null;
+    dragRef.current = null; pressRef.current = null; resizeRef.current = null;
     setHasSel(false); setSelCursor(null);
     bump();
     return true;
@@ -6119,7 +6194,35 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (!sel || (dx === 0 && dy === 0)) return;
     const next = new Map();
     for (const [i, hex] of sel.cells) next.set(idx((i % W) + dx, Math.floor(i / W) + dy), hex);
-    selRef.current = makeSel(next, sel);
+    const box = sel.box
+      ? { minX: sel.box.minX + dx, minY: sel.box.minY + dy, maxX: sel.box.maxX + dx, maxY: sel.box.maxY + dy }
+      : null;
+    selRef.current = makeSel(next, { ...sel, box });
+  };
+
+  // Scale the float into `box` by nearest-neighbour resample. Stitches are whole
+  // cells, so there is no blending to do: enlarging repeats a cell, shrinking
+  // keeps one cell per sampled block and drops the rest. Always resampled from
+  // the pristine lifted pattern, so dragging a handle back out restores the
+  // detail instead of compounding the loss.
+  const resampleSelection = (box) => {
+    const sel = selRef.current;
+    if (!sel || !sel.src) return;
+    const src = sel.src;
+    const nw = box.maxX - box.minX + 1, nh = box.maxY - box.minY + 1;
+    const next = new Map();
+    for (let y = 0; y < nh; y++) {
+      const sy = Math.min(src.h - 1, Math.floor(y * src.h / nh));
+      for (let x = 0; x < nw; x++) {
+        const sx = Math.min(src.w - 1, Math.floor(x * src.w / nw));
+        const hex = src.cells.get(sy * src.w + sx);
+        if (hex) next.set(idx(box.minX + x, box.minY + y), hex);
+      }
+    }
+    // A very small downscale of a sparse motif can sample nothing at all —
+    // keep the previous result rather than letting the selection evaporate.
+    if (next.size === 0) return;
+    selRef.current = makeSel(next, { ...sel, box });
   };
 
   // Ending a selection places whatever is floating. Anything that replaces or
@@ -6128,6 +6231,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     commitFloat();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    resizeRef.current = null;
     setHasSel(false); setSelCursor(null); redraw();
   };
 
@@ -6205,6 +6309,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (tool === 'select') {
       const sel = selRef.current;
       e.currentTarget.setPointerCapture(e.pointerId);
+      const grip = sel ? handleAt(e) : null;
+      if (grip) {
+        // Handles win over everything, including Shift — on a handle Shift
+        // means "constrain the ratio", not "add to the selection". Nothing
+        // lifts until the box actually changes, so a stray tap is a no-op.
+        resizeRef.current = { handle: grip.id, start: { ...selFrame(sel) }, lifted: false };
+        setSelCursor(grip.cursor);
+        scheduleRedraw(); return;
+      }
       if (sel && inSelBounds(sel, cell[0], cell[1]) && !e.shiftKey) {
         // Grab the selection. Nothing lifts until the pointer actually moves,
         // so a plain click inside a selection is a no-op.
@@ -6229,6 +6342,44 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const onPointerMove = (e) => {
     if (isGestureActive()) return;
     if (tool === 'select') {
+      if (resizeRef.current) {
+        const r = resizeRef.current, h = r.handle, s = r.start;
+        const [cx, cy] = cellClamped(e);
+        let { minX, minY, maxX, maxY } = s;
+        // The opposite edge is the anchor; the dragged one follows the pointer,
+        // already clamped to the grid so a resize can never run off the board.
+        if (h.includes('w')) minX = Math.min(cx, s.maxX);
+        if (h.includes('e')) maxX = Math.max(cx, s.minX);
+        if (h.includes('n')) minY = Math.min(cy, s.maxY);
+        if (h.includes('s')) maxY = Math.max(cy, s.minY);
+        const src = selRef.current.src;
+        if (h.length === 2 && (lockRatio !== e.shiftKey)) {
+          // Constrain to the pattern's original aspect: take the axis the
+          // pointer pushed furthest, then re-anchor. Clamping at the board edge
+          // wins over the ratio, so the box always stays legal.
+          const rw = src ? src.w : s.maxX - s.minX + 1, rh = src ? src.h : s.maxY - s.minY + 1;
+          const scale = Math.max((maxX - minX + 1) / rw, (maxY - minY + 1) / rh);
+          const nw = Math.max(1, Math.round(rw * scale)), nh = Math.max(1, Math.round(rh * scale));
+          if (h.includes('w')) minX = Math.max(0, maxX - nw + 1); else maxX = Math.min(W - 1, minX + nw - 1);
+          if (h.includes('n')) minY = Math.max(0, maxY - nh + 1); else maxY = Math.min(H - 1, minY + nh - 1);
+        }
+        // Pointer moves land many times inside one cell; only resample when the
+        // box really changed, which also keeps the selection bar re-renders to
+        // one per size step.
+        const last = r.last || s;
+        if (last.minX === minX && last.minY === minY && last.maxX === maxX && last.maxY === maxY) return;
+        if (!r.lifted) {
+          // First real change: the stitches leave the grid for the float, so
+          // the whole resize rides on one lift → commit undo step.
+          if (!selRef.current.floating) liftSelection(e.altKey);
+          r.lifted = true;
+        }
+        r.last = { minX, minY, maxX, maxY };
+        resampleSelection({ minX, minY, maxX, maxY });
+        touchSel();
+        scheduleRedraw();
+        return;
+      }
       if (movingRef.current) {
         const [cx, cy] = cellClamped(e);
         const s = startRef.current, d = dragRef.current;
@@ -6270,6 +6421,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         }
         return;
       }
+      const grip = selRef.current ? handleAt(e) : null;
+      if (grip) { setSelCursor(grip.cursor); return; }
       const hover = cellFromEvent(e);
       const over = !!(hover && inSelBounds(selRef.current, hover[0], hover[1]));
       setSelCursor(over ? (e.altKey ? 'copy' : 'move') : null);
@@ -6302,6 +6455,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       return;
     }
     if (tool === 'select') {
+      if (resizeRef.current) {
+        // The float already holds the resampled result; nothing to stamp.
+        const touched = resizeRef.current.lifted;
+        resizeRef.current = null;
+        redraw();
+        if (touched) bump();
+        return;
+      }
       if (movingRef.current) {
         const d = dragRef.current || { dx: 0, dy: 0 };
         movingRef.current = false; dragRef.current = null;
@@ -6353,7 +6514,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
   const onPointerLeave = (e) => {
     if (tool === 'select') {
-      if (movingRef.current || marqueeRef.current) onPointerUp(e);
+      if (movingRef.current || marqueeRef.current || resizeRef.current) onPointerUp(e);
       else { pressRef.current = null; setSelCursor(null); }
       return;
     }
@@ -6367,6 +6528,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     commitFloat();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    resizeRef.current = null;
     setHasSel(false); setSelCursor(null);
     scheduleRedraw();
   }, [tool, scheduleRedraw]);
@@ -6469,7 +6631,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   }, [pickerSearch]);
 
   const TOOLS = [
-    { id: 'select', label: 'Select, move & copy', icon: <IcCursor/> },
+    { id: 'select', label: 'Select, move, copy & resize', icon: <IcCursor/> },
     { id: 'pen', label: 'Draw', icon: <IcPen/> },
     { id: 'eraser', label: 'Erase', icon: <IcErase/> },
     { id: 'fill', label: 'Fill area', icon: <IcFill/> },
@@ -6560,15 +6722,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             borderRadius: 8, padding: '6px 10px', boxShadow: '0 4px 16px rgba(46,41,37,0.16)', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)' }}>
             <span style={{ whiteSpace: 'nowrap' }}>
               <b>{selRef.current.cells.size}</b> stitches · {new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}
+              {' · '}{selFrame(selRef.current).maxX - selFrame(selRef.current).minX + 1}×{selFrame(selRef.current).maxY - selFrame(selRef.current).minY + 1}
             </span>
             {!isMobile && (
               <span style={{ color: 'var(--warm-muted)', whiteSpace: 'nowrap' }}>
                 {selRef.current.floating
                   ? 'floating above the design · Done places it'
-                  : 'drag to move · ⌥drag to copy · shift-click to add'}
+                  : 'drag to move · ⌥drag to copy · handles resize'}
               </span>
             )}
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button className={`btn btn-xs${lockRatio ? ' btn-dark' : ''}`} onClick={() => setLockRatio(v => !v)}
+                aria-pressed={lockRatio} style={{ whiteSpace: 'nowrap' }}
+                title="Keep the proportions when dragging a corner handle (hold Shift to flip)">
+                Lock ratio
+              </button>
               <button className="btn btn-xs" onClick={duplicateSelection} title="Duplicate (Ctrl/Cmd D)"
                 style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcCopy/> Duplicate</button>
               <button className="btn btn-xs" onClick={deleteSelection} title="Delete these stitches (Delete)"
