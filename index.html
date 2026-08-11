@@ -657,7 +657,7 @@
   .pal-card-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
 
   /* Upload */
-  .pal-upload { border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--metime-white); max-width: 100%; box-sizing: border-box; }
+  .pal-upload { border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--metime-white); width: 50%; max-width: 100%; box-sizing: border-box; }
   .pal-upload:hover, .pal-upload.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
   .pal-upload-icon { color: #3c3833; margin-bottom: 8px; display: inline-flex; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
@@ -746,6 +746,12 @@
   .tmpl-card:active { transform: translateY(0); }
   .tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
   .tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
+  /* Templates that know their own grid size (--tmpl-ar = width/height, set per
+     card) preview at that proportion instead of inside a fixed box, so a 30x120
+     bookmark chart reads as a tall strip. Height is capped at --tmpl-thumb-h and
+     the strip is centered, keeping cards a sane size; no plate behind the art. */
+  .tmpl-card-thumb.is-ratio { background: none; height: auto; }
+  .tmpl-card-thumb.is-ratio svg { width: min(100%, calc(var(--tmpl-thumb-h, 300px) * var(--tmpl-ar))); height: auto; aspect-ratio: var(--tmpl-ar); }
   .tmpl-card-body { padding: 12px 15px 15px; }
   .tmpl-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; margin-bottom: 4px; }
   .tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; }
@@ -797,8 +803,8 @@
     .pal-head-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .pal-section { margin-bottom: 28px; }
     .pal-section-title { font-size: 18px; }
-    .pal-upload { max-width: none; padding: 24px 16px; }
-    .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .pal-upload { width: 100%; max-width: none; padding: 24px 16px; }
+    .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; --tmpl-thumb-h: 240px; }
     .pal-grid { gap: 12px; }
     .pal-result { flex-direction: column; gap: 14px; }
     .pal-result-preview { width: 100%; height: 160px; }
@@ -4522,8 +4528,11 @@ function xsResampleGrid(src, sw, sh, dw, dh) {
   return out;
 }
 // There's no "Blank" card in the grid — "Skip for now" is the empty-grid route.
+// w/h are the chart's own stitch counts — the template picker uses them to
+// preview each chart at its true proportion (a 30x120 bookmark as a tall strip).
 const CROSS_STITCH_TEMPLATES = (window.STITCH_TEMPLATE_DATA || []).map(entry => ({
   id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
+  w: entry.w, h: entry.h,
   build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
 }));
 // Size-catered charts offered for a given preset.
@@ -4852,8 +4861,7 @@ function StitchTemplateThumb({ tpl, preset }) {
   const w = Math.min(90, preset.w), h = Math.max(4, Math.round(w * (preset.h / preset.w)));
   const grid = useMemo(() => tpl.build({ w, h }), [tpl, w, h]);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', background: '#fff' }}>
-      <rect width={w} height={h} fill="#fff"/>
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
       {grid.map((hex, i) => hex ? <rect key={i} x={i % w} y={Math.floor(i / w)} width={1} height={1} fill={hex}/> : null)}
       <rect width={w} height={h} fill="none" stroke="rgba(46,41,37,0.12)" strokeWidth="0.08"/>
     </svg>
@@ -4884,15 +4892,22 @@ function TemplateStep({ title, subheading, onBack, templates, renderThumb, onCho
             <div className="pal-section-sub">Starter layouts scale to your chosen size.</div>
           </div>
           <div className="tmpl-grid">
-            {templates.map(t => (
-              <button key={t.id} className="tmpl-card" onClick={() => onChoose(t)} title={`Use "${t.name}"`}>
-                <div className="tmpl-card-thumb">{renderThumb(t)}</div>
-                <div className="tmpl-card-body">
-                  <div className="tmpl-card-name">{t.name}</div>
-                  <div className="tmpl-card-desc">{t.desc}</div>
-                </div>
-              </button>
-            ))}
+            {templates.map(t => {
+              // Templates that carry their own grid size preview at that
+              // proportion (see .tmpl-card-thumb.is-ratio); the rest keep the
+              // fixed-height thumb box.
+              const ar = t.w > 0 && t.h > 0 ? t.w / t.h : null;
+              return (
+                <button key={t.id} className="tmpl-card" onClick={() => onChoose(t)} title={`Use "${t.name}"`}>
+                  <div className={ar ? 'tmpl-card-thumb is-ratio' : 'tmpl-card-thumb'}
+                       style={ar ? { '--tmpl-ar': String(ar) } : undefined}>{renderThumb(t)}</div>
+                  <div className="tmpl-card-body">
+                    <div className="tmpl-card-name">{t.name}</div>
+                    <div className="tmpl-card-desc">{t.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
         <section className="pal-section pal-skip-row">
