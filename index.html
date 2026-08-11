@@ -516,38 +516,41 @@
   .craft-grid { grid-template-columns: repeat(auto-fit, minmax(188px, 1fr)); max-width: 1200px; }
   @media (max-width: 900px) { .proj-grid:not(.craft-grid) { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 520px) { .proj-grid:not(.craft-grid) { grid-template-columns: 1fr; } }
-  .proj-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; display: flex; flex-direction: column; }
-  .proj-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  /* Setup-step card box: #707F87 / 4px, matching the palette card (Figma 2138:1989). */
+  .proj-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; display: flex; flex-direction: column; }
+  .proj-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .proj-card:active { transform: translateY(0); }
   .proj-card-thumb { overflow: hidden; background: var(--metime-cream); flex-shrink: 0; }
   .proj-card-thumb svg { display: block; width: 100%; height: auto; }
   .proj-card-thumb.has-photo { aspect-ratio: 4 / 3; }
   .proj-card-thumb.has-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .proj-card-body { padding: 13px 15px 15px; flex: 1; }
-  .proj-card-name { font-size: 15px; font-weight: 600; color: var(--warm-fg); margin-bottom: 3px; }
-  .proj-card-dims { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-bottom: 2px; }
-  .proj-card-desc { font-size: 12px; color: var(--warm-muted); margin-bottom: 8px; }
-  .proj-card-cost { font-size: 11px; color: var(--warm-muted); border-top: 1px solid var(--warm-divider-soft); padding-top: 8px; margin-top: 8px; }
+  /* Card name / meta scale shared with .pal-card-name / .pal-card-meta. */
+  .proj-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; margin-bottom: 4px; }
+  .proj-card-dims { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-bottom: 2px; }
+  .proj-card-desc { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-bottom: 8px; }
+  .proj-card-cost { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; border-top: 1px solid #707F87; padding-top: 8px; margin-top: 8px; }
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
-  .proj-card.is-soon:hover { border-color: var(--warm-hairline); box-shadow: none; transform: none; }
+  .proj-card.is-soon:hover { box-shadow: none; transform: none; }
 
   /* Saved designs section (landing page) */
-  .saved-sec { margin-top: 40px; border-top: 1px solid var(--warm-divider-soft); padding-top: 24px; }
-  .saved-head { display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: var(--warm-fg); }
-  .saved-head-title { font-family: var(--font-display); font-size: 20px; line-height: 1.1; display: flex; align-items: center; gap: 8px; }
-  .saved-count { font-family: var(--font-mono); font-size: 12px; color: var(--warm-muted); background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 999px; padding: 1px 8px; }
-  .saved-chev { display: flex; color: var(--warm-muted); transition: transform 0.15s; }
+  .saved-sec { margin-top: 40px; border-top: 1px solid #707F87; padding-top: 24px; }
+  .saved-head { display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: #25211e; }
+  /* Section label matches .pal-section-title (Söhne Kräftig 20). */
+  .saved-head-title { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: normal; color: #25211e; display: flex; align-items: center; gap: 8px; }
+  .saved-count { font-size: 13px; font-weight: 400; color: #3c3833; background: var(--metime-white); border: 1px solid #707F87; border-radius: 999px; padding: 1px 8px; }
+  .saved-chev { display: flex; color: #3c3833; transition: transform 0.15s; }
   .saved-chev.is-open { transform: rotate(180deg); }
   .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
-  .saved-card { display: flex; align-items: center; gap: 12px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; padding: 10px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; }
-  .saved-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 6px 18px rgba(46,41,37,0.12); transform: translateY(-2px); }
+  .saved-card { display: flex; align-items: center; gap: 12px; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 10px; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; }
+  .saved-card:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.12); transform: translateY(-2px); }
   .saved-card:active { transform: translateY(0); }
-  .saved-thumb { width: 56px; height: 56px; flex-shrink: 0; background: #FFFFFF; border: 1px solid var(--warm-hairline); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .saved-thumb { width: 56px; height: 56px; flex-shrink: 0; background: #FFFFFF; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
   .saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
   .saved-info { flex: 1; min-width: 0; }
-  .saved-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .saved-meta { font-size: 12px; color: var(--warm-muted); margin-top: 2px; }
-  .saved-badge { display: inline-block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warm-muted); }
+  .saved-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .saved-badge { display: inline-block; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: #25211e; }
 
   /* Cross-stitch editor */
   .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
@@ -654,13 +657,14 @@
   .pal-card-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
 
   /* Upload */
-  .pal-upload { border: 1.5px dashed var(--warm-muted-2); border-radius: 10px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--surface-card); max-width: 100%; box-sizing: border-box; }
+  .pal-upload { border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--metime-white); max-width: 100%; box-sizing: border-box; }
   .pal-upload:hover, .pal-upload.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
-  .pal-upload-icon { color: var(--warm-muted); margin-bottom: 8px; display: inline-flex; }
-  .pal-upload-title { font-size: 14px; font-weight: 500; color: var(--warm-fg); }
-  .pal-upload-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; }
-  .pal-result { display: flex; gap: 18px; align-items: flex-start; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; padding: 16px; }
-  .pal-result-preview { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--warm-hairline); }
+  .pal-upload-icon { color: #3c3833; margin-bottom: 8px; display: inline-flex; }
+  .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
+  .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
+  /* outline (not a border) so the stroke paints over the image content */
+  .pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
   .pal-result-main { flex: 1; min-width: 0; }
   .pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
 
@@ -669,7 +673,7 @@
     display: flex; gap: 20px; align-items: flex-start;
     background: var(--metime-white); border: 1px solid #707F87;
     border-radius: 4px; padding: 25px 16px 16px; box-sizing: border-box;
-    width: min(100%, 71.5%); max-width: 100%;
+    width: fit-content; max-width: 100%;
   }
   .pal-from-image-preview {
     width: 100px; height: 100px; object-fit: cover; flex-shrink: 0;
@@ -714,10 +718,11 @@
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
   .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
-  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s; }
+  /* Same box as .pal-skip-btn: 6px radius, 10/18 padding, Söhne Kräftig 14. */
+  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s; }
   .pal-btn:hover { background: var(--action-hover); }
-  .pal-btn.secondary { background: transparent; color: var(--warm-fg); }
-  .pal-btn.secondary:hover { background: var(--warm-hover); }
+  .pal-btn.secondary { background: var(--metime-white); border-color: #707F87; color: #25211e; }
+  .pal-btn.secondary:hover { background: var(--color-linen-300); }
   .pal-skip-row { display: flex; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; }
   /* Skip for now — Figma 2151:263; box border overridden to #707F87 */
   .pal-skip-btn {
@@ -736,14 +741,14 @@
   /* Template selector */
   .tmpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   @media (max-width: 900px) { .tmpl-grid { grid-template-columns: repeat(2, 1fr); } }
-  .tmpl-card { background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s; }
-  .tmpl-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .tmpl-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; text-align: left; font: inherit; color: inherit; padding: 0; }
+  .tmpl-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .tmpl-card:active { transform: translateY(0); }
   .tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
   .tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
-  .tmpl-card-body { padding: 10px 13px 13px; }
-  .tmpl-card-name { font-size: 14px; font-weight: 600; color: var(--warm-fg); margin-bottom: 2px; }
-  .tmpl-card-desc { font-size: 12px; color: var(--warm-muted); }
+  .tmpl-card-body { padding: 12px 15px 15px; }
+  .tmpl-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; margin-bottom: 4px; }
+  .tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; }
   /* Back link — tertiary text style (Figma Button Tertiary Medium): Söhne Kräftig 14, taupe-900.
      Chevron sits outside the underline so only the label is underlined. */
   .back-link {
@@ -768,15 +773,16 @@
   .pal-suggest-add { width: 44px; height: 44px; border-radius: 8px; border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
   .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
 
-  /* Backing-fabric picker: theme filter pills + dense swatch grid. */
+  /* Backing-fabric picker: theme filters + dense swatch grid. Filters share the
+     .pal-skip-btn box (white / #707F87 / 6px / Söhne Kräftig 14). */
   .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
-  .fabric-filter:not(.active):hover { background: var(--warm-hover); border-color: var(--warm-muted-2); }
-  .fabric-filter.active { background: var(--action); border-color: var(--action); color: var(--metime-white); }
-  .fabric-filter-count { font-family: var(--font-mono); font-size: 11px; opacity: 0.7; }
+  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid #707F87; background: var(--metime-white); color: #25211e; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+  .fabric-filter:not(.active):hover { background: var(--color-linen-300); }
+  .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
+  .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
   .fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-  .fabric-card { padding: 0; border: 1px solid var(--warm-hairline); border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface-card); font: inherit; transition: box-shadow .15s, border-color .15s, transform .12s; }
-  .fabric-card:hover { border-color: var(--metime-almost-black); box-shadow: 0 6px 18px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-white); font: inherit; transition: box-shadow .15s, transform .12s; }
+  .fabric-card:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .fabric-card:active { transform: translateY(0); }
   .fabric-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
 
@@ -784,7 +790,7 @@
   @media (max-width: 640px) {
     .fabric-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
     .fabric-filters { gap: 6px; }
-    .fabric-filter { padding: 5px 12px; font-size: 12px; }
+    .fabric-filter { padding: 8px 14px; font-size: 13px; }
     .proj-body { padding: 24px 16px 56px; }
     .proj-heading { font-size: 28px; }
     .proj-intro { margin-bottom: 28px; }
@@ -5046,9 +5052,14 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
   );
 }
 
+// Suggested palettes extracted from a fabric swatch / photo cap out here.
+const SUGGESTED_PALETTE_MAX = 6;
+// Cross stitch shades with more flosses, so it keeps its own (larger) cap.
+const CROSS_STITCH_PALETTE_MAX = 10;
+
 // Suggested palette from an image (Figma 2138:2019). Circles remove on click;
 // on touch, first tap arms (shows ×) and second tap deletes. + opens the picker.
-function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette' }) {
+function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette', maxColors = SUGGESTED_PALETTE_MAX }) {
   const isMobile = useIsMobile();
   const [armedIdx, setArmedIdx] = useState(null);
   const addRef = useRef(null);
@@ -5090,15 +5101,17 @@ function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, o
               <span className="pal-from-image-x" aria-hidden="true"><IcX/></span>
             </button>
           ))}
-          <button
-            ref={addRef}
-            type="button"
-            className="pal-from-image-add"
-            title="Add a color"
-            aria-label="Add a color"
-            onClick={() => onAdd(addRef)}>
-            +
-          </button>
+          {colors.length < maxColors && (
+            <button
+              ref={addRef}
+              type="button"
+              className="pal-from-image-add"
+              title="Add a color"
+              aria-label="Add a color"
+              onClick={() => onAdd(addRef)}>
+              +
+            </button>
+          )}
         </div>
         <button type="button" className="btn btn-dark pal-from-image-use" disabled={!colors.length} onClick={onUse}>
           {useLabel}
@@ -5138,7 +5151,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
       let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setReady(true); return; }
       const raw = extractColors(pixels, 24), seen = new Set(), colors = [];
       for (const c of raw) { const k = nearestKona(c); if (k && !seen.has(k.name)) { seen.add(k.name); colors.push(k); } }
-      setSugg(colors.slice(0, 8));
+      setSugg(colors.slice(0, SUGGESTED_PALETTE_MAX));
       setReady(true);
     };
     img.onerror = () => setReady(true);
@@ -5287,7 +5300,7 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
       let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setReady(true); return; }
       const raw = extractColors(pixels, 24), seen = new Set(), colors = [];
       for (const c of raw) { const k = nearestDMC(c); if (k && !seen.has(k.code)) { seen.add(k.code); colors.push(k); } }
-      setSugg(colors.slice(0, 10));
+      setSugg(colors.slice(0, CROSS_STITCH_PALETTE_MAX));
       setReady(true);
     };
     img.onerror = () => setReady(true);
@@ -5341,7 +5354,8 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
                 titleOf={c => `DMC ${c.code} ${c.name}`}
                 onRemove={removeAt}
                 onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-                onUse={() => onChoose(sugg, optsFor(sugg))}/>
+                onUse={() => onChoose(sugg, optsFor(sugg))}
+                maxColors={CROSS_STITCH_PALETTE_MAX}/>
             )}
           </section>
         )}
