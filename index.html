@@ -658,6 +658,7 @@
     display: flex; gap: 28px; align-items: flex-start;
     background: var(--metime-white); border: 1px solid var(--metime-almost-black);
     border-radius: 2px; padding: 19px; box-sizing: border-box;
+    width: min(100%, 66.666%); max-width: 100%;
   }
   .pal-from-image-preview {
     width: 146px; height: 146px; object-fit: cover; flex-shrink: 0;
@@ -704,8 +705,7 @@
   .pal-btn:hover { background: var(--action-hover); }
   .pal-btn.secondary { background: transparent; color: var(--warm-fg); }
   .pal-btn.secondary:hover { background: var(--warm-hover); }
-  .pal-skip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--warm-muted); cursor: pointer; border: none; background: none; padding: 6px 0; font-family: inherit; }
-  .pal-skip:hover { color: var(--warm-fg); }
+  .pal-skip-row { display: flex; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; }
   .pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
 
   /* Template selector */
@@ -759,7 +759,7 @@
     .pal-result { flex-direction: column; gap: 14px; }
     .pal-result-preview { width: 100%; height: 160px; }
     .pal-actions { flex-wrap: wrap; }
-    .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; }
+    .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; width: 100%; }
     .pal-from-image-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 220px; }
     .pal-from-image-main { gap: 20px; width: 100%; }
     .pal-from-image-swatch, .pal-from-image-add { width: 52px; height: 52px; }
@@ -4799,8 +4799,8 @@ function TemplateStep({ title, subheading, backLabel, onBack, templates, renderT
             ))}
           </div>
         </section>
-        <section className="pal-section">
-          <button className="pal-skip" onClick={onSkip}>Skip for now — start from a blank canvas →</button>
+        <section className="pal-section pal-skip-row">
+          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
     </div>
@@ -4993,8 +4993,8 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
           hint="Use a photo of your own fabric — we'll suggest a palette from it on the next step."
           onChoose={imgSrc => chooseFromImage('Your fabric', imgSrc)}/>
 
-        <section className="pal-section">
-          <button className="pal-skip" onClick={onSkip}>Skip for now — I'll choose a backing later →</button>
+        <section className="pal-section pal-skip-row">
+          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
     </div>
@@ -5160,8 +5160,8 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
           </div>
         </section>
 
-        <section className="pal-section">
-          <button className="pal-skip" onClick={onSkip}>Skip for now — I'll pick colors in the editor →</button>
+        <section className="pal-section pal-skip-row">
+          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
       {swapIdx !== null && (
@@ -5319,8 +5319,8 @@ function CrossStitchPaletteSelector({ preset, photo, onChoose, onSkip, onBack })
           </div>
         </section>
 
-        <section className="pal-section">
-          <button className="pal-skip" onClick={onSkip}>Skip for now — I'll pick colors in the editor →</button>
+        <section className="pal-section pal-skip-row">
+          <button type="button" className="btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
       {swapIdx !== null && (
