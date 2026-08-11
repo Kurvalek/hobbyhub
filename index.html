@@ -4595,22 +4595,167 @@ function xsRecolorGrid(grid, palette) {
   return grid.map(hex => hex ? (map.get(hex) || hex) : null);
 }
 
+// ── Fitting an uploaded photo onto a stitch canvas ─────────────────────────
+// A photo almost never shares its proportions with the canvas it lands on (a
+// heart dropped on a 30×120 bookmark), so filling the grid would stretch the
+// motif or crop most of it away. Instead we CONTAIN it: trim the dead border off
+// the source, scale what's left to fit inside the grid at its own aspect ratio,
+// and centre it. The cells around it stay unstitched fabric — room for the user
+// to duplicate the motif up the strip with the selection tool.
+const XS_TRIM_SAMPLE = 240;     // border scan runs on a downscale this wide
+const XS_TRIM_TOL = 30;         // RGB distance still counted as background
+const XS_TRIM_NOISE = 0.01;     // share of a row/col allowed to differ
+const XS_TRIM_MIN = 0.03;       // ignore trims that shave off less than this
+const XS_FIT_MIN_SHARE = 0.15;  // motif's short side, as a share of the grid's
+
+// The rect of `img` that still holds the subject: uniform or fully transparent
+// borders — the white field around an exported motif — get cropped off, so
+// containing the image doesn't leave a speck floating in a huge margin. Only
+// unambiguous borders are trimmed (a photo's varied edges are left alone), and
+// a pixel of padding is handed back so anti-aliased edges survive. Memoized on
+// the element: the studio's trace overlay asks for the same rect every frame.
+function xsTrimRect(img) {
+  if (img.__xsTrim) return img.__xsTrim;
+  const full = { x: 0, y: 0, w: img.width, h: img.height, bg: null };
+  const keep = rect => (img.__xsTrim = rect);
+  if (!img.width || !img.height) return full;   // not decoded yet — don't memoize
+  const scale = Math.min(1, XS_TRIM_SAMPLE / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+  let data; try { data = ctx.getImageData(0, 0, w, h).data; } catch (e) { return keep(full); }
+  if (w < 8 || h < 8) return keep(full);
+  // What the border is made of: bucket its pixels coarsely and take the mode.
+  // A border that isn't overwhelmingly one thing isn't a margin — bail out.
+  const border = [];
+  for (let x = 0; x < w; x++) { border.push(x, (h - 1) * w + x); }
+  for (let y = 1; y < h - 1; y++) { border.push(y * w, y * w + w - 1); }
+  const buckets = new Map();
+  for (const i of border) {
+    const k = data[i * 4 + 3] < 32 ? 'clear'
+      : `${data[i * 4] >> 4},${data[i * 4 + 1] >> 4},${data[i * 4 + 2] >> 4}`;
+    buckets.set(k, (buckets.get(k) || 0) + 1);
+  }
+  let mode = null, best = 0;
+  for (const [k, n] of buckets) if (n > best) { best = n; mode = k; }
+  if (!mode || best / border.length < 0.6) return keep(full);
+  let bg = null;
+  if (mode !== 'clear') {
+    const [r, g, b] = mode.split(',').map(Number);
+    bg = { r: r * 16 + 8, g: g * 16 + 8, b: b * 16 + 8 };
+  }
+  const isBg = i => {
+    if (data[i * 4 + 3] < 32) return true;
+    if (!bg) return false;
+    const dr = data[i * 4] - bg.r, dg = data[i * 4 + 1] - bg.g, db = data[i * 4 + 2] - bg.b;
+    return dr * dr + dg * dg + db * db <= XS_TRIM_TOL * XS_TRIM_TOL;
+  };
+  const allow = len => Math.floor(len * XS_TRIM_NOISE);
+  const rowIsBg = (y, x0, x1) => {
+    let off = 0, cap = allow(x1 - x0 + 1);
+    for (let x = x0; x <= x1; x++) if (!isBg(y * w + x) && ++off > cap) return false;
+    return true;
+  };
+  const colIsBg = (x, y0, y1) => {
+    let off = 0, cap = allow(y1 - y0 + 1);
+    for (let y = y0; y <= y1; y++) if (!isBg(y * w + x) && ++off > cap) return false;
+    return true;
+  };
+  let top = 0, bot = h - 1, left = 0, right = w - 1;
+  while (top < bot && rowIsBg(top, 0, w - 1)) top++;
+  while (bot > top && rowIsBg(bot, 0, w - 1)) bot--;
+  while (left < right && colIsBg(left, top, bot)) left++;
+  while (right > left && colIsBg(right, top, bot)) right--;
+  const pad = 1 + Math.ceil(Math.max(w, h) * 0.01);
+  top = Math.max(0, top - pad); bot = Math.min(h - 1, bot + pad);
+  left = Math.max(0, left - pad); right = Math.min(w - 1, right + pad);
+  const tw = right - left + 1, th = bot - top + 1;
+  // Nothing worth trimming, or the scan ate the subject → keep the whole image
+  // (but still report the field color we found).
+  if (tw < 4 || th < 4) return keep({ ...full, bg });
+  if (tw > w * (1 - XS_TRIM_MIN) && th > h * (1 - XS_TRIM_MIN)) return keep({ ...full, bg });
+  const x = Math.floor(left / w * img.width), y = Math.floor(top / h * img.height);
+  return keep({
+    x, y,
+    w: Math.max(1, Math.ceil((right + 1) / w * img.width) - x),
+    h: Math.max(1, Math.ceil((bot + 1) / h * img.height) - y),
+    bg,
+  });
+}
+
+// Source and destination rects for placing `img` on a W×H grid: contained at
+// its own aspect ratio and centred, so the whole motif reads. One axis always
+// fills the grid, which keeps a contained motif from ever being a speck — but a
+// wildly letterboxed source (a panorama on a bookmark) would still land as a
+// hairline, so the fit may grow past contain, cropping the long axis from the
+// centre, until the short side covers XS_FIT_MIN_SHARE of the grid's short side.
+function xsFitImageToGrid(img, W, H) {
+  const src = xsTrimRect(img);
+  if (!src.w || !src.h) return null;
+  let scale = Math.min(W / src.w, H / src.h);
+  let dw = src.w * scale, dh = src.h * scale;
+  const floor = Math.max(2, Math.round(Math.min(W, H) * XS_FIT_MIN_SHARE));
+  const short = Math.min(dw, dh);
+  if (short > 0 && short < floor) { const g = floor / short; scale *= g; dw *= g; dh *= g; }
+  let { x: sx, y: sy, w: sw, h: sh } = src;
+  if (dw > W) { const k = W / scale; sx += (sw - k) / 2; sw = k; dw = W; }
+  if (dh > H) { const k = H / scale; sy += (sh - k) / 2; sh = k; dh = H; }
+  dw = Math.max(1, Math.min(W, Math.round(dw)));
+  dh = Math.max(1, Math.min(H, Math.round(dh)));
+  return { sx, sy, sw, sh, dx: Math.floor((W - dw) / 2), dy: Math.floor((H - dh) / 2), dw, dh };
+}
+
+// A motif exported on a flat field — a heart on white — shouldn't land as a
+// stitched block of that field: it reads far better as a motif on bare fabric,
+// which is also what the user duplicates around. So the field is cleared, but
+// only where it's reachable from the edge of the fitted motif: a flood fill, so
+// a same-colored highlight *inside* the subject stays stitched. If nearly the
+// whole motif turns out to be field (a snowfield photo), the fill is rolled back
+// rather than handing back an empty canvas.
+const XS_FIELD_MAX_CLEAR = 0.92;   // clearing more of the motif than this is a misread
+function xsClearGroundField(grid, isField, W, H, fit) {
+  const before = grid.slice(), stack = [];
+  let cleared = 0;
+  const push = (x, y) => {
+    if (x < fit.dx || y < fit.dy || x >= fit.dx + fit.dw || y >= fit.dy + fit.dh) return;
+    const i = y * W + x;
+    if (!isField[i] || grid[i] === null) return;
+    grid[i] = null; cleared++; stack.push(i);
+  };
+  for (let x = fit.dx; x < fit.dx + fit.dw; x++) { push(x, fit.dy); push(x, fit.dy + fit.dh - 1); }
+  for (let y = fit.dy; y < fit.dy + fit.dh; y++) { push(fit.dx, y); push(fit.dx + fit.dw - 1, y); }
+  while (stack.length) {
+    const i = stack.pop(), x = i % W, y = (i - x) / W;
+    push(x - 1, y); push(x + 1, y); push(x, y - 1); push(x, y + 1);
+  }
+  if (cleared > fit.dw * fit.dh * XS_FIELD_MAX_CLEAR) for (let i = 0; i < grid.length; i++) grid[i] = before[i];
+}
+
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
 // color → a ready-to-stitch design (shared by the cross-stitch template step).
+// Cells outside the fitted motif are left null: unstitched fabric.
 function buildGridFromImage(img, chosen, W, H) {
   if (!img || !chosen || !chosen.length) return null;
+  const fit = xsFitImageToGrid(img, W, H);
+  if (!fit) return null;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  const scale = Math.max(W / img.width, H / img.height);
-  const sw = W / scale, sh = H / scale, sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx, fit.dy, fit.dw, fit.dh);
   let data; try { data = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; }
+  const bg = xsTrimRect(img).bg;
   const grid = new Array(W * H).fill(null);
+  const isField = bg ? new Uint8Array(W * H) : null;
   for (let i = 0; i < W * H; i++) {
     if (data[i * 4 + 3] < 100) continue;
-    const near = nearestInList({ r: data[i * 4], g: data[i * 4 + 1], b: data[i * 4 + 2] }, chosen);
+    const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+    if (bg) {
+      const dr = r - bg.r, dg = g - bg.g, db = b - bg.b;
+      if (dr * dr + dg * dg + db * db <= XS_TRIM_TOL * XS_TRIM_TOL) isField[i] = 1;
+    }
+    const near = nearestInList({ r, g, b }, chosen);
     grid[i] = near ? near.hex : null;
   }
+  if (bg) xsClearGroundField(grid, isField, W, H, fit);
   return grid;
 }
 
@@ -5639,9 +5784,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       const img = bgImgRef.current;
       ctx.save();
       ctx.globalAlpha = bgOpacity;
-      const scale = Math.max(cv.width / img.width, cv.height / img.height);
-      const dw = img.width * scale, dh = img.height * scale;
-      ctx.drawImage(img, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+      // Same fit the design was generated with, so the trace sits under the
+      // stitches it produced instead of drifting off across the margins.
+      const fit = xsFitImageToGrid(img, W, H);
+      if (fit) ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx * cs, fit.dy * cs, fit.dw * cs, fit.dh * cs);
       ctx.restore();
     }
     const cells = cellsRef.current;
