@@ -1208,8 +1208,10 @@ async function requestAuthCode(email) {
       options: { shouldCreateUser: true },
     });
     if (!error) return { ok: true };
+    logAuthError("send", error);
     return { ok: false, error: authErrorCode(error) };
   } catch (e) {
+    logAuthError("send", e);
     return { ok: false, error: "network" };
   }
 }
@@ -1221,7 +1223,10 @@ async function verifyAuthCode(email, code) {
   if (!client) return { ok: false, error: "not_configured" };
   try {
     const { data, error } = await client.auth.verifyOtp({ email, token: code, type: "email" });
-    if (error) return { ok: false, error: authErrorCode(error) };
+    if (error) {
+      logAuthError("verify", error);
+      return { ok: false, error: authErrorCode(error) };
+    }
     const user = data && data.user ? toStudioUser(data.user) : null;
     if (!user) return { ok: false, error: "invalid_code" };
     return { ok: true, user };
@@ -1241,10 +1246,32 @@ function authErrorCode(error) {
     return "rate_limited";
   }
   if (code === "otp_expired" || message.includes("expired")) return "expired";
+  // Supabase couldn't hand the mail off. Distinct from every other failure
+  // because nothing about the studio or the typed address is wrong — it's the
+  // project's email setup. The built-in service only delivers to project
+  // members and caps at a few an hour, so this is what a real inbox hits first.
+  if (
+    code === "unexpected_failure" || code === "email_provider_disabled" ||
+    message.includes("error sending") || message.includes("smtp") ||
+    (status === 500 && !message)
+  ) {
+    return "email_send_failed";
+  }
   if (message.includes("invalid") || status === 401 || status === 403) return "invalid_code";
   if (message.includes("failed to fetch") || message.includes("network")) return "network";
   if (message.includes("signups not allowed") || code === "signup_disabled") return "signups_disabled";
   return "unknown";
+}
+
+// The overlay's copy is deliberately short, which makes a genuine
+// misconfiguration hard to diagnose from the UI alone. Mirror the raw error to
+// the console so the underlying Supabase reason is always recoverable.
+function logAuthError(step, error) {
+  if (!error) return;
+  console.error(
+    `[metime] Supabase auth ${step} failed:`,
+    { code: error.code || error.name || null, status: error.status ?? null, message: error.message || null },
+  );
 }
 
 async function logoutUser() {
@@ -4808,6 +4835,7 @@ const AUTH_ERROR_COPY = {
   send: {
     rate_limited: "Too many codes requested — wait a minute and try again.",
     signups_disabled: "New accounts are turned off for this studio right now.",
+    email_send_failed: "We couldn't send the email — the studio's email delivery isn't set up yet. Your design stays on this device.",
     network: "Couldn't reach the network — check your connection and try again.",
     not_configured: "Accounts aren't set up yet — your design stays on this device.",
     unknown: "Couldn't send a code — try again.",

@@ -2,15 +2,16 @@ import { createClient } from "@supabase/supabase-js";
 
 // Two clients, two very different trust levels.
 //
-//   adminSupabase()      — service role key. Bypasses RLS. Used only where a
-//                          request legitimately needs to cross user boundaries:
-//                          the Shopify webhook resolving a purchased design,
-//                          the admin dashboard, the by-id capability read, and
+//   adminSupabase()      — secret key. Bypasses RLS. Used only where a request
+//                          legitimately needs to cross user boundaries: the
+//                          Shopify webhook resolving a purchased design, the
+//                          admin dashboard, the by-id capability read, and
 //                          unowned guest-checkout writes. NEVER sent to a
 //                          browser.
-//   userSupabase(req)    — anon key plus the caller's own access token, so
-//                          every query runs as that user and RLS decides what
-//                          they can see. This is what the designs library uses.
+//   userSupabase(req)    — publishable key plus the caller's own access token,
+//                          so every query runs as that user and RLS decides
+//                          what they can see. This is what the designs library
+//                          uses.
 //
 // Both are created lazily: importing this module must never require env vars to
 // be present (build time, or an endpoint that doesn't touch the database).
@@ -21,10 +22,28 @@ const AUTH_OPTS = {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 };
 
-function requireEnv(name) {
-  const value = process.env[name];
+// Publishable (sb_publishable_…) and secret (sb_secret_…) keys are Supabase's
+// current key format; the legacy anon / service_role JWTs they replace still
+// work but are slated for removal at the end of 2026. Each key is read under
+// its current name first, falling back to the legacy name so a deploy that was
+// already configured the old way keeps running.
+const URL_VARS = ["SUPABASE_URL"];
+const PUBLISHABLE_VARS = ["SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"];
+const SECRET_VARS = ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+
+function readEnv(names) {
+  for (const name of names) {
+    if (process.env[name]) return process.env[name];
+  }
+  return "";
+}
+
+function requireEnv(names) {
+  const value = readEnv(names);
   if (!value) {
-    throw new Error(`${name} is not set — see SUPABASE_SETUP.md`);
+    const [primary, ...legacy] = names;
+    const also = legacy.length ? ` (or legacy ${legacy.join(" / ")})` : "";
+    throw new Error(`${primary}${also} is not set — see SUPABASE_SETUP.md`);
   }
   return value;
 }
@@ -33,21 +52,13 @@ function requireEnv(name) {
 // Endpoints check this first and answer 503 instead of throwing a stack trace,
 // so a half-configured deploy fails legibly.
 export function supabaseConfigured() {
-  return Boolean(
-    process.env.SUPABASE_URL &&
-    process.env.SUPABASE_ANON_KEY &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  return Boolean(readEnv(URL_VARS) && readEnv(PUBLISHABLE_VARS) && readEnv(SECRET_VARS));
 }
 
 let admin = null;
 export function adminSupabase() {
   if (!admin) {
-    admin = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-      AUTH_OPTS,
-    );
+    admin = createClient(requireEnv(URL_VARS), requireEnv(SECRET_VARS), AUTH_OPTS);
   }
   return admin;
 }
@@ -62,7 +73,7 @@ export function accessToken(req) {
 // A client that acts *as the caller*. Not cached — the token is per-request.
 export function userSupabase(req) {
   const token = accessToken(req);
-  return createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+  return createClient(requireEnv(URL_VARS), requireEnv(PUBLISHABLE_VARS), {
     ...AUTH_OPTS,
     global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
   });

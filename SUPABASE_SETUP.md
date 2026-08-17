@@ -1,11 +1,15 @@
 # Supabase setup
 
 Everything that used to live in Upstash Redis (accounts, saved designs, the order
-queue) now lives in Supabase. Five steps, about ten minutes.
+queue) now lives in Supabase. Six steps, about fifteen minutes.
 
-Step 3 is the one people miss: **without the `{{ .Token }}` edit, Supabase sends
-a magic link and no 6-digit code**, and the studio's Save overlay has nothing to
-verify.
+Two steps trip everyone up, and both fail in ways that look like a broken app:
+
+- **Step 3** — without the `{{ .Token }}` edit, Supabase sends a magic link and
+  no 6-digit code, so the Save overlay has nothing to verify.
+- **Step 4** — without custom SMTP, Supabase's built-in sender only delivers to
+  members of your Supabase organization. Everyone else's sign-in dies with a
+  `500` from `/auth/v1/otp`.
 
 ---
 
@@ -57,7 +61,37 @@ cleaner to drop it and leave only the code.
 Save the template, then send yourself a code from the studio's Save button and
 confirm the email shows six digits.
 
-## 4. Set the URLs
+## 4. Set up custom SMTP ← required before anyone but you can sign in
+
+**Authentication → Emails → SMTP Settings**
+
+Supabase's built-in email service is not a production sender. It only delivers to
+addresses that belong to your Supabase organization, and it caps at 2 auth emails
+per hour. Send to any other address and `/auth/v1/otp` returns a `500` — the
+studio surfaces this as "we couldn't send the email".
+
+Any SMTP provider works. Resend, using an API key from
+[resend.com](https://resend.com) → **API Keys**:
+
+| Field | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | your Resend API key (`re_...`) |
+| Sender email | an address on a domain you verified in Resend |
+| Sender name | `metime` |
+
+Verify your sending domain in Resend first (**Domains → Add Domain**, then add the
+DNS records it gives you). Until that's verified you can only send to your own
+Resend signup address, which leaves you no better off than the built-in sender.
+
+Watch for a trailing space in the Host field — Supabase doesn't trim it, and the
+DNS lookup fails with a confusing `server misbehaving` error in the auth logs.
+
+Once SMTP is saved, the 2-per-hour cap is replaced by your provider's limits.
+
+## 5. Set the URLs
 
 **Authentication → URL Configuration**
 
@@ -69,21 +103,25 @@ These matter less than usual here — the OTP code flow doesn't redirect anywher
 but Supabase uses Site URL when building the link half of the email, so set it or
 that link points at localhost.
 
-## 5. Paste the keys in two places
+## 6. Paste the keys in two places
 
-**Project Settings → API** has all three values.
+**Project Settings → API Keys** has all three values. Newer projects issue
+`sb_publishable_...` and `sb_secret_...` keys; older ones issue `anon` and
+`service_role` JWTs, which still work but are being phased out. Either format
+goes in the same slots below — publishable/anon in the client, secret/service_role
+on the server.
 
 **A. `index.html`** — near the top of the `<script type="text/babel">` block,
 in the "Supabase config" comment block:
 
 ```js
 const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";  // ← Project URL
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";            // ← anon public
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";            // ← publishable key
 ```
 
-The anon key belongs in this file. It's public/client-safe in exactly the way the
-Shopify Storefront token is: it grants only what Row Level Security allows, which
-here is "a signed-in user's own designs, nothing else."
+The publishable key belongs in this file. It's public/client-safe in exactly the
+way the Shopify Storefront token is: it grants only what Row Level Security
+allows, which here is "a signed-in user's own designs, nothing else."
 
 **B. Vercel env vars** (Project → Settings → Environment Variables) for
 Production, Preview, and Development — and a local `.env` for `vercel dev`:
@@ -91,12 +129,16 @@ Production, Preview, and Development — and a local `.env` for `vercel dev`:
 | Variable | Value | Notes |
 |---|---|---|
 | `SUPABASE_URL` | Project URL | same as above |
-| `SUPABASE_ANON_KEY` | anon public key | same as above |
-| `SUPABASE_SERVICE_ROLE_KEY` | **service_role** key | server only — never commit, never send to a browser |
+| `SUPABASE_PUBLISHABLE_KEY` | publishable key | same value as in `index.html` |
+| `SUPABASE_SECRET_KEY` | secret key | server only — never commit, never send to a browser |
 
-The service role key bypasses RLS entirely. It's used by the Shopify webhook, the
-admin dashboard, and the by-id design read that fulfillment depends on. If it
-leaks, rotate it in **Project Settings → API → Reset**.
+If your project still issues legacy JWTs, set `SUPABASE_ANON_KEY` and
+`SUPABASE_SERVICE_ROLE_KEY` instead; the server reads either name, preferring the
+new one.
+
+The secret key bypasses RLS entirely. It's used by the Shopify webhook, the admin
+dashboard, and the by-id design read that fulfillment depends on. If it leaks,
+rotate it in **Project Settings → API Keys**.
 
 Until all three server vars are set, the `/api/designs` and `/api/admin/*`
 endpoints answer `503 supabase_not_configured` instead of failing obscurely, and
