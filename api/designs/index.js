@@ -1,20 +1,26 @@
 import { applyCors } from "../_lib/cors.js";
 import { validateDesignPayload } from "../_lib/validate.js";
-import { generateDesignId } from "../_lib/id.js";
-import { listUserDesigns, putDesignIfAbsent } from "../_lib/store.js";
-import { getSessionUser, requireUser } from "../_lib/session.js";
+import { createDesign, listUserDesigns } from "../_lib/store.js";
+import { getRequestUser, requireUser } from "../_lib/auth.js";
+import { supabaseConfigured } from "../_lib/supabase.js";
 
-const SCHEMA_VERSION = 1;
-const MAX_ID_COLLISION_RETRIES = 3;
-
+// GET  — the signed-in user's library, newest edit first. Requires an account.
+// POST — save a design. Owned when the caller sends a valid access token,
+//        unowned when they don't: guest kit checkout has to be able to park a
+//        design somewhere the Shopify webhook can find it, and requiring an
+//        account for that would break checkout for anyone who never signs in.
 export default async function handler(req, res) {
   if (applyCors(req, res)) return;
+
+  if (!supabaseConfigured()) {
+    return res.status(503).json({ error: "supabase_not_configured" });
+  }
 
   if (req.method === "GET") {
     const user = await requireUser(req, res);
     if (!user) return;
     try {
-      const designs = await listUserDesigns(user.id);
+      const designs = await listUserDesigns(req);
       return res.status(200).json({ designs });
     } catch (err) {
       console.error("GET /api/designs failed:", err);
@@ -35,27 +41,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "invalid_payload", message: error });
   }
 
-  const { type, data } = req.body;
-  const user = await getSessionUser(req);
-  const now = new Date().toISOString();
-  const record = {
-    type,
-    version: SCHEMA_VERSION,
-    createdAt: now,
-    updatedAt: now,
-    data,
-  };
-  if (user) record.ownerId = user.id;
-
   try {
-    for (let attempt = 0; attempt < MAX_ID_COLLISION_RETRIES; attempt++) {
-      const id = generateDesignId();
-      const stored = await putDesignIfAbsent(id, { id, ...record });
-      if (stored) {
-        return res.status(201).json({ id });
-      }
-    }
-    return res.status(500).json({ error: "internal_error" });
+    const user = await getRequestUser(req);
+    const record = await createDesign(req, user, {
+      type: req.body.type,
+      data: req.body.data,
+    });
+    return res.status(201).json({ id: record.id });
   } catch (err) {
     console.error("POST /api/designs failed:", err);
     return res.status(500).json({ error: "internal_error" });

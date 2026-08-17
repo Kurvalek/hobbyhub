@@ -9,6 +9,10 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- Supabase client (accounts + saved designs). UMD build, so it lands on
+     window.supabase; the studio degrades to local-only saves if it fails to
+     load or isn't configured. -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet"/>
@@ -837,6 +841,51 @@ function useAuth() {
   return useContext(AuthContext);
 }
 
+// ── Supabase config (accounts + saved designs) ─────────────────────────────
+// FILL THESE IN. Both come from the Supabase dashboard:
+//   Project Settings → API
+//     • "Project URL"        → SUPABASE_URL
+//     • "anon public" key    → SUPABASE_ANON_KEY   (labeled "Publishable" in
+//                              newer dashboards; either one works)
+//
+// The anon key is PUBLIC/client-safe by design — exactly like the Shopify
+// Storefront token below. It only grants what Row Level Security allows, which
+// for this app is "a signed-in user's own designs and nothing else". The
+// service_role key is the dangerous one: it lives only in Vercel env vars and
+// must never appear in this file.
+//
+// Full setup (email OTP, the {{ .Token }} template edit, the SQL to run) is in
+// SUPABASE_SETUP.md.
+const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+// True only once the placeholders above are replaced AND the CDN client loaded.
+// Same defensive pattern as shopifyConfigured(): with Supabase unconfigured the
+// studio keeps working exactly as it did before accounts existed — designs save
+// to this device's localStorage and nothing ever asks for an email.
+function supabaseConfigured() {
+  return (
+    typeof window !== "undefined" && !!window.supabase &&
+    !!SUPABASE_URL && !SUPABASE_URL.includes("YOUR-PROJECT-REF") &&
+    !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")
+  );
+}
+
+// Lazily created singleton. supabase-js owns the session: it persists the
+// access/refresh tokens in localStorage and refreshes them in the background,
+// which is what makes "reopen on any device with the same email" work without
+// us managing a cookie.
+let _sb = null;
+function sb() {
+  if (!supabaseConfigured()) return null;
+  if (!_sb) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+    });
+  }
+  return _sb;
+}
+
 // ── Shopify Storefront checkout config ─────────────────────────────────────
 // FILL THESE IN to connect the studio to your Shopify store. This studio runs
 // on its own Vercel domain (not the Shopify storefront), so checkout goes
@@ -970,8 +1019,10 @@ async function addKitToShopifyCart({ variantId, designId }) {
 }
 
 // ── Saved-design cache (localStorage) ──────────────────────────────────────
-// Signed-in libraries live in Redis. These keys are a same-device cache so a
-// refresh still works; guests who never Save never write a cloud account.
+// Signed-in libraries live in Supabase. These keys are a same-device cache so a
+// refresh still works offline, and the guest draft buffer when Supabase isn't
+// configured. Guests who never Save never create an account. Anything a guest
+// left here gets claimed into their account on first sign-in (claimLocalDesigns).
 const QUILTS_KEY = "metime.savedQuilts.v1";
 function loadSavedQuilts() {
   try {
@@ -1042,15 +1093,17 @@ function persistSavedPunch(designs) {
 }
 // ── Design-store API (server-side, powers checkout) ────────────────────────
 // POSTs a finished design to /api/designs (same-origin serverless function)
-// and resolves to the server's opaque design id. That id is the handle a
-// Shopify order will carry (as a cart attribute) so a purchased kit can be
-// traced back to the exact design, long after this device's localStorage is
-// gone.
+// and resolves to the design's uuid. That id is the handle a Shopify order will
+// carry (as a cart attribute) so a purchased kit can be traced back to the exact
+// design, long after this device's localStorage is gone.
+//
+// No account needed: a guest's design lands unowned, which is what lets kit
+// checkout work without signing in. If they happen to be signed in the access
+// token attaches and the row is theirs.
 async function saveDesignToApi(type, data) {
   const res = await fetch("/api/designs", {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
     body: JSON.stringify({ type, data }),
   });
   if (!res.ok) throw new Error(`design save failed (HTTP ${res.status})`);
@@ -1061,43 +1114,105 @@ async function saveDesignToApi(type, data) {
 
 const PENDING_SAVE_KEY = "metime.pendingSave";
 
+// Every /api call that needs an identity carries the Supabase access token.
+// supabase-js hands us a fresh one (refreshing first if it's about to expire),
+// and the server verifies it — there is no cookie and no custom session.
+async function authHeader() {
+  const client = sb();
+  if (!client) return {};
+  try {
+    const { data } = await client.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    return token ? { Authorization: "Bearer " + token } : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 async function apiJson(url, opts) {
-  const res = await fetch(url, { credentials: "include", ...(opts || {}) });
+  const options = { ...(opts || {}) };
+  options.headers = { ...(await authHeader()), ...(options.headers || {}) };
+  const res = await fetch(url, options);
   let body = null;
   try { body = await res.json(); } catch (e) { body = null; }
   return { ok: res.ok, status: res.status, body };
 }
 
+// Flattens a Supabase user into the little shape the UI needs (the account chip
+// shows the email; stripeCustomerId is reserved for when Stripe is built).
+function toStudioUser(user) {
+  if (!user) return null;
+  return { id: user.id, email: user.email || null };
+}
+
 async function fetchMe() {
-  const { ok, body } = await apiJson("/api/auth/me");
-  return ok && body && body.user ? body.user : null;
+  const client = sb();
+  if (!client) return null;
+  const { data, error } = await client.auth.getSession();
+  if (error || !data || !data.session) return null;
+  return toStudioUser(data.session.user);
 }
 
+// Step 1 of sign-in: Supabase emails a 6-digit code. `shouldCreateUser` is what
+// makes this one flow serve both new and returning people — no separate signup.
+// Requires the Magic Link email template to include {{ .Token }}, otherwise
+// Supabase only sends a link and there's no code to type (see SUPABASE_SETUP.md).
 async function requestAuthCode(email) {
-  const { ok, body } = await apiJson("/api/auth/magic-link", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  if (ok) return { ok: true };
-  return { ok: false, error: (body && body.error) || "email_failed" };
+  const client = sb();
+  if (!client) return { ok: false, error: "not_configured" };
+  try {
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
+    if (!error) return { ok: true };
+    return { ok: false, error: authErrorCode(error) };
+  } catch (e) {
+    return { ok: false, error: "network" };
+  }
 }
 
+// Step 2: exchange the typed code for a session. On success supabase-js stores
+// the session, so the next page load on this device is already signed in.
 async function verifyAuthCode(email, code) {
-  const { ok, body } = await apiJson("/api/auth/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, code }),
-  });
-  if (ok && body && body.user) return { ok: true, user: body.user };
-  return { ok: false, error: (body && body.error) || "invalid_code" };
+  const client = sb();
+  if (!client) return { ok: false, error: "not_configured" };
+  try {
+    const { data, error } = await client.auth.verifyOtp({ email, token: code, type: "email" });
+    if (error) return { ok: false, error: authErrorCode(error) };
+    const user = data && data.user ? toStudioUser(data.user) : null;
+    if (!user) return { ok: false, error: "invalid_code" };
+    return { ok: true, user };
+  } catch (e) {
+    return { ok: false, error: "network" };
+  }
+}
+
+// Supabase's auth errors arrive as prose + a loose code. Normalizing them here
+// keeps the overlay's copy readable and lets us tell "you typed it wrong" apart
+// from "it expired" and "you're being throttled" — three very different fixes.
+function authErrorCode(error) {
+  const code = (error && (error.code || error.name) || "").toString();
+  const message = (error && error.message ? error.message : "").toLowerCase();
+  const status = error && error.status;
+  if (status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit") || message.includes("only request this after")) {
+    return "rate_limited";
+  }
+  if (code === "otp_expired" || message.includes("expired")) return "expired";
+  if (message.includes("invalid") || status === 401 || status === 403) return "invalid_code";
+  if (message.includes("failed to fetch") || message.includes("network")) return "network";
+  if (message.includes("signups not allowed") || code === "signup_disabled") return "signups_disabled";
+  return "unknown";
 }
 
 async function logoutUser() {
-  await apiJson("/api/auth/logout", { method: "POST" });
+  const client = sb();
+  if (!client) return;
+  try { await client.auth.signOut(); } catch (e) { /* local session is cleared regardless */ }
 }
 
 async function listCloudDesigns() {
+  if (!supabaseConfigured()) return [];
   const { ok, body } = await apiJson("/api/designs");
   if (!ok || !body || !Array.isArray(body.designs)) return [];
   return body.designs;
@@ -1111,9 +1226,16 @@ async function upsertCloudDesign(type, design) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, data }),
     });
+    // A design saved on this device but missing (or no longer ours) server-side
+    // shouldn't dead-end the save — fall through and create a fresh row.
+    if (status === 404 || status === 403) return await createCloudDesign(type, data);
     if (!ok) throw new Error("design update failed (HTTP " + status + ")");
     return design.apiId;
   }
+  return await createCloudDesign(type, data);
+}
+
+async function createCloudDesign(type, data) {
   const { ok, status, body } = await apiJson("/api/designs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1124,7 +1246,7 @@ async function upsertCloudDesign(type, design) {
 }
 
 async function deleteCloudDesign(apiId) {
-  if (!apiId) return;
+  if (!apiId || !supabaseConfigured()) return;
   await apiJson("/api/designs/" + encodeURIComponent(apiId), { method: "DELETE" });
 }
 
@@ -1133,20 +1255,75 @@ function cloudToLocal(record) {
   return { ...data, apiId: record.id, id: data.id != null ? data.id : record.id };
 }
 
-function hydrateLocalLibrary(records) {
-  const quilts = [];
-  const stitches = [];
-  const punch = [];
-  for (const rec of records) {
-    const local = cloudToLocal(rec);
-    if (rec.type === "quilt") quilts.push(local);
-    else if (rec.type === "punch-needle") punch.push(local);
-    else stitches.push(local);
+// Which localStorage drawer each craft type lives in. Punch needle keeps its own
+// (different yarn library and gauge), which is why this isn't a 2-way split.
+const LOCAL_DRAWERS = [
+  { type: "quilt", load: loadSavedQuilts, persist: persistSavedQuilts },
+  { type: "cross-stitch", load: loadSavedStitches, persist: persistSavedStitches },
+  { type: "punch-needle", load: loadSavedPunch, persist: persistSavedPunch },
+];
+
+// Rewrites the on-device cache from the account's cloud library. `keep` is the
+// local-only leftovers that must survive — a guest draft, or an upload that
+// failed while offline — since the cloud list is authoritative only for the
+// designs it actually knows about.
+function hydrateLocalLibrary(records, keep) {
+  const buckets = { "quilt": [], "cross-stitch": [], "punch-needle": [] };
+  const push = (type, design) => (buckets[type] || buckets["cross-stitch"]).push(design);
+  for (const rec of records) push(rec.type, cloudToLocal(rec));
+  for (const entry of (keep || [])) push(entry.type, entry.design);
+  for (const drawer of LOCAL_DRAWERS) drawer.persist(buckets[drawer.type]);
+  return { quilts: buckets["quilt"], stitches: buckets["cross-stitch"], punch: buckets["punch-needle"] };
+}
+
+// Uploads whatever this browser already had saved locally into the account the
+// person just signed into, so a guest who designed for an hour before making an
+// account loses nothing. Runs once per account per device — the flag is keyed by
+// user id, so signing back in later doesn't re-upload and duplicate.
+//
+// Must run BEFORE hydrateLocalLibrary, which overwrites the local cache.
+const CLAIMED_KEY_PREFIX = "metime.claimed.";
+async function claimLocalDesigns(userId, skipId) {
+  const empty = { claimed: 0, keep: [] };
+  if (!userId || !supabaseConfigured()) return empty;
+  const flag = CLAIMED_KEY_PREFIX + userId;
+  try {
+    if (localStorage.getItem(flag)) return empty;
+  } catch (e) {
+    return empty;
   }
-  persistSavedQuilts(quilts);
-  persistSavedStitches(stitches);
-  persistSavedPunch(punch);
-  return { quilts, stitches, punch };
+
+  let claimed = 0;
+  const keep = [];
+  let allOk = true;
+  for (const drawer of LOCAL_DRAWERS) {
+    for (const design of drawer.load()) {
+      // The design the Save button is waiting on is uploaded by
+      // flushPendingSave; claiming it here too would make two rows.
+      if (skipId != null && String(design.id) === String(skipId)) continue;
+      try {
+        // A design that already has an apiId from guest kit checkout is an
+        // *unowned* row; the PUT comes back 403 and upsertCloudDesign creates an
+        // owned copy instead. The original row stays put so any order that
+        // already references it still resolves.
+        const apiId = await upsertCloudDesign(drawer.type, design);
+        claimed++;
+        if (!apiId) keep.push({ type: drawer.type, design });
+      } catch (e) {
+        console.warn("Could not claim a local design:", e);
+        keep.push({ type: drawer.type, design });
+        allOk = false;
+      }
+    }
+  }
+
+  // Only mark the device done when everything made it. A partial failure keeps
+  // the flag unset so the next sign-in retries; designs that did upload now
+  // carry an owned apiId, so the retry updates them instead of duplicating.
+  if (allOk) {
+    try { localStorage.setItem(flag, new Date().toISOString()); } catch (e) { /* ignore */ }
+  }
+  return { claimed, keep };
 }
 
 function stashPendingSave(payload) {
@@ -1162,14 +1339,14 @@ function clearPendingSave() {
   try { sessionStorage.removeItem(PENDING_SAVE_KEY); } catch (e) { /* ignore */ }
 }
 
+// Finishes the save the person clicked before they had an account. Hydration is
+// the caller's job so it can run after claimLocalDesigns too, in one pass.
 async function flushPendingSave() {
   const pending = readPendingSave();
   if (!pending || !pending.record || !pending.type) return null;
   const apiId = await upsertCloudDesign(pending.type, pending.record);
   const saved = { ...pending.record, apiId };
   clearPendingSave();
-  const records = await listCloudDesigns();
-  hydrateLocalLibrary(records);
   return { type: pending.type, record: saved, mode: pending.mode || "new" };
 }
 
@@ -3639,21 +3816,25 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const [confirmClear, setConfirmClear] = useState(false);
   const auth = useAuth();
   const user = auth && auth.user;
+  const cloudEnabled = !!(auth && auth.cloudEnabled);
+  // The drawer is live while signed in — or always, when Supabase isn't
+  // configured and there is no account to gate on.
+  const libraryOn = !!(auth && auth.libraryOn);
   const [savedQuilts, setSavedQuilts] = useState([]);
   const [saveError, setSaveError] = useState("");
   const quiltCacheReady = useRef(false);
-  // Cache on this device only while signed in so a guest empty list cannot
-  // wipe someone else's library.
+  // Cache on this device only while the drawer is live so a signed-out empty
+  // list cannot wipe someone else's library.
   useEffect(() => {
-    if (!user || !quiltCacheReady.current) return;
+    if (!libraryOn || !quiltCacheReady.current) return;
     const ok = persistSavedQuilts(savedQuilts);
     setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
-  }, [savedQuilts, user]);
+  }, [savedQuilts, libraryOn]);
   useEffect(() => {
-    if (!user) { quiltCacheReady.current = false; setSavedQuilts([]); return; }
+    if (!libraryOn) { quiltCacheReady.current = false; setSavedQuilts([]); return; }
     setSavedQuilts(loadSavedQuilts());
     quiltCacheReady.current = true;
-  }, [user, auth && auth.libraryTick]);
+  }, [libraryOn, auth && auth.libraryTick]);
   useEffect(() => {
     if (!auth || !auth.lastSaved || auth.lastSaved.type !== "quilt") return;
     setCurrentQuiltId(auth.lastSaved.record.id);
@@ -3683,17 +3864,23 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     qPattern, qSpacing, qColor, showQ, materials: { ...materials }, fw, fh, backCalc, bindCalc, grandTotal,
     updatedAt: Date.now(),
   });
+  // Writes the design to the account, then to this device. With Supabase
+  // unconfigured the cloud leg is skipped and the save is local-only, which is
+  // how the studio worked before accounts existed.
   const commitQuiltSave = async (record, isNew) => {
-    try {
-      const apiId = await upsertCloudDesign("quilt", record);
-      const saved = { ...record, apiId };
+    const store = (apiId) => {
+      const saved = apiId ? { ...record, apiId } : record;
       setSavedQuilts(p => isNew ? [saved, ...p] : p.map(x => x.id === record.id ? saved : x));
       if (isNew) setCurrentQuiltId(saved.id);
       flashSaved();
+    };
+    if (!cloudEnabled) { store(null); setSaveError(""); return; }
+    try {
+      store(await upsertCloudDesign("quilt", record));
       setSaveError("");
     } catch (e) {
       console.warn("Quilt cloud save failed:", e);
-      setSaveError("Couldn't save — try again.");
+      setSaveError("Couldn't save to your account — check your connection and try again.");
     }
   };
   const saveNewQuilt = () => {
@@ -3701,7 +3888,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     const id = Date.now();
     const record = buildQuiltRecord(id, name);
     setShowSave(false); setSaveName("");
-    if (!user) {
+    // Save is the only account wall: designing, resizing, PDFs, and kit checkout
+    // all work without one.
+    if (cloudEnabled && !user) {
       stashPendingSave({ type: "quilt", record, mode: "new" });
       auth.openAuth();
       return;
@@ -3712,7 +3901,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     if (currentQuiltId == null) return;
     const record = buildQuiltRecord(currentQuiltId, (currentQuilt && currentQuilt.name) || "Untitled");
     if (currentQuilt && currentQuilt.apiId) record.apiId = currentQuilt.apiId;
-    if (!user) {
+    if (cloudEnabled && !user) {
       stashPendingSave({ type: "quilt", record, mode: "update" });
       auth.openAuth();
       return;
@@ -4560,6 +4749,31 @@ function AccountChip() {
   );
 }
 
+// Supabase throttles OTP emails per address (one a minute by default), so the
+// Resend button counts down rather than letting someone earn a 429.
+const RESEND_COOLDOWN_SEC = 60;
+
+// Copy for every failure the OTP flow can actually produce. Split by step
+// because the same normalized code means different things when sending vs
+// verifying ("too many codes sent" / "too many tries").
+const AUTH_ERROR_COPY = {
+  send: {
+    rate_limited: "Too many codes requested — wait a minute and try again.",
+    signups_disabled: "New accounts are turned off for this studio right now.",
+    network: "Couldn't reach the network — check your connection and try again.",
+    not_configured: "Accounts aren't set up yet — your design stays on this device.",
+    unknown: "Couldn't send a code — try again.",
+  },
+  verify: {
+    invalid_code: "That code didn't match. Check the digits and try again.",
+    expired: "That code has expired — send a fresh one.",
+    rate_limited: "Too many tries — wait a minute and try again.",
+    network: "Couldn't reach the network — check your connection and try again.",
+    not_configured: "Accounts aren't set up yet — your design stays on this device.",
+    unknown: "That code didn't work. Try again.",
+  },
+};
+
 function AuthOverlay() {
   const auth = useAuth();
   const [step, setStep] = useState("email");
@@ -4567,47 +4781,65 @@ function AuthOverlay() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     if (auth && auth.authOpen) {
       setStep("email");
       setCode("");
       setError("");
+      setNotice("");
       setBusy(false);
+      setCooldown(0);
     }
   }, [auth && auth.authOpen]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
   if (!auth || !auth.authOpen) return null;
 
-  const sendCode = async () => {
+  const sendCode = async (isResend) => {
     const trimmed = email.trim();
-    if (!trimmed) return;
-    setBusy(true); setError("");
+    if (!trimmed || (isResend && cooldown > 0)) return;
+    setBusy(true); setError(""); setNotice("");
     const result = await requestAuthCode(trimmed);
     setBusy(false);
     if (!result.ok) {
-      setError(result.error === "rate_limited"
-        ? "Too many codes sent — wait a few minutes and try again."
-        : "Couldn't send a code — try again.");
+      setError(AUTH_ERROR_COPY.send[result.error] || AUTH_ERROR_COPY.send.unknown);
+      // A 429 means Supabase already sent one recently, so still start the
+      // countdown — retrying sooner can only fail again.
+      if (result.error === "rate_limited") setCooldown(RESEND_COOLDOWN_SEC);
       return;
     }
     setEmail(trimmed);
     setStep("code");
+    setCode("");
+    setCooldown(RESEND_COOLDOWN_SEC);
+    if (isResend) setNotice("New code sent.");
   };
 
   const submitCode = async () => {
     if (code.replace(/\D/g, "").length !== 6) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setNotice("");
     const result = await verifyAuthCode(email, code);
-    setBusy(false);
     if (!result.ok) {
-      setError(result.error === "rate_limited"
-        ? "Too many tries — wait a few minutes and try again."
-        : "That code didn't work. Try again.");
+      setBusy(false);
+      setError(AUTH_ERROR_COPY.verify[result.error] || AUTH_ERROR_COPY.verify.unknown);
+      if (result.error === "expired") setCooldown(0);
+      setCode("");
       return;
     }
+    // completeAuth uploads the pending design and pulls the library down, so the
+    // button stays busy until the save has actually landed.
     await auth.completeAuth(result.user);
   };
+
+  const resendLabel = cooldown > 0 ? `Resend in ${cooldown}s` : "Resend";
 
   return (
     <div className="overlay" onClick={auth.closeAuth}>
@@ -4618,13 +4850,13 @@ function AuthOverlay() {
         </div>
         <div style={{ fontSize: 13, color: "#5C544A", marginBottom: 16, lineHeight: 1.5 }}>
           {step === "email"
-            ? "We'll email a 6-digit code so you can reopen this design on any device."
-            : `We sent a code to ${email}. It expires in 10 minutes.`}
+            ? "We'll email a 6-digit code so you can reopen this design on any device. No password."
+            : `We sent a code to ${email}. Check your inbox — it expires shortly.`}
         </div>
         {step === "email" ? (
           <input type="email" placeholder="you@email.com" value={email} autoFocus
             onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") sendCode(); }}
+            onKeyDown={e => { if (e.key === "Enter") sendCode(false); }}
             style={{ marginBottom: 16 }}/>
         ) : (
           <input className="auth-code" type="text" inputMode="numeric" autoComplete="one-time-code"
@@ -4636,18 +4868,21 @@ function AuthOverlay() {
         {error && (
           <div style={{ fontSize: 12, color: "var(--metime-tomato)", background: "#FBECE8", border: "1px solid #F3C9BF", borderRadius: 6, padding: "8px 10px", marginBottom: 12 }}>{error}</div>
         )}
+        {!error && notice && (
+          <div style={{ fontSize: 12, color: "#5C544A", marginBottom: 12 }}>{notice}</div>
+        )}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
           {step === "code" && (
-            <button className="btn" type="button" disabled={busy} onClick={sendCode}>Resend</button>
+            <button className="btn" type="button" disabled={busy || cooldown > 0} onClick={() => sendCode(true)}>{resendLabel}</button>
           )}
           <button className="btn" type="button" onClick={auth.closeAuth}>Cancel</button>
           {step === "email" ? (
-            <button className="btn btn-dark" type="button" disabled={busy || !email.trim()} onClick={sendCode}>
+            <button className="btn btn-dark" type="button" disabled={busy || !email.trim()} onClick={() => sendCode(false)}>
               {busy ? "Sending…" : "Send code"}
             </button>
           ) : (
             <button className="btn btn-dark" type="button" disabled={busy || code.length !== 6} onClick={submitCode}>
-              {busy ? "Checking…" : "Verify"}
+              {busy ? "Saving…" : "Verify"}
             </button>
           )}
         </div>
@@ -4661,33 +4896,57 @@ function AuthProvider({ children }) {
   const [authOpen, setAuthOpen] = useState(false);
   const [libraryTick, setLibraryTick] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
+  // Fixed for the page's lifetime — it only reads module constants.
+  const cloudEnabled = supabaseConfigured();
 
   const bumpLibrary = useCallback(() => setLibraryTick(t => t + 1), []);
 
-  const hydrate = useCallback(async () => {
+  const hydrate = useCallback(async (keep) => {
+    if (!cloudEnabled) { bumpLibrary(); return; }
     const records = await listCloudDesigns();
-    hydrateLocalLibrary(records);
+    hydrateLocalLibrary(records, keep);
     bumpLibrary();
-  }, [bumpLibrary]);
+  }, [bumpLibrary, cloudEnabled]);
+
+  // Everything that has to happen the moment a session exists, in order:
+  // claim this device's local designs, finish the save that triggered sign-in,
+  // then rebuild the on-device cache from the account. Claiming has to come
+  // before hydrating, which overwrites that cache.
+  const syncAccount = useCallback(async (account) => {
+    if (!account || !cloudEnabled) return;
+    let keep = [];
+    try {
+      const pending = readPendingSave();
+      const claim = await claimLocalDesigns(account.id, pending && pending.record && pending.record.id);
+      keep = claim.keep;
+    } catch (e) {
+      console.warn("Could not claim this device's designs:", e);
+    }
+    try {
+      const flushed = await flushPendingSave();
+      if (flushed) setLastSaved(flushed);
+    } catch (e) {
+      console.warn("Could not finish saving after sign-in:", e);
+    }
+    try {
+      await hydrate(keep);
+    } catch (e) {
+      console.warn("Could not load saved designs:", e);
+    }
+  }, [hydrate, cloudEnabled]);
 
   const completeAuth = useCallback(async (nextUser) => {
     setUser(nextUser);
     setAuthOpen(false);
-    try {
-      const flushed = await flushPendingSave();
-      if (flushed) setLastSaved(flushed);
-      else await hydrate();
-      bumpLibrary();
-    } catch (e) {
-      console.warn("Could not finish saving after sign-in:", e);
-      await hydrate();
-    }
-  }, [hydrate, bumpLibrary]);
+    await syncAccount(nextUser);
+  }, [syncAccount]);
 
   const signOut = useCallback(async () => {
     await logoutUser();
     setUser(null);
     setLastSaved(null);
+    // The cache belongs to the account that just left; the designs themselves
+    // are safe in Supabase and come back on the next sign-in, anywhere.
     persistSavedQuilts([]);
     persistSavedStitches([]);
     persistSavedPunch([]);
@@ -4695,38 +4954,39 @@ function AuthProvider({ children }) {
   }, [bumpLibrary]);
 
   useEffect(() => {
+    if (!cloudEnabled) { setUser(null); return; }
     let cancelled = false;
     (async () => {
-      const params = new URLSearchParams(window.location.search);
+      // supabase-js restores (and refreshes) the stored session, which is what
+      // makes a returning visit already signed in.
       const me = await fetchMe();
       if (cancelled) return;
       setUser(me);
-      if (me) {
-        try {
-          if (params.get("saved") === "1") {
-            const flushed = await flushPendingSave();
-            if (flushed) setLastSaved(flushed);
-            else await hydrate();
-          } else {
-            await hydrate();
-          }
-        } catch (e) {
-          console.warn("Could not load saved designs:", e);
-        }
-      }
-      if (params.get("saved") || params.get("auth")) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("saved");
-        url.searchParams.delete("auth");
-        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-      }
+      if (me) await syncAccount(me);
     })();
     return () => { cancelled = true; };
-  }, [hydrate]);
+  }, [syncAccount, cloudEnabled]);
+
+  // Keeps the chip honest if the session ends outside this tab — signing out in
+  // another tab, or a refresh token that can no longer be renewed.
+  useEffect(() => {
+    const client = sb();
+    if (!client) return;
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") setUser(null);
+      else if (session && session.user) setUser(toStudioUser(session.user));
+    });
+    return () => { if (data && data.subscription) data.subscription.unsubscribe(); };
+  }, []);
 
   const value = {
     user: user === undefined ? null : user,
     userReady: user !== undefined,
+    // False when Supabase isn't configured: no account wall, no cloud sync, and
+    // the on-device library behaves the way it did before accounts existed.
+    cloudEnabled,
+    // Whether the saved-design drawers should be readable/writable right now.
+    libraryOn: !cloudEnabled || !!user,
     authOpen,
     openAuth: () => setAuthOpen(true),
     closeAuth: () => setAuthOpen(false),
@@ -4762,15 +5022,16 @@ function SavedQuiltThumb({ q }) {
 const SAVED_BADGES = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
 function SavedDesigns({ onOpen }) {
   const auth = useAuth();
+  const libraryOn = !!(auth && auth.libraryOn);
   const [open, setOpen] = useState(false);
   const items = useMemo(() => {
-    if (!auth || !auth.user) return [];
+    if (!libraryOn) return [];
     const quilts = loadSavedQuilts().map(q => ({ ...q, _type: 'quilt' }));
     const stitches = loadSavedStitches().map(d => ({ ...d, _type: 'stitch' }));
     const punch = loadSavedPunch().map(d => ({ ...d, _type: 'punch' }));
     return [...quilts, ...stitches, ...punch].sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
-  }, [auth && auth.user, auth && auth.libraryTick]);
-  if (!auth || !auth.user || !items.length) return null;
+  }, [libraryOn, auth && auth.libraryTick]);
+  if (!libraryOn || !items.length) return null;
   return (
     <div className="saved-sec">
       <button className="saved-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
@@ -6228,6 +6489,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   // Materials + save state (mirrors the quilt flow; cloud library when signed in).
   const auth = useAuth();
   const user = auth && auth.user;
+  const cloudEnabled = !!(auth && auth.cloudEnabled);
+  const libraryOn = !!(auth && auth.libraryOn);
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion(v => v + 1), []);
   const [savedStitches, setSavedStitches] = useState([]);
@@ -6269,15 +6532,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   }, [allColors, search, grp]);
   const dmcSuggested = useMemo(() => CFG.palettes.map(p => ({ name: p.name, colors: CFG.resolvePalette(p) })), [CFG]);
   useEffect(() => {
-    if (!user || !stitchCacheReady.current) return;
+    if (!libraryOn || !stitchCacheReady.current) return;
     const ok = CFG.persist(savedStitches);
     setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
-  }, [savedStitches, user]);
+  }, [savedStitches, libraryOn]);
   useEffect(() => {
-    if (!user) { stitchCacheReady.current = false; setSavedStitches([]); return; }
+    if (!libraryOn) { stitchCacheReady.current = false; setSavedStitches([]); return; }
     setSavedStitches(CFG.load());
     stitchCacheReady.current = true;
-  }, [user, auth && auth.libraryTick, CFG]);
+  }, [libraryOn, auth && auth.libraryTick, CFG]);
   useEffect(() => {
     if (!auth || !auth.lastSaved || auth.lastSaved.type !== CFG.checkoutType) return;
     setCurrentStitchId(auth.lastSaved.record.id);
@@ -7154,17 +7417,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       updatedAt: Date.now(),
     };
   };
+  // Mirrors commitQuiltSave: account first, then this device, and local-only
+  // when Supabase isn't configured.
   const commitStitchSave = async (record, isNew) => {
-    try {
-      const apiId = await upsertCloudDesign(CFG.checkoutType, record);
-      const saved = { ...record, apiId };
+    const store = (apiId) => {
+      const saved = apiId ? { ...record, apiId } : record;
       setSavedStitches(p => isNew ? [saved, ...p] : p.map(x => x.id === record.id ? saved : x));
       if (isNew) setCurrentStitchId(saved.id);
       flashSaved();
+    };
+    if (!cloudEnabled) { store(null); setSaveError(""); return; }
+    try {
+      store(await upsertCloudDesign(CFG.checkoutType, record));
       setSaveError("");
     } catch (e) {
       console.warn("Design cloud save failed:", e);
-      setSaveError("Couldn't save — try again.");
+      setSaveError("Couldn't save to your account — check your connection and try again.");
     }
   };
   const saveNewDesign = () => {
@@ -7174,7 +7442,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     const id = Date.now();
     const record = buildStitchRecord(id, name);
     setShowSave(false); setSaveName("");
-    if (!user) {
+    if (cloudEnabled && !user) {
       stashPendingSave({ type: CFG.checkoutType, record, mode: "new" });
       auth.openAuth();
       return;
@@ -7186,7 +7454,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (commitFloat()) redraw();
     const record = buildStitchRecord(currentStitchId, (currentStitch && currentStitch.name) || "Untitled");
     if (currentStitch && currentStitch.apiId) record.apiId = currentStitch.apiId;
-    if (!user) {
+    if (cloudEnabled && !user) {
       stashPendingSave({ type: CFG.checkoutType, record, mode: "update" });
       auth.openAuth();
       return;

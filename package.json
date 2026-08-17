@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@sparticuz/chromium": "^149.0.0",
-    "@upstash/redis": "^1.34.3",
+    "@supabase/supabase-js": "^2.112.3",
     "puppeteer-core": "^25.5.0"
   },
   "devDependencies": {

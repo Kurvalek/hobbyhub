@@ -4,8 +4,10 @@ import {
   extractOrder,
 } from "../_lib/shopify.js";
 import { getDesign } from "../_lib/store.js";
+import { DESIGN_ID_PATTERN } from "../_lib/id.js";
 import { designToBom } from "../_lib/bom.js";
-import { putOrder, getOrder } from "../_lib/orders.js";
+import { putOrder } from "../_lib/orders.js";
+import { supabaseConfigured } from "../_lib/supabase.js";
 
 // We verify Shopify's HMAC against the exact bytes it signed, so the platform
 // must not JSON-parse the body first. Reading the raw stream ourselves keeps
@@ -48,13 +50,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "missing_order_id" });
   }
 
+  // A 500 makes Shopify retry, which is what we want if the deploy simply isn't
+  // wired to Supabase yet — the order isn't lost, it arrives once configured.
+  if (!supabaseConfigured()) {
+    console.error("order webhook: Supabase env vars missing — see SUPABASE_SETUP.md");
+    return res.status(500).json({ error: "supabase_not_configured" });
+  }
+
   try {
     // Resolve each line item's design and attach its supply BOM. A missing or
     // unrecognized design is flagged (designFound=false) rather than failing the
-    // whole webhook, so the order still shows up for manual handling.
+    // whole webhook, so the order still shows up for manual handling. The id is
+    // shape-checked first so a junk cart attribute can't blow up the uuid lookup.
     const items = await Promise.all(
       normalized.items.map(async (item) => {
-        if (!item.designId) {
+        if (!item.designId || !DESIGN_ID_PATTERN.test(item.designId)) {
           return { ...item, designFound: false, type: "unknown", bom: null };
         }
         const record = await getDesign(item.designId);
@@ -70,18 +80,10 @@ export default async function handler(req, res) {
       })
     );
 
-    // Preserve any fulfillment progress if Shopify re-delivers the webhook.
-    const existing = await getOrder(normalized.orderId);
-    const record = {
-      ...normalized,
-      items,
-      status: existing?.status || "new",
-      checklist: existing?.checklist || {},
-      receivedAt: existing?.receivedAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await putOrder(record);
+    // putOrder upserts on the Shopify order id and leaves status, checklist, and
+    // received_at untouched, so a redelivered webhook can't reset fulfillment
+    // progress the dashboard already recorded.
+    const record = await putOrder({ ...normalized, items });
     return res.status(200).json({ ok: true, orderId: record.orderId });
   } catch (err) {
     console.error("order webhook: processing failed:", err);

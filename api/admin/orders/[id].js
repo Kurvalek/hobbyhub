@@ -4,11 +4,16 @@ import {
   updateOrderStatus,
   ORDER_STATUSES,
 } from "../../_lib/orders.js";
+import { supabaseConfigured } from "../../_lib/supabase.js";
 
 // GET   /api/admin/orders/:id  — full fulfillment job (items, BOM, checklist).
 // PATCH /api/admin/orders/:id  — update status and/or the pick-list checklist.
+// `:id` is the Shopify order id, which is what the dashboard has in hand.
 export default async function handler(req, res) {
   if (!requireAdmin(req, res)) return;
+  if (!supabaseConfigured()) {
+    return res.status(503).json({ error: "supabase_not_configured" });
+  }
 
   const { id } = req.query;
   if (typeof id !== "string" || !id) {

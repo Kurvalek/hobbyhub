@@ -1,5 +1,7 @@
 import { requireAdmin } from "../_lib/adminAuth.js";
 import { getDesign } from "../_lib/store.js";
+import { DESIGN_ID_PATTERN } from "../_lib/id.js";
+import { supabaseConfigured } from "../_lib/supabase.js";
 import { documentPdf, documentFilename, DOC_TYPES } from "../_lib/render/index.js";
 
 // GET /api/admin/render?designId=<id>&doc=chart|instructions
@@ -13,9 +15,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "method_not_allowed" });
   }
   if (!requireAdmin(req, res)) return;
+  if (!supabaseConfigured()) {
+    return res.status(503).json({ error: "supabase_not_configured" });
+  }
 
   const { designId, doc = "chart" } = req.query;
-  if (typeof designId !== "string" || !designId) {
+  if (typeof designId !== "string" || !DESIGN_ID_PATTERN.test(designId)) {
     return res.status(400).json({ error: "missing_design_id" });
   }
   if (!DOC_TYPES.includes(doc)) {
