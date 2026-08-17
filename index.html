@@ -856,20 +856,62 @@ function useAuth() {
 //
 // Full setup (email OTP, the {{ .Token }} template edit, the SQL to run) is in
 // SUPABASE_SETUP.md.
-const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://aizynuvwoefxynjsglxr.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_gxOtWjKV5k7jXd5rQTiXBA_UzHVTidL";
+
+// True once the placeholders above are replaced. Kept separate from the CDN
+// check below because the two failures deserve very different treatment: never
+// filling these in is a choice, whereas filling them in and getting local-only
+// saves anyway is a bug the person can't see.
+function supabaseKeysPresent() {
+  return (
+    !!SUPABASE_URL && !SUPABASE_URL.includes("YOUR-PROJECT-REF") &&
+    !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")
+  );
+}
+
+// True once the UMD bundle in <head> has run. It's a synchronous <script>, so
+// this is settled before any of the app code below executes — but a blocked or
+// failed request leaves the global missing forever, hence the recheck in
+// AuthProvider rather than a single snapshot at startup.
+function supabaseClientLoaded() {
+  return (
+    typeof window !== "undefined" && !!window.supabase &&
+    typeof window.supabase.createClient === "function"
+  );
+}
 
 // True only once the placeholders above are replaced AND the CDN client loaded.
 // Same defensive pattern as shopifyConfigured(): with Supabase unconfigured the
 // studio keeps working exactly as it did before accounts existed — designs save
 // to this device's localStorage and nothing ever asks for an email.
 function supabaseConfigured() {
-  return (
-    typeof window !== "undefined" && !!window.supabase &&
-    !!SUPABASE_URL && !SUPABASE_URL.includes("YOUR-PROJECT-REF") &&
-    !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")
+  return supabaseKeysPresent() && supabaseClientLoaded();
+}
+
+// How long to keep looking for the CDN global before calling it a loss. Only
+// reached when the keys are real, so the wait costs nothing for a studio that
+// was never wired up to Supabase.
+const SUPABASE_LOAD_GRACE_MS = 5000;
+
+// Said once, loudly, and only when the keys are real: a studio with a working
+// config that quietly saves local-only is indistinguishable from a Save button
+// that does nothing, which is the worst way for this to fail.
+let _warnedNoClient = false;
+function warnSupabaseUnreachable() {
+  if (_warnedNoClient) return;
+  _warnedNoClient = true;
+  console.error(
+    "[metime] Supabase is configured but supabase-js never loaded, so accounts " +
+    "are off and designs save to this device only. The CDN <script> in <head> " +
+    "was blocked or failed — check a script/ad blocker, the network, or unpkg."
   );
 }
+
+// What the library drawer shows after a save that had to stay on this device
+// because the client never loaded (AccountsOfflineNote says it up front).
+const ACCOUNTS_OFFLINE_SAVE_MSG =
+  "Accounts couldn't load — saved to this device only. Reload to try again.";
 
 // Lazily created singleton. supabase-js owns the session: it persists the
 // access/refresh tokens in localStorage and refreshes them in the background,
@@ -3817,6 +3859,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const auth = useAuth();
   const user = auth && auth.user;
   const cloudEnabled = !!(auth && auth.cloudEnabled);
+  const cloudBlocked = !!(auth && auth.cloudBlocked);
   // The drawer is live while signed in — or always, when Supabase isn't
   // configured and there is no account to gate on.
   const libraryOn = !!(auth && auth.libraryOn);
@@ -3874,7 +3917,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       if (isNew) setCurrentQuiltId(saved.id);
       flashSaved();
     };
-    if (!cloudEnabled) { store(null); setSaveError(""); return; }
+    if (!cloudEnabled) {
+      store(null);
+      setSaveError(cloudBlocked ? ACCOUNTS_OFFLINE_SAVE_MSG : "");
+      return;
+    }
     try {
       store(await upsertCloudDesign("quilt", record));
       setSaveError("");
@@ -4416,6 +4463,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           <div onClick={e=>e.stopPropagation()}
             style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:380,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)'}}>
             <div style={{fontWeight:400,fontSize:24,marginBottom:16,fontFamily:"var(--font-display)",lineHeight:1.1}}>{currentQuilt?'Save a copy':'Save your quilt'}</div>
+            <AccountsOfflineNote/>
             <input type="text" placeholder="Give your quilt a name…" value={saveName} onChange={e=>setSaveName(e.target.value)}
               autoFocus onKeyDown={e=>{if(e.key==='Enter')saveNewQuilt();}}
               style={{marginBottom:16}}/>
@@ -4891,15 +4939,54 @@ function AuthOverlay() {
   );
 }
 
+// Sits at the top of the Save overlays, and only when the config is real but
+// the client never loaded. Nothing to say when Supabase was never set up: that
+// studio is local-only on purpose and shouldn't be pestered about it.
+function AccountsOfflineNote() {
+  const auth = useAuth();
+  if (!auth || !auth.cloudBlocked) return null;
+  return (
+    <div style={{fontSize:12,color:'var(--metime-tomato)',background:'#FBECE8',border:'1px solid #F3C9BF',borderRadius:6,padding:'8px 10px',marginBottom:16}}>
+      Accounts couldn't load, so this saves to this device only. Check your
+      connection or a script blocker, then reload to sign in.
+    </div>
+  );
+}
+
 function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined);
   const [authOpen, setAuthOpen] = useState(false);
   const [libraryTick, setLibraryTick] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
-  // Fixed for the page's lifetime — it only reads module constants.
-  const cloudEnabled = supabaseConfigured();
+  // Normally settled on the first render, since supabase-js is a synchronous
+  // <script> in <head>. It's state rather than a constant so that a slow or
+  // late-arriving client can still switch accounts on instead of disabling
+  // them for the rest of the page's life.
+  const [cloudEnabled, setCloudEnabled] = useState(supabaseConfigured);
+  // The one case worth complaining about: real keys, no client.
+  const [cloudBlocked, setCloudBlocked] = useState(false);
 
   const bumpLibrary = useCallback(() => setLibraryTick(t => t + 1), []);
+
+  // Keys are filled in but the global isn't here. Look again for a few seconds,
+  // then give up and let the UI say so — falling back to local-only saves in
+  // silence is what makes a correctly configured studio look broken. A studio
+  // with no keys at all never gets here and is never nagged.
+  useEffect(() => {
+    if (cloudEnabled || !supabaseKeysPresent()) return;
+    const recheck = () => {
+      if (!supabaseConfigured()) return false;
+      setCloudEnabled(true);
+      setCloudBlocked(false);
+      return true;
+    };
+    const poll = setInterval(() => { if (recheck()) clearInterval(poll); }, 250);
+    const giveUp = setTimeout(() => {
+      clearInterval(poll);
+      if (!recheck()) { setCloudBlocked(true); warnSupabaseUnreachable(); }
+    }, SUPABASE_LOAD_GRACE_MS);
+    return () => { clearInterval(poll); clearTimeout(giveUp); };
+  }, [cloudEnabled]);
 
   const hydrate = useCallback(async (keep) => {
     if (!cloudEnabled) { bumpLibrary(); return; }
@@ -4977,7 +5064,7 @@ function AuthProvider({ children }) {
       else if (session && session.user) setUser(toStudioUser(session.user));
     });
     return () => { if (data && data.subscription) data.subscription.unsubscribe(); };
-  }, []);
+  }, [cloudEnabled]);
 
   const value = {
     user: user === undefined ? null : user,
@@ -4985,6 +5072,9 @@ function AuthProvider({ children }) {
     // False when Supabase isn't configured: no account wall, no cloud sync, and
     // the on-device library behaves the way it did before accounts existed.
     cloudEnabled,
+    // Configured, but the client never showed up — the save UI explains itself
+    // instead of pretending nothing happened.
+    cloudBlocked,
     // Whether the saved-design drawers should be readable/writable right now.
     libraryOn: !cloudEnabled || !!user,
     authOpen,
@@ -6490,6 +6580,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const auth = useAuth();
   const user = auth && auth.user;
   const cloudEnabled = !!(auth && auth.cloudEnabled);
+  const cloudBlocked = !!(auth && auth.cloudBlocked);
   const libraryOn = !!(auth && auth.libraryOn);
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion(v => v + 1), []);
@@ -7426,7 +7517,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       if (isNew) setCurrentStitchId(saved.id);
       flashSaved();
     };
-    if (!cloudEnabled) { store(null); setSaveError(""); return; }
+    if (!cloudEnabled) {
+      store(null);
+      setSaveError(cloudBlocked ? ACCOUNTS_OFFLINE_SAVE_MSG : "");
+      return;
+    }
     try {
       store(await upsertCloudDesign(CFG.checkoutType, record));
       setSaveError("");
@@ -7837,6 +7932,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <div onClick={e => e.stopPropagation()}
             style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)' }}>
             <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 16, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{currentStitch ? 'Save a copy' : 'Save your design'}</div>
+            <AccountsOfflineNote/>
             <input type="text" placeholder="Give your design a name…" value={saveName} onChange={e => setSaveName(e.target.value)}
               autoFocus onKeyDown={e => { if (e.key === 'Enter') saveNewDesign(); }} style={{ marginBottom: 16 }}/>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
