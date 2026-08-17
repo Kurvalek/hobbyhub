@@ -3,6 +3,7 @@ const MAX_DESIGN_BYTES = Number(process.env.MAX_DESIGN_BYTES) || 262144; // 256 
 const REQUIRED_FIELDS = {
   quilt: ["cols", "rows", "shapes"],
   "cross-stitch": ["w", "h", "grid"],
+  "punch-needle": ["w", "h", "grid"],
 };
 
 // Scaffold-level sanity check, not exhaustive schema enforcement: fails fast

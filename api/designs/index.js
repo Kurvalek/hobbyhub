@@ -1,7 +1,8 @@
 import { applyCors } from "../_lib/cors.js";
 import { validateDesignPayload } from "../_lib/validate.js";
 import { generateDesignId } from "../_lib/id.js";
-import { putDesignIfAbsent } from "../_lib/store.js";
+import { listUserDesigns, putDesignIfAbsent } from "../_lib/store.js";
+import { getSessionUser, requireUser } from "../_lib/session.js";
 
 const SCHEMA_VERSION = 1;
 const MAX_ID_COLLISION_RETRIES = 3;
@@ -9,8 +10,20 @@ const MAX_ID_COLLISION_RETRIES = 3;
 export default async function handler(req, res) {
   if (applyCors(req, res)) return;
 
+  if (req.method === "GET") {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    try {
+      const designs = await listUserDesigns(user.id);
+      return res.status(200).json({ designs });
+    } catch (err) {
+      console.error("GET /api/designs failed:", err);
+      return res.status(500).json({ error: "internal_error" });
+    }
+  }
+
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST, OPTIONS");
+    res.setHeader("Allow", "GET, POST, OPTIONS");
     return res.status(405).json({ error: "method_not_allowed" });
   }
 
@@ -23,12 +36,16 @@ export default async function handler(req, res) {
   }
 
   const { type, data } = req.body;
+  const user = await getSessionUser(req);
+  const now = new Date().toISOString();
   const record = {
     type,
     version: SCHEMA_VERSION,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     data,
   };
+  if (user) record.ownerId = user.id;
 
   try {
     for (let attempt = 0; attempt < MAX_ID_COLLISION_RETRIES; attempt++) {
@@ -38,7 +55,6 @@ export default async function handler(req, res) {
         return res.status(201).json({ id });
       }
     }
-    // Astronomically unlikely with 128-bit random ids.
     return res.status(500).json({ error: "internal_error" });
   } catch (err) {
     console.error("POST /api/designs failed:", err);

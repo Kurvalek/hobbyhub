@@ -492,6 +492,12 @@
   /* Overlay */
   .overlay { position: fixed; inset: 0; background: rgba(46,41,37,0.32); z-index: 100; display: flex; align-items: center; justify-content: center; }
 
+  /* Signed-in account chip (shown after they have saved once) */
+  .account-chip { display: flex; align-items: center; gap: 8px; }
+  .proj-header .account-chip { margin-left: auto; }
+  .account-email { font-size: 12px; color: #3c3833; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .auth-code { letter-spacing: 0.35em; font-size: 22px; font-variant-numeric: tabular-nums; text-align: center; font-family: var(--font-mono); }
+
   /* Info text */
   .muted { color: var(--warm-muted); }
   .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
@@ -825,7 +831,11 @@
 <script src="assets/tapestry-wool.js"></script>
 <script src="assets/punch-templates-data.js"></script>
 <script type="text/babel">
-const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } = React;
+const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback, createContext, useContext } = React;
+const AuthContext = createContext(null);
+function useAuth() {
+  return useContext(AuthContext);
+}
 
 // ── Shopify Storefront checkout config ─────────────────────────────────────
 // FILL THESE IN to connect the studio to your Shopify store. This studio runs
@@ -959,9 +969,9 @@ async function addKitToShopifyCart({ variantId, designId }) {
   return checkoutUrl;
 }
 
-// ── Saved-quilt persistence (device-local, survives refresh/close) ─────────
-// Quilts are stored in the browser's localStorage under a versioned key so we
-// can migrate the shape later without clobbering older saves.
+// ── Saved-design cache (localStorage) ──────────────────────────────────────
+// Signed-in libraries live in Redis. These keys are a same-device cache so a
+// refresh still works; guests who never Save never write a cloud account.
 const QUILTS_KEY = "metime.savedQuilts.v1";
 function loadSavedQuilts() {
   try {
@@ -1039,6 +1049,7 @@ function persistSavedPunch(designs) {
 async function saveDesignToApi(type, data) {
   const res = await fetch("/api/designs", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type, data }),
   });
@@ -1048,14 +1059,129 @@ async function saveDesignToApi(type, data) {
   return body.id;
 }
 
-// Serializes a design for the API: drops local-only fields (`id`, `apiId`,
+const PENDING_SAVE_KEY = "metime.pendingSave";
+
+async function apiJson(url, opts) {
+  const res = await fetch(url, { credentials: "include", ...(opts || {}) });
+  let body = null;
+  try { body = await res.json(); } catch (e) { body = null; }
+  return { ok: res.ok, status: res.status, body };
+}
+
+async function fetchMe() {
+  const { ok, body } = await apiJson("/api/auth/me");
+  return ok && body && body.user ? body.user : null;
+}
+
+async function requestAuthCode(email) {
+  const { ok, body } = await apiJson("/api/auth/magic-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (ok) return { ok: true };
+  return { ok: false, error: (body && body.error) || "email_failed" };
+}
+
+async function verifyAuthCode(email, code) {
+  const { ok, body } = await apiJson("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code }),
+  });
+  if (ok && body && body.user) return { ok: true, user: body.user };
+  return { ok: false, error: (body && body.error) || "invalid_code" };
+}
+
+async function logoutUser() {
+  await apiJson("/api/auth/logout", { method: "POST" });
+}
+
+async function listCloudDesigns() {
+  const { ok, body } = await apiJson("/api/designs");
+  if (!ok || !body || !Array.isArray(body.designs)) return [];
+  return body.designs;
+}
+
+async function upsertCloudDesign(type, design) {
+  const data = apiSafeDesign(design);
+  if (design.apiId) {
+    const { ok, status } = await apiJson("/api/designs/" + encodeURIComponent(design.apiId), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, data }),
+    });
+    if (!ok) throw new Error("design update failed (HTTP " + status + ")");
+    return design.apiId;
+  }
+  const { ok, status, body } = await apiJson("/api/designs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, data }),
+  });
+  if (!ok || !body || typeof body.id !== "string") throw new Error("design save failed (HTTP " + status + ")");
+  return body.id;
+}
+
+async function deleteCloudDesign(apiId) {
+  if (!apiId) return;
+  await apiJson("/api/designs/" + encodeURIComponent(apiId), { method: "DELETE" });
+}
+
+function cloudToLocal(record) {
+  const data = record && record.data && typeof record.data === "object" ? record.data : {};
+  return { ...data, apiId: record.id, id: data.id != null ? data.id : record.id };
+}
+
+function hydrateLocalLibrary(records) {
+  const quilts = [];
+  const stitches = [];
+  const punch = [];
+  for (const rec of records) {
+    const local = cloudToLocal(rec);
+    if (rec.type === "quilt") quilts.push(local);
+    else if (rec.type === "punch-needle") punch.push(local);
+    else stitches.push(local);
+  }
+  persistSavedQuilts(quilts);
+  persistSavedStitches(stitches);
+  persistSavedPunch(punch);
+  return { quilts, stitches, punch };
+}
+
+function stashPendingSave(payload) {
+  try { sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify(payload)); } catch (e) { /* ignore */ }
+}
+function readPendingSave() {
+  try {
+    const raw = sessionStorage.getItem(PENDING_SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function clearPendingSave() {
+  try { sessionStorage.removeItem(PENDING_SAVE_KEY); } catch (e) { /* ignore */ }
+}
+
+async function flushPendingSave() {
+  const pending = readPendingSave();
+  if (!pending || !pending.record || !pending.type) return null;
+  const apiId = await upsertCloudDesign(pending.type, pending.record);
+  const saved = { ...pending.record, apiId };
+  clearPendingSave();
+  const records = await listCloudDesigns();
+  hydrateLocalLibrary(records);
+  return { type: pending.type, record: saved, mode: pending.mode || "new" };
+}
+
+// Serializes a design for the API: drops local-only fields (`apiId`,
 // `bgImage`) and any embedded photo data — a photo backing stores its image
 // as a ~500 KB data URL in `backing.image`, which the server never renders
 // and which blows past the API's payload cap (photo fabrics keep small asset
-// URLs, which pass through untouched). Returns a fresh object; the saved
+// URLs, which pass through untouched). `id` stays so a signed-in library
+// can update the same row after a refresh. Returns a fresh object; the saved
 // design is never mutated.
 function apiSafeDesign(design) {
-  const { id: _id, apiId: _apiId, bgImage: _bgImage, ...data } = design;
+  const { apiId: _apiId, bgImage: _bgImage, ...data } = design;
   const stripPhoto = (o) => {
     if (!o || typeof o !== "object") return o;
     if (typeof o.image === "string" && o.image.startsWith("data:")) {
@@ -3511,14 +3637,29 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const [qColor, setQColor] = useState({ name:"White", hex:"#fff" });
   const [showQ, setShowQ] = useState(true);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [savedQuilts, setSavedQuilts] = useState(loadSavedQuilts);
+  const auth = useAuth();
+  const user = auth && auth.user;
+  const [savedQuilts, setSavedQuilts] = useState([]);
   const [saveError, setSaveError] = useState("");
-  // Persist to the browser whenever the collection changes so quilts survive
-  // refreshes, closing the tab, and coming back later on this device.
+  const quiltCacheReady = useRef(false);
+  // Cache on this device only while signed in so a guest empty list cannot
+  // wipe someone else's library.
   useEffect(() => {
+    if (!user || !quiltCacheReady.current) return;
     const ok = persistSavedQuilts(savedQuilts);
     setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
-  }, [savedQuilts]);
+  }, [savedQuilts, user]);
+  useEffect(() => {
+    if (!user) { quiltCacheReady.current = false; setSavedQuilts([]); return; }
+    setSavedQuilts(loadSavedQuilts());
+    quiltCacheReady.current = true;
+  }, [user, auth && auth.libraryTick]);
+  useEffect(() => {
+    if (!auth || !auth.lastSaved || auth.lastSaved.type !== "quilt") return;
+    setCurrentQuiltId(auth.lastSaved.record.id);
+    flashSaved();
+    auth.consumeLastSaved();
+  }, [auth && auth.lastSaved]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [viewQuilt, setViewQuilt] = useState(null);
@@ -3542,18 +3683,41 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     qPattern, qSpacing, qColor, showQ, materials: { ...materials }, fw, fh, backCalc, bindCalc, grandTotal,
     updatedAt: Date.now(),
   });
+  const commitQuiltSave = async (record, isNew) => {
+    try {
+      const apiId = await upsertCloudDesign("quilt", record);
+      const saved = { ...record, apiId };
+      setSavedQuilts(p => isNew ? [saved, ...p] : p.map(x => x.id === record.id ? saved : x));
+      if (isNew) setCurrentQuiltId(saved.id);
+      flashSaved();
+      setSaveError("");
+    } catch (e) {
+      console.warn("Quilt cloud save failed:", e);
+      setSaveError("Couldn't save — try again.");
+    }
+  };
   const saveNewQuilt = () => {
     const name = saveName.trim(); if (!name) return;
     const id = Date.now();
-    setSavedQuilts(p => [buildQuiltRecord(id, name), ...p]);
-    setCurrentQuiltId(id);
-    setShowSave(false); setSaveName('');
-    flashSaved();
+    const record = buildQuiltRecord(id, name);
+    setShowSave(false); setSaveName("");
+    if (!user) {
+      stashPendingSave({ type: "quilt", record, mode: "new" });
+      auth.openAuth();
+      return;
+    }
+    commitQuiltSave(record, true);
   };
   const updateCurrentQuilt = () => {
     if (currentQuiltId == null) return;
-    setSavedQuilts(p => p.map(x => x.id === currentQuiltId ? buildQuiltRecord(currentQuiltId, x.name) : x));
-    flashSaved();
+    const record = buildQuiltRecord(currentQuiltId, (currentQuilt && currentQuilt.name) || "Untitled");
+    if (currentQuilt && currentQuilt.apiId) record.apiId = currentQuilt.apiId;
+    if (!user) {
+      stashPendingSave({ type: "quilt", record, mode: "update" });
+      auth.openAuth();
+      return;
+    }
+    commitQuiltSave(record, false);
   };
 
   // Restore a saved quilt back onto the editor canvas. Rebuilds every piece of
@@ -3777,6 +3941,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             onApply={applyPreset}/>
         </div>
         <div className="header-right">
+          <AccountChip/>
           <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="quilt-detail-panel"
             title={panelOpen ? 'Hide details panel' : 'Show details panel'}
             onClick={()=>setPanelOpen(v=>!v)}>
@@ -4109,7 +4274,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                     {confirmDeleteId===q.id ? (
                       <div style={{display:'flex',gap:6,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
                         <button className="btn btn-sm" onClick={()=>setConfirmDeleteId(null)}>Cancel</button>
-                        <button className="btn btn-sm btn-dark" onClick={()=>{setSavedQuilts(p=>p.filter(x=>x.id!==q.id));setConfirmDeleteId(null);}}>Delete</button>
+                        <button className="btn btn-sm btn-dark" onClick={()=>{deleteCloudDesign(q.apiId);setSavedQuilts(p=>p.filter(x=>x.id!==q.id));setConfirmDeleteId(null);}}>Delete</button>
                       </div>
                     ) : (
                       <div style={{display:'flex',gap:2,alignItems:'center'}}>
@@ -4384,6 +4549,203 @@ const CRAFT_IMAGES = {
   "punch-needle": "assets/products/punch-needle-wall-hanging.jpg",
 };
 
+function AccountChip() {
+  const auth = useAuth();
+  if (!auth || !auth.user) return null;
+  return (
+    <div className="account-chip">
+      <span className="account-email" title={auth.user.email}>{auth.user.email}</span>
+      <button className="btn btn-sm" type="button" onClick={auth.signOut}>Sign out</button>
+    </div>
+  );
+}
+
+function AuthOverlay() {
+  const auth = useAuth();
+  const [step, setStep] = useState("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (auth && auth.authOpen) {
+      setStep("email");
+      setCode("");
+      setError("");
+      setBusy(false);
+    }
+  }, [auth && auth.authOpen]);
+
+  if (!auth || !auth.authOpen) return null;
+
+  const sendCode = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setBusy(true); setError("");
+    const result = await requestAuthCode(trimmed);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error === "rate_limited"
+        ? "Too many codes sent — wait a few minutes and try again."
+        : "Couldn't send a code — try again.");
+      return;
+    }
+    setEmail(trimmed);
+    setStep("code");
+  };
+
+  const submitCode = async () => {
+    if (code.replace(/\D/g, "").length !== 6) return;
+    setBusy(true); setError("");
+    const result = await verifyAuthCode(email, code);
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error === "rate_limited"
+        ? "Too many tries — wait a few minutes and try again."
+        : "That code didn't work. Try again.");
+      return;
+    }
+    await auth.completeAuth(result.user);
+  };
+
+  return (
+    <div className="overlay" onClick={auth.closeAuth}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: "#FFFFFF", border: "1px solid #E2DDD2", borderRadius: 8, padding: 24, maxWidth: 400, width: "100%", margin: 16, boxShadow: "0 8px 32px rgba(46,41,37,0.14)" }}>
+        <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 8, fontFamily: "var(--font-display)", lineHeight: 1.1 }}>
+          {step === "email" ? "Save to your account" : "Enter your code"}
+        </div>
+        <div style={{ fontSize: 13, color: "#5C544A", marginBottom: 16, lineHeight: 1.5 }}>
+          {step === "email"
+            ? "We'll email a 6-digit code so you can reopen this design on any device."
+            : `We sent a code to ${email}. It expires in 10 minutes.`}
+        </div>
+        {step === "email" ? (
+          <input type="email" placeholder="you@email.com" value={email} autoFocus
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") sendCode(); }}
+            style={{ marginBottom: 16 }}/>
+        ) : (
+          <input className="auth-code" type="text" inputMode="numeric" autoComplete="one-time-code"
+            placeholder="000000" maxLength={6} value={code} autoFocus
+            onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onKeyDown={e => { if (e.key === "Enter") submitCode(); }}
+            style={{ marginBottom: 16 }}/>
+        )}
+        {error && (
+          <div style={{ fontSize: 12, color: "var(--metime-tomato)", background: "#FBECE8", border: "1px solid #F3C9BF", borderRadius: 6, padding: "8px 10px", marginBottom: 12 }}>{error}</div>
+        )}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+          {step === "code" && (
+            <button className="btn" type="button" disabled={busy} onClick={sendCode}>Resend</button>
+          )}
+          <button className="btn" type="button" onClick={auth.closeAuth}>Cancel</button>
+          {step === "email" ? (
+            <button className="btn btn-dark" type="button" disabled={busy || !email.trim()} onClick={sendCode}>
+              {busy ? "Sending…" : "Send code"}
+            </button>
+          ) : (
+            <button className="btn btn-dark" type="button" disabled={busy || code.length !== 6} onClick={submitCode}>
+              {busy ? "Checking…" : "Verify"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(undefined);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [libraryTick, setLibraryTick] = useState(0);
+  const [lastSaved, setLastSaved] = useState(null);
+
+  const bumpLibrary = useCallback(() => setLibraryTick(t => t + 1), []);
+
+  const hydrate = useCallback(async () => {
+    const records = await listCloudDesigns();
+    hydrateLocalLibrary(records);
+    bumpLibrary();
+  }, [bumpLibrary]);
+
+  const completeAuth = useCallback(async (nextUser) => {
+    setUser(nextUser);
+    setAuthOpen(false);
+    try {
+      const flushed = await flushPendingSave();
+      if (flushed) setLastSaved(flushed);
+      else await hydrate();
+      bumpLibrary();
+    } catch (e) {
+      console.warn("Could not finish saving after sign-in:", e);
+      await hydrate();
+    }
+  }, [hydrate, bumpLibrary]);
+
+  const signOut = useCallback(async () => {
+    await logoutUser();
+    setUser(null);
+    setLastSaved(null);
+    persistSavedQuilts([]);
+    persistSavedStitches([]);
+    persistSavedPunch([]);
+    bumpLibrary();
+  }, [bumpLibrary]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const me = await fetchMe();
+      if (cancelled) return;
+      setUser(me);
+      if (me) {
+        try {
+          if (params.get("saved") === "1") {
+            const flushed = await flushPendingSave();
+            if (flushed) setLastSaved(flushed);
+            else await hydrate();
+          } else {
+            await hydrate();
+          }
+        } catch (e) {
+          console.warn("Could not load saved designs:", e);
+        }
+      }
+      if (params.get("saved") || params.get("auth")) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("saved");
+        url.searchParams.delete("auth");
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hydrate]);
+
+  const value = {
+    user: user === undefined ? null : user,
+    userReady: user !== undefined,
+    authOpen,
+    openAuth: () => setAuthOpen(true),
+    closeAuth: () => setAuthOpen(false),
+    completeAuth,
+    signOut,
+    libraryTick,
+    lastSaved,
+    consumeLastSaved: () => setLastSaved(null),
+    hydrate,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <AuthOverlay/>
+    </AuthContext.Provider>
+  );
+}
+
 // Tiny SVG preview of a saved quilt (same shape rendering as the "My quilts" list).
 function SavedQuiltThumb({ q }) {
   return (
@@ -4399,14 +4761,16 @@ function SavedQuiltThumb({ q }) {
 // three crafts (newest first). Clicking a card opens it on its canvas.
 const SAVED_BADGES = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
 function SavedDesigns({ onOpen }) {
+  const auth = useAuth();
   const [open, setOpen] = useState(false);
   const items = useMemo(() => {
+    if (!auth || !auth.user) return [];
     const quilts = loadSavedQuilts().map(q => ({ ...q, _type: 'quilt' }));
     const stitches = loadSavedStitches().map(d => ({ ...d, _type: 'stitch' }));
     const punch = loadSavedPunch().map(d => ({ ...d, _type: 'punch' }));
     return [...quilts, ...stitches, ...punch].sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
-  }, []);
-  if (!items.length) return null;
+  }, [auth && auth.user, auth && auth.libraryTick]);
+  if (!auth || !auth.user || !items.length) return null;
   return (
     <div className="saved-sec">
       <button className="saved-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
@@ -4446,6 +4810,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
     <div className="proj-page">
       <header className="proj-header">
         <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+        <AccountChip/>
       </header>
       <div className="proj-body">
         <div className="proj-intro">
@@ -5860,11 +6225,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const [textFont, setTextFont] = useState("sans");
   const [textSize, setTextSize] = useState(14);
   const textStamp = useMemo(() => rasterizeText(text, textFont, textSize), [text, textFont, textSize]);
-  // Materials + save state (mirrors the quilt flow, device-local).
+  // Materials + save state (mirrors the quilt flow; cloud library when signed in).
+  const auth = useAuth();
+  const user = auth && auth.user;
   const [version, setVersion] = useState(0);
   const bump = useCallback(() => setVersion(v => v + 1), []);
-  const [savedStitches, setSavedStitches] = useState(CFG.load);
+  const [savedStitches, setSavedStitches] = useState([]);
   const [saveError, setSaveError] = useState("");
+  const stitchCacheReady = useRef(false);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [showMyStitches, setShowMyStitches] = useState(false);
@@ -5901,9 +6269,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   }, [allColors, search, grp]);
   const dmcSuggested = useMemo(() => CFG.palettes.map(p => ({ name: p.name, colors: CFG.resolvePalette(p) })), [CFG]);
   useEffect(() => {
+    if (!user || !stitchCacheReady.current) return;
     const ok = CFG.persist(savedStitches);
     setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
-  }, [savedStitches]);
+  }, [savedStitches, user]);
+  useEffect(() => {
+    if (!user) { stitchCacheReady.current = false; setSavedStitches([]); return; }
+    setSavedStitches(CFG.load());
+    stitchCacheReady.current = true;
+  }, [user, auth && auth.libraryTick, CFG]);
+  useEffect(() => {
+    if (!auth || !auth.lastSaved || auth.lastSaved.type !== CFG.checkoutType) return;
+    setCurrentStitchId(auth.lastSaved.record.id);
+    flashSaved();
+    auth.consumeLastSaved();
+  }, [auth && auth.lastSaved, CFG.checkoutType]);
 
   const cellsRef = useRef(autoGrid ? autoGrid.slice() : new Array(W * H).fill(null));
   const previewRef = useRef(null);
@@ -6774,21 +7154,44 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       updatedAt: Date.now(),
     };
   };
+  const commitStitchSave = async (record, isNew) => {
+    try {
+      const apiId = await upsertCloudDesign(CFG.checkoutType, record);
+      const saved = { ...record, apiId };
+      setSavedStitches(p => isNew ? [saved, ...p] : p.map(x => x.id === record.id ? saved : x));
+      if (isNew) setCurrentStitchId(saved.id);
+      flashSaved();
+      setSaveError("");
+    } catch (e) {
+      console.warn("Design cloud save failed:", e);
+      setSaveError("Couldn't save — try again.");
+    }
+  };
   const saveNewDesign = () => {
     const name = saveName.trim(); if (!name) return;
     // Saving places a floating selection — what you see is what gets stored.
     if (commitFloat()) redraw();
     const id = Date.now();
-    setSavedStitches(p => [buildStitchRecord(id, name), ...p]);
-    setCurrentStitchId(id);
-    setShowSave(false); setSaveName('');
-    flashSaved();
+    const record = buildStitchRecord(id, name);
+    setShowSave(false); setSaveName("");
+    if (!user) {
+      stashPendingSave({ type: CFG.checkoutType, record, mode: "new" });
+      auth.openAuth();
+      return;
+    }
+    commitStitchSave(record, true);
   };
   const updateCurrentDesign = () => {
     if (currentStitchId == null) return;
     if (commitFloat()) redraw();
-    setSavedStitches(p => p.map(x => x.id === currentStitchId ? buildStitchRecord(currentStitchId, x.name) : x));
-    flashSaved();
+    const record = buildStitchRecord(currentStitchId, (currentStitch && currentStitch.name) || "Untitled");
+    if (currentStitch && currentStitch.apiId) record.apiId = currentStitch.apiId;
+    if (!user) {
+      stashPendingSave({ type: CFG.checkoutType, record, mode: "update" });
+      auth.openAuth();
+      return;
+    }
+    commitStitchSave(record, false);
   };
 
   const loadDesign = (d) => {
@@ -6842,6 +7245,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <div className="xs-sub">{W} × {H} {CFG.unitPlural} · ≈ {(W/CFG.gauge).toFixed(1)}" × {(H/CFG.gauge).toFixed(1)}" {CFG.gaugeShort}</div>
         </div>
         <div className="xs-topbar-spacer"/>
+        <AccountChip/>
         <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
           title={panelOpen ? 'Hide colors panel' : 'Show colors panel'}
           onClick={()=>setPanelOpen(v=>!v)}>
@@ -7207,7 +7611,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                     {confirmDeleteId === d.id ? (
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                         <button className="btn btn-sm" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
-                        <button className="btn btn-sm btn-dark" onClick={() => { setSavedStitches(p => p.filter(x => x.id !== d.id)); setConfirmDeleteId(null); }}>Delete</button>
+                        <button className="btn btn-sm btn-dark" onClick={() => { deleteCloudDesign(d.apiId); setSavedStitches(p => p.filter(x => x.id !== d.id)); setConfirmDeleteId(null); }}>Delete</button>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -7534,7 +7938,7 @@ function Root() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<AuthProvider><Root/></AuthProvider>);
 </script>
 </body>
 </html>
