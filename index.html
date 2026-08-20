@@ -544,24 +544,53 @@
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
   .proj-card.is-soon:hover { box-shadow: none; transform: none; }
 
-  /* Saved designs section (landing page) */
-  .saved-sec { margin-top: 40px; border-top: 1px solid #707F87; padding-top: 24px; }
-  .saved-head { display: flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: #25211e; }
-  /* Section label matches .pal-section-title (Söhne Kräftig 20). */
-  .saved-head-title { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: normal; color: #25211e; display: flex; align-items: center; gap: 8px; }
-  .saved-count { font-size: 13px; font-weight: 400; color: #3c3833; background: var(--metime-white); border: 1px solid #707F87; border-radius: 999px; padding: 1px 8px; }
-  .saved-chev { display: flex; color: #3c3833; transition: transform 0.15s; }
+  /* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards. */
+  .saved-sec { flex: 0 0 auto; background: var(--metime-white); border-top: 1px solid var(--metime-black); }
+  .saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; padding: 36px 52px; min-height: 130px; }
+  .saved-head { display: inline-flex; align-items: flex-end; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
+  .saved-head:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+  .saved-head-title { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+  .saved-count { font-weight: 300; }
+  .saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; color: var(--metime-black); transition: transform 0.15s; }
+  .saved-chev i { font-size: 24px; }
   .saved-chev.is-open { transform: rotate(180deg); }
-  .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
-  .saved-card { display: flex; align-items: center; gap: 12px; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 10px; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; }
-  .saved-card:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.12); transform: translateY(-2px); }
-  .saved-card:active { transform: translateY(0); }
-  .saved-thumb { width: 56px; height: 56px; flex-shrink: 0; background: #FFFFFF; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  .saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
-  .saved-info { flex: 1; min-width: 0; }
-  .saved-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .saved-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
-  .saved-badge { display: inline-block; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: #25211e; }
+  .saved-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 128px; height: 40px; padding: 0 16px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
+  .saved-filter:hover { background: var(--color-linen-300); }
+  .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--color-taupe-900); color: var(--metime-white); }
+  .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--color-taupe-600); }
+  .saved-filter:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
+  .saved-card { display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 32px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
+  .saved-card:nth-child(4n) { border-right: none; }
+  .saved-card:nth-child(n+5) { border-top: 1px solid var(--metime-black); }
+  .saved-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+  .saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; min-height: 0; overflow: hidden; background: var(--metime-white); }
+  .saved-thumb svg, .saved-thumb canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+  .saved-copy { min-width: 0; }
+  .saved-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-meta { font-family: var(--font-sans); font-size: 16px; font-weight: 300; line-height: 1.3; color: var(--metime-black); margin-top: 5px; }
+  .saved-empty { grid-column: 1 / -1; padding: 48px 52px; font-family: var(--font-sans); font-size: 16px; color: var(--warm-muted); }
+  @media (max-width: 1080px) {
+    .saved-grid { grid-template-columns: 1fr 1fr; }
+    .saved-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+    .saved-card:nth-child(2n) { border-right: none; }
+    .saved-card:nth-child(n+5) { border-top: none; }
+    .saved-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
+  }
+  @media (max-width: 900px) {
+    .saved-toolbar { padding: 24px 20px; min-height: 0; }
+    .saved-head-title { font-size: 20px; }
+    .saved-filter { min-width: 0; height: 36px; padding: 0 12px; font-size: 16px; }
+    .saved-card { padding: 24px; gap: 16px; }
+  }
+  @media (max-width: 600px) {
+    .saved-grid { grid-template-columns: 1fr; }
+    .saved-card { border-right: none; }
+    .saved-card:nth-child(2n) { border-right: none; }
+    .saved-card:nth-child(n+3) { border-top: none; }
+    .saved-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
+  }
 
   /* Landing page (Figma Desktop - 1, node 1:4) */
   .land-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
@@ -588,7 +617,7 @@
   .land-hero::after { bottom: 0; }
 
   .land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; background: var(--metime-white); }
-  .land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 0; }
+  .land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: min(360px, 40vh); }
   .land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; min-height: 0; outline: none; }
   .land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
   .land-craft.is-soon { opacity: 0.55; cursor: default; }
@@ -620,11 +649,6 @@
     .land-footer { height: 80px; }
   }
 
-  .land-page .saved-sec { margin: 0; border-top: none; padding: 20px 40px 28px; position: relative; }
-  .land-page .saved-sec::before {
-    content: ""; display: block; height: 1px; margin: 0 -40px 20px; background: var(--metime-black);
-  }
-
   .land-footer { position: relative; flex-shrink: 0; height: clamp(72px, 16.4vh, 168px); background: var(--metime-golden); }
   .land-footer::before { top: 0; }
 
@@ -640,6 +664,65 @@
     .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
     .land-craft-visual img { max-height: 180px; }
     .land-footer { height: 72px; }
+  }
+
+  /* Quilt "What size?" step (Figma Desktop - 2, node 5:3).
+     Continues the landing page: same olive header, same 1px black rules, same
+     hover-reveal arrow. The size cards are one edge-to-edge band of white
+     columns divided by hairlines, sitting on the golden footer. */
+  .size-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+
+  .size-hero { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; height: 138px; padding: 0 132px; background: var(--metime-grapefruit); border-bottom: 1px solid var(--metime-black); }
+  .size-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 4.44vw, 64px); line-height: 1.1; color: var(--metime-white); text-align: center; }
+  .size-back { position: absolute; left: 41px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 2px; background: none; border: none; padding: 0; cursor: pointer; color: var(--color-taupe-900); }
+  .size-back:hover { opacity: 0.7; }
+  .size-back:active { opacity: 0.55; }
+  .size-back:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+  .size-back-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
+  .size-back-icon img { display: block; width: 14px; height: 13.5px; }
+  .size-back-label { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 24px; border-bottom: 1px solid currentColor; }
+
+  .size-row { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--metime-black); }
+  .size-card { display: flex; flex-direction: column; padding: 32px 36px 33px; min-width: 0; background: none; border: none; border-left: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
+  .size-card:first-child { border-left: none; }
+  .size-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+  /* Fixed-height stage so every quilt sits on the same baseline regardless of
+     how tall its own art is; the art scales inside without being cropped. */
+  .size-card-visual { flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center; height: clamp(140px, 21.6vh, 221px); overflow: hidden; }
+  .size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+  .size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; }
+  .size-card-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; min-width: 0; }
+  .size-card-text { min-width: 0; }
+  .size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+  .size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
+  .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+  .size-card:hover .size-card-arrow,
+  .size-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+  .size-card-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
+  @media (prefers-reduced-motion: reduce) {
+    .size-card:hover .size-card-arrow,
+    .size-card:focus-visible .size-card-arrow { animation: none; }
+  }
+
+  .size-footer { flex: 1 1 auto; min-height: 96px; background: var(--metime-golden); }
+
+  /* Two-across before one-across: four 20px names in a row need ~230px each. */
+  @media (max-width: 1080px) {
+    .size-row { grid-template-columns: 1fr 1fr; }
+    .size-card:nth-child(odd) { border-left: none; }
+    .size-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
+  }
+  @media (max-width: 900px) {
+    .size-hero { height: 104px; padding: 0 96px; }
+    .size-back { left: 20px; }
+    .size-card { padding: 24px 28px; }
+    .size-card-visual { height: clamp(120px, 18vh, 200px); }
+    .size-footer { min-height: 72px; }
+  }
+  @media (max-width: 600px) {
+    .size-row { grid-template-columns: 1fr; }
+    .size-card { border-left: none; }
+    .size-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
   }
 
   /* Cross-stitch editor */
@@ -2357,12 +2440,16 @@ const WOOL_PALETTES = [
 const PUNCH_NEEDLE_PALETTE_MAX = 8;
 const PN_DEFAULT_CODES = ["NOIR", "BLANC", "7666", "7433", "7996", "7362", "7946", "7840"];
 
+// `name` is the identity used everywhere downstream (saved designs, step state,
+// the studio's size dropdown), so it stays put; `label` / `note` only feed the
+// "What size?" cards, where the design words things a little differently.
 const PRESETS = [
-  { name:"Coaster", w:5, h:5, kitQty:4 },
-  { name:"Wall hanging", w:24, h:36 },
-  { name:"Baby blanket", w:30, h:36 },
-  { name:"Throw", w:52, h:65 },
+  { name:"Coaster", label:"Coasters", note:"4 coasters", w:5, h:5, kitQty:4 },
+  { name:"Wall hanging", label:"Wall Hanging", w:24, h:36 },
+  { name:"Baby blanket", label:"Baby Blanket", w:30, h:36 },
+  { name:"Throw", label:"Throw Blanket", w:52, h:65 },
 ];
+const presetDims = p => `${p.w}” x ${p.h}”` + (p.note ? ` - ${p.note}` : "");
 const QUILT_PATTERNS = [
   { id:"none", label:"None" },
   { id:"ditch", label:"Stitch in the Ditch" },
@@ -2452,20 +2539,22 @@ function extractColors(imageData, count) {
   }).sort((a, b) => b.pop - a.pop);
 }
 
+// c1 / c2 are the two patch colors of the generated QuiltThumb, pulled from the
+// metime accent palette so a thumb reads as a sibling of the photographed quilts.
 const PRESET_THEMES = {
-  "Coaster":        { c1:"#C83A2C", c2:"#F5F3EE", desc:"You'll get enough material to make 4, but only one design." },
-  "Wall hanging":   { c1:"#2C5080", c2:"#97B5D4", desc:"An accent piece for any wall" },
-  "Baby blanket":   { c1:"#7AB08C", c2:"#F5D89A", desc:"Cozy for little ones" },
-  "Throw":          { c1:"#2C3E50", c2:"#8FAABF", desc:"The weekend favorite" },
+  "Coaster":        { c1:"#FBBB3F", c2:"#F5F3EE", desc:"You'll get enough material to make 4, but only one design." },
+  "Wall hanging":   { c1:"#FDA198", c2:"#F5F3EE", desc:"An accent piece for any wall" },
+  "Baby blanket":   { c1:"#E8A0C8", c2:"#F5F3EE", desc:"Cozy for little ones" },
+  "Throw":          { c1:"#B9B74B", c2:"#F5F3EE", desc:"The weekend favorite" },
 };
 
-// Product photos shown on the quilt "What size?" cards, keyed by preset name.
-// Missing entries fall back to the generated QuiltThumb so nothing breaks.
+// Cut-out product shots for the quilt "What size?" cards, keyed by preset name.
+// Missing entries fall back to the generated QuiltThumb.
 const PRESET_IMAGES = {
-  "Coaster":      "assets/products/quilt-coasters.jpg",
-  "Wall hanging": "assets/products/quilt-wall-hanging.jpg",
-  "Baby blanket": "assets/products/quilt-baby-quilt.jpg",
-  "Throw":        "assets/products/quilt-throw.jpg",
+  "Coaster":      { src:"assets/landing/quilt-coasters.png",      w:540, h:534 },
+  "Wall hanging": { src:"assets/landing/quilt-wallhanging.png",   w:360, h:540 },
+  "Baby blanket": { src:"assets/setup/size-baby-blanket.png",     w:432, h:540 },
+  "Throw":        { src:"assets/landing/quilt-throw.png",         w:493, h:540 },
 };
 
 // Quilt-top yardage. `qty` is the kit multiplier (e.g. a Coaster kit makes 4):
@@ -4894,7 +4983,9 @@ function QuiltThumb({ preset }) {
   const theme = PRESET_THEMES[preset.name] || { c1:"#2C3E50", c2:"#8FAABF" };
   const aspect = preset.h / preset.w;
   const W = 200, H = Math.round(W * aspect);
-  const cellSize = Math.max(8, Math.min(16, Math.round(W / 14)));
+  // Five patches across, matching the block scale of the photographed quilts —
+  // any finer and the thumb reads as gingham rather than as a quilt.
+  const cellSize = W / 5;
   const cols = Math.ceil(W / cellSize);
   const rows = Math.ceil(H / cellSize);
   const cells = [];
@@ -4918,30 +5009,26 @@ function QuiltThumb({ preset }) {
 }
 
 function ProjectCard({ preset, onSelect }) {
-  const theme = PRESET_THEMES[preset.name] || {};
-  const kitQty = preset.kitQty || 1;
-  const backYards = calcBacking(preset.w, preset.h, kitQty).yards;
-  const bindYards = calcBinding(preset.w, preset.h, kitQty).yards;
-  const bs = 3;
-  const cols = Math.min(MAX, Math.round(preset.w / bs));
-  const rows = Math.min(MAX, Math.round(preset.h / bs));
-  const topYards = calcYardage(Math.ceil(cols * rows / 2), bs, kitQty).yards * 2;
-  const estCost = Math.ceil((topYards + backYards + bindYards) * 13 / 5) * 5;
-  const image = PRESET_IMAGES[preset.name];
-
+  const art = PRESET_IMAGES[preset.name];
+  const label = preset.label || preset.name;
   return (
-    <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
-      {image
-        ? <div className="proj-card-thumb has-photo"><img src={image} alt={preset.name}/></div>
-        : <div className="proj-card-thumb"><QuiltThumb preset={preset}/></div>}
-      <div className="proj-card-body">
-        <div className="proj-card-name">{preset.name}</div>
-        <div className="proj-card-dims">{preset.w}" × {preset.h}"</div>
-        <div className="proj-card-desc">{theme.desc || ""}</div>
-        <div className="proj-card-cost">Fabric from ~${estCost}</div>
-      </div>
-    </div>
+    <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
+      aria-label={`${label}, ${presetDims(preset)}`}>
+      <span className="size-card-visual">
+        {art
+          ? <img src={art.src} alt="" width={art.w} height={art.h}/>
+          : <QuiltThumb preset={preset}/>}
+      </span>
+      <span className="size-card-copy">
+        <span className="size-card-text">
+          <span className="size-card-name">{label}</span>
+          <span className="size-card-dims">{presetDims(preset)}</span>
+        </span>
+        <span className="size-card-arrow" aria-hidden="true">
+          <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -5290,13 +5377,24 @@ function SavedQuiltThumb({ q }) {
   );
 }
 
-// Collapsible section on the landing page listing every saved design across all
-// three crafts (newest first). Clicking a card opens it on its canvas.
-const SAVED_BADGES = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
+// Collapsible saved-designs band on the landing page (Figma 7:1111).
+const SAVED_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'quilt', label: 'Quilts' },
+  { id: 'stitch', label: 'Cross-stitch' },
+  { id: 'punch', label: 'Punch needle' },
+];
+const SAVED_META = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
+function savedMetaLine(it) {
+  if (it._type === 'quilt') return `Quilt - ${it.fw}" × ${it.fh}"`;
+  const n = it.colorsUsed;
+  return `${SAVED_META[it._type]} - ${n} color${n !== 1 ? 's' : ''}`;
+}
 function SavedDesigns({ onOpen }) {
   const auth = useAuth();
   const libraryOn = !!(auth && auth.libraryOn);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
+  const [filter, setFilter] = useState('all');
   const items = useMemo(() => {
     if (!libraryOn) return [];
     const quilts = loadSavedQuilts().map(q => ({ ...q, _type: 'quilt' }));
@@ -5304,34 +5402,44 @@ function SavedDesigns({ onOpen }) {
     const punch = loadSavedPunch().map(d => ({ ...d, _type: 'punch' }));
     return [...quilts, ...stitches, ...punch].sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
   }, [libraryOn, auth && auth.libraryTick]);
+  const visible = filter === 'all' ? items : items.filter(it => it._type === filter);
   if (!libraryOn || !items.length) return null;
   return (
     <div className="saved-sec">
-      <button className="saved-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="saved-head-title">Saved designs <span className="saved-count">{items.length}</span></span>
-        <span className={`saved-chev${open ? ' is-open' : ''}`}><i className="iconoir-nav-arrow-down" style={{ fontSize: 18 }}/></span>
-      </button>
+      <div className="saved-toolbar">
+        <button className="saved-head" type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+          <span className="saved-head-title">Saved Designs <span className="saved-count">({items.length})</span></span>
+          <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><i className="iconoir-nav-arrow-down"/></span>
+        </button>
+        {open && (
+          <div className="saved-filters" role="tablist" aria-label="Filter saved designs">
+            {SAVED_FILTERS.map(f => (
+              <button key={f.id} type="button" role="tab" aria-selected={filter === f.id}
+                className={`saved-filter${filter === f.id ? ' is-on' : ''}`}
+                onClick={() => setFilter(f.id)}>{f.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
       {open && (
         <div className="saved-grid">
-          {items.map(it => (
-            <div key={it._type + '-' + it.id} className="saved-card" role="button" tabIndex={0}
+          {visible.length === 0 && (
+            <div className="saved-empty">No {SAVED_FILTERS.find(f => f.id === filter).label.toLowerCase()} saved yet.</div>
+          )}
+          {visible.map(it => (
+            <button key={it._type + '-' + it.id} className="saved-card" type="button"
               title="Open on canvas"
-              onClick={() => onOpen(it._type, it)}
-              onKeyDown={e => e.key === 'Enter' && onOpen(it._type, it)}>
+              onClick={() => onOpen(it._type, it)}>
               <div className="saved-thumb">
                 {it._type === 'quilt'
                   ? <SavedQuiltThumb q={it}/>
-                  : <StitchThumb w={it.w} h={it.h} cells={deserializeGrid(it.grid, it.w * it.h)} size={56} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
+                  : <StitchThumb w={it.w} h={it.h} cells={deserializeGrid(it.grid, it.w * it.h)} size={260} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
               </div>
-              <div className="saved-info">
+              <div className="saved-copy">
                 <div className="saved-name">{it.name}</div>
-                <div className="saved-meta">
-                  {it._type === 'quilt'
-                    ? <><span className="saved-badge">Quilt</span> · {it.fw}" × {it.fh}"</>
-                    : <><span className="saved-badge">{SAVED_BADGES[it._type]}</span> · {it.w}×{it.h} · {it.colorsUsed} color{it.colorsUsed !== 1 ? 's' : ''}</>}
-                </div>
+                <div className="saved-meta">{savedMetaLine(it)}</div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -5391,22 +5499,32 @@ function CraftSelector({ onSelect, onOpenSaved }) {
 
 function ProjectSelector({ onSelect, onBack }) {
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+    <div className="size-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
+        </div>
       </header>
-      <div className="proj-body">
-        {onBack && <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>}
-        <div className="proj-intro">
-          <h1 className="proj-heading">What size?</h1>
-          <p className="proj-subheading">Choose a size to start planning your quilt.</p>
-        </div>
-        <div className="proj-grid">
-          {PRESETS.map(p => (
-            <ProjectCard key={p.name} preset={p} onSelect={onSelect}/>
-          ))}
-        </div>
+      <section className="size-hero">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
+        )}
+        <h1 className="size-title">What size?</h1>
+      </section>
+      <div className="size-row">
+        {PRESETS.map(p => (
+          <ProjectCard key={p.name} preset={p} onSelect={onSelect}/>
+        ))}
       </div>
+      <footer className="size-footer" aria-hidden="true"/>
     </div>
   );
 }
