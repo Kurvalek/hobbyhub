@@ -429,12 +429,12 @@
   .card:last-child { border-bottom: none; }
 
   /* Inputs */
-  input[type=text], select {
+  input[type=text], input[type=email], select {
     width: 100%; padding: 7px 10px; font-size: 13px; font-family: var(--font-sans);
     border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); outline: none;
     border-radius: 4px; transition: border-color .15s;
   }
-  input[type=text]:focus, select:focus { border-color: var(--metime-almost-black); }
+  input[type=text]:focus, input[type=email]:focus, select:focus { border-color: var(--metime-almost-black); }
   select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%238A8580' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
   input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
   input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
@@ -497,10 +497,35 @@
   /* Overlay */
   .overlay { position: fixed; inset: 0; background: rgba(46,41,37,0.32); z-index: 100; display: flex; align-items: center; justify-content: center; }
 
-  /* Signed-in account chip (shown after they have saved once) */
-  .account-chip { display: flex; align-items: center; gap: 8px; }
-  .proj-header .account-chip { margin-left: auto; }
-  .account-email { font-size: 12px; color: #3c3833; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Signed-in account: 24px profile-circle (Figma 7:1132) + email/sign-out menu. */
+  .account-menu { position: relative; z-index: 20; }
+  .account-menu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; padding: 0; border: none; background: none;
+    color: var(--metime-black); cursor: pointer; line-height: 0;
+  }
+  .account-menu-btn i { font-size: 24px; width: 24px; height: 24px; line-height: 24px; }
+  .account-menu-btn:hover { opacity: 0.7; }
+  .account-menu-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+  .account-menu-pop {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    min-width: 200px; max-width: min(280px, calc(100vw - 32px));
+    padding: 12px 14px; background: var(--metime-white);
+    border: 1px solid var(--metime-black); border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(46,41,37,0.14);
+  }
+  .account-menu-email {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.3;
+    color: var(--warm-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .account-menu-out {
+    display: inline-flex; margin-top: 10px; padding: 0; background: none; border: none;
+    border-bottom: 1px solid currentColor; border-radius: 0;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1.2;
+    color: var(--metime-black); cursor: pointer;
+  }
+  .account-menu-out:hover { opacity: 0.7; }
+  .account-menu-out:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 3px; }
   .auth-code { letter-spacing: 0.35em; font-size: 22px; font-variant-numeric: tabular-nums; text-align: center; font-family: var(--font-mono); }
 
   /* Info text */
@@ -609,8 +634,7 @@
   .land-login { background: none; border: none; padding: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: normal; color: var(--metime-black); cursor: pointer; }
   .land-login:hover { opacity: 0.7; }
   .land-login:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
-  .land-header .account-chip { gap: 12px; }
-  .land-header .account-email { font-size: 16px; color: var(--metime-black); max-width: 220px; }
+  .land-header .account-menu-btn { color: var(--metime-black); }
 
   .land-hero { position: relative; flex-shrink: 0; height: clamp(140px, 16vw, 200px); overflow: hidden; background: var(--metime-white); }
   .land-hero-photo { position: absolute; top: 0; height: 100%; object-fit: cover; object-position: center; pointer-events: none; }
@@ -4897,7 +4921,7 @@ function applyTweaks(t) {
   root.style.setProperty('--canvas-bg', t.canvasBg);
   let s = document.getElementById('_tweak_s');
   if (!s) { s = document.createElement('style'); s.id = '_tweak_s'; document.head.appendChild(s); }
-  s.textContent = `.btn, input[type=text], select, .chip { border-radius: ${t.radius}px !important; } .pill { border-radius: 2px !important; } body { background: ${t.appBg}; }`;
+  s.textContent = `.btn, input[type=text], input[type=email], select, .chip { border-radius: ${t.radius}px !important; } .pill { border-radius: 2px !important; } body { background: ${t.appBg}; }`;
 }
 
 function TweaksPanel() {
@@ -5051,28 +5075,51 @@ const CRAFTS = [
     image: "assets/landing/craft-punch-needle.jpg", imgW: 215, imgH: 269 },
 ];
 
-function AccountChip() {
+function AccountMenu() {
   const auth = useAuth();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = e => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onKey = e => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   if (!auth || !auth.user) return null;
   return (
-    <div className="account-chip">
-      <span className="account-email" title={auth.user.email}>{auth.user.email}</span>
-      <button className="btn btn-sm" type="button" onClick={auth.signOut}>Sign out</button>
+    <div className="account-menu" ref={wrapRef}>
+      <button type="button" className="account-menu-btn" aria-expanded={open} aria-haspopup="menu"
+        aria-label="Account" onClick={() => setOpen(o => !o)}>
+        <i className="iconoir-profile-circle" aria-hidden="true"/>
+      </button>
+      {open && (
+        <div className="account-menu-pop" role="menu">
+          <div className="account-menu-email" title={auth.user.email}>{auth.user.email}</div>
+          <button type="button" className="account-menu-out" role="menuitem"
+            onClick={() => { setOpen(false); auth.signOut(); }}>
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   );
+}
+
+function AccountChip() {
+  return <AccountMenu/>;
 }
 
 function LandingAuth() {
   const auth = useAuth();
   if (!auth || !auth.cloudEnabled) return null;
-  if (auth.user) {
-    return (
-      <div className="account-chip">
-        <span className="account-email" title={auth.user.email}>{auth.user.email}</span>
-        <button className="land-login" type="button" onClick={auth.signOut}>Sign out</button>
-      </div>
-    );
-  }
+  if (auth.user) return <AccountMenu/>;
   return <button className="land-login" type="button" onClick={auth.openAuth}>Log In</button>;
 }
 
