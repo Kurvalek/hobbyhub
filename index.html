@@ -823,6 +823,78 @@
     .back-grid .fabric-card:nth-child(2n) { border-right: none; }
   }
 
+  /* Quilt palette step (Figma Desktop - 6, node 18:1425). */
+  .pal-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+  .pal-suggest-bar {
+    display: flex; align-items: center; flex: 0 0 auto; min-height: 173px; padding: 24px 40px;
+    background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+  }
+  .pal-page .pal-from-image {
+    display: flex; align-items: center; gap: 24px;
+    width: 100%; max-width: none; padding: 0; border: none; border-radius: 0; background: none;
+  }
+  .pal-page .pal-from-image-preview {
+    width: 97px; height: 97px; outline: none; border: 1px solid var(--metime-black);
+  }
+  .pal-page .pal-from-image-main {
+    flex: 1; flex-direction: row; align-items: center; gap: 24px; min-width: 0;
+  }
+  .pal-page .pal-from-image-swatches { gap: 8px; flex: 1 1 auto; min-width: 0; }
+  .pal-page .pal-from-image-swatch { width: 64px; height: 64px; }
+  .pal-page .pal-from-image-add {
+    width: 64px; height: 64px; border-radius: 32px;
+    border: 1px solid rgba(0, 0, 0, 0.5); background: #F5F5F5;
+    color: var(--metime-black); font-size: 0;
+  }
+  .pal-page .pal-from-image-add:hover { background: var(--metime-cream); }
+  .pal-page .pal-from-image-use {
+    flex: 0 0 auto; width: 160px; height: 40px; padding: 0 16px; margin-left: auto;
+    border-radius: 4px; border: 1px solid var(--metime-black);
+    background: #1F1E1D; color: var(--metime-white);
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    cursor: pointer;
+  }
+  .pal-page .pal-from-image-use:hover:not(:disabled) { background: #3D3625; }
+  .pal-page .pal-from-image-use:disabled { opacity: 0.4; cursor: default; }
+  .pal-page .pal-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto;
+    gap: 0; width: 100%; flex: 0 0 auto;
+  }
+  .pal-page .pal-card {
+    min-height: 230px; padding: 32px; gap: 0;
+    border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+    border-radius: 0; box-shadow: none; transform: none;
+    justify-content: space-between;
+  }
+  .pal-page .pal-card:hover { box-shadow: none; transform: none; }
+  .pal-page .pal-card:nth-child(4n) { border-right: none; }
+  .pal-page .pal-swatches { height: auto; min-height: 64px; flex-wrap: wrap; }
+  .pal-page .pal-swatch { width: 64px; height: 64px; margin-left: -8px; }
+  .pal-page .pal-card-body { padding: 0; }
+  .pal-page .pal-card-name { font-size: 20px; font-weight: 500; color: var(--metime-black); }
+  .pal-page .pal-card-meta { font-size: 16px; font-weight: 300; color: var(--metime-black); margin-top: 5px; }
+  @media (max-width: 1080px) {
+    .pal-page .pal-grid { grid-template-columns: repeat(2, 1fr); }
+    .pal-page .pal-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+    .pal-page .pal-card:nth-child(2n) { border-right: none; }
+  }
+  @media (max-width: 900px) {
+    .pal-suggest-bar { min-height: 0; padding: 16px 20px; }
+    .pal-page .pal-from-image,
+    .pal-page .pal-from-image-main { flex-wrap: wrap; }
+    .pal-page .pal-from-image-use { margin-left: 0; }
+    .pal-page .pal-card { min-height: 0; padding: 24px; }
+  }
+  @media (max-width: 600px) {
+    .pal-page .pal-grid { grid-template-columns: 1fr; }
+    .pal-page .pal-card { border-right: none; }
+    .pal-page .pal-card:nth-child(2n) { border-right: none; }
+    .pal-page .pal-from-image-swatch,
+    .pal-page .pal-from-image-add { width: 48px; height: 48px; }
+    .pal-page .pal-from-image-add { border-radius: 24px; }
+    .pal-page .pal-swatch { width: 48px; height: 48px; }
+  }
+
   /* Cross-stitch editor */
   .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
   .xs-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
@@ -1074,13 +1146,29 @@
     box-sizing: border-box;
   }
   .fabric-enlarge-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-  .fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; }
+  .fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; min-width: 0; }
   .fabric-enlarge-img {
     display: block; width: 100%; max-height: min(70vh, 640px); object-fit: contain;
     background: var(--metime-cream); border: 1px solid #707F87; border-radius: 4px;
   }
   .fabric-enlarge-swatch {
     width: 100%; max-height: min(70vh, 640px); aspect-ratio: 1; border: 1px solid #707F87; border-radius: 4px;
+  }
+  .fabric-enlarge-stage { position: relative; }
+  .fabric-enlarge-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; padding: 0;
+    background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px;
+    color: var(--metime-black); cursor: pointer;
+  }
+  .fabric-enlarge-nav.is-prev { left: 8px; }
+  .fabric-enlarge-nav.is-next { right: 8px; }
+  .fabric-enlarge-nav:hover { background: #EDF2FC; }
+  .fabric-enlarge-nav:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .fabric-enlarge-count {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 400;
+    color: #3c3833; white-space: nowrap; margin-left: auto; margin-right: 8px;
   }
   .fabric-enlarge-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
@@ -1938,8 +2026,9 @@ const Svg = ({ children, size=14 }) => (
 const IcSearch  = () => <Svg><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></Svg>;
 const IcPin     = ({ on }) => <Svg><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill={on?"currentColor":"none"}/></Svg>;
 const IcX       = () => <Svg><path d="M18 6 6 18M6 6l12 12"/></Svg>;
-const IcPlus    = () => <Svg><path d="M12 5v14M5 12h14"/></Svg>;
+const IcPlus    = ({ size }) => <Svg size={size}><path d="M12 5v14M5 12h14"/></Svg>;
 const IcCaretL  = () => <Svg><path d="m15 18-6-6 6-6"/></Svg>;
+const IcCaretR  = () => <Svg><path d="m9 18 6-6-6-6"/></Svg>;
 const IcLayers  = () => <Svg><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></Svg>;
 const IcTrash   = () => <Svg><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>;
 const IcCopy    = () => <Svg><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
@@ -6469,24 +6558,64 @@ function fabricFullSrc(fabric) {
 }
 
 // Full-res (or hex) enlarge overlay. `onUse` turns it into a confirm step when
-// choosing; omit it for inspect-only (current backing in the studio).
-function FabricEnlargeOverlay({ fabric, onClose, onUse, useLabel = 'Use this fabric' }) {
-  if (!fabric) return null;
-  const src = fabricFullSrc(fabric);
+// choosing; omit it for inspect-only (current backing in the studio). Pass
+// `fabrics` (the visible category) to page through neighbors without closing.
+function FabricEnlargeOverlay({ fabric, fabrics, onClose, onUse, useLabel = 'Use this fabric' }) {
+  const list = (fabrics && fabrics.length) ? fabrics : (fabric ? [fabric] : []);
+  const start = Math.max(0, list.findIndex(f => fabric && (f.image === fabric.image || f === fabric)));
+  const [idx, setIdx] = useState(start);
+  useEffect(() => { setIdx(start); }, [start]);
+  const current = list[idx] || fabric;
+  const canSlide = list.length > 1;
+  const step = dir => setIdx(i => (i + dir + list.length) % list.length);
+
+  useEffect(() => {
+    if (!canSlide) return undefined;
+    const onKey = e => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [canSlide, list.length]);
+
+  useEffect(() => {
+    if (!canSlide) return;
+    [list[(idx + 1) % list.length], list[(idx - 1 + list.length) % list.length]].forEach(f => {
+      const preload = fabricFullSrc(f);
+      if (preload) { const img = new Image(); img.src = preload; }
+    });
+  }, [idx, canSlide, list]);
+
+  if (!current) return null;
+  const src = fabricFullSrc(current);
   return (
     <div className="overlay overlay-lift" onClick={onClose}>
       <div className="fabric-enlarge" onClick={e => e.stopPropagation()}>
         <div className="fabric-enlarge-head">
-          <div className="fabric-enlarge-name">{fabric.name}</div>
+          <div className="fabric-enlarge-name">{current.name}</div>
+          {canSlide && <div className="fabric-enlarge-count">{idx + 1} of {list.length}</div>}
           <button type="button" onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}} aria-label="Close"><IcX/></button>
         </div>
-        {src
-          ? <img className="fabric-enlarge-img" src={src} alt={fabric.name}/>
-          : <div className="fabric-enlarge-swatch" style={{ background: fabric.hex || '#C9BFB2' }}/>}
+        <div className="fabric-enlarge-stage">
+          {canSlide && (
+            <button type="button" className="fabric-enlarge-nav is-prev" onClick={() => step(-1)} aria-label="Previous fabric">
+              <IcCaretL/>
+            </button>
+          )}
+          {src
+            ? <img className="fabric-enlarge-img" src={src} alt={current.name}/>
+            : <div className="fabric-enlarge-swatch" style={{ background: current.hex || '#C9BFB2' }}/>}
+          {canSlide && (
+            <button type="button" className="fabric-enlarge-nav is-next" onClick={() => step(1)} aria-label="Next fabric">
+              <IcCaretR/>
+            </button>
+          )}
+        </div>
         {onUse && (
           <div className="fabric-enlarge-actions">
             <button type="button" className="btn" onClick={onClose}>Cancel</button>
-            <button type="button" className="btn btn-dark" onClick={() => onUse(fabric)}>{useLabel}</button>
+            <button type="button" className="btn btn-dark" onClick={() => onUse(current)}>{useLabel}</button>
           </div>
         )}
       </div>
@@ -6548,7 +6677,7 @@ function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, upl
             key={`${f.image}-${i}`}
             fab={f}
             selected={!!(current && current.image === f.image)}
-            onChoose={onPickFab}/>
+            onChoose={fab => onPickFab(fab, shown)}/>
         ))}
       </div>
       {showUpload && (
@@ -6594,12 +6723,13 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
       <BackingFabricPicker
         layout="page"
         showUpload={false}
-        onPickFab={fab => setInspect(fab)}
+        onPickFab={(fab, list) => setInspect({ fabric: fab, fabrics: list })}
         onPickUpload={imgSrc => apply('Your fabric', imgSrc)}/>
       <footer className="size-footer" aria-hidden="true"/>
       {inspect && (
         <FabricEnlargeOverlay
-          fabric={inspect}
+          fabric={inspect.fabric}
+          fabrics={inspect.fabrics}
           onClose={() => setInspect(null)}
           onUse={fab => apply(fab.name, fab.image, fab.thumb)}/>
       )}
@@ -6633,14 +6763,14 @@ function BackingPickerOverlay({ current, onChoose, onClear, onClose }) {
           </div>
           <div className="backing-picker-body">
             {current && currentSrc && (
-              <button type="button" className="backing-current" onClick={() => setInspect({ ...current, viewOnly: true })} title="View fabric large">
+              <button type="button" className="backing-current" onClick={() => setInspect({ fabric: { ...current, viewOnly: true } })} title="View fabric large">
                 <img className="backing-current-img" src={current.image || currentSrc} alt={current.name}/>
                 <div className="backing-current-caption">{current.name} — tap to view large</div>
               </button>
             )}
             <BackingFabricPicker
               current={current}
-              onPickFab={fab => setInspect(fab)}
+              onPickFab={(fab, list) => setInspect({ fabric: fab, fabrics: list })}
               onPickUpload={imgSrc => apply('Your fabric', imgSrc)}
               uploadHint="Use a photo of your own fabric as the backing."
               uploadResultHint="We'll use this photo as your quilt backing."
@@ -6650,9 +6780,10 @@ function BackingPickerOverlay({ current, onChoose, onClear, onClose }) {
       </div>
       {inspect && (
         <FabricEnlargeOverlay
-          fabric={inspect}
+          fabric={inspect.fabric}
+          fabrics={inspect.fabrics}
           onClose={() => setInspect(null)}
-          onUse={inspect.viewOnly ? undefined : fab => apply(fab.name, fab.image, fab.thumb)}/>
+          onUse={inspect.fabric?.viewOnly ? undefined : fab => apply(fab.name, fab.image, fab.thumb)}/>
       )}
     </>
   );
@@ -6665,10 +6796,11 @@ const CROSS_STITCH_PALETTE_MAX = 10;
 
 // Suggested palette from an image (Figma 2138:2019). Circles remove on click;
 // on touch, first tap arms (shows ×) and second tap deletes. + opens the picker.
-function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette', maxColors = SUGGESTED_PALETTE_MAX }) {
+function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette', maxColors = SUGGESTED_PALETTE_MAX, layout = 'card' }) {
   const isMobile = useIsMobile();
   const [armedIdx, setArmedIdx] = useState(null);
   const addRef = useRef(null);
+  const bar = layout === 'bar';
 
   useEffect(() => { setArmedIdx(null); }, [colors.length]);
   useEffect(() => {
@@ -6715,11 +6847,11 @@ function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, o
               title="Add a color"
               aria-label="Add a color"
               onClick={() => onAdd(addRef)}>
-              +
+              {bar ? <IcPlus size={24}/> : '+'}
             </button>
           )}
         </div>
-        <button type="button" className="btn btn-dark pal-from-image-use" disabled={!colors.length} onClick={onUse}>
+        <button type="button" className={bar ? 'pal-from-image-use' : 'btn btn-dark pal-from-image-use'} disabled={!colors.length} onClick={onUse}>
           {useLabel}
         </button>
       </div>
@@ -6769,67 +6901,61 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
   const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
 
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
-      </header>
-      <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
-        <div className="proj-intro">
-          <div className="pal-head-row">
-            <h1 className="proj-heading">Pick a palette</h1>
-            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-          </div>
-          <p className="proj-subheading">Pick the fabric colors you would like to use for your {presetName}. You can always change these later.</p>
+    <div className="pal-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
         </div>
-
-        {photo && (
-          <section className="pal-section">
-            <div className="pal-section-head">
-              <div className="pal-section-title">Suggested palette</div>
-            </div>
-            {!ready ? (
-              <div className="pal-busy">Reading colors from your fabric…</div>
-            ) : (
-              <ImagePaletteEditor
-                photo={photo}
-                alt="Your backing fabric"
-                colors={sugg}
-                colorKey={c => c.name}
-                titleOf={c => c.name}
-                onRemove={removeAt}
-                onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-                onUse={() => onChoose(sugg)}/>
-            )}
-          </section>
+      </header>
+      <section className="size-hero has-skip">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
         )}
-
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Sample palettes</div>
-            <div className="pal-section-sub">Curated fabric combinations to get you going fast.</div>
-          </div>
-          <div className="pal-grid">
-            {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
-                <div className="pal-swatches">
-                  {s.colors.map((c, i) => (
-                    <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }} title={c.name}/>
-                  ))}
-                </div>
-                <div className="pal-card-body">
-                  <div className="pal-card-name">{s.name}</div>
-                  <div className="pal-card-meta">{s.colors.length} fabrics</div>
-                </div>
-              </button>
-            ))}
-          </div>
+        <h1 className="size-title">Pick a palette</h1>
+        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
+      </section>
+      {photo && (
+        <section className="pal-suggest-bar">
+          {!ready ? (
+            <div className="pal-busy">Reading colors from your fabric…</div>
+          ) : (
+            <ImagePaletteEditor
+              layout="bar"
+              photo={photo}
+              alt="Your backing fabric"
+              colors={sugg}
+              colorKey={c => c.name}
+              titleOf={c => c.name}
+              onRemove={removeAt}
+              onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+              onUse={() => onChoose(sugg)}/>
+          )}
         </section>
-
-        <section className="pal-section pal-skip-row">
-          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-        </section>
+      )}
+      <div className="pal-grid">
+        {samples.map(s => (
+          <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
+            <div className="pal-swatches">
+              {s.colors.map((c, i) => (
+                <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }} title={c.name}/>
+              ))}
+            </div>
+            <div className="pal-card-body">
+              <div className="pal-card-name">{s.name}</div>
+              <div className="pal-card-meta">{s.colors.length} fabrics</div>
+            </div>
+          </button>
+        ))}
       </div>
+      <footer className="size-footer" aria-hidden="true"/>
       {swapIdx !== null && (
         <KonaPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
