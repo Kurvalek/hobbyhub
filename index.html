@@ -738,6 +738,17 @@
     .size-card:focus-visible .size-card-arrow { animation: none; }
   }
 
+  /* Phones have no hover, so the product-block arrows stay visible. */
+  @media (hover: none), (max-width: 900px) {
+    .land-craft-arrow,
+    .size-card-arrow,
+    .saved-card-arrow {
+      opacity: 1;
+      visibility: visible;
+      animation: none;
+    }
+  }
+
   .size-footer { flex: 1 1 auto; min-height: 96px; background: var(--metime-golden); }
 
   /* Two-across before one-across: four 20px names in a row need ~230px each. */
@@ -757,6 +768,59 @@
     .size-row { grid-template-columns: 1fr; }
     .size-card { border-left: none; }
     .size-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
+  }
+
+  /* Quilt backing step (Figma Desktop - 5, node 13:1260). */
+  .back-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+  .size-hero.has-skip { padding: 0 180px; }
+  .back-skip {
+    position: absolute; right: 41px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 128px; height: 40px; padding: 0 16px;
+    background: #EDF2FC; border: 1px solid var(--metime-black); border-radius: 4px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    color: var(--metime-black); cursor: pointer;
+  }
+  .back-skip:hover { background: var(--metime-ice); }
+  .back-skip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .back-filters {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 8px; flex: 0 0 auto; min-height: 130px; padding: 24px 40px;
+    background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+  }
+  .back-filters .fabric-filter {
+    min-width: 128px; height: 40px; padding: 0 16px; border-radius: 4px;
+    border: 1px solid var(--metime-black); background: #EDF2FC;
+    font-size: 16px; font-weight: 400; line-height: 1; color: var(--metime-black);
+  }
+  .back-filters .fabric-filter:not(.active):hover { background: var(--metime-ice); }
+  .back-filters .fabric-filter.active {
+    background: #1F1E1D; border-color: #1F1E1D; color: var(--metime-white); font-weight: 500;
+  }
+  .back-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; flex: 0 0 auto; }
+  .back-grid .fabric-card {
+    border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+    border-radius: 0; box-shadow: none; transform: none;
+  }
+  .back-grid .fabric-card:hover { box-shadow: none; transform: none; }
+  .back-grid .fabric-card:nth-child(8n) { border-right: none; }
+  .back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--metime-black); }
+  .back-grid .fabric-thumb { aspect-ratio: 180 / 192; }
+  @media (max-width: 1080px) {
+    .back-grid { grid-template-columns: repeat(4, 1fr); }
+    .back-grid .fabric-card:nth-child(8n) { border-right: 1px solid var(--metime-black); }
+    .back-grid .fabric-card:nth-child(4n) { border-right: none; }
+  }
+  @media (max-width: 900px) {
+    .size-hero.has-skip { padding: 0 20px; }
+    .back-skip { right: 20px; min-width: 0; height: 36px; padding: 0 12px; font-size: 13px; }
+    .back-filters { min-height: 0; padding: 16px 20px; }
+    .back-filters .fabric-filter { min-width: 0; height: 36px; padding: 0 12px; font-size: 14px; }
+  }
+  @media (max-width: 600px) {
+    .back-grid { grid-template-columns: repeat(2, 1fr); }
+    .back-grid .fabric-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+    .back-grid .fabric-card:nth-child(2n) { border-right: none; }
   }
 
   /* Cross-stitch editor */
@@ -6317,7 +6381,7 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft =
 // TO ADD OR EDIT FABRICS: drop images into assets/fabrics/<collection>/ and
 // regenerate the manifest (do not hand-edit the flattened list below).
 const FABRIC_CATEGORIES = [
-  { id: 'all',      label: 'All' },
+  { id: 'top',      label: 'Top fabrics' },
   { id: 'simple',   label: 'Simple' },
   { id: 'florals',  label: 'Florals' },
   { id: 'animals',  label: 'Animals' },
@@ -6326,6 +6390,7 @@ const FABRIC_CATEGORIES = [
   { id: 'holidays', label: 'Holidays' },
   { id: 'novelty',  label: 'Novelty' },
 ];
+const TOP_FABRIC_LIMIT = 16;
 const RUBY_STAR_FABRICS = (window.RSS_COLLECTIONS || []).flatMap(c =>
   c.files.map(f => ({
     name: c.label,
@@ -6339,6 +6404,24 @@ const RUBY_STAR_FABRICS = (window.RSS_COLLECTIONS || []).flatMap(c =>
     thumb: encodeURI(`assets/fabrics-thumbs/${c.slug}/${f}`),
   }))
 );
+// Curated "Top fabrics" row: one swatch from each collection, first 16.
+// Placeholder until we have a real featured list.
+function pickTopFabrics(list, limit) {
+  const seen = new Set(), picks = [];
+  for (const f of list) {
+    if (seen.has(f.collection)) continue;
+    seen.add(f.collection);
+    picks.push(f);
+    if (picks.length === limit) return picks;
+  }
+  for (const f of list) {
+    if (picks.includes(f)) continue;
+    picks.push(f);
+    if (picks.length === limit) break;
+  }
+  return picks;
+}
+const TOP_FABRICS = pickTopFabrics(RUBY_STAR_FABRICS, TOP_FABRIC_LIMIT);
 
 // Compact 256px JPEG sibling of a full-res fabric URL, or null for uploads /
 // data URLs. Lets older saved quilts (no `backing.thumb`) still hit the
@@ -6434,47 +6517,46 @@ function FabricCard({ fab, onChoose, selected }) {
 
 // Shared catalog: filters + Ruby Star grid + optional upload. Used by the setup
 // step and the in-studio backing overlay so there's only one picker UI.
-function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, uploadResultHint, gridSub }) {
-  const [cat, setCat] = useState('all');
-  const cats = useMemo(() => FABRIC_CATEGORIES.map(c => ({
-    ...c,
-    count: c.id === 'all' ? RUBY_STAR_FABRICS.length : RUBY_STAR_FABRICS.filter(f => f.cats.includes(c.id)).length,
-  })).filter(c => c.id === 'all' || c.count > 0), []);
-  const shown = useMemo(
-    () => cat === 'all' ? RUBY_STAR_FABRICS : RUBY_STAR_FABRICS.filter(f => f.cats.includes(cat)),
-    [cat]
-  );
+function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, uploadResultHint, layout = 'compact', showUpload = true }) {
+  const [cat, setCat] = useState('top');
+  const cats = useMemo(() => FABRIC_CATEGORIES.filter(c =>
+    c.id === 'top' || RUBY_STAR_FABRICS.some(f => f.cats.includes(c.id))
+  ), []);
+  const shown = useMemo(() => {
+    if (cat === 'top') return TOP_FABRICS;
+    return RUBY_STAR_FABRICS.filter(f => f.cats.includes(cat));
+  }, [cat]);
+  const page = layout === 'page';
   return (
     <>
-      <section className="pal-section">
-        <div className="pal-section-head">
-          <div className="pal-section-title">Ruby Star fabrics</div>
-          <div className="pal-section-sub">{gridSub || 'Tap a fabric to use it as your backing.'}</div>
-        </div>
-        <div className="fabric-filters">
-          {cats.map(c => (
-            <button
-              key={c.id}
-              className={`fabric-filter${cat === c.id ? ' active' : ''}`}
-              onClick={() => setCat(c.id)}>
-              {c.label} <span className="fabric-filter-count">{c.count}</span>
-            </button>
-          ))}
-        </div>
-        <div className="fabric-grid">
-          {shown.map((f, i) => (
-            <FabricCard
-              key={`${f.image}-${i}`}
-              fab={f}
-              selected={!!(current && current.image === f.image)}
-              onChoose={onPickFab}/>
-          ))}
-        </div>
-      </section>
-      <PhotoDrop
-        hint={uploadHint}
-        resultHint={uploadResultHint}
-        onChoose={onPickUpload}/>
+      <div className={page ? 'back-filters' : 'fabric-filters'} role="tablist" aria-label="Fabric category">
+        {cats.map(c => (
+          <button
+            key={c.id}
+            type="button"
+            role="tab"
+            aria-selected={cat === c.id}
+            className={`fabric-filter${cat === c.id ? ' active' : ''}`}
+            onClick={() => setCat(c.id)}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+      <div className={page ? 'back-grid' : 'fabric-grid'}>
+        {shown.map((f, i) => (
+          <FabricCard
+            key={`${f.image}-${i}`}
+            fab={f}
+            selected={!!(current && current.image === f.image)}
+            onChoose={onPickFab}/>
+        ))}
+      </div>
+      {showUpload && (
+        <PhotoDrop
+          hint={uploadHint}
+          resultHint={uploadResultHint}
+          onChoose={onPickUpload}/>
+      )}
     </>
   );
 }
@@ -6488,30 +6570,33 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
   const [inspect, setInspect] = useState(null);
   const apply = (name, image, thumb) => chooseBackingFromImage(name, image, thumb, onChoose);
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
-      </header>
-      <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
-        <div className="proj-intro">
-          <div className="pal-head-row">
-            <h1 className="proj-heading">Pick a backing fabric</h1>
-            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-          </div>
-          <p className="proj-subheading">Choose a backing for your {preset} — pick a Ruby Star Society print or upload your own fabric. We'll pull a palette from it on the next step.</p>
+    <div className="back-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
         </div>
-
-        <BackingFabricPicker
-          onPickFab={fab => setInspect(fab)}
-          onPickUpload={imgSrc => apply('Your fabric', imgSrc)}
-          uploadHint="Use a photo of your own fabric — we'll suggest a palette from it on the next step."
-          gridSub="Tap a fabric to preview it large, then use it as your backing."/>
-
-        <section className="pal-section pal-skip-row">
-          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-        </section>
-      </div>
+      </header>
+      <section className="size-hero has-skip">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
+        )}
+        <h1 className="size-title">Pick a backing fabric</h1>
+        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
+      </section>
+      <BackingFabricPicker
+        layout="page"
+        showUpload={false}
+        onPickFab={fab => setInspect(fab)}
+        onPickUpload={imgSrc => apply('Your fabric', imgSrc)}/>
+      <footer className="size-footer" aria-hidden="true"/>
       {inspect && (
         <FabricEnlargeOverlay
           fabric={inspect}
