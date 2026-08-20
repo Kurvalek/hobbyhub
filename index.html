@@ -575,49 +575,47 @@
   .land-header .account-chip { gap: 12px; }
   .land-header .account-email { font-size: 16px; color: var(--metime-black); max-width: 220px; }
 
-  .land-hero { position: relative; flex-shrink: 0; height: 339px; max-height: 38vh; overflow: hidden; }
-  .land-hero-photo { position: absolute; top: 0; bottom: 0; height: 100%; object-fit: cover; object-position: center bottom; pointer-events: none; }
-  .land-hero-photo.is-left { left: 0; width: 27.57%; }
-  .land-hero-photo.is-right { right: 0; width: 33.4%; }
+  .land-hero { position: relative; flex-shrink: 0; height: clamp(280px, 30vw, 420px); overflow: hidden; background: var(--metime-white); }
+  .land-hero-photo { position: absolute; top: 0; height: 100%; width: auto; object-fit: contain; pointer-events: none; }
+  .land-hero-photo.is-left { left: 0; }
+  .land-hero-photo.is-right { right: 0; }
   .land-hero-wave { position: absolute; left: 26.46%; width: 47.08%; top: 0; height: 100%; object-fit: fill; pointer-events: none; z-index: 2; }
   .land-hero-title { position: absolute; left: 26.46%; width: 47.08%; top: 50%; transform: translateY(-50%); z-index: 3; margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.5vw, 64px); line-height: normal; color: var(--metime-white); text-align: center; pointer-events: none; }
   .land-hero::before, .land-hero::after, .land-footer::before, .land-craft + .land-craft::before {
-    content: ""; position: absolute; pointer-events: none; z-index: 4;
+    content: ""; position: absolute; pointer-events: none; z-index: 4; background: var(--metime-black);
   }
-  .land-hero::before, .land-hero::after, .land-footer::before {
-    left: 0; right: 0; height: 2px;
-    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
-    background-size: 7px 2px; background-repeat: repeat-x;
-  }
+  .land-hero::before, .land-hero::after, .land-footer::before { left: 0; right: 0; height: 1px; }
   .land-hero::before { top: 0; }
   .land-hero::after { bottom: 0; }
 
-  .land-main { flex: 1; display: flex; flex-direction: column; min-height: 280px; background: var(--metime-white); }
-  .land-crafts { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 0; }
-  .land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; outline: none; }
+  .land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; background: var(--metime-white); }
+  .land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 0; }
+  .land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; min-height: 0; outline: none; }
   .land-craft:hover { background: rgba(18, 15, 6, 0.03); }
   .land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
   .land-craft.is-soon { opacity: 0.55; cursor: default; }
   .land-craft.is-soon:hover { background: transparent; }
-  .land-craft + .land-craft::before {
-    left: 0; top: 0; bottom: 0; width: 2px;
-    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
-    background-size: 2px 7px; background-repeat: repeat-y;
-  }
-  .land-craft-visual { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 8px 0 20px; }
-  .land-craft-visual img { display: block; width: auto; height: auto; max-width: min(256px, 100%); max-height: min(269px, 32vh); object-fit: contain; }
-  .land-craft-copy { flex-shrink: 0; }
-  .land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: normal; color: var(--metime-black); margin-bottom: 6px; }
-  .land-craft-desc-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
-  .land-craft-desc { font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: normal; color: var(--metime-black); }
-  .land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; }
+  .land-craft + .land-craft::before { left: 0; top: 0; bottom: 0; width: 1px; }
+  .land-craft-visual { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; padding: 8px 0 20px; }
+  .land-craft-visual img { display: block; width: auto; height: auto; max-width: min(256px, 100%); max-height: min(269px, 100%); object-fit: contain; }
+  .land-craft-copy { flex: 0 0 auto; min-width: 0; }
+  .land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); margin-bottom: 6px; }
+  .land-craft-desc-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+  .land-craft-desc { flex: 1 1 auto; font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: 1.3; color: var(--metime-black); min-width: 0; }
+  .land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; margin-top: -4px; }
   .land-craft-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
+
+  @media (max-height: 900px) {
+    .land-craft { padding: 20px 32px 24px; }
+    .land-craft-visual { padding: 4px 0 12px; }
+    .land-craft-name { font-size: 22px; }
+    .land-craft-desc { font-size: 18px; }
+    .land-footer { height: 80px; }
+  }
 
   .land-page .saved-sec { margin: 0; border-top: none; padding: 20px 40px 28px; position: relative; }
   .land-page .saved-sec::before {
-    content: ""; display: block; height: 2px; margin: 0 -40px 20px;
-    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
-    background-size: 7px 2px; background-repeat: repeat-x;
+    content: ""; display: block; height: 1px; margin: 0 -40px 20px; background: var(--metime-black);
   }
 
   .land-footer { position: relative; flex-shrink: 0; height: clamp(72px, 16.4vh, 168px); background: var(--metime-golden); }
@@ -632,10 +630,7 @@
     .land-hero-title { padding: 0 24px; }
     .land-crafts { grid-template-columns: 1fr; }
     .land-craft { padding: 24px 28px; }
-    .land-craft + .land-craft::before {
-      left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 2px;
-      background-size: 7px 2px; background-repeat: repeat-x;
-    }
+    .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
     .land-craft-visual img { max-height: 180px; }
     .land-footer { height: 72px; }
   }
@@ -5284,8 +5279,8 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         </div>
       </header>
       <section className="land-hero" aria-label="What are you making?">
-        <img className="land-hero-photo is-left" src="assets/landing/hero-left.jpg" alt="" width="397" height="339"/>
-        <img className="land-hero-photo is-right" src="assets/landing/hero-right.jpg" alt="" width="481" height="339"/>
+        <img className="land-hero-photo is-left" src="assets/landing/hero-left.jpg" alt="" width="820" height="1024"/>
+        <img className="land-hero-photo is-right" src="assets/landing/hero-right.jpg" alt="" width="821" height="1024"/>
         <img className="land-hero-wave" src="assets/landing/hero-wave.svg" alt="" width="678" height="338"/>
         <h1 className="land-hero-title">What are you<br/>making?</h1>
       </section>
