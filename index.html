@@ -544,33 +544,40 @@
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
   .proj-card.is-soon:hover { box-shadow: none; transform: none; }
 
-  /* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards. */
+  /* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards.
+     Lives as a sibling of .land-main so the viewport-locked landing flex
+     cannot clip the grid under the golden footer. */
   .saved-sec { flex: 0 0 auto; background: var(--metime-white); border-top: 1px solid var(--metime-black); }
-  .saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; padding: 36px 52px; min-height: 130px; }
-  .saved-head { display: inline-flex; align-items: flex-end; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
+  .saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; padding: 16px 40px; }
+  .saved-head { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
   .saved-head:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
-  .saved-head-title { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+  .saved-head-title { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
   .saved-count { font-weight: 300; }
-  .saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; color: var(--metime-black); transition: transform 0.15s; }
-  .saved-chev i { font-size: 24px; }
+  .saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--metime-black); transition: transform 0.15s; }
+  .saved-chev i { font-size: 16px; }
   .saved-chev.is-open { transform: rotate(180deg); }
-  .saved-filters { display: flex; flex-wrap: wrap; gap: 8px; }
-  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 128px; height: 40px; padding: 0 16px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
+  .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 0; height: 28px; padding: 0 12px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
   .saved-filter:hover { background: var(--color-linen-300); }
   .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--color-taupe-900); color: var(--metime-white); }
   .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--color-taupe-600); }
   .saved-filter:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
-  .saved-card { display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 32px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
+  .saved-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 28px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
   .saved-card:nth-child(4n) { border-right: none; }
   .saved-card:nth-child(n+5) { border-top: 1px solid var(--metime-black); }
   .saved-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-  .saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; min-height: 0; overflow: hidden; background: var(--metime-white); }
-  .saved-thumb svg, .saved-thumb canvas { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
-  .saved-copy { min-width: 0; }
-  .saved-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .saved-meta { font-family: var(--font-sans); font-size: 16px; font-weight: 300; line-height: 1.3; color: var(--metime-black); margin-top: 5px; }
-  .saved-empty { grid-column: 1 / -1; padding: 48px 52px; font-family: var(--font-sans); font-size: 16px; color: var(--warm-muted); }
+  .saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; overflow: hidden; background: var(--metime-white); }
+  .saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .saved-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+  .saved-card-text { min-width: 0; }
+  .saved-name { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-meta { font-family: var(--font-sans); font-size: 13px; font-weight: 300; line-height: 1.3; color: var(--metime-black); margin-top: 4px; }
+  .saved-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+  .saved-card:hover .saved-card-arrow,
+  .saved-card:focus-visible .saved-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+  .saved-card-arrow img { display: block; width: 22px; height: 21px; transform: scaleX(-1); }
+  .saved-empty { grid-column: 1 / -1; padding: 36px 40px; font-family: var(--font-sans); font-size: 14px; color: var(--warm-muted); }
   @media (max-width: 1080px) {
     .saved-grid { grid-template-columns: 1fr 1fr; }
     .saved-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
@@ -579,10 +586,8 @@
     .saved-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
   }
   @media (max-width: 900px) {
-    .saved-toolbar { padding: 24px 20px; min-height: 0; }
-    .saved-head-title { font-size: 20px; }
-    .saved-filter { min-width: 0; height: 36px; padding: 0 12px; font-size: 16px; }
-    .saved-card { padding: 24px; gap: 16px; }
+    .saved-toolbar { padding: 14px 20px; }
+    .saved-card { padding: 20px; gap: 12px; }
   }
   @media (max-width: 600px) {
     .saved-grid { grid-template-columns: 1fr; }
@@ -592,8 +597,11 @@
     .saved-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
   }
 
-  /* Landing page (Figma Desktop - 1, node 1:4) */
-  .land-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+  /* Landing page (Figma Desktop - 1, node 1:4).
+     .land-page is the scrollport; .land-fill is at least one viewport tall so
+     the golden footer sits under the content instead of pinning over it. */
+  .land-page { height: 100%; overflow: auto; background: var(--metime-white); color: var(--metime-black); }
+  .land-fill { display: flex; flex-direction: column; min-height: 100%; }
   .land-header { position: relative; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; height: 81px; padding: 0 47px; background: var(--metime-olive); border-bottom: 1px solid var(--metime-black); box-shadow: none; }
   .land-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
   .land-logo img { display: block; width: 112px; height: 38px; }
@@ -616,7 +624,7 @@
   .land-hero::after, .land-footer::before { left: 0; right: 0; height: 1px; }
   .land-hero::after { bottom: 0; }
 
-  .land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; background: var(--metime-white); }
+  .land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: min(360px, 40vh); background: var(--metime-white); }
   .land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: min(360px, 40vh); }
   .land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; min-height: 0; outline: none; }
   .land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
@@ -628,7 +636,7 @@
   .land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); margin-bottom: 6px; }
   .land-craft-desc-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
   .land-craft-desc { flex: 1 1 auto; font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: 1.3; color: var(--metime-black); min-width: 0; }
-  .land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; margin-top: -4px; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+  .land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; margin-top: -4px; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
   .land-craft:hover .land-craft-arrow,
   .land-craft:focus-visible .land-craft-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
   .land-craft-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
@@ -638,7 +646,9 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .land-craft:hover .land-craft-arrow,
-    .land-craft:focus-visible .land-craft-arrow { animation: none; }
+    .land-craft:focus-visible .land-craft-arrow,
+    .saved-card:hover .saved-card-arrow,
+    .saved-card:focus-visible .saved-card-arrow { animation: none; }
   }
 
   @media (max-height: 900px) {
@@ -646,10 +656,10 @@
     .land-craft-visual { padding: 4px 0 12px; }
     .land-craft-name { font-size: 22px; }
     .land-craft-desc { font-size: 18px; }
-    .land-footer { height: 80px; }
+    .land-footer { min-height: 80px; }
   }
 
-  .land-footer { position: relative; flex-shrink: 0; height: clamp(72px, 16.4vh, 168px); background: var(--metime-golden); }
+  .land-footer { position: relative; flex: 1 1 auto; min-height: 96px; background: var(--metime-golden); }
   .land-footer::before { top: 0; }
 
   @media (max-width: 900px) {
@@ -663,7 +673,7 @@
     .land-craft { padding: 24px 28px; }
     .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
     .land-craft-visual img { max-height: 180px; }
-    .land-footer { height: 72px; }
+    .land-footer { min-height: 72px; }
   }
 
   /* Quilt "What size?" step (Figma Desktop - 2, node 5:3).
@@ -695,7 +705,7 @@
   .size-card-text { min-width: 0; }
   .size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
   .size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
-  .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+  .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
   .size-card:hover .size-card-arrow,
   .size-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
   .size-card-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
@@ -5436,8 +5446,13 @@ function SavedDesigns({ onOpen }) {
                   : <StitchThumb w={it.w} h={it.h} cells={deserializeGrid(it.grid, it.w * it.h)} size={260} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
               </div>
               <div className="saved-copy">
-                <div className="saved-name">{it.name}</div>
-                <div className="saved-meta">{savedMetaLine(it)}</div>
+                <div className="saved-card-text">
+                  <div className="saved-name">{it.name}</div>
+                  <div className="saved-meta">{savedMetaLine(it)}</div>
+                </div>
+                <span className="saved-card-arrow" aria-hidden="true">
+                  <img src="assets/landing/arrow-right.svg" alt="" width="22" height="21"/>
+                </span>
               </div>
             </button>
           ))}
@@ -5450,6 +5465,7 @@ function SavedDesigns({ onOpen }) {
 function CraftSelector({ onSelect, onOpenSaved }) {
   return (
     <div className="land-page">
+      <div className="land-fill">
       <header className="land-header">
         <a className="land-logo" href="/" aria-label="metime — home">
           <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
@@ -5490,9 +5506,10 @@ function CraftSelector({ onSelect, onOpenSaved }) {
             </div>
           ))}
         </div>
-        <SavedDesigns onOpen={onOpenSaved}/>
       </div>
+      <SavedDesigns onOpen={onOpenSaved}/>
       <footer className="land-footer" aria-hidden="true"/>
+      </div>
     </div>
   );
 }
