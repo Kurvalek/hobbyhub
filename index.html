@@ -50,6 +50,7 @@
     /* metime accent palette (kept available for future profile UI) */
     --metime-tomato: #E8583A;
     --metime-avocado: #B5BB46;
+    --metime-olive: #B9B74B;
     --metime-grapefruit: #FDA198;
     --metime-ice: #CCD6EB;
     --metime-golden: #FBBB3F;
@@ -561,6 +562,83 @@
   .saved-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .saved-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
   .saved-badge { display: inline-block; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: #25211e; }
+
+  /* Landing page (Figma Desktop - 1, node 1:4) */
+  .land-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+  .land-header { position: relative; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; height: 81px; padding: 0 47px; background: var(--metime-olive); }
+  .land-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
+  .land-logo img { display: block; width: 112px; height: 38px; }
+  .land-header-right { display: flex; align-items: center; gap: 20px; position: relative; z-index: 1; }
+  .land-login { background: none; border: none; padding: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: normal; color: var(--metime-black); cursor: pointer; }
+  .land-login:hover { opacity: 0.7; }
+  .land-login:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+  .land-header .account-chip { gap: 12px; }
+  .land-header .account-email { font-size: 16px; color: var(--metime-black); max-width: 220px; }
+
+  .land-hero { position: relative; flex-shrink: 0; height: 339px; max-height: 38vh; overflow: hidden; }
+  .land-hero-photo { position: absolute; top: 0; bottom: 0; height: 100%; object-fit: cover; object-position: center bottom; pointer-events: none; }
+  .land-hero-photo.is-left { left: 0; width: 27.57%; }
+  .land-hero-photo.is-right { right: 0; width: 33.4%; }
+  .land-hero-wave { position: absolute; left: 26.46%; width: 47.08%; top: 0; height: 100%; object-fit: fill; pointer-events: none; z-index: 2; }
+  .land-hero-title { position: absolute; left: 26.46%; width: 47.08%; top: 50%; transform: translateY(-50%); z-index: 3; margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.5vw, 64px); line-height: normal; color: var(--metime-white); text-align: center; pointer-events: none; }
+  .land-hero::before, .land-hero::after, .land-footer::before, .land-craft + .land-craft::before {
+    content: ""; position: absolute; pointer-events: none; z-index: 4;
+  }
+  .land-hero::before, .land-hero::after, .land-footer::before {
+    left: 0; right: 0; height: 2px;
+    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
+    background-size: 7px 2px; background-repeat: repeat-x;
+  }
+  .land-hero::before { top: 0; }
+  .land-hero::after { bottom: 0; }
+
+  .land-main { flex: 1; display: flex; flex-direction: column; min-height: 280px; background: var(--metime-white); }
+  .land-crafts { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 0; }
+  .land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; outline: none; }
+  .land-craft:hover { background: rgba(18, 15, 6, 0.03); }
+  .land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+  .land-craft.is-soon { opacity: 0.55; cursor: default; }
+  .land-craft.is-soon:hover { background: transparent; }
+  .land-craft + .land-craft::before {
+    left: 0; top: 0; bottom: 0; width: 2px;
+    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
+    background-size: 2px 7px; background-repeat: repeat-y;
+  }
+  .land-craft-visual { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 8px 0 20px; }
+  .land-craft-visual img { display: block; width: auto; height: auto; max-width: min(256px, 100%); max-height: min(269px, 32vh); object-fit: contain; }
+  .land-craft-copy { flex-shrink: 0; }
+  .land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: normal; color: var(--metime-black); margin-bottom: 6px; }
+  .land-craft-desc-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+  .land-craft-desc { font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: normal; color: var(--metime-black); }
+  .land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: hidden; }
+  .land-craft-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
+
+  .land-page .saved-sec { margin: 0; border-top: none; padding: 20px 40px 28px; position: relative; }
+  .land-page .saved-sec::before {
+    content: ""; display: block; height: 2px; margin: 0 -40px 20px;
+    background-image: radial-gradient(circle, var(--metime-black) 0.9px, transparent 1.1px);
+    background-size: 7px 2px; background-repeat: repeat-x;
+  }
+
+  .land-footer { position: relative; flex-shrink: 0; height: clamp(72px, 16.4vh, 168px); background: var(--metime-golden); }
+  .land-footer::before { top: 0; }
+
+  @media (max-width: 900px) {
+    .land-header { height: 64px; padding: 0 20px; }
+    .land-logo img { width: 96px; height: 32px; }
+    .land-hero { height: clamp(180px, 28vh, 260px); }
+    .land-hero-photo { display: none; }
+    .land-hero-wave, .land-hero-title { left: 0; width: 100%; }
+    .land-hero-title { padding: 0 24px; }
+    .land-crafts { grid-template-columns: 1fr; }
+    .land-craft { padding: 24px 28px; }
+    .land-craft + .land-craft::before {
+      left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 2px;
+      background-size: 7px 2px; background-repeat: repeat-x;
+    }
+    .land-craft-visual img { max-height: 180px; }
+    .land-footer { height: 72px; }
+  }
 
   /* Cross-stitch editor */
   .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
@@ -4801,17 +4879,13 @@ function ProjectCard({ preset, onSelect }) {
 }
 
 const CRAFTS = [
-  { id: "quilt", name: "Quilt", desc: "Design a patchwork quilt and get a fabric supply list.", ready: true },
-  { id: "cross-stitch", name: "Cross-stitch", desc: "Chart a cross-stitch pattern stitch by stitch.", ready: true },
-  { id: "punch-needle", name: "Punch needle", desc: "Plan a punch needle project and yarn colors.", ready: true },
+  { id: "cross-stitch", name: "Cross-stitch", desc: "Design your own cross-stitch project", ready: true,
+    image: "assets/landing/craft-cross-stitch.jpg", imgW: 256, imgH: 256 },
+  { id: "quilt", name: "Quilt", desc: "Design your own quilt project", ready: true,
+    image: "assets/landing/craft-quilt.jpg", imgW: 208, imgH: 260 },
+  { id: "punch-needle", name: "Punch Needle", desc: "Design your own punch needle project", ready: true,
+    image: "assets/landing/craft-punch-needle.jpg", imgW: 215, imgH: 269 },
 ];
-// Cover photos shown on the "What are you making?" craft cards, keyed by craft
-// id. Missing entries render no thumb so the card still works.
-const CRAFT_IMAGES = {
-  "quilt":        "assets/products/quilt-baby-quilt.jpg",
-  "cross-stitch": "assets/products/cross-stitch-medium-hoop.jpg",
-  "punch-needle": "assets/products/punch-needle-wall-hanging.jpg",
-};
 
 function AccountChip() {
   const auth = useAuth();
@@ -4822,6 +4896,20 @@ function AccountChip() {
       <button className="btn btn-sm" type="button" onClick={auth.signOut}>Sign out</button>
     </div>
   );
+}
+
+function LandingAuth() {
+  const auth = useAuth();
+  if (!auth || !auth.cloudEnabled) return null;
+  if (auth.user) {
+    return (
+      <div className="account-chip">
+        <span className="account-email" title={auth.user.email}>{auth.user.email}</span>
+        <button className="land-login" type="button" onClick={auth.signOut}>Sign out</button>
+      </div>
+    );
+  }
+  return <button className="land-login" type="button" onClick={auth.openAuth}>Log In</button>;
 }
 
 // Supabase throttles OTP emails per address (one a minute by default), so the
@@ -5186,36 +5274,50 @@ function SavedDesigns({ onOpen }) {
 
 function CraftSelector({ onSelect, onOpenSaved }) {
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
-        <AccountChip/>
-      </header>
-      <div className="proj-body">
-        <div className="proj-intro">
-          <h1 className="proj-heading">What are you making?</h1>
-          <p className="proj-subheading">Choose a craft to begin.</p>
+    <div className="land-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
         </div>
-        <div className="proj-grid craft-grid">
+      </header>
+      <section className="land-hero" aria-label="What are you making?">
+        <img className="land-hero-photo is-left" src="assets/landing/hero-left.jpg" alt="" width="397" height="339"/>
+        <img className="land-hero-photo is-right" src="assets/landing/hero-right.jpg" alt="" width="481" height="339"/>
+        <img className="land-hero-wave" src="assets/landing/hero-wave.svg" alt="" width="678" height="338"/>
+        <h1 className="land-hero-title">What are you<br/>making?</h1>
+      </section>
+      <div className="land-main">
+        <div className="land-crafts">
           {CRAFTS.map(c => (
             <div key={c.id}
-              className={c.ready ? "proj-card" : "proj-card is-soon"}
+              className={c.ready ? "land-craft" : "land-craft is-soon"}
               role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
+              aria-label={c.ready ? `Start ${c.name}` : `${c.name}, coming soon`}
               onClick={() => c.ready && onSelect(c.id)}
               onKeyDown={e => e.key === "Enter" && c.ready && onSelect(c.id)}>
-              {CRAFT_IMAGES[c.id] && (
-                <div className="proj-card-thumb has-photo"><img src={CRAFT_IMAGES[c.id]} alt={c.name}/></div>
-              )}
-              <div className="proj-card-body">
-                <div className="proj-card-name">{c.name}</div>
-                <div className="proj-card-desc">{c.desc}</div>
-                <div className="proj-card-cost">{c.ready ? "Start →" : "Coming soon"}</div>
+              <div className="land-craft-visual">
+                <img src={c.image} alt="" width={c.imgW} height={c.imgH}/>
+              </div>
+              <div className="land-craft-copy">
+                <div className="land-craft-name">{c.name}</div>
+                <div className="land-craft-desc-row">
+                  <span className="land-craft-desc">{c.ready ? c.desc : "Coming soon"}</span>
+                  {c.ready && (
+                    <span className="land-craft-arrow" aria-hidden="true">
+                      <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
         <SavedDesigns onOpen={onOpenSaved}/>
       </div>
+      <footer className="land-footer" aria-hidden="true"/>
     </div>
   );
 }
