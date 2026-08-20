@@ -880,7 +880,53 @@
   .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-white); font: inherit; transition: box-shadow .15s, transform .12s; }
   .fabric-card:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.13); transform: translateY(-2px); }
   .fabric-card:active { transform: translateY(0); }
+  .fabric-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
   .fabric-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+
+  /* Full-res fabric enlarge (studio swatch + picker confirm). Sits above
+     bottom sheets so it still works from the mobile fabrics sheet. */
+  .overlay-lift { z-index: 220; }
+  .fabric-enlarge {
+    background: var(--metime-white); border: 1px solid #E2DDD2; border-radius: 8px;
+    padding: 20px 24px; max-width: min(720px, calc(100vw - 32px)); width: 100%;
+    max-height: 90vh; overflow: auto; box-shadow: 0 8px 32px rgba(46,41,37,0.14);
+    box-sizing: border-box;
+  }
+  .fabric-enlarge-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; }
+  .fabric-enlarge-img {
+    display: block; width: 100%; max-height: min(70vh, 640px); object-fit: contain;
+    background: var(--metime-cream); border: 1px solid #707F87; border-radius: 4px;
+  }
+  .fabric-enlarge-swatch {
+    width: 100%; max-height: min(70vh, 640px); aspect-ratio: 1; border: 1px solid #707F87; border-radius: 4px;
+  }
+  .fabric-enlarge-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* In-studio backing picker (reuses the setup catalog). */
+  .backing-picker-dialog {
+    background: var(--metime-white); border: 1px solid #E2DDD2; border-radius: 8px;
+    max-width: 860px; width: 100%; margin: 16px; max-height: 90vh;
+    box-shadow: 0 8px 32px rgba(46,41,37,0.14); display: flex; flex-direction: column;
+    overflow: hidden; box-sizing: border-box;
+  }
+  .backing-picker-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 20px 24px 12px; border-bottom: 1px solid #EFE9DD; flex-shrink: 0;
+  }
+  .backing-picker-title { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; }
+  .backing-picker-body { overflow-y: auto; padding: 20px 24px 24px; flex: 1; min-height: 0; }
+  .backing-picker-dialog .pal-upload { width: 100%; max-width: 360px; }
+  .backing-current {
+    display: block; width: 100%; margin: 0 0 20px; padding: 0; border: 1px solid #707F87;
+    border-radius: 4px; overflow: hidden; background: var(--metime-white); cursor: zoom-in;
+    font: inherit; color: inherit; text-align: left;
+  }
+  .backing-current:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.13); }
+  .backing-current-img { display: block; width: 100%; height: 220px; object-fit: cover; }
+  .backing-current-caption { padding: 10px 12px; font-size: 13px; color: #3c3833; }
+  .fabric-row-swatch.can-enlarge { cursor: zoom-in; }
+  .fabric-row-swatch.can-enlarge:hover { outline: 2px solid var(--selection); outline-offset: 1px; }
 
   /* Mobile-friendly project setup screens (size / template / palette steps). */
   @media (max-width: 640px) {
@@ -905,6 +951,8 @@
     .pal-from-image-swatch, .pal-from-image-add { width: 48px; height: 48px; }
     .pal-from-image-add { font-size: 20px; }
     .pal-from-image-use { width: 100%; justify-content: center; }
+    .backing-current-img { height: 160px; }
+    .fabric-enlarge-name, .backing-picker-title { font-size: 22px; }
   }
 </style>
 </head>
@@ -3590,15 +3638,19 @@ function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selI
   );
 }
 
-const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, onClick }, ref) {
+const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, onClick, onSwatchClick }, ref) {
   const swatchSrc = fabric && (fabric.thumb || fabricThumbFor(fabric.image) || fabric.image);
+  const canEnlarge = typeof onSwatchClick === 'function' && !!(fabric && (fabric.image || swatchSrc));
   return (
     <button ref={ref} type="button" className="fabric-row" onClick={onClick}
       title={fabric ? `${label} · ${fabric.name} — tap to change` : `Choose ${label.toLowerCase()} fabric`}>
-      <div className={`fabric-row-swatch${fabric ? '' : ' empty'}`}
+      <div
+        className={`fabric-row-swatch${fabric ? '' : ' empty'}${canEnlarge ? ' can-enlarge' : ''}`}
         style={fabric ? (swatchSrc
           ? { background: `center/cover no-repeat url(${swatchSrc})` }
-          : { background: fabric.hex }) : undefined}/>
+          : { background: fabric.hex }) : undefined}
+        title={canEnlarge ? 'View fabric large' : undefined}
+        onClick={canEnlarge ? e => { e.stopPropagation(); onSwatchClick(); } : undefined}/>
       <div className="fabric-row-main">
         <div className="fabric-row-title">
           {label}
@@ -3996,6 +4048,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const [viewQuilt, setViewQuilt] = useState(null);
   const [showMyQuilts, setShowMyQuilts] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [showBackingPicker, setShowBackingPicker] = useState(false);
+  const [inspectBacking, setInspectBacking] = useState(null);
   // Id of the saved quilt currently open on the canvas (null for an unsaved
   // design). Lets "Save" update in place instead of spawning a duplicate.
   const [currentQuiltId, setCurrentQuiltId] = useState(null);
@@ -4402,11 +4456,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             label="Backing"
             fabric={backing}
             detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w · ${fmtY(backCalc.yards)}` : ''}
-            onClick={() => openColorPicker(
-              backingRowRef,
-              setBacking,
-              backing ? () => setBacking(null) : null,
-              'Backing fabric')}/>
+            onClick={() => setShowBackingPicker(true)}
+            onSwatchClick={fabricFullSrc(backing) ? () => setInspectBacking(backing) : null}/>
           <FabricRow
             ref={bindingRowRef}
             label="Binding"
@@ -4494,7 +4545,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         <BottomSheet onClose={()=>setSheet(null)} title="Backing & binding">
           <FabricRow ref={backingRowRef} label="Backing" fabric={backing}
             detail={backing ? `${backCalc.backingW}"×${backCalc.backingH}" · ${backCalc.widths}w · ${fmtY(backCalc.yards)}` : ''}
-            onClick={() => openColorPicker(backingRowRef, setBacking, backing ? () => setBacking(null) : null, 'Backing fabric')}/>
+            onClick={() => { setSheet(null); setShowBackingPicker(true); }}
+            onSwatchClick={fabricFullSrc(backing) ? () => setInspectBacking(backing) : null}/>
           <FabricRow ref={bindingRowRef} label="Binding" fabric={binding}
             detail={binding ? `${bindCalc.strips} strips · ${bindCalc.perimeter}" perim. · ${fmtY(bindCalc.yards)}` : ''}
             onClick={() => openColorPicker(bindingRowRef, setBinding, binding ? () => setBinding(null) : null, 'Binding fabric')}/>
@@ -4547,6 +4599,19 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           onClear={picker.onClear}
           title={picker.title}
           isMobile={isMobile}/>
+      )}
+
+      {showBackingPicker && (
+        <BackingPickerOverlay
+          current={backing}
+          onChoose={fab => { setBacking(fab); setShowBackingPicker(false); }}
+          onClear={backing ? () => setBacking(null) : null}
+          onClose={() => setShowBackingPicker(false)}/>
+      )}
+      {inspectBacking && (
+        <FabricEnlargeOverlay
+          fabric={inspectBacking}
+          onClose={() => setInspectBacking(null)}/>
       )}
 
       {/* Clear confirm */}
@@ -5837,7 +5902,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // Upload-only photo picker for the cross-stitch template step. It just captures
 // the image (as a data URL) and hands it forward — NO color extraction here.
 // All color work (suggested palette, swapping) happens on the palette step.
-function PhotoDrop({ hint, onChoose }) {
+function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -5872,9 +5937,9 @@ function PhotoDrop({ hint, onChoose }) {
         <div className="pal-result">
           <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
           <div className="pal-result-main">
-            <div className="pal-section-sub" style={{ marginBottom: 12 }}>We'll suggest a palette from this photo on the next step and use it to guide your design.</div>
+            <div className="pal-section-sub" style={{ marginBottom: 12 }}>{resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design."}</div>
             <div className="pal-actions">
-              <button className="pal-btn" onClick={() => onChoose(imgSrc)}>Use this photo</button>
+              <button className="pal-btn" onClick={() => onChoose(imgSrc)}>{useLabel}</button>
               <button className="pal-btn secondary" onClick={reset}>Choose another</button>
             </div>
           </div>
@@ -6122,14 +6187,56 @@ function sampleImageHex(img) {
   } catch (e) { return '#C9BFB2'; }
 }
 
+// Load a fabric image, sample a representative hex, and emit the backing
+// record `{ name, hex, image, thumb }`. Prefer the compact thumb for sampling
+// so we don't re-decode a multi‑MB print just to average a 48px canvas.
+function chooseBackingFromImage(name, image, thumb, onChoose) {
+  const src = thumb || image;
+  const img = new Image();
+  img.onload = () => onChoose({ name, hex: sampleImageHex(img), image, thumb: thumb || image });
+  img.onerror = () => onChoose({ name, hex: '#C9BFB2', image, thumb: thumb || image });
+  img.src = src;
+}
+
+function fabricFullSrc(fabric) {
+  if (!fabric) return null;
+  return fabric.image || fabric.thumb || fabricThumbFor(fabric.image) || null;
+}
+
+// Full-res (or hex) enlarge overlay. `onUse` turns it into a confirm step when
+// choosing; omit it for inspect-only (current backing in the studio).
+function FabricEnlargeOverlay({ fabric, onClose, onUse, useLabel = 'Use this fabric' }) {
+  if (!fabric) return null;
+  const src = fabricFullSrc(fabric);
+  return (
+    <div className="overlay overlay-lift" onClick={onClose}>
+      <div className="fabric-enlarge" onClick={e => e.stopPropagation()}>
+        <div className="fabric-enlarge-head">
+          <div className="fabric-enlarge-name">{fabric.name}</div>
+          <button type="button" onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}} aria-label="Close"><IcX/></button>
+        </div>
+        {src
+          ? <img className="fabric-enlarge-img" src={src} alt={fabric.name}/>
+          : <div className="fabric-enlarge-swatch" style={{ background: fabric.hex || '#C9BFB2' }}/>}
+        {onUse && (
+          <div className="fabric-enlarge-actions">
+            <button type="button" className="btn" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn btn-dark" onClick={() => onUse(fabric)}>{useLabel}</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // A single fabric swatch card. Compact (image-only, name in tooltip) so the grid
 // can stay dense. Hides itself if its image can't load so a broken/missing asset
 // never leaves an empty broken-image box on the page.
-function FabricCard({ fab, onChoose }) {
+function FabricCard({ fab, onChoose, selected }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
   return (
-    <button className="fabric-card" onClick={() => onChoose(fab)} title={`Use "${fab.name}"`}>
+    <button className={`fabric-card${selected ? ' selected' : ''}`} onClick={() => onChoose(fab)} title={`Use "${fab.name}"`}>
       <img className="fabric-thumb" src={fab.thumb || fab.image} alt={fab.name} loading="lazy"
         onError={e => {
           // Prefer thumb; if it's missing, fall back to the full image once.
@@ -6143,23 +6250,10 @@ function FabricCard({ fab, onChoose }) {
   );
 }
 
-// Quilt backing-fabric step: pick a Ruby Star print or upload your own fabric.
-// Whatever is chosen is loaded, a representative hex is sampled, and we emit
-// { name, hex, image } — the palette step then pulls a Kona palette from it.
-function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
+// Shared catalog: filters + Ruby Star grid + optional upload. Used by the setup
+// step and the in-studio backing overlay so there's only one picker UI.
+function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, uploadResultHint, gridSub }) {
   const [cat, setCat] = useState('all');
-  // Local swatches are same-origin, so no crossOrigin needed — sampleImageHex
-  // can read the pixels and the palette step gets a real auto-suggestion.
-  // Prefer the compact thumb for hex sampling so we don't re-decode a multi‑MB
-  // print just to average a 48px canvas. Keep `image` as the full path for
-  // anything that still wants it; palette extract uses `thumb` too.
-  const chooseFromImage = (name, image, thumb) => {
-    const src = thumb || image;
-    const img = new Image();
-    img.onload = () => onChoose({ name, hex: sampleImageHex(img), image, thumb: thumb || image });
-    img.onerror = () => onChoose({ name, hex: '#C9BFB2', image, thumb: thumb || image });
-    img.src = src;
-  };
   const cats = useMemo(() => FABRIC_CATEGORIES.map(c => ({
     ...c,
     count: c.id === 'all' ? RUBY_STAR_FABRICS.length : RUBY_STAR_FABRICS.filter(f => f.cats.includes(c.id)).length,
@@ -6168,6 +6262,49 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
     () => cat === 'all' ? RUBY_STAR_FABRICS : RUBY_STAR_FABRICS.filter(f => f.cats.includes(cat)),
     [cat]
   );
+  return (
+    <>
+      <section className="pal-section">
+        <div className="pal-section-head">
+          <div className="pal-section-title">Ruby Star fabrics</div>
+          <div className="pal-section-sub">{gridSub || 'Tap a fabric to use it as your backing.'}</div>
+        </div>
+        <div className="fabric-filters">
+          {cats.map(c => (
+            <button
+              key={c.id}
+              className={`fabric-filter${cat === c.id ? ' active' : ''}`}
+              onClick={() => setCat(c.id)}>
+              {c.label} <span className="fabric-filter-count">{c.count}</span>
+            </button>
+          ))}
+        </div>
+        <div className="fabric-grid">
+          {shown.map((f, i) => (
+            <FabricCard
+              key={`${f.image}-${i}`}
+              fab={f}
+              selected={!!(current && current.image === f.image)}
+              onChoose={onPickFab}/>
+          ))}
+        </div>
+      </section>
+      <PhotoDrop
+        hint={uploadHint}
+        resultHint={uploadResultHint}
+        onChoose={onPickUpload}/>
+    </>
+  );
+}
+
+// Quilt backing-fabric step: pick a Ruby Star print or upload your own fabric.
+// Whatever is chosen is loaded, a representative hex is sampled, and we emit
+// { name, hex, image } — the palette step then pulls a Kona palette from it.
+function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
+  // Local swatches are same-origin, so no crossOrigin needed — sampleImageHex
+  // can read the pixels and the palette step gets a real auto-suggestion.
+  const [inspect, setInspect] = useState(null);
+  const apply = (name, image, thumb) => chooseBackingFromImage(name, image, thumb, onChoose);
   return (
     <div className="proj-page">
       <header className="proj-header">
@@ -6183,37 +6320,74 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
           <p className="proj-subheading">Choose a backing for your {preset} — pick a Ruby Star Society print or upload your own fabric. We'll pull a palette from it on the next step.</p>
         </div>
 
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Ruby Star fabrics</div>
-            <div className="pal-section-sub">Tap a fabric to use it as your backing.</div>
-          </div>
-          <div className="fabric-filters">
-            {cats.map(c => (
-              <button
-                key={c.id}
-                className={`fabric-filter${cat === c.id ? ' active' : ''}`}
-                onClick={() => setCat(c.id)}>
-                {c.label} <span className="fabric-filter-count">{c.count}</span>
-              </button>
-            ))}
-          </div>
-          <div className="fabric-grid">
-            {shown.map((f, i) => (
-              <FabricCard key={`${f.image}-${i}`} fab={f} onChoose={fab => chooseFromImage(fab.name, fab.image, fab.thumb)}/>
-            ))}
-          </div>
-        </section>
-
-        <PhotoDrop
-          hint="Use a photo of your own fabric — we'll suggest a palette from it on the next step."
-          onChoose={imgSrc => chooseFromImage('Your fabric', imgSrc)}/>
+        <BackingFabricPicker
+          onPickFab={fab => setInspect(fab)}
+          onPickUpload={imgSrc => apply('Your fabric', imgSrc)}
+          uploadHint="Use a photo of your own fabric — we'll suggest a palette from it on the next step."
+          gridSub="Tap a fabric to preview it large, then use it as your backing."/>
 
         <section className="pal-section pal-skip-row">
           <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
         </section>
       </div>
+      {inspect && (
+        <FabricEnlargeOverlay
+          fabric={inspect}
+          onClose={() => setInspect(null)}
+          onUse={fab => apply(fab.name, fab.image, fab.thumb)}/>
+      )}
     </div>
+  );
+}
+
+// In-studio backing editor: same catalog as setup, plus a large current-fabric
+// preview (click to enlarge) and Clear.
+function BackingPickerOverlay({ current, onChoose, onClear, onClose }) {
+  const [inspect, setInspect] = useState(null);
+  const apply = (name, image, thumb) => {
+    chooseBackingFromImage(name, image, thumb, fab => {
+      onChoose(fab);
+      setInspect(null);
+    });
+  };
+  const currentSrc = fabricFullSrc(current);
+  return (
+    <>
+      <div className="overlay overlay-lift" onClick={onClose}>
+        <div className="backing-picker-dialog" onClick={e => e.stopPropagation()}>
+          <div className="backing-picker-head">
+            <div className="backing-picker-title">Backing fabric</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {current && onClear && (
+                <button type="button" className="btn" onClick={() => { onClear(); onClose(); }}>Clear</button>
+              )}
+              <button type="button" onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}} aria-label="Close"><IcX/></button>
+            </div>
+          </div>
+          <div className="backing-picker-body">
+            {current && currentSrc && (
+              <button type="button" className="backing-current" onClick={() => setInspect({ ...current, viewOnly: true })} title="View fabric large">
+                <img className="backing-current-img" src={current.image || currentSrc} alt={current.name}/>
+                <div className="backing-current-caption">{current.name} — tap to view large</div>
+              </button>
+            )}
+            <BackingFabricPicker
+              current={current}
+              onPickFab={fab => setInspect(fab)}
+              onPickUpload={imgSrc => apply('Your fabric', imgSrc)}
+              uploadHint="Use a photo of your own fabric as the backing."
+              uploadResultHint="We'll use this photo as your quilt backing."
+              gridSub="Tap a fabric to preview it large, then use it as your backing."/>
+          </div>
+        </div>
+      </div>
+      {inspect && (
+        <FabricEnlargeOverlay
+          fabric={inspect}
+          onClose={() => setInspect(null)}
+          onUse={inspect.viewOnly ? undefined : fab => apply(fab.name, fab.image, fab.thumb)}/>
+      )}
+    </>
   );
 }
 
