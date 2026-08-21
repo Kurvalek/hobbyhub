@@ -395,6 +395,33 @@
   .size-bar-meta { display: flex; gap: 16px; font-size: 11px; color: var(--warm-muted); white-space: nowrap; }
   .size-bar-meta span { font-variant-numeric: tabular-nums; }
 
+  /* Coaster set: 4 pages sharing palette/template, edited one at a time. */
+  .coaster-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 20px; border-bottom: var(--div-border); background: var(--surface-canvas);
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .coaster-tablist {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--warm-hairline); border-radius: 8px;
+    overflow: hidden; background: var(--surface-card);
+  }
+  .coaster-tab {
+    appearance: none; border: none; background: transparent; cursor: pointer;
+    padding: 6px 12px; font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+    color: var(--warm-muted); border-right: 1px solid var(--warm-hairline); white-space: nowrap;
+  }
+  .coaster-tab:last-child { border-right: none; }
+  .coaster-tab:hover { background: var(--warm-hover); color: var(--warm-fg); }
+  .coaster-tab.active { background: var(--metime-almost-black); color: var(--metime-white); }
+  .coaster-tab.active:hover { background: var(--metime-almost-black); color: var(--metime-white); }
+  .coaster-tab:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
+  .coaster-copy { flex-shrink: 0; }
+  @media (max-width: 900px) {
+    .coaster-bar { padding: 8px 14px; }
+    .coaster-tab { padding: 6px 9px; font-size: 11px; }
+  }
+
   /* Canvas viewport (scrollable, centered, scaled by zoom) */
   .canvas-scroll { width: 100%; height: 100%; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; box-sizing: border-box; }
   .canvas-scroll > .canvas-frame { flex-shrink: 0; position: relative; background: var(--canvas-bg); }
@@ -2139,6 +2166,60 @@ function computeStitchStats(cells, W, H, pal, library) {
   return { total, possible: W * H, colors };
 }
 
+// A coaster order is always a set of 4, across quilt / cross-stitch / punch.
+const COASTER_COUNT = 4;
+const isCoasterSize = name => name === 'Coaster' || name === 'Coaster Set';
+let _shapeIdSeq = 1;
+function nextShapeId() { return 's' + (_shapeIdSeq++) + '-' + Math.random().toString(36).slice(2, 8); }
+function cloneQuiltShapes(shapes) {
+  const pairMap = new Map();
+  const pairFor = pid => {
+    if (pid == null) return undefined;
+    if (!pairMap.has(pid)) pairMap.set(pid, nextShapeId());
+    return pairMap.get(pid);
+  };
+  return (shapes || []).map(s => ({
+    ...s,
+    id: nextShapeId(),
+    pairId: s.pairId != null ? pairFor(s.pairId) : undefined,
+    color: s.color && typeof s.color === 'object' ? { ...s.color } : s.color,
+  }));
+}
+function seedCoasterUnits(shapes) {
+  return Array.from({ length: COASTER_COUNT }, () => cloneQuiltShapes(shapes));
+}
+function seedCoasterPages(cells, len) {
+  const src = (cells && cells.length === len) ? cells : new Array(len).fill(null);
+  return Array.from({ length: COASTER_COUNT }, () => src.slice());
+}
+
+function CoasterTabs({ active, onSelect, onCopyAll }) {
+  const [copied, setCopied] = useState(false);
+  const tRef = useRef(null);
+  const copy = () => {
+    onCopyAll();
+    setCopied(true);
+    if (tRef.current) clearTimeout(tRef.current);
+    tRef.current = setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <div className="coaster-bar">
+      <div className="coaster-tablist" role="tablist" aria-label="Coasters in this set">
+        {Array.from({ length: COASTER_COUNT }, (_, i) => (
+          <button key={i} type="button" role="tab" className={`coaster-tab${active === i ? ' active' : ''}`}
+            aria-selected={active === i} onClick={() => onSelect(i)}>
+            Coaster {i + 1}
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn coaster-copy" onClick={copy}
+        title="Replace the other three coasters with this design">
+        {copied ? 'Copied ✓' : 'Copy to all'}
+      </button>
+    </div>
+  );
+}
+
 // ── Minimal inline icons ──────────────────────────────────────────────────
 const Svg = ({ children, size=14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
@@ -2849,7 +2930,7 @@ function extractColors(imageData, count) {
 // c1 / c2 are the two patch colors of the generated QuiltThumb, pulled from the
 // metime accent palette so a thumb reads as a sibling of the photographed quilts.
 const PRESET_THEMES = {
-  "Coaster":        { c1:"#FBBB3F", c2:"#F5F3EE", desc:"You'll get enough material to make 4, but only one design." },
+  "Coaster":        { c1:"#FBBB3F", c2:"#F5F3EE", desc:"A set of 4 — start from one design, then customize each." },
   "Wall hanging":   { c1:"#FDA198", c2:"#F5F3EE", desc:"An accent piece for any wall" },
   "Baby blanket":   { c1:"#E8A0C8", c2:"#F5F3EE", desc:"Cozy for little ones" },
   "Throw":          { c1:"#B9B74B", c2:"#F5F3EE", desc:"The weekend favorite" },
@@ -4369,10 +4450,23 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const isMobile = useIsMobile();
   // Mobile bottom-sheet router: null | 'palette' | 'size' | 'fabrics' | 'pattern' | 'materials'
   const [sheet, setSheet] = useState(null);
-  const [shapes, _setShapes] = useState(() =>
-    (initialTemplate && typeof initialTemplate.build === 'function')
+  const coasterUnitsRef = useRef(null);
+  const undoStacksRef = useRef(Array.from({ length: COASTER_COUNT }, () => []));
+  const [activeCoaster, setActiveCoaster] = useState(0);
+  const [coasterRev, setCoasterRev] = useState(0);
+  const activeCoasterRef = useRef(0);
+  activeCoasterRef.current = activeCoaster;
+  const [shapes, _setShapes] = useState(() => {
+    const seed = (initialTemplate && typeof initialTemplate.build === 'function')
       ? initialTemplate.build({ cols: _initCols, rows: _initRows, palette: initialPalette })
-      : []);
+      : [];
+    if (!initialQuilt && isCoasterSize(initialPreset)) {
+      const units = seedCoasterUnits(seed);
+      coasterUnitsRef.current = units;
+      return units[0];
+    }
+    return seed;
+  });
   const historyRef = useRef([]);
   const setShapes = useCallback(updater => {
     _setShapes(prev => {
@@ -4459,11 +4553,19 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const currentQuilt = savedQuilts.find(q => q.id === currentQuiltId) || null;
   // Snapshot every piece of editor state we persist. `id`/`name` are supplied
   // by the caller so the same builder serves both "save new" and "update".
-  const buildQuiltRecord = (id, name) => ({
-    id, name, shapes: [...shapes], cols, rows, bs, preset, backing, binding, pinned: [...pinned],
-    qPattern, qSpacing, qColor, showQ, materials: { ...materials }, fw, fh, backCalc, bindCalc, grandTotal,
-    updatedAt: Date.now(),
-  });
+  const buildQuiltRecord = (id, name) => {
+    const record = {
+      id, name, shapes: [...shapes], cols, rows, bs, preset, backing, binding, pinned: [...pinned],
+      qPattern, qSpacing, qColor, showQ, materials: { ...materials }, fw, fh, backCalc, bindCalc, grandTotal,
+      updatedAt: Date.now(),
+    };
+    if (isCoasterSize(preset) && coasterUnitsRef.current) {
+      coasterUnitsRef.current[activeCoaster] = shapes;
+      record.units = coasterUnitsRef.current.map(s => ({ shapes: s }));
+      record.activeUnit = activeCoaster;
+    }
+    return record;
+  };
   // Writes the design to the account, then to this device. With Supabase
   // unconfigured the cloud leg is skipped and the save is local-only, which is
   // how the studio worked before accounts existed.
@@ -4519,12 +4621,27 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     if (!q) return;
     setCurrentQuiltId(q.id ?? null);
     historyRef.current = [];
-    _setShapes(Array.isArray(q.shapes) ? q.shapes : []);
+    undoStacksRef.current = Array.from({ length: COASTER_COUNT }, () => []);
     setSelIds(new Set());
     if (typeof q.cols === 'number') setCols(q.cols);
     if (typeof q.rows === 'number') setRows(q.rows);
     if (typeof q.bs === 'number') setBs(q.bs);
     if (q.preset) setPreset(q.preset);
+    if (isCoasterSize(q.preset || '')) {
+      const units = (Array.isArray(q.units) && q.units.length === COASTER_COUNT)
+        ? q.units.map(u => Array.isArray(u.shapes) ? u.shapes : [])
+        : seedCoasterUnits(Array.isArray(q.shapes) ? q.shapes : []);
+      coasterUnitsRef.current = units;
+      const idx = Math.min(COASTER_COUNT - 1, Math.max(0, q.activeUnit || 0));
+      setActiveCoaster(idx);
+      activeCoasterRef.current = idx;
+      _setShapes(units[idx]);
+    } else {
+      coasterUnitsRef.current = null;
+      setActiveCoaster(0);
+      activeCoasterRef.current = 0;
+      _setShapes(Array.isArray(q.shapes) ? q.shapes : []);
+    }
     setBacking(q.backing || null);
     setBinding(q.binding || null);
     // Palette: prefer the saved "My palette", else rebuild it from the colors
@@ -4652,28 +4769,55 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   },[allColors,grp,search]);
 
   useEffect(()=>{
-    setShapes(p=>p.map(s=>({...s,r:Math.min(s.r,rows-1),c:Math.min(s.c,cols-1),h:Math.max(1,Math.min(s.h,rows-Math.min(s.r,rows-1))),w:Math.max(1,Math.min(s.w,cols-Math.min(s.c,cols-1)))})));
+    const clamp = s => ({...s,r:Math.min(s.r,rows-1),c:Math.min(s.c,cols-1),h:Math.max(1,Math.min(s.h,rows-Math.min(s.r,rows-1))),w:Math.max(1,Math.min(s.w,cols-Math.min(s.c,cols-1)))});
+    if (coasterUnitsRef.current) {
+      const active = activeCoasterRef.current;
+      coasterUnitsRef.current = coasterUnitsRef.current.map((u, i) => i === active ? u : u.map(clamp));
+    }
+    setShapes(p=>p.map(clamp));
     setSelIds(new Set());
   },[rows,cols]);
 
-  // Kit fabric multiplier: e.g. a Coaster kit ships enough material for 4
-  // (the user still designs only one). We pass this qty into the yardage
-  // calcs so the extra units nest across the fabric width instead of naively
-  // multiplying a full-width single-piece yardage by 4.
+  // Kit fabric multiplier: e.g. a Coaster kit ships 4 backing/binding panels.
+  // Patch yardage for a set is the sum of the four designs, not 4× one design.
   const kitQty = (PRESETS.find(x=>x.name===preset)?.kitQty) || 1;
+  const isCoasterKit = isCoasterSize(preset);
+
+  const selectCoaster = (i) => {
+    if (!coasterUnitsRef.current || i === activeCoaster) return;
+    coasterUnitsRef.current[activeCoaster] = shapes;
+    undoStacksRef.current[activeCoaster] = historyRef.current;
+    setActiveCoaster(i);
+    activeCoasterRef.current = i;
+    historyRef.current = undoStacksRef.current[i] || [];
+    _setShapes(coasterUnitsRef.current[i]);
+    setSelIds(new Set());
+  };
+  const copyCoasterToAll = () => {
+    if (!coasterUnitsRef.current) return;
+    coasterUnitsRef.current = coasterUnitsRef.current.map((_, i) =>
+      i === activeCoaster ? shapes : cloneQuiltShapes(shapes));
+    undoStacksRef.current = undoStacksRef.current.map((stack, i) => i === activeCoaster ? stack : []);
+    setCoasterRev(n => n + 1);
+  };
 
   const materials = useMemo(()=>{
     const map=new Map();
     const add=(col,amt)=>{if(!col)return;if(!map.has(col.name))map.set(col.name,{...col,count:0});map.get(col.name).count+=amt;};
-    for(const s of shapes){
+    const all = (isCoasterKit && coasterUnitsRef.current)
+      ? coasterUnitsRef.current.flatMap((u, i) => i === activeCoaster ? shapes : u)
+      : shapes;
+    for(const s of all){
       const area=s.h*s.w;
       if(s.type==='tri') add(s.color,area*0.5);
       else add(s.color,area);
     }
-    const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs,kitQty)})).sort((a,b)=>b.count-a.count);
-    const total=shapes.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
-    return{items,total,possible:rows*cols,yards:items.reduce((s,x)=>s+x.yards,0)};
-  },[shapes,bs,rows,cols,kitQty]);
+    const patchQty = isCoasterKit ? 1 : kitQty;
+    const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs,patchQty)})).sort((a,b)=>b.count-a.count);
+    const total=all.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
+    const possible = rows*cols*(isCoasterKit ? COASTER_COUNT : 1);
+    return{items,total,possible,yards:items.reduce((s,x)=>s+x.yards,0)};
+  },[shapes,bs,rows,cols,kitQty,isCoasterKit,activeCoaster,coasterRev]);
 
   const fw=cols*bs, fh=rows*bs;
   const backCalc=useMemo(()=>calcBacking(fw,fh,kitQty),[fw,fh,kitQty]);
@@ -4692,8 +4836,21 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   }, [preset, minBs]);
 
   const applyPreset = name => {
-    setPreset(name);
     const p = PRESETS.find(x => x.name === name);
+    if (!p) return;
+    if (isCoasterSize(name) && !coasterUnitsRef.current) {
+      coasterUnitsRef.current = seedCoasterUnits(shapes);
+      undoStacksRef.current = Array.from({ length: COASTER_COUNT }, () => []);
+      historyRef.current = [];
+      setActiveCoaster(0);
+      activeCoasterRef.current = 0;
+    } else if (!isCoasterSize(name)) {
+      if (coasterUnitsRef.current) coasterUnitsRef.current[activeCoaster] = shapes;
+      coasterUnitsRef.current = null;
+      setActiveCoaster(0);
+      activeCoasterRef.current = 0;
+    }
+    setPreset(name);
     if (!p) return;
     const presetMinBs = minBsFor(name);
     const presetMaxBs = Math.max(presetMinBs, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
@@ -4778,6 +4935,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
         {/* Center: canvas */}
         <div className="panel" style={{display:'flex',flexDirection:'column',background:'var(--app-bg)',borderRight:'none'}}>
+          {isCoasterKit && (
+            <CoasterTabs active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}/>
+          )}
           <SizeBar
             bs={bs}
             minBs={minBs}
@@ -5015,11 +5175,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         <div className="overlay" onClick={()=>setConfirmClear(false)}>
           <div onClick={e=>e.stopPropagation()}
             style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:340,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)'}}>
-            <div style={{fontWeight:400,fontSize:24,marginBottom:8,fontFamily:"var(--font-display)",lineHeight:1.1}}>Clear the quilt?</div>
-            <div style={{fontSize:13,color:'#5C544A',marginBottom:20,lineHeight:1.5}}>This will remove all shapes from your design. This cannot be undone.</div>
+            <div style={{fontWeight:400,fontSize:24,marginBottom:8,fontFamily:"var(--font-display)",lineHeight:1.1}}>{isCoasterKit ? 'Clear this coaster?' : 'Clear the quilt?'}</div>
+            <div style={{fontSize:13,color:'#5C544A',marginBottom:20,lineHeight:1.5}}>{isCoasterKit ? 'This will remove all shapes from this coaster. The rest of the set is unchanged.' : 'This will remove all shapes from your design. This cannot be undone.'}</div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button className="btn" onClick={()=>setConfirmClear(false)}>Cancel</button>
-              <button className="btn btn-dark" onClick={()=>{setShapes([]);setSelIds(new Set());setConfirmClear(false);}}>Clear all</button>
+              <button className="btn btn-dark" onClick={()=>{setShapes([]);setSelIds(new Set());setConfirmClear(false);}}>{isCoasterKit ? 'Clear coaster' : 'Clear all'}</button>
             </div>
           </div>
         </div>
@@ -5795,8 +5955,8 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         </div>
       </header>
       <section className="land-hero" aria-label="What are you making?">
-        <img className="land-hero-photo is-left" src="assets/landing/hero-left.png" alt="" width="1122" height="1402"/>
-        <img className="land-hero-photo is-right" src="assets/landing/hero-right.png" alt="" width="1122" height="1402"/>
+        <img className="land-hero-photo is-left" src="assets/landing/hero-left.png?v=3" alt="" width="823" height="685"/>
+        <img className="land-hero-photo is-right" src="assets/landing/hero-right.png?v=3" alt="" width="4220" height="4191"/>
         <img className="land-hero-wave" src="assets/landing/hero-wave.svg" alt="" width="678" height="338"/>
         <h1 className="land-hero-title">What are you<br/>making?</h1>
       </section>
@@ -7169,7 +7329,9 @@ function GridSizeThumb({ preset, craft }) {
 function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
   const cfg = CRAFT_STUDIO[craft];
   const image = (GRID_SIZE_IMAGES[craft] || {})[preset.name];
-  const dims = `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
+  const dims = isCoasterSize(preset.name)
+    ? `${preset.w} × ${preset.h} ${cfg.unitPlural} · set of 4`
+    : `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
       aria-label={`${preset.name}, ${dims}`}>
@@ -7547,13 +7709,28 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     auth.consumeLastSaved();
   }, [auth && auth.lastSaved, CFG.checkoutType]);
 
-  const cellsRef = useRef(autoGrid ? autoGrid.slice() : new Array(W * H).fill(null));
+  const pagesRef = useRef(null);
+  const undoPagesRef = useRef(null);
+  const [activeCoaster, setActiveCoaster] = useState(0);
+  const activeCoasterRef = useRef(0);
+  activeCoasterRef.current = activeCoaster;
+  const isCoasterKit = isCoasterSize(dims.name);
+  const cellsRef = useRef((() => {
+    const seed = autoGrid ? autoGrid.slice() : new Array(W * H).fill(null);
+    if (!initialDesign && isCoasterSize(preset.name)) {
+      const pages = seedCoasterPages(seed, W * H);
+      pagesRef.current = pages;
+      undoPagesRef.current = Array.from({ length: COASTER_COUNT }, () => []);
+      return pages[0];
+    }
+    return seed;
+  })());
   const previewRef = useRef(null);
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const bgImgRef = useRef(null);
   const rafRef = useRef(0);
-  const undoRef = useRef([]);
+  const undoRef = useRef((undoPagesRef.current && undoPagesRef.current[0]) || []);
   const drawingRef = useRef(false);
   const startRef = useRef(null);
   const lastRef = useRef(null);
@@ -7577,19 +7754,56 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const [, setSelTick] = useState(0);
   const touchSel = () => { setHasSel(!!selRef.current); setSelTick(t => t + 1); };
 
+  const idx = (x, y) => y * W + x;
+  const bindActivePage = () => {
+    if (pagesRef.current) pagesRef.current[activeCoasterRef.current] = cellsRef.current;
+  };
+  const selectCoaster = (i) => {
+    if (!pagesRef.current || i === activeCoaster) return;
+    if (typeof commitFloat === 'function' && commitFloat()) { /* placed */ }
+    selRef.current = null; movingRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
+    if (undoPagesRef.current) undoPagesRef.current[activeCoaster] = undoRef.current;
+    setActiveCoaster(i);
+    activeCoasterRef.current = i;
+    cellsRef.current = pagesRef.current[i];
+    undoRef.current = (undoPagesRef.current && undoPagesRef.current[i]) || [];
+    previewRef.current = null;
+    redraw(); bump();
+  };
+  const copyCoasterToAll = () => {
+    if (!pagesRef.current) return;
+    const src = cellsRef.current.slice();
+    pagesRef.current = pagesRef.current.map((_, i) => i === activeCoaster ? cellsRef.current : src.slice());
+    if (undoPagesRef.current) {
+      undoPagesRef.current = undoPagesRef.current.map((stack, i) => i === activeCoaster ? stack : []);
+    }
+    bump();
+  };
+
   // Counts describe what the board will look like once a floating selection
-  // lands, so the float is composited in before tallying.
+  // lands, so the float is composited in before tallying. For a coaster set
+  // the materials list is the sum of all four pages.
   const stats = useMemo(() => {
     const sel = selRef.current;
-    let cells = cellsRef.current;
-    if (sel && sel.floating) {
-      cells = cells.slice();
-      for (const [i, hex] of sel.cells) cells[i] = hex;
+    const withFloat = (cells) => {
+      if (!(sel && sel.floating)) return cells;
+      const next = cells.slice();
+      for (const [i, hex] of sel.cells) next[i] = hex;
+      return next;
+    };
+    if (pagesRef.current) {
+      const merged = [];
+      const active = activeCoasterRef.current;
+      for (let i = 0; i < pagesRef.current.length; i++) {
+        const page = i === active ? withFloat(cellsRef.current) : pagesRef.current[i];
+        for (const h of page) merged.push(h);
+      }
+      return computeStitchStats(merged, W, H * COASTER_COUNT, pal, CFG.library);
     }
-    return computeStitchStats(cells, W, H, pal, CFG.library);
-  }, [version, pal, W, H, CFG]);
-
-  const idx = (x, y) => y * W + x;
+    return computeStitchStats(withFloat(cellsRef.current), W, H, pal, CFG.library);
+  }, [version, pal, W, H, CFG, activeCoaster]);
 
   const redraw = useCallback(() => {
     const cv = canvasRef.current; if (!cv) return;
@@ -7800,6 +8014,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     const sel = selRef.current;
     if (sel && sel.floating) {
       cellsRef.current = sel.before;
+      bindActivePage();
       selRef.current = null; movingRef.current = false;
       dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
       setHasSel(false); setSelCursor(null);
@@ -7808,6 +8023,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     if (!undoRef.current.length) return;
     cellsRef.current = undoRef.current.pop();
+    bindActivePage();
     // The stitches the selection referred to may not exist any more, so drop it.
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
@@ -7992,6 +8208,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (!sel || !sel.floating || sel.copy === copy) return;
     cellsRef.current = sel.before.slice();
     if (!copy) for (const i of sel.srcKeys) cellsRef.current[i] = null;
+    bindActivePage();
     selRef.current = { ...sel, copy };
   };
 
@@ -8015,6 +8232,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     const sel = selRef.current;
     if (!sel || !sel.floating) return false;
     cellsRef.current = sel.before;
+    bindActivePage();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; pressRef.current = null; resizeRef.current = null;
     setHasSel(false); setSelCursor(null);
@@ -8400,6 +8618,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     cancelFloat();
     pushUndo();
     cellsRef.current = new Array(W * H).fill(null); previewRef.current = null;
+    bindActivePage();
     redraw(); bump(); setConfirmClear(false);
   };
 
@@ -8408,13 +8627,20 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const buildStitchRecord = (id, name) => {
     const grid = serializeGrid(cellsRef.current);
     // Callers commit any float first, so this always sees the finished board.
-    const s = computeStitchStats(cellsRef.current, W, H, pal, CFG.library);
-    return {
+    const s = pagesRef.current
+      ? computeStitchStats(pagesRef.current.flat(), W, H * COASTER_COUNT, pal, CFG.library)
+      : computeStitchStats(cellsRef.current, W, H, pal, CFG.library);
+    const record = {
       id, name, craft, presetName: dims.name, w: W, h: H,
       palette: pal, grid, bgImage: bg || null, fabric,
       stitches: s.total, colorsUsed: s.colors.length, colors: s.colors,
       updatedAt: Date.now(),
     };
+    if (pagesRef.current) {
+      record.pages = pagesRef.current.map(cells => ({ grid: serializeGrid(cells) }));
+      record.activePage = activeCoasterRef.current;
+    }
+    return record;
   };
   // Mirrors commitQuiltSave: account first, then this device, and local-only
   // when Supabase isn't configured.
@@ -8479,7 +8705,29 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     if (typeof d.w === 'number' && typeof d.h === 'number') {
       setDims({ w: d.w, h: d.h, name: d.presetName || 'Custom' });
     }
-    cellsRef.current = deserializeGrid(d.grid, d.w * d.h);
+    const len = (d.w || W) * (d.h || H);
+    if (isCoasterSize(d.presetName || dims.name)) {
+      let pages;
+      if (Array.isArray(d.pages) && d.pages.length === COASTER_COUNT) {
+        pages = d.pages.map(p => deserializeGrid(p && p.grid, len));
+      } else {
+        pages = seedCoasterPages(deserializeGrid(d.grid, len), len);
+      }
+      pagesRef.current = pages;
+      undoPagesRef.current = Array.from({ length: COASTER_COUNT }, () => []);
+      const idx = Math.min(COASTER_COUNT - 1, Math.max(0, d.activePage || 0));
+      setActiveCoaster(idx);
+      activeCoasterRef.current = idx;
+      cellsRef.current = pages[idx];
+      undoRef.current = undoPagesRef.current[idx];
+    } else {
+      pagesRef.current = null;
+      undoPagesRef.current = null;
+      setActiveCoaster(0);
+      activeCoasterRef.current = 0;
+      cellsRef.current = deserializeGrid(d.grid, len);
+      undoRef.current = [];
+    }
     previewRef.current = null;
     if (Array.isArray(d.palette) && d.palette.length) { setPal(d.palette); setColor(d.palette[0]); }
     setBg(d.bgImage || null); setShowBg(!!d.bgImage);
@@ -8513,7 +8761,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         <button className="icon-btn" onClick={onBack} title="Back to projects" style={{ marginRight: 2 }}><i className="iconoir-nav-arrow-left" style={{ fontSize: 18 }}/></button>
         <div>
           <div className="xs-title">{CFG.label}</div>
-          <div className="xs-sub">{W} × {H} {CFG.unitPlural} · ≈ {(W/CFG.gauge).toFixed(1)}" × {(H/CFG.gauge).toFixed(1)}" {CFG.gaugeShort}</div>
+          <div className="xs-sub">{W} × {H} {CFG.unitPlural}{isCoasterKit ? ' · set of 4' : ''} · ≈ {(W/CFG.gauge).toFixed(1)}" × {(H/CFG.gauge).toFixed(1)}" {CFG.gaugeShort}</div>
         </div>
         <div className="xs-topbar-spacer"/>
         <AccountChip/>
@@ -8561,6 +8809,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           </div>
         )}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          {isCoasterKit && (
+            <CoasterTabs active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}/>
+          )}
           <div className="size-bar">
             <Switch checked={showGrid} onChange={setShowGrid} label="Grid" title="Toggle grid lines"/>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -8568,7 +8819,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
               {confirmClear ? (
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
-                  <button className="btn btn-dark" onClick={clearAll}>Clear all</button>
+                  <button className="btn btn-dark" onClick={clearAll}>{isCoasterKit ? 'Clear coaster' : 'Clear all'}</button>
                 </span>
               ) : (
                 <button className="btn" onClick={() => setConfirmClear(true)}>Clear</button>
