@@ -7739,16 +7739,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const activeCoasterRef = useRef(0);
   activeCoasterRef.current = activeCoaster;
   const isCoasterKit = isCoasterSize(dims.name);
-  const cellsRef = useRef((() => {
+  // Seeded once, on the first render only. `useRef(expr)` evaluates `expr`
+  // every render and throws all but the first away, so this has to guard
+  // itself: seeding the pages again on a later render would hand back a set of
+  // blank coasters and drop whatever had been stitched on them.
+  const cellsRef = useRef(null);
+  if (cellsRef.current === null) {
     const seed = autoGrid ? autoGrid.slice() : new Array(W * H).fill(null);
     if (!initialDesign && isCoasterSize(preset.name)) {
       const pages = seedCoasterPages(seed, W * H);
       pagesRef.current = pages;
       undoPagesRef.current = Array.from({ length: COASTER_COUNT }, () => []);
-      return pages[0];
+      cellsRef.current = pages[0];
+    } else {
+      cellsRef.current = seed;
     }
-    return seed;
-  })());
+  }
   const previewRef = useRef(null);
   const nibHoverRef = useRef(null); // [x,y] under the pointer, outlined for wide nibs
   const canvasRef = useRef(null);
@@ -7789,6 +7795,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
     setHasSel(false); setSelCursor(null);
+    // Park the coaster being left before reaching for the next one.
+    bindActivePage();
     if (undoPagesRef.current) undoPagesRef.current[activeCoaster] = undoRef.current;
     setActiveCoaster(i);
     activeCoasterRef.current = i;
