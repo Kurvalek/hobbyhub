@@ -8678,7 +8678,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         (tool === 'eraser' ? setEraserNib : setPenNib)(nextNib);
         return;
       }
-      if (e.key === 'Escape' && selRef.current) { deselect(); return; }
+      // Enter and Esc both do what Done does: place the float and let go.
+      if ((e.key === 'Escape' || e.key === 'Enter') && selRef.current) {
+        e.preventDefault(); deselect(); return;
+      }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current) {
         e.preventDefault();
         deleteSelection();
@@ -8955,7 +8958,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                 style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcCopy/> Duplicate</button>
               <button className="btn btn-xs" onClick={deleteSelection} title={`Delete these ${CFG.unitPlural} (Delete)`}
                 style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcTrash/> Delete</button>
-              <button className="btn btn-xs btn-dark" onClick={deselect} title="Deselect (Esc)">Done</button>
+              <button className="btn btn-xs btn-dark" onClick={deselect} title="Deselect (Enter or Esc)">Done</button>
             </span>
           </div>
         )}
