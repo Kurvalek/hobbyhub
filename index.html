@@ -734,13 +734,17 @@
   .size-card:hover .size-card-arrow,
   .size-card:focus-visible .size-card-arrow,
   .pal-page .pal-card:hover .size-card-arrow,
-  .pal-page .pal-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+  .pal-page .pal-card:focus-visible .size-card-arrow,
+  .tmpl-page .tmpl-card:hover .size-card-arrow,
+  .tmpl-page .tmpl-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
   .size-card-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
   @media (prefers-reduced-motion: reduce) {
     .size-card:hover .size-card-arrow,
     .size-card:focus-visible .size-card-arrow,
     .pal-page .pal-card:hover .size-card-arrow,
-    .pal-page .pal-card:focus-visible .size-card-arrow { animation: none; }
+    .pal-page .pal-card:focus-visible .size-card-arrow,
+    .tmpl-page .tmpl-card:hover .size-card-arrow,
+    .tmpl-page .tmpl-card:focus-visible .size-card-arrow { animation: none; }
   }
 
   /* Phones have no hover, so the product-block arrows stay visible. */
@@ -748,7 +752,8 @@
     .land-craft-arrow,
     .size-card-arrow,
     .saved-card-arrow,
-    .pal-page .pal-card .size-card-arrow {
+    .pal-page .pal-card .size-card-arrow,
+    .tmpl-page .tmpl-card .size-card-arrow {
       opacity: 1;
       visibility: visible;
       animation: none;
@@ -908,6 +913,105 @@
     .pal-page .pal-from-image-add { width: 48px; height: 48px; }
     .pal-page .pal-from-image-add { border-radius: 24px; }
     .pal-page .pal-swatch { width: 48px; height: 48px; }
+  }
+
+  /* Template step — same shell as size / backing / palette. */
+  .tmpl-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+  .tmpl-page .tmpl-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    width: 100%; flex: 0 0 auto;
+  }
+  .tmpl-page .tmpl-card {
+    display: flex; flex-direction: column; padding: 32px 36px 33px; min-width: 0;
+    background: none; border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+    border-radius: 0; box-shadow: none; transform: none;
+    text-align: left; font: inherit; color: inherit; cursor: pointer;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .tmpl-page .tmpl-card:nth-child(4n) { border-right: none; }
+  .tmpl-page .tmpl-card:hover { box-shadow: none; transform: none; }
+  .tmpl-page .tmpl-card:active { transform: none; }
+  .tmpl-page .tmpl-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+  .tmpl-page .tmpl-card-thumb {
+    flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center;
+    height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: none; padding: 0;
+  }
+  .tmpl-page .tmpl-card-thumb svg {
+    display: block; height: 100%; width: auto; max-width: 100%;
+  }
+  .tmpl-page .tmpl-card-thumb.is-ratio { height: clamp(140px, 21.6vh, 221px); background: none; }
+  .tmpl-page .tmpl-card-thumb.is-ratio svg {
+    width: auto; height: 100%; max-width: 100%;
+    aspect-ratio: var(--tmpl-ar);
+  }
+  .tmpl-page .tmpl-card-body {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 24px; padding: 0; min-width: 0;
+  }
+  .tmpl-page .tmpl-card-text { min-width: 0; }
+  .tmpl-page .tmpl-card-name {
+    display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500;
+    line-height: 1.2; color: var(--metime-black); margin-bottom: 0;
+  }
+  .tmpl-page .tmpl-card-desc {
+    display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 300;
+    line-height: 1.3; color: var(--metime-black); margin-top: 6px;
+  }
+  .tmpl-upload-bar {
+    display: flex; align-items: center; flex: 0 0 auto; min-height: 173px; padding: 24px 40px;
+    background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+  }
+  .tmpl-upload {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; min-height: 125px; padding: 24px 16px;
+    border: 1px dashed var(--metime-black); background: var(--metime-white);
+    cursor: pointer; text-align: center;
+  }
+  .tmpl-upload:hover, .tmpl-upload.drag { background: var(--color-linen-300); }
+  .tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+  .tmpl-upload-sub { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
+  .tmpl-upload-result {
+    display: flex; align-items: center; gap: 24px; width: 100%; min-width: 0;
+  }
+  .tmpl-upload-preview {
+    width: 97px; height: 97px; object-fit: cover; flex-shrink: 0;
+    border: 1px solid var(--metime-black); display: block;
+  }
+  .tmpl-upload-copy { flex: 1; min-width: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); }
+  .tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+  .tmpl-upload-use {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 160px; height: 40px; padding: 0 16px;
+    border-radius: 4px; border: 1px solid var(--metime-black);
+    background: #1F1E1D; color: var(--metime-white);
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    cursor: pointer;
+  }
+  .tmpl-upload-use:hover { background: #3D3625; }
+  .tmpl-upload-another {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 128px; height: 40px; padding: 0 16px;
+    background: #EDF2FC; border: 1px solid var(--metime-black); border-radius: 4px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    color: var(--metime-black); cursor: pointer;
+  }
+  .tmpl-upload-another:hover { background: var(--metime-ice); }
+  .tmpl-upload-use:focus-visible, .tmpl-upload-another:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  @media (max-width: 1080px) {
+    .tmpl-page .tmpl-grid { grid-template-columns: repeat(2, 1fr); }
+    .tmpl-page .tmpl-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+    .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
+  }
+  @media (max-width: 900px) {
+    .tmpl-page .tmpl-card { padding: 24px 28px; }
+    .tmpl-upload-bar { min-height: 0; padding: 16px 20px; }
+    .tmpl-upload-result, .tmpl-upload-actions { flex-wrap: wrap; }
+    .tmpl-upload-actions { margin-left: 0; }
+  }
+  @media (max-width: 600px) {
+    .tmpl-page .tmpl-grid { grid-template-columns: 1fr; }
+    .tmpl-page .tmpl-card { border-right: none; }
+    .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
   }
 
   /* Cross-stitch editor */
@@ -1225,6 +1329,7 @@
     .pal-section-title { font-size: 18px; }
     .pal-upload { width: 100%; max-width: none; padding: 24px 16px; }
     .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; --tmpl-thumb-h: 240px; }
+    .tmpl-page .tmpl-grid { gap: 0; }
     .pal-grid { gap: 12px; }
     .pal-result { flex-direction: column; gap: 14px; }
     .pal-result-preview { width: 100%; height: 160px; }
@@ -5797,8 +5902,8 @@ function tplTriPoints(s) {
 // (same shape objects the editor paints), so they tile/scale to any chosen
 // preset. When `palette` (the colors picked on the palette step) is supplied,
 // each layout colors its patches from it; otherwise it uses sensible defaults.
+// There's no "Blank" card in the grid — "Skip for now" is the empty-canvas route.
 const QUILT_TEMPLATES = [
-  { id: 'blank', name: 'Blank', desc: 'Start from an empty canvas.', build: () => [] },
   {
     id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating two-color squares.',
     build: ({ cols, rows, palette }) => {
@@ -6252,7 +6357,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // Upload-only photo picker for the cross-stitch template step. It just captures
 // the image (as a data URL) and hands it forward — NO color extraction here.
 // All color work (suggested palette, swapping) happens on the palette step.
-function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose }) {
+function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -6266,6 +6371,36 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose }) 
     reader.readAsDataURL(file);
   }, []);
   const reset = () => { setImgSrc(null); fileRef.current && (fileRef.current.value = ''); };
+  const dropBind = {
+    onClick: () => fileRef.current && fileRef.current.click(),
+    onDragOver: e => { e.preventDefault(); setDrag(true); },
+    onDragLeave: () => setDrag(false),
+    onDrop: e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); },
+  };
+  const fileInput = <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>;
+  const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
+  if (layout === 'bar') {
+    return (
+      <section className="tmpl-upload-bar">
+        {!imgSrc ? (
+          <div className={`tmpl-upload${drag ? ' drag' : ''}`} {...dropBind}>
+            <div className="tmpl-upload-title">{busy ? 'Loading…' : 'Drop a photo here or click to browse'}</div>
+            <div className="tmpl-upload-sub">{hint || 'JPG, PNG, or WebP'}</div>
+            {fileInput}
+          </div>
+        ) : (
+          <div className="tmpl-upload-result">
+            <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
+            <div className="tmpl-upload-copy">{resultCopy}</div>
+            <div className="tmpl-upload-actions">
+              <button type="button" className="tmpl-upload-use" onClick={() => onChoose(imgSrc)}>{useLabel}</button>
+              <button type="button" className="tmpl-upload-another" onClick={reset}>Choose another</button>
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  }
   return (
     <section className="pal-section">
       <div className="pal-section-head">
@@ -6273,21 +6408,17 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose }) 
         {hint && <div className="pal-section-sub">{hint}</div>}
       </div>
       {!imgSrc ? (
-        <div className={`pal-upload${drag ? ' drag' : ''}`}
-          onClick={() => fileRef.current && fileRef.current.click()}
-          onDragOver={e => { e.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
+        <div className={`pal-upload${drag ? ' drag' : ''}`} {...dropBind}>
           <div className="pal-upload-icon"><IcImage size={28}/></div>
           <div className="pal-upload-title">{busy ? 'Loading…' : 'Drop a photo here or click to browse'}</div>
           <div className="pal-upload-sub">JPG, PNG, or WebP</div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>
+          {fileInput}
         </div>
       ) : (
         <div className="pal-result">
           <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
           <div className="pal-result-main">
-            <div className="pal-section-sub" style={{ marginBottom: 12 }}>{resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design."}</div>
+            <div className="pal-section-sub" style={{ marginBottom: 12 }}>{resultCopy}</div>
             <div className="pal-actions">
               <button className="pal-btn" onClick={() => onChoose(imgSrc)}>{useLabel}</button>
               <button className="pal-btn secondary" onClick={reset}>Choose another</button>
@@ -6386,51 +6517,56 @@ function StitchTemplateThumb({ tpl, preset }) {
 }
 
 // Generic template-step shell (reused by quilt + cross-stitch). Optional
-// uploadNode renders a PhotoUpload above the template grid.
-function TemplateStep({ title, subheading, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
+// uploadNode renders a photo bar above the template grid.
+function TemplateStep({ title, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
-      </header>
-      <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
-        <div className="proj-intro">
-          <div className="pal-head-row">
-            <h1 className="proj-heading">{title}</h1>
-            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-          </div>
-          <p className="proj-subheading">{subheading}</p>
+    <div className="tmpl-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
         </div>
-        {uploadNode}
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">{uploadNode ? 'Or pick a template' : 'Templates'}</div>
-            <div className="pal-section-sub">Starter layouts scale to your chosen size.</div>
-          </div>
-          <div className="tmpl-grid">
-            {templates.map(t => {
-              // Templates that carry their own grid size preview at that
-              // proportion (see .tmpl-card-thumb.is-ratio); the rest keep the
-              // fixed-height thumb box.
-              const ar = t.w > 0 && t.h > 0 ? t.w / t.h : null;
-              return (
-                <button key={t.id} className="tmpl-card" onClick={() => onChoose(t)} title={`Use "${t.name}"`}>
-                  <div className={ar ? 'tmpl-card-thumb is-ratio' : 'tmpl-card-thumb'}
-                       style={ar ? { '--tmpl-ar': String(ar) } : undefined}>{renderThumb(t)}</div>
-                  <div className="tmpl-card-body">
-                    <div className="tmpl-card-name">{t.name}</div>
-                    <div className="tmpl-card-desc">{t.desc}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-        <section className="pal-section pal-skip-row">
-          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-        </section>
+      </header>
+      <section className="size-hero has-skip">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
+        )}
+        <h1 className="size-title">{title}</h1>
+        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
+      </section>
+      {uploadNode}
+      <div className="tmpl-grid">
+        {templates.map(t => {
+          // Templates that carry their own grid size preview at that
+          // proportion (see .tmpl-card-thumb.is-ratio); the rest keep the
+          // fixed-height thumb box.
+          const ar = t.w > 0 && t.h > 0 ? t.w / t.h : null;
+          return (
+            <button key={t.id} type="button" className="tmpl-card" onClick={() => onChoose(t)}
+              title={`Use "${t.name}"`} aria-label={`${t.name}. ${t.desc}`}>
+              <span className={ar ? 'tmpl-card-thumb is-ratio' : 'tmpl-card-thumb'}
+                    style={ar ? { '--tmpl-ar': String(ar) } : undefined}>{renderThumb(t)}</span>
+              <span className="tmpl-card-body">
+                <span className="tmpl-card-text">
+                  <span className="tmpl-card-name">{t.name}</span>
+                  <span className="tmpl-card-desc">{t.desc}</span>
+                </span>
+                <span className="size-card-arrow" aria-hidden="true">
+                  <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
+      <footer className="size-footer" aria-hidden="true"/>
     </div>
   );
 }
@@ -6441,7 +6577,6 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
   return (
     <TemplateStep
       title="Pick a template"
-      subheading={`Give your ${preset} a head start with a patchwork layout${palette && palette.length ? ' in your palette' : ''} — or skip to a blank canvas.`}
       onBack={onBack}
       templates={QUILT_TEMPLATES}
       renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p} palette={palette}/>}
@@ -6455,13 +6590,13 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
 function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft = 'cross-stitch' }) {
   const uploadNode = (
     <PhotoDrop
-      hint="Upload a photo to guide your design — we'll suggest a palette from it on the next step."
+      layout="bar"
+      hint="JPG, PNG, or WebP — we'll suggest a palette from it on the next step."
       onChoose={imgSrc => onChoose({ template: null, photo: imgSrc })}/>
   );
   return (
     <TemplateStep
-      title="Pick a template or upload a photo"
-      subheading={`Start your ${preset.name} from a ready-made chart, a photo to guide your design, or skip to a blank grid.`}
+      title="Pick a template"
       onBack={onBack}
       templates={stitchTemplatesFor(preset, craft)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
