@@ -395,6 +395,21 @@
   .size-bar-meta { display: flex; gap: 16px; font-size: 11px; color: var(--warm-muted); white-space: nowrap; }
   .size-bar-meta span { font-variant-numeric: tabular-nums; }
 
+  /* Pencil/eraser nib ladder. Each button previews its own nib as a square the
+     size of the mark it makes, so the row reads without labels. */
+  .nib-bar { display: flex; align-items: center; gap: 4px; }
+  .nib-bar .size-bar-label { margin-right: 4px; }
+  .nib-btn {
+    width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+    color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s;
+  }
+  .nib-btn:hover { background: var(--btn-tool-hover); }
+  .nib-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .nib-btn.active { background: var(--btn-primary-bg); border-color: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+  .nib-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .nib-chip { display: block; background: currentColor; border-radius: 1px; }
+
   /* Coaster set: 4 pages sharing palette/template, edited one at a time. */
   .coaster-bar {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -2716,7 +2731,7 @@ const STITCH_THEMES = {
 // Product photos shown on the cross-stitch "What size?" cards, keyed by preset
 // name. Missing entries fall back to the plain colored thumb so nothing breaks.
 const STITCH_IMAGES = {
-  "Coaster Set": "assets/products/cross-stitch-coasters.jpg",
+  "Coaster Set": "assets/products/cross-stitch-coasters.png",
   "Bookmark":    "assets/products/cross-stitch-bookmark.png?v=2",
   "Small Hoop":  "assets/products/cross-stitch-small-hoop.png?v=2",
   "Medium Hoop": "assets/products/cross-stitch-medium-hoop.jpg",
@@ -2849,6 +2864,10 @@ const QUILT_PATTERNS = [
 ];
 const WOF=40, SEAM=0.5, MAX=60;
 const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
+// Pencil/eraser nib widths, in stitches. A short ladder rather than a slider:
+// the smallest board is 30 stitches wide, so only the first few sizes are
+// useful and each one should be a single click away.
+const NIB_SIZES = [1, 2, 3, 5];
 
 // Suggested Kona starter palettes. Tuned to the same muted, earthy vibe as the
 // cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm neutrals.
@@ -7623,6 +7642,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
   const [tool, setTool] = useState("pen");
+  // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
+  // pencil when you switch back to it.
+  const [penNib, setPenNib] = useState(1);
+  const [eraserNib, setEraserNib] = useState(1);
+  const nib = tool === 'eraser' ? eraserNib : penNib;
   const [bg, setBg] = useState(bgImage || null);
   const [showBg, setShowBg] = useState(!!bgImage);
   const [bgOpacity, setBgOpacity] = useState(0.5);
@@ -7726,6 +7750,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     return seed;
   })());
   const previewRef = useRef(null);
+  const nibHoverRef = useRef(null); // [x,y] under the pointer, outlined for wide nibs
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const bgImgRef = useRef(null);
@@ -7844,6 +7869,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     const pv = previewRef.current;
     if (pv) { ctx.fillStyle = color.hex; for (const [x, y] of pv) ctx.fillRect(x * cs, y * cs, cs, cs); }
+    // Wide pencil/eraser nib: outline the block the pointer is about to cover,
+    // in the same hairline-over-white treatment as the selection chrome.
+    const nh = nibHoverRef.current;
+    if (nh && nib > 1) {
+      const off = Math.floor((nib - 1) / 2);
+      const nx = (nh[0] - off) * cs, ny = (nh[1] - off) * cs, ns = nib * cs;
+      ctx.save();
+      ctx.translate(align, align);
+      ctx.lineWidth = 3 * hair;
+      ctx.strokeStyle = 'rgba(255,255,255,0.62)';
+      ctx.strokeRect(nx, ny, ns, ns);
+      ctx.lineWidth = hair;
+      ctx.strokeStyle = 'rgba(46,41,37,0.85)';
+      ctx.strokeRect(nx, ny, ns, ns);
+      ctx.restore();
+    }
     if (sel) {
       const dxo = movingRef.current && dragRef.current ? dragRef.current.dx : 0;
       const dyo = movingRef.current && dragRef.current ? dragRef.current.dy : 0;
@@ -7946,7 +7987,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       for (let y = 0; y <= H; y += CFG.majorGrid) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
       ctx.stroke();
     }
-  }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H, zoom, dpr, CFG]);
+  }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H, zoom, dpr, CFG, nib]);
 
   // Keep a ref to the latest redraw so a queued animation frame always paints
   // with current state. Without this, the rafRef dedupe guard below can let a
@@ -7967,6 +8008,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     marqueeRef.current = null;
     resizeRef.current = null;
     previewRef.current = null;
+    nibHoverRef.current = null;
     startRef.current = null;
     lastRef.current = null;
     scheduleRedraw();
@@ -8053,6 +8095,17 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     while (true) { out.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 > -dy) { err -= dy; x0 += sx; } if (e2 < dx) { err += dx; y0 += sy; } }
     return out;
   };
+  // The pencil and eraser lay down a square nib `nib` stitches on a side. Odd
+  // widths center on the pointer; even ones have no center stitch to land on,
+  // so they sit one down and right of it.
+  const nibOffset = Math.floor((nib - 1) / 2);
+  const nibCells = (x, y) => {
+    if (nib <= 1) return [[x, y]];
+    const out = [];
+    for (let dy = 0; dy < nib; dy++) for (let dx = 0; dx < nib; dx++) out.push([x - nibOffset + dx, y - nibOffset + dy]);
+    return out;
+  };
+  const nibStroke = (line) => nib <= 1 ? line : line.flatMap(([x, y]) => nibCells(x, y));
   const rectCells = (x0, y0, x1, y1) => {
     const out = []; const xa = Math.min(x0, x1), xb = Math.max(x0, x1), ya = Math.min(y0, y1), yb = Math.max(y0, y1);
     for (let x = xa; x <= xb; x++) { out.push([x, ya]); out.push([x, yb]); }
@@ -8388,8 +8441,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     e.currentTarget.setPointerCapture(e.pointerId);
     drawingRef.current = true; startRef.current = cell; lastRef.current = cell;
     pushUndo();
-    if (tool === 'pen') { cellsRef.current[idx(cell[0], cell[1])] = color.hex; scheduleRedraw(); }
-    else if (tool === 'eraser') { cellsRef.current[idx(cell[0], cell[1])] = null; scheduleRedraw(); }
+    if (tool === 'pen') { applyCells(nibCells(cell[0], cell[1]), color.hex); scheduleRedraw(); }
+    else if (tool === 'eraser') { applyCells(nibCells(cell[0], cell[1]), null); scheduleRedraw(); }
   };
   const onPointerMove = (e) => {
     if (isGestureActive()) return;
@@ -8486,12 +8539,23 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       scheduleRedraw();
       return;
     }
+    if ((tool === 'pen' || tool === 'eraser') && !drawingRef.current) {
+      // A wide nib covers stitches the pointer isn't sitting on, so show where
+      // the next dab will land. Only resample when the cell actually changes.
+      const cell = nib > 1 ? cellFromEvent(e) : null;
+      const was = nibHoverRef.current;
+      if (!cell !== !was || (cell && was && (cell[0] !== was[0] || cell[1] !== was[1]))) {
+        nibHoverRef.current = cell; scheduleRedraw();
+      }
+      return;
+    }
     if (!drawingRef.current) return;
     const cell = cellFromEvent(e); if (!cell) return;
     const last = lastRef.current;
     if (tool === 'pen' || tool === 'eraser') {
       const hex = tool === 'pen' ? color.hex : null;
-      if (last) applyCells(lineCells(last[0], last[1], cell[0], cell[1]), hex);
+      if (last) applyCells(nibStroke(lineCells(last[0], last[1], cell[0], cell[1])), hex);
+      if (nib > 1) nibHoverRef.current = cell;
       lastRef.current = cell; scheduleRedraw();
     } else {
       const s = startRef.current;
@@ -8572,11 +8636,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     }
     if (drawingRef.current) { onPointerUp(e); }
     else if (previewRef.current) { previewRef.current = null; scheduleRedraw(); }
+    if (nibHoverRef.current) { nibHoverRef.current = null; scheduleRedraw(); }
   };
 
   // Switching tools ends the selection, which places any floating layer first.
   useEffect(() => {
     previewRef.current = null;
+    nibHoverRef.current = null;
     commitFloat();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
@@ -8597,6 +8663,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && selRef.current) {
         e.preventDefault(); duplicateSelection(); return;
       }
+      if ((e.key === '[' || e.key === ']') && (tool === 'pen' || tool === 'eraser')) {
+        e.preventDefault();
+        const step = e.key === ']' ? 1 : -1;
+        const nextNib = (n) => NIB_SIZES[Math.max(0, Math.min(NIB_SIZES.length - 1, NIB_SIZES.indexOf(n) + step))];
+        (tool === 'eraser' ? setEraserNib : setPenNib)(nextNib);
+        return;
+      }
       if (e.key === 'Escape' && selRef.current) { deselect(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current) {
         e.preventDefault();
@@ -8605,7 +8678,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redraw, bump, adjustZoom, resetZoom]);
+  }, [undo, redraw, bump, adjustZoom, resetZoom, tool]);
 
   const addColor = (dmc) => {
     setPal(prev => prev.some(c => c.code === dmc.code) ? prev : [...prev, dmc]);
@@ -8814,6 +8887,19 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           )}
           <div className="size-bar">
             <Switch checked={showGrid} onChange={setShowGrid} label="Grid" title="Toggle grid lines"/>
+            {(tool === 'pen' || tool === 'eraser') && (
+              <div className="nib-bar" role="group" aria-label={`${tool === 'pen' ? 'Pencil' : 'Eraser'} size`}>
+                <span className="size-bar-label">{tool === 'pen' ? 'Pencil' : 'Eraser'}</span>
+                {NIB_SIZES.map(n => (
+                  <button key={n} type="button" className={`nib-btn${nib === n ? ' active' : ''}`}
+                    aria-pressed={nib === n}
+                    title={`${n} × ${n} ${CFG.unitPlural} ( [ and ] )`}
+                    onClick={() => (tool === 'eraser' ? setEraserNib : setPenNib)(n)}>
+                    <span className="nib-chip" style={{ width: 3 + n * 2, height: 3 + n * 2 }}/>
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
               {confirmClear ? (
