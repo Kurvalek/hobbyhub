@@ -690,9 +690,10 @@
     .land-header { height: 64px; padding: 0 20px; }
     .land-logo img { width: 96px; height: 32px; }
     .land-hero { height: clamp(120px, 16vh, 160px); }
-    .land-hero-photo { display: none; }
-    .land-hero-wave, .land-hero-title { left: 0; width: 100%; }
-    .land-hero-title { padding: 0 24px; }
+    .land-hero-photo.is-left,
+    .land-hero-photo.is-right { width: 28%; }
+    .land-hero-wave, .land-hero-title { left: 20%; width: 60%; }
+    .land-hero-title { padding: 0 12px; }
     .land-crafts { grid-template-columns: 1fr; }
     .land-craft { padding: 24px 28px; }
     .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
@@ -5682,8 +5683,8 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         </div>
       </header>
       <section className="land-hero" aria-label="What are you making?">
-        <img className="land-hero-photo is-left" src="assets/landing/hero-left.png" alt="" width="794" height="678"/>
-        <img className="land-hero-photo is-right" src="assets/landing/hero-right.png" alt="" width="962" height="678"/>
+        <img className="land-hero-photo is-left" src="assets/landing/hero-left.png" alt="" width="1122" height="1402"/>
+        <img className="land-hero-photo is-right" src="assets/landing/hero-right.png" alt="" width="1122" height="1402"/>
         <img className="land-hero-wave" src="assets/landing/hero-wave.svg" alt="" width="678" height="338"/>
         <h1 className="land-hero-title">What are you<br/>making?</h1>
       </section>
