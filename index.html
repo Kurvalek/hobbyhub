@@ -7133,44 +7133,91 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
 const GRID_SIZE_THEMES = { 'cross-stitch': STITCH_THEMES, 'punch-needle': PUNCH_THEMES };
 const GRID_SIZE_IMAGES = { 'cross-stitch': STITCH_IMAGES, 'punch-needle': PUNCH_IMAGES };
 
+function GridSizeThumb({ preset, craft }) {
+  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name] || { c1:"#2C3E50", c2:"#EFE9DD" };
+  if (/hoop/i.test(preset.name)) {
+    return (
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="92" fill={theme.c2} stroke={theme.c1} strokeWidth="12"/>
+      </svg>
+    );
+  }
+  const aspect = preset.h / preset.w;
+  const W = 200, H = Math.max(40, Math.round(W * aspect));
+  const cellSize = W / 5;
+  const cols = Math.ceil(W / cellSize);
+  const rows = Math.ceil(H / cellSize);
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cells.push(
+        <rect key={`${r}-${c}`}
+          x={c * cellSize} y={r * cellSize}
+          width={cellSize} height={cellSize}
+          fill={(r + c) % 2 === 0 ? theme.c1 : theme.c2}/>
+      );
+    }
+  }
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      {cells}
+      <rect width={W} height={H} fill="none" stroke="rgba(46,41,37,0.15)" strokeWidth="1"/>
+    </svg>
+  );
+}
+
 function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
   const cfg = CRAFT_STUDIO[craft];
-  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name] || {};
-  const inW = (preset.w / cfg.gauge).toFixed(1), inH = (preset.h / cfg.gauge).toFixed(1);
   const image = (GRID_SIZE_IMAGES[craft] || {})[preset.name];
+  const dims = `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
   return (
-    <div className="proj-card" onClick={() => onSelect(preset.name)} role="button" tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onSelect(preset.name)}>
-      {image
-        ? <div className="proj-card-thumb has-photo"><img src={image} alt={preset.name}/></div>
-        : <div className="proj-card-thumb" style={{ aspectRatio: `${preset.w} / ${preset.h}`, maxHeight: 120, background: theme.c2 || '#EFE9DD' }}/>}
-      <div className="proj-card-body">
-        <div className="proj-card-name">{preset.name}</div>
-        <div className="proj-card-dims">{preset.w} × {preset.h} {cfg.unitPlural}</div>
-        <div className="proj-card-desc">{theme.desc || preset.desc || ''}</div>
-        <div className="proj-card-cost">≈ {inW}" × {inH}" on {cfg.gaugeLabel}</div>
-      </div>
-    </div>
+    <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
+      aria-label={`${preset.name}, ${dims}`}>
+      <span className="size-card-visual">
+        {image
+          ? <img src={image} alt=""/>
+          : <GridSizeThumb preset={preset} craft={craft}/>}
+      </span>
+      <span className="size-card-copy">
+        <span className="size-card-text">
+          <span className="size-card-name">{preset.name}</span>
+          <span className="size-card-dims">{dims}</span>
+        </span>
+        <span className="size-card-arrow" aria-hidden="true">
+          <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+        </span>
+      </span>
+    </button>
   );
 }
 
 function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
   const cfg = CRAFT_STUDIO[craft];
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
+    <div className="size-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
+        </div>
       </header>
-      <div className="proj-body">
-        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
-        <div className="proj-intro">
-          <h1 className="proj-heading">What size?</h1>
-          <p className="proj-subheading">Pick a canvas size for your {cfg.label.toLowerCase()} — measured in {cfg.unitPlural}. Finished dimensions shown for {cfg.gaugeLabel} {cfg.fabricLabel}.</p>
-        </div>
-        <div className="proj-grid">
-          {cfg.presets.map(p => <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}/>)}
-        </div>
+      <section className="size-hero">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
+        )}
+        <h1 className="size-title">What size?</h1>
+      </section>
+      <div className="size-row">
+        {cfg.presets.map(p => <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}/>)}
       </div>
+      <footer className="size-footer" aria-hidden="true"/>
     </div>
   );
 }
@@ -7228,72 +7275,68 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
 
   return (
-    <div className="proj-page">
-      <header className="proj-header">
-        <a className="brand" href="/" aria-label="metime — home"><MetimeLogo/></a>
-      </header>
-      <div className="proj-body pal-body">
-        <button className="back-link" onClick={onBack}><IcCaretL/><span>Back</span></button>
-        <div className="proj-intro">
-          <div className="pal-head-row">
-            <h1 className="proj-heading">Pick a palette</h1>
-            <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-          </div>
-          <p className="proj-subheading">
-            {template
-              ? `Pick the ${cfg.threadLabel.toLowerCase()} colors you would like to use for your ${preset.name} — “${template.name}” will be remade in them. You can always change these later.`
-              : `Pick the ${cfg.threadLabel.toLowerCase()} colors you would like to use for your ${preset.name}. You can always change these later.`}
-          </p>
+    <div className="pal-page">
+      <header className="land-header">
+        <a className="land-logo" href="/" aria-label="metime — home">
+          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
+        </a>
+        <div className="land-header-right">
+          <LandingAuth/>
         </div>
-
-        {photo && (
-          <section className="pal-section">
-            <div className="pal-section-head">
-              <div className="pal-section-title">Suggested palette</div>
-            </div>
-            {!ready ? (
-              <div className="pal-busy">Reading colors from your photo…</div>
-            ) : (
-              <ImagePaletteEditor
-                photo={photo}
-                alt="Your uploaded photo"
-                colors={sugg}
-                colorKey={c => c.code}
-                titleOf={c => `${cfg.codePrefix} ${c.code} ${c.name}`}
-                onRemove={removeAt}
-                onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-                onUse={() => onChoose(sugg, optsFor(sugg))}
-                maxColors={cfg.paletteMax}/>
-            )}
-          </section>
+      </header>
+      <section className="size-hero has-skip">
+        {onBack && (
+          <button className="size-back" type="button" onClick={onBack}>
+            <span className="size-back-icon" aria-hidden="true">
+              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
+            </span>
+            <span className="size-back-label">Back</span>
+          </button>
         )}
-
-        <section className="pal-section">
-          <div className="pal-section-head">
-            <div className="pal-section-title">Sample palettes</div>
-            <div className="pal-section-sub">Curated {cfg.codePrefix} combinations to get you going fast.</div>
-          </div>
-          <div className="pal-grid">
-            {samples.map(s => (
-              <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, optsFor(s.colors))}>
-                <div className="pal-swatches">
-                  {s.colors.map((c, i) => (
-                    <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }} title={`${cfg.codePrefix} ${c.code} ${c.name}`}/>
-                  ))}
-                </div>
-                <div className="pal-card-body">
-                  <div className="pal-card-name">{s.name}</div>
-                  <div className="pal-card-meta">{s.colors.length} {cfg.threadPlural}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+        <h1 className="size-title">Pick a palette</h1>
+        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
+      </section>
+      {photo && (
+        <section className="pal-suggest-bar">
+          {!ready ? (
+            <div className="pal-busy">Reading colors from your photo…</div>
+          ) : (
+            <ImagePaletteEditor
+              layout="bar"
+              photo={photo}
+              alt="Your uploaded photo"
+              colors={sugg}
+              colorKey={c => c.code}
+              titleOf={c => `${cfg.codePrefix} ${c.code} ${c.name}`}
+              onRemove={removeAt}
+              onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+              onUse={() => onChoose(sugg, optsFor(sugg))}
+              maxColors={cfg.paletteMax}/>
+          )}
         </section>
-
-        <section className="pal-section pal-skip-row">
-          <button type="button" className="pal-skip-btn" onClick={onSkip}>Skip for now</button>
-        </section>
+      )}
+      <div className="pal-grid">
+        {samples.map(s => (
+          <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, optsFor(s.colors))}>
+            <div className="pal-swatches">
+              {s.colors.map((c, i) => (
+                <span key={i} className="pal-swatch" style={{ background: c.hex, zIndex: i + 1 }}
+                  title={`${cfg.codePrefix} ${c.code} ${c.name}`}/>
+              ))}
+            </div>
+            <div className="pal-card-body">
+              <div className="pal-card-text">
+                <div className="pal-card-name">{s.name}</div>
+                <div className="pal-card-meta">{s.colors.length} {cfg.threadPlural}</div>
+              </div>
+              <span className="size-card-arrow" aria-hidden="true">
+                <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+              </span>
+            </div>
+          </button>
+        ))}
       </div>
+      <footer className="size-footer" aria-hidden="true"/>
       {swapIdx !== null && (
         <DmcPicker anchorRef={swapAnchor} craft={craft} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
