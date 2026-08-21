@@ -731,18 +731,23 @@
   .size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
   .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
   .size-card:hover .size-card-arrow,
-  .size-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+  .size-card:focus-visible .size-card-arrow,
+  .pal-page .pal-card:hover .size-card-arrow,
+  .pal-page .pal-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
   .size-card-arrow img { display: block; width: 26.5px; height: 25.5px; transform: scaleX(-1); }
   @media (prefers-reduced-motion: reduce) {
     .size-card:hover .size-card-arrow,
-    .size-card:focus-visible .size-card-arrow { animation: none; }
+    .size-card:focus-visible .size-card-arrow,
+    .pal-page .pal-card:hover .size-card-arrow,
+    .pal-page .pal-card:focus-visible .size-card-arrow { animation: none; }
   }
 
   /* Phones have no hover, so the product-block arrows stay visible. */
   @media (hover: none), (max-width: 900px) {
     .land-craft-arrow,
     .size-card-arrow,
-    .saved-card-arrow {
+    .saved-card-arrow,
+    .pal-page .pal-card .size-card-arrow {
       opacity: 1;
       visibility: visible;
       animation: none;
@@ -867,10 +872,12 @@
     justify-content: space-between;
   }
   .pal-page .pal-card:hover { box-shadow: none; transform: none; }
+  .pal-page .pal-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
   .pal-page .pal-card:nth-child(4n) { border-right: none; }
   .pal-page .pal-swatches { height: auto; min-height: 48px; flex-wrap: nowrap; }
   .pal-page .pal-swatch { width: 48px; height: 48px; margin-left: -10px; flex-shrink: 0; }
-  .pal-page .pal-card-body { padding: 0; }
+  .pal-page .pal-card-body { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0; }
+  .pal-page .pal-card-text { min-width: 0; }
   .pal-page .pal-card-name { font-size: 20px; font-weight: 500; color: var(--metime-black); }
   .pal-page .pal-card-meta { font-size: 16px; font-weight: 300; color: var(--metime-black); margin-top: 5px; }
   @media (max-width: 1080px) {
@@ -6949,8 +6956,13 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
               ))}
             </div>
             <div className="pal-card-body">
-              <div className="pal-card-name">{s.name}</div>
-              <div className="pal-card-meta">{s.colors.length} fabrics</div>
+              <div className="pal-card-text">
+                <div className="pal-card-name">{s.name}</div>
+                <div className="pal-card-meta">{s.colors.length} fabrics</div>
+              </div>
+              <span className="size-card-arrow" aria-hidden="true">
+                <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+              </span>
             </div>
           </button>
         ))}
