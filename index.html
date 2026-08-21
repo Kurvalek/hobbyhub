@@ -842,6 +842,13 @@
   .pal-page .pal-from-image-preview {
     width: 97px; height: 97px; outline: none; border: 1px solid var(--metime-black);
   }
+  .pal-page .pal-from-image-preview-btn {
+    padding: 0; margin: 0; background: none; border: none; cursor: zoom-in;
+    flex-shrink: 0; line-height: 0;
+  }
+  .pal-page .pal-from-image-preview-btn:focus-visible {
+    outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring);
+  }
   .pal-page .pal-from-image-main {
     flex: 1; flex-direction: row; align-items: center; gap: 24px; min-width: 0;
   }
@@ -6804,7 +6811,7 @@ const CROSS_STITCH_PALETTE_MAX = 10;
 
 // Suggested palette from an image (Figma 2138:2019). Circles remove on click;
 // on touch, first tap arms (shows ×) and second tap deletes. + opens the picker.
-function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, useLabel = 'Use this palette', maxColors = SUGGESTED_PALETTE_MAX, layout = 'card' }) {
+function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, onAdd, onUse, onPreviewClick, useLabel = 'Use this palette', maxColors = SUGGESTED_PALETTE_MAX, layout = 'card' }) {
   const isMobile = useIsMobile();
   const [armedIdx, setArmedIdx] = useState(null);
   const addRef = useRef(null);
@@ -6830,9 +6837,13 @@ function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, o
     onRemove(i);
   };
 
+  const preview = <img className="pal-from-image-preview" src={photo} alt={alt}/>;
+
   return (
     <div className="pal-from-image">
-      <img className="pal-from-image-preview" src={photo} alt={alt}/>
+      {onPreviewClick
+        ? <button type="button" className="pal-from-image-preview-btn" onClick={onPreviewClick} title="View fabric large" aria-label={`View ${alt} large`}>{preview}</button>
+        : preview}
       <div className="pal-from-image-main">
         <div className="pal-from-image-swatches">
           {colors.map((c, i) => (
@@ -6880,6 +6891,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
   const [sugg, setSugg] = useState([]);
   const [ready, setReady] = useState(!photo);
   const [swapIdx, setSwapIdx] = useState(null);
+  const [inspect, setInspect] = useState(false);
   const swapAnchor = useRef(null);
 
   useEffect(() => {
@@ -6944,7 +6956,8 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
               titleOf={c => c.name}
               onRemove={removeAt}
               onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-              onUse={() => onChoose(sugg)}/>
+              onUse={() => onChoose(sugg)}
+              onPreviewClick={fabricFullSrc(backing) ? () => setInspect(true) : undefined}/>
           )}
         </section>
       )}
@@ -6971,6 +6984,11 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
       <footer className="size-footer" aria-hidden="true"/>
       {swapIdx !== null && (
         <KonaPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
+      )}
+      {inspect && (
+        <FabricEnlargeOverlay
+          fabric={backing}
+          onClose={() => setInspect(false)}/>
       )}
     </div>
   );
