@@ -916,6 +916,37 @@
   }
   .pal-page .pal-from-image-use:hover:not(:disabled) { background: #3D3625; }
   .pal-page .pal-from-image-use:disabled { opacity: 0.4; cursor: default; }
+  /* Photo → chart flattening. Sits under the palette bar because it shapes the
+     same generated design, and carries a live chart preview: the setting means
+     nothing until you can see what it does to your own photo. */
+  .xs-flatten {
+    display: flex; align-items: center; gap: 24px; flex: 0 0 auto;
+    padding: 20px 40px; background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+  }
+  .xs-flatten-main { flex: 1; min-width: 0; }
+  .xs-flatten-title { font-family: var(--font-sans); font-size: 15px; font-weight: 500; }
+  .xs-flatten-sub { margin-top: 2px; max-width: 64ch; font-size: 13px; line-height: 1.4; color: var(--warm-muted); }
+  .xs-flatten-row {
+    display: flex; width: fit-content; margin-top: 12px;
+    border: 1px solid var(--metime-black); border-radius: 4px; overflow: hidden;
+  }
+  .xs-flatten-btn {
+    height: 34px; padding: 0 16px; border: none; border-left: 1px solid var(--metime-black);
+    background: var(--metime-white); color: var(--metime-black);
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1;
+    cursor: pointer; transition: background .12s, color .12s;
+  }
+  .xs-flatten-btn:first-child { border-left: none; }
+  .xs-flatten-btn:hover:not(.active) { background: var(--metime-cream); }
+  .xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
+  .xs-flatten-btn.active { background: #1F1E1D; color: var(--metime-white); }
+  .xs-flatten-note { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); }
+  .xs-flatten-preview {
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; width: 140px; min-height: 140px; padding: 8px; box-sizing: border-box;
+    background: var(--metime-cream); border: 1px solid var(--metime-black);
+  }
+  .xs-flatten-empty { font-family: var(--font-mono); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
   .pal-page .pal-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto;
     gap: 0; width: 100%; flex: 0 0 auto;
@@ -946,8 +977,13 @@
     .pal-page .pal-from-image-main { flex-wrap: wrap; }
     .pal-page .pal-from-image-use { margin-left: 0; }
     .pal-page .pal-card { min-height: 0; padding: 24px; }
+    .xs-flatten { padding: 16px 20px; gap: 16px; }
   }
   @media (max-width: 600px) {
+    .xs-flatten { flex-direction: column; align-items: stretch; }
+    .xs-flatten-row { width: 100%; }
+    .xs-flatten-btn { flex: 1; padding: 0 8px; }
+    .xs-flatten-preview { width: 100%; }
     .pal-page .pal-grid { grid-template-columns: 1fr; }
     .pal-page .pal-card { border-right: none; }
     .pal-page .pal-card:nth-child(2n) { border-right: none; }
@@ -6386,32 +6422,193 @@ function xsClearGroundField(grid, isField, W, H, fit) {
   if (cleared > fit.dw * fit.dh * XS_FIELD_MAX_CLEAR) for (let i = 0; i < grid.length; i++) grid[i] = before[i];
 }
 
+// ── Flattening a photo into something worth stitching ──────────────────────
+// A photograph holds far more variation than a chart can show. Map it stitch by
+// stitch and every scrap of skin texture, JPEG mush and lens noise becomes its
+// own fleck of floss: the chart turns to confetti, and stitching it means
+// starting and finishing threads for two squares at a time. Cartoons come out
+// clean only because they were already flat.
+//
+// So the photo is flattened on the way in. Colour is averaged over a wider area
+// BEFORE the palette is applied — averaging colors is what merges texture,
+// whereas averaging palette *choices* only reshuffles them — and the grid is
+// then tidied twice over: neighbours outvote lone stitches, and islands too
+// small to be worth a thread are absorbed into what surrounds them.
+//
+// How hard to push is the stitcher's call, so it's a short ladder rather than a
+// slider. `blur` is 3×3 averaging passes over the sampled color, `smooth` is
+// majority passes on the finished grid, `speck` is the smallest island kept
+// (in stitches, on a 70×70 chart — scaled to the motif below).
+const XS_SIMPLIFY = [
+  { id: 'detailed', label: 'Detailed', blur: 0, smooth: 0, speck: 0,
+    note: 'Every shade the palette can hold. Busiest to stitch.' },
+  { id: 'soft',     label: 'Soft',     blur: 1, smooth: 1, speck: 3,
+    note: 'Texture calmed down, shading kept.' },
+  { id: 'simple',   label: 'Simple',   blur: 2, smooth: 2, speck: 8,
+    note: 'Broad blocks of color. Easiest to follow.' },
+  { id: 'flat',     label: 'Flat',     blur: 3, smooth: 3, speck: 20,
+    note: 'Poster-like — shapes only, almost no shading.' },
+];
+const XS_SIMPLIFY_DEFAULT = 'simple';
+const xsSimplifySpec = id => XS_SIMPLIFY.find(s => s.id === id) || XS_SIMPLIFY.find(s => s.id === XS_SIMPLIFY_DEFAULT);
+
+// Drawing the motif a few times larger than the grid and averaging each cell's
+// own block gives a true area mean, so a busy patch resolves to the color it
+// reads as from across the room instead of to whichever pixel happened to land
+// on the cell's centre. `cover` is how much of the cell came back opaque.
+const XS_SUPERSAMPLE = 3;
+function xsSampleCells(img, fit, W, H) {
+  const S = XS_SUPERSAMPLE, sw = W * S, sh = H * S;
+  const cv = document.createElement('canvas'); cv.width = sw; cv.height = sh;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx * S, fit.dy * S, fit.dw * S, fit.dh * S);
+  let data; try { data = ctx.getImageData(0, 0, sw, sh).data; } catch (e) { return null; }
+  const rgb = new Float32Array(W * H * 3), cover = new Float32Array(W * H);
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let sy = 0; sy < S; sy++) {
+        const row = (cy * S + sy) * sw + cx * S;
+        for (let sx = 0; sx < S; sx++) {
+          const p = (row + sx) * 4, w = data[p + 3] / 255;
+          r += data[p] * w; g += data[p + 1] * w; b += data[p + 2] * w; a += w;
+        }
+      }
+      const i = cy * W + cx;
+      cover[i] = a / (S * S);
+      if (a > 0) { rgb[i * 3] = r / a; rgb[i * 3 + 1] = g / a; rgb[i * 3 + 2] = b / a; }
+    }
+  }
+  return { rgb, cover };
+}
+
+// One 3×3 mean over the covered cells. Repeated passes approximate a gaussian,
+// which falls off more kindly than one wide box would.
+function xsBlurCells(rgb, cover, W, H, passes) {
+  let src = rgb;
+  for (let p = 0; p < passes; p++) {
+    const out = new Float32Array(src.length);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (cover[i] <= 0) continue;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = y + dy; if (ny < 0 || ny >= H) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx; if (nx < 0 || nx >= W) continue;
+            const j = ny * W + nx;
+            if (cover[j] <= 0) continue;
+            r += src[j * 3]; g += src[j * 3 + 1]; b += src[j * 3 + 2]; n++;
+          }
+        }
+        out[i * 3] = r / n; out[i * 3 + 1] = g / n; out[i * 3 + 2] = b / n;
+      }
+    }
+    src = out;
+  }
+  return src;
+}
+
+// "Agree with your neighbours": a stitch outnumbered in its own 3×3 block takes
+// the block's majority instead. Repeated, lone stitches melt into the shapes
+// around them while any edge with real weight behind it stays put. Bare fabric
+// votes like any other color, so the silhouette gets tidied too. Cells outside
+// the fitted motif abstain — the margin must not eat into the design.
+function xsMajorityPass(grid, W, H, fit) {
+  const out = grid.slice(), votes = new Map();
+  const x1 = fit.dx + fit.dw, y1 = fit.dy + fit.dh;
+  for (let y = fit.dy; y < y1; y++) {
+    for (let x = fit.dx; x < x1; x++) {
+      votes.clear();
+      const self = grid[y * W + x];
+      for (let dy = -1; dy <= 1; dy++) {
+        const ny = y + dy; if (ny < fit.dy || ny >= y1) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx; if (nx < fit.dx || nx >= x1) continue;
+          const k = grid[ny * W + nx];
+          // The centre counts double, so an even split keeps what is there.
+          votes.set(k, (votes.get(k) || 0) + (dx || dy ? 1 : 2));
+        }
+      }
+      let best = self, bn = votes.get(self) || 0;
+      for (const [k, n] of votes) if (n > bn) { bn = n; best = k; }
+      out[y * W + x] = best;
+    }
+  }
+  return out;
+}
+
+// Absorb islands smaller than `min` stitches into whichever color surrounds
+// them most. A three-stitch fleck of its own shade reads as dirt on the chart
+// rather than as detail, and costs a thread start and finish to work.
+function xsDespeckle(grid, W, H, fit, min) {
+  if (min < 2) return;
+  const x1 = fit.dx + fit.dw, y1 = fit.dy + fit.dh;
+  const seen = new Uint8Array(W * H);
+  for (let sy = fit.dy; sy < y1; sy++) {
+    for (let sx = fit.dx; sx < x1; sx++) {
+      const start = sy * W + sx;
+      if (seen[start]) continue;
+      const hex = grid[start], region = [start], edge = new Map();
+      seen[start] = 1;
+      for (let qi = 0; qi < region.length; qi++) {
+        const i = region[qi], x = i % W, y = (i - x) / W;
+        for (let d = 0; d < 4; d++) {
+          const nx = x + (d === 0 ? -1 : d === 1 ? 1 : 0), ny = y + (d === 2 ? -1 : d === 3 ? 1 : 0);
+          if (nx < fit.dx || ny < fit.dy || nx >= x1 || ny >= y1) continue;
+          const j = ny * W + nx;
+          if (grid[j] === hex) { if (!seen[j]) { seen[j] = 1; region.push(j); } }
+          else edge.set(grid[j], (edge.get(grid[j]) || 0) + 1);
+        }
+      }
+      if (region.length >= min || !edge.size) continue;
+      let best = null, bn = 0;
+      for (const [k, n] of edge) if (n > bn) { bn = n; best = k; }
+      for (const i of region) grid[i] = best;
+    }
+  }
+}
+
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
 // color → a ready-to-stitch design (shared by the cross-stitch template step).
 // Cells outside the fitted motif are left null: unstitched fabric.
-function buildGridFromImage(img, chosen, W, H) {
+function buildGridFromImage(img, chosen, W, H, simplify = XS_SIMPLIFY_DEFAULT) {
   if (!img || !chosen || !chosen.length) return null;
   const fit = xsFitImageToGrid(img, W, H);
   if (!fit) return null;
-  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx, fit.dy, fit.dw, fit.dh);
-  let data; try { data = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; }
+  const sampled = xsSampleCells(img, fit, W, H);
+  if (!sampled) return null;
+  const spec = xsSimplifySpec(simplify);
+  // A 40-stitch coaster can't take the blur a 120-stitch hoop can — three
+  // passes there would erase the subject — so both knobs scale with the motif.
+  const passes = Math.min(spec.blur, Math.max(0, Math.round(Math.min(fit.dw, fit.dh) / 22)));
+  const speck = Math.round(spec.speck * (fit.dw * fit.dh) / (70 * 70));
+  const soft = xsBlurCells(sampled.rgb, sampled.cover, W, H, passes);
   const bg = xsTrimRect(img).bg;
   const grid = new Array(W * H).fill(null);
   const isField = bg ? new Uint8Array(W * H) : null;
   for (let i = 0; i < W * H; i++) {
-    if (data[i * 4 + 3] < 100) continue;
-    const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+    if (sampled.cover[i] < 0.4) continue;
     if (bg) {
-      const dr = r - bg.r, dg = g - bg.g, db = b - bg.b;
+      // Read the field off the UNBLURRED sample: blurring bleeds the subject
+      // into the margin, and a border cell that no longer matches the field
+      // would strand the flood fill and leave the whole ground stitched.
+      const dr = sampled.rgb[i * 3] - bg.r, dg = sampled.rgb[i * 3 + 1] - bg.g, db = sampled.rgb[i * 3 + 2] - bg.b;
       if (dr * dr + dg * dg + db * db <= XS_TRIM_TOL * XS_TRIM_TOL) isField[i] = 1;
     }
-    const near = nearestInList({ r, g, b }, chosen);
+    const near = nearestInList({ r: soft[i * 3], g: soft[i * 3 + 1], b: soft[i * 3 + 2] }, chosen);
     grid[i] = near ? near.hex : null;
   }
+  // Clear the ground before tidying, so the fringe left along the silhouette
+  // has bare fabric to be absorbed into.
   if (bg) xsClearGroundField(grid, isField, W, H, fit);
-  return grid;
+  let out = grid;
+  for (let p = 0; p < spec.smooth; p++) out = xsMajorityPass(out, W, H, fit);
+  xsDespeckle(out, W, H, fit, speck);
+  return out;
 }
 
 // Reusable photo → palette uploader. Manages its own file/extraction state and
@@ -7415,6 +7612,7 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   const [sugg, setSugg] = useState([]);
   const [ready, setReady] = useState(!photo);
   const [swapIdx, setSwapIdx] = useState(null);       // index being swapped/added
+  const [simplify, setSimplify] = useState(XS_SIMPLIFY_DEFAULT);
   const swapAnchor = useRef(null);
 
   useEffect(() => {
@@ -7443,9 +7641,16 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   // Build the opts (auto-generated design + trace overlay) for a chosen palette.
   const optsFor = colors => {
     if (!photo) return {};
-    const autoGrid = imgElRef.current ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h) : null;
+    const autoGrid = imgElRef.current ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h, simplify) : null;
     return { autoGrid, bgImage: photo };
   };
+  // What the suggested colors would actually stitch out as. Cheap enough to
+  // rebuild whenever a color or the detail level changes, and it's the only way
+  // to judge the flattening without committing to it.
+  const previewGrid = useMemo(() => {
+    if (!photo || !ready || !imgElRef.current || !sugg.length) return null;
+    return buildGridFromImage(imgElRef.current, sugg, preset.w, preset.h, simplify);
+  }, [photo, ready, sugg, simplify, preset.w, preset.h]);
   const pickSwap = c => {
     setSugg(prev => {
       const n = [...prev];
@@ -7494,6 +7699,31 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
               onUse={() => onChoose(sugg, optsFor(sugg))}
               maxColors={cfg.paletteMax}/>
           )}
+        </section>
+      )}
+      {photo && ready && (
+        <section className="xs-flatten">
+          <div className="xs-flatten-main">
+            <div className="xs-flatten-title">How much detail?</div>
+            <div className="xs-flatten-sub">
+              A photo holds more shading than {cfg.unitPlural} can show. Flattening trades that
+              detail for broad blocks of color — fewer stray {cfg.unitPlural}, and a chart you can follow.
+            </div>
+            <div className="xs-flatten-row" role="group" aria-label="Detail level">
+              {XS_SIMPLIFY.map(s => (
+                <button key={s.id} type="button" title={s.note}
+                  className={`xs-flatten-btn${simplify === s.id ? ' active' : ''}`}
+                  aria-pressed={simplify === s.id}
+                  onClick={() => setSimplify(s.id)}>{s.label}</button>
+              ))}
+            </div>
+            <div className="xs-flatten-note">{xsSimplifySpec(simplify).note}</div>
+          </div>
+          <div className="xs-flatten-preview">
+            {previewGrid
+              ? <StitchThumb w={preset.w} h={preset.h} cells={previewGrid} size={124}/>
+              : <div className="xs-flatten-empty">Keep at least one color to preview</div>}
+          </div>
         </section>
       )}
       <div className="pal-grid">
