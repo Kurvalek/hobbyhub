@@ -1360,11 +1360,14 @@
   }
   .pal-upload-url-row button:hover:not(:disabled) { background: var(--warm-hover); }
   .pal-upload-url-row button:disabled { opacity: 0.45; cursor: default; }
+  .err-msg {
+    background: var(--metime-grapefruit); color: var(--metime-white);
+    border-radius: 4px; padding: 8px 10px;
+    font-family: var(--font-sans); font-weight: 400; line-height: 1.35;
+  }
   .pal-upload-error {
     display: flex; align-items: flex-start; gap: 8px;
-    font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: #8B2E1F;
-    line-height: 1.35; padding: 8px 10px;
-    background: rgba(232, 88, 58, 0.08); border-radius: 4px;
+    font-size: 12px; padding: 8px 10px;
   }
   .pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
   /* outline (not a border) so the stroke paints over the image content */
@@ -2294,7 +2297,7 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
         </div>
       )}
       {state.status === "error" && (
-        <div style={{ fontSize: 11, color: "#B23A34" }}>{state.message || "Couldn't reach the kit service — try again"}</div>
+        <div className="err-msg" style={{ fontSize: 11 }}>{state.message || "Couldn't reach the kit service — try again"}</div>
       )}
     </div>
   );
@@ -2331,7 +2334,7 @@ function QuiltPdfButtons({ design }) {
           {busy === "instructions" ? "Preparing…" : "Instructions"}
         </button>
       </div>
-      {error && <div style={{ fontSize: 11, color: "#B23A34" }}>{error}</div>}
+      {error && <div className="err-msg" style={{ fontSize: 11 }}>{error}</div>}
     </div>
   );
 }
@@ -5934,7 +5937,7 @@ function AuthOverlay() {
             style={{ marginBottom: 16 }}/>
         )}
         {error && (
-          <div style={{ fontSize: 12, color: "var(--metime-tomato)", background: "#FBECE8", border: "1px solid #F3C9BF", borderRadius: 6, padding: "8px 10px", marginBottom: 12 }}>{error}</div>
+          <div className="err-msg" style={{ fontSize: 12, marginBottom: 12 }}>{error}</div>
         )}
         {!error && notice && (
           <div style={{ fontSize: 12, color: "#3D4E70", marginBottom: 12 }}>{notice}</div>
@@ -7158,7 +7161,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
       </div>
     </div>
   ) : null;
-  const errNode = error ? <div className="pal-upload-error" role="alert">{error}</div> : null;
+  const errNode = error ? <div className="err-msg pal-upload-error" role="alert">{error}</div> : null;
   const fileInputs = (
     <>
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange}/>
