@@ -1079,14 +1079,19 @@
     background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
   }
   .tmpl-upload {
+    display: flex; flex-direction: column; align-items: stretch; justify-content: center;
+    width: 100%; cursor: default; text-align: center; gap: 12px;
+  }
+  .tmpl-upload-drop {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     width: 100%; min-height: 125px; padding: 24px 16px;
     border: 1px dashed var(--metime-black); background: var(--metime-white);
     cursor: pointer; text-align: center;
   }
-  .tmpl-upload:hover, .tmpl-upload.drag { background: var(--color-linen-300); }
+  .tmpl-upload-drop:hover, .tmpl-upload-drop.drag { background: var(--color-linen-300); }
   .tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
   .tmpl-upload-sub { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
+  .tmpl-upload .pal-upload-pills { justify-content: center; }
   .tmpl-upload-result {
     display: flex; align-items: center; gap: 24px; width: 100%; min-width: 0;
   }
@@ -1236,18 +1241,54 @@
   .pal-card-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
 
   /* Upload */
-  .pal-upload { border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--metime-white); width: 50%; max-width: 100%; box-sizing: border-box; }
-  .pal-upload:hover, .pal-upload.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
+  .pal-upload {
+    display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+    text-align: left; cursor: default; width: 50%; max-width: 100%; box-sizing: border-box;
+  }
+  .pal-upload-drop {
+    border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    background: var(--metime-white);
+  }
+  .pal-upload-drop:hover, .pal-upload-drop.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
   .pal-upload-icon { color: #3c3833; margin-bottom: 8px; display: inline-flex; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
   .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .pal-upload-browse {
+    background: none; border: none; padding: 0; font: inherit; color: var(--metime-tomato);
+    text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+  }
+  .pal-upload-browse:hover { color: var(--metime-almost-black); }
+  .pal-upload-browse:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); border-radius: 2px; }
   .pal-upload-hit { cursor: pointer; }
   .pal-upload-hit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
-  .pal-upload-url {
-    display: flex; flex-direction: column; align-items: stretch; gap: 6px;
-    margin: 14px auto 0; width: 100%; max-width: 360px; cursor: default; text-align: left;
+  .pal-upload-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; }
+  .pal-upload-pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1;
+    color: var(--metime-almost-black); background: var(--color-linen-500);
+    border: 1px solid #707F87; border-radius: 999px; cursor: pointer;
   }
-  .pal-upload-url-label { font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: #3c3833; }
+  .pal-upload-pill:hover { background: var(--metime-ice); }
+  .pal-upload-pill[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
+  .pal-upload-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-pill-kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 18px; padding: 0 5px;
+    font-family: var(--font-sans); font-size: 11px; font-weight: 500; line-height: 1;
+    color: var(--metime-almost-black); background: var(--metime-white);
+    border: 1px solid #707F87; border-radius: 4px;
+  }
+  .pal-upload-url {
+    position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+    width: 100%; padding: 10px; box-sizing: border-box;
+    background: var(--color-linen-500); border-radius: 6px;
+    cursor: default; text-align: left;
+  }
+  .pal-upload-url-label {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
   .pal-upload-url-row { display: flex; gap: 6px; width: 100%; }
   .pal-upload-url-row input {
     flex: 1; min-width: 0; height: 32px; padding: 0 10px;
@@ -1266,11 +1307,13 @@
   .pal-upload-url-row button:hover:not(:disabled) { background: var(--warm-hover); }
   .pal-upload-url-row button:disabled { opacity: 0.45; cursor: default; }
   .pal-upload-error {
+    display: flex; align-items: flex-start; gap: 8px;
     font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: #8B2E1F;
-    margin: 8px auto 0; max-width: 360px; line-height: 1.35;
+    line-height: 1.35; padding: 8px 10px;
+    background: rgba(232, 88, 58, 0.08); border-radius: 4px;
   }
-  .tmpl-upload .pal-upload-url { margin-top: 10px; max-width: 420px; }
-  .tmpl-upload .pal-upload-error { margin-top: 6px; }
+  .tmpl-upload .pal-upload-url { max-width: 420px; margin: 0 auto; }
+  .tmpl-upload .pal-upload-error { max-width: 420px; margin: 0 auto; }
   .pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
   /* outline (not a border) so the stroke paints over the image content */
   .pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
@@ -1474,7 +1517,7 @@
     .pal-head-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .pal-section { margin-bottom: 28px; }
     .pal-section-title { font-size: 18px; }
-    .pal-upload { width: 100%; max-width: none; padding: 24px 16px; }
+    .pal-upload { width: 100%; max-width: none; }
     .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; --tmpl-thumb-h: 240px; }
     .tmpl-page .tmpl-grid { gap: 0; }
     .pal-grid { gap: 12px; }
@@ -2373,6 +2416,9 @@ const IcPen     = ({ size=18 }) => <Svg size={size}><path d="M12 20h9"/><path d=
 const IcLineTool= ({ size=18 }) => <Svg size={size}><path d="M5 19 19 5"/><circle cx="19" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none"/></Svg>;
 const IcCircle  = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="8"/></Svg>;
 const IcImage   = ({ size=16 }) => <Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></Svg>;
+const IcFolder  = ({ size=16 }) => <Svg size={size}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></Svg>;
+const IcLink    = ({ size=16 }) => <Svg size={size}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></Svg>;
+const IcUpload  = ({ size=16 }) => <Svg size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></Svg>;
 const IcText    = ({ size=18 }) => <Svg size={size}><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></Svg>;
 const IcFill    = ({ size=18 }) => <Svg size={size}><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-4 .3 1.6 2 2.4 2 4Z"/></Svg>;
 const IcRuler   = ({ size=18 }) => <Svg size={size}><path d="M3 8.5 8.5 3 21 15.5 15.5 21z"/><path d="m7.5 9 1.5 1.5M10.5 6l1.5 1.5M6 12l1.5 1.5"/></Svg>;
@@ -6891,19 +6937,26 @@ function loadRemoteImageSrc(url) {
     });
 }
 
-// Drop zone + URL field used by PhotoDrop and PhotoUpload so paste/URL land in
-// one place. Calls onSrc(dataUrl) — same path as a chosen file.
+const PASTE_SHORTCUT = (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || ''))
+  ? '⌘V'
+  : 'Ctrl+V';
+
+// Drop zone + optional URL field used by PhotoDrop and PhotoUpload so paste/URL
+// land in one place. Calls onSrc(dataUrl) — same path as a chosen file.
 function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel }) {
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState('');
   const [urlText, setUrlText] = useState('');
+  const [showUrl, setShowUrl] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
+  const urlRef = useRef(null);
   const urlId = useId();
   const busy = loading || working;
   const shownTitle = busy
     ? ((working && workingLabel) ? workingLabel : 'Loading…')
-    : title;
+    : 'Drop an image here';
+  const ariaLabel = title || 'Drop an image here';
 
   const acceptFile = useCallback(file => {
     if (!file || !file.type || !file.type.startsWith('image/')) {
@@ -6911,6 +6964,8 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
       return;
     }
     setError('');
+    setShowUrl(false);
+    setUrlText('');
     setLoading(true);
     const reader = new FileReader();
     reader.onload = ev => { setLoading(false); setError(''); onSrc(ev.target.result); };
@@ -6921,6 +6976,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   const acceptUrl = useCallback(raw => {
     const url = String(raw || '').trim();
     setUrlText(url);
+    setShowUrl(true);
     if (!isHttpImageUrl(url)) {
       setError('Enter an http(s) image URL.');
       return;
@@ -6951,6 +7007,10 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     return () => document.removeEventListener('paste', onPaste);
   }, [acceptFile, acceptUrl]);
 
+  useEffect(() => {
+    if (showUrl && urlRef.current) urlRef.current.focus();
+  }, [showUrl]);
+
   const onDrop = e => {
     e.preventDefault();
     setDrag(false);
@@ -6964,13 +7024,39 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   const onHitKey = e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
   };
+  const toggleUrlField = () => {
+    setShowUrl(open => {
+      if (open) setError('');
+      return !open;
+    });
+  };
+  const pasteImageFromClipboard = () => {
+    if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') {
+      setError(`Press ${PASTE_SHORTCUT} to paste an image.`);
+      return;
+    }
+    navigator.clipboard.read().then(items => {
+      for (const item of items) {
+        const type = (item.types || []).find(t => t.startsWith('image/'));
+        if (!type) continue;
+        return item.getType(type).then(blob => {
+          const ext = (type.split('/')[1] || 'png').split('+')[0];
+          acceptFile(new File([blob], `pasted.${ext}`, { type: blob.type || type }));
+        });
+      }
+      setError(`Press ${PASTE_SHORTCUT} to paste an image.`);
+    }).catch(() => {
+      setError(`Press ${PASTE_SHORTCUT} to paste an image.`);
+    });
+  };
 
-  const urlRow = (
+  const urlRow = showUrl ? (
     <div className="pal-upload-url">
-      <label className="pal-upload-url-label" htmlFor={urlId}>Or paste an image URL</label>
+      <label className="pal-upload-url-label" htmlFor={urlId}>Image URL</label>
       <div className="pal-upload-url-row">
         <input
           id={urlId}
+          ref={urlRef}
           type="url"
           inputMode="url"
           autoComplete="off"
@@ -6981,10 +7067,10 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
           onChange={e => { setUrlText(e.target.value); if (error) setError(''); }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); acceptUrl(urlText); } }}
         />
-        <button type="button" disabled={busy || !urlText.trim()} onClick={() => acceptUrl(urlText)}>Load</button>
+        <button type="button" disabled={busy || !urlText.trim()} onClick={() => acceptUrl(urlText)}>Fetch</button>
       </div>
     </div>
-  );
+  ) : null;
   const errNode = error ? <div className="pal-upload-error" role="alert">{error}</div> : null;
   const fileInput = <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => acceptFile(e.target.files[0])}/>;
   const dropProps = {
@@ -6992,22 +7078,42 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     onDragLeave: () => setDrag(false),
     onDrop,
   };
-  const hitProps = {
-    className: 'pal-upload-hit',
-    role: 'button',
-    tabIndex: 0,
-    'aria-label': title,
-    onClick: openPicker,
-    onKeyDown: onHitKey,
-  };
+  const browseLink = <span className="pal-upload-browse">browse your files</span>;
+  const pills = (
+    <div className="pal-upload-pills">
+      <button type="button" className="pal-upload-pill" onClick={openPicker} disabled={busy}>
+        <IcFolder size={14}/> Browse
+      </button>
+      <button type="button" className="pal-upload-pill" onClick={pasteImageFromClipboard} disabled={busy}>
+        <span className="pal-upload-pill-kbd">{PASTE_SHORTCUT}</span> Paste an image
+      </button>
+      <button
+        type="button"
+        className="pal-upload-pill"
+        aria-pressed={showUrl}
+        onClick={toggleUrlField}
+        disabled={busy}>
+        <IcLink size={14}/> Paste a URL
+      </button>
+    </div>
+  );
 
   if (variant === 'tmpl') {
     return (
-      <div className={`tmpl-upload${drag ? ' drag' : ''}`} {...dropProps}>
-        <div {...hitProps}>
+      <div className="tmpl-upload">
+        <div
+          className={`tmpl-upload-drop pal-upload-hit${drag ? ' drag' : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-label={ariaLabel}
+          onClick={openPicker}
+          onKeyDown={onHitKey}
+          {...dropProps}>
+          <div className="pal-upload-icon"><IcImage size={24}/></div>
           <div className="tmpl-upload-title">{shownTitle}</div>
-          <div className="tmpl-upload-sub">{subtitle}</div>
+          <div className="tmpl-upload-sub">or {browseLink}</div>
         </div>
+        {pills}
         {urlRow}
         {errNode}
         {fileInput}
@@ -7015,12 +7121,20 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     );
   }
   return (
-    <div className={`pal-upload${drag ? ' drag' : ''}`} {...dropProps}>
-      <div {...hitProps}>
+    <div className="pal-upload">
+      <div
+        className={`pal-upload-drop pal-upload-hit${drag ? ' drag' : ''}`}
+        role="button"
+        tabIndex={0}
+        aria-label={ariaLabel}
+        onClick={openPicker}
+        onKeyDown={onHitKey}
+        {...dropProps}>
         <div className="pal-upload-icon"><IcImage size={28}/></div>
         <div className="pal-upload-title">{shownTitle}</div>
-        <div className="pal-upload-sub">{subtitle}</div>
+        <div className="pal-upload-sub">or {browseLink}</div>
       </div>
+      {pills}
       {urlRow}
       {errNode}
       {fileInput}
