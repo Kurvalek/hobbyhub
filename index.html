@@ -1075,45 +1075,63 @@
     line-height: 1.3; color: var(--metime-black); margin-top: 6px;
   }
   .tmpl-upload-bar {
-    display: flex; align-items: center; flex: 0 0 auto; min-height: 0; padding: 16px 40px;
-    background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; min-height: 0; padding: 24px;
+    background: #EDF2FC; border-bottom: 1px solid var(--metime-black);
   }
   .tmpl-upload {
-    display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
-    width: 100%; cursor: default; text-align: left; gap: 10px 12px;
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; cursor: default; text-align: center; gap: 16px;
+  }
+  .tmpl-upload-heading {
+    font-family: var(--font-sans); font-size: 20px; font-weight: 500;
+    line-height: normal; color: var(--metime-black);
   }
   .tmpl-upload-drop {
-    display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px;
-    flex: 0 1 auto; min-width: 0; min-height: 0; padding: 10px 14px;
-    border: 1px dashed var(--metime-black); background: var(--metime-white);
+    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+    padding: 0; border: none; background: transparent;
     cursor: pointer; text-align: left;
   }
-  .tmpl-upload-drop:hover, .tmpl-upload-drop.drag { background: var(--color-linen-300); }
-  .tmpl-upload-title { font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; }
+  .tmpl-upload-drop:hover, .tmpl-upload-drop.drag { color: var(--color-taupe-700); }
+  .tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.2; color: var(--metime-black); }
   .tmpl-upload-sub { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
-  .tmpl-upload .pal-upload-pills { justify-content: flex-start; flex: 0 1 auto; }
-  .tmpl-upload .pal-upload-url, .tmpl-upload .pal-upload-error { flex: 1 1 100%; max-width: none; margin: 0; }
+  .tmpl-upload .pal-upload-pills { justify-content: center; }
+  .tmpl-upload .pal-upload-url {
+    width: 486px; max-width: 100%; padding: 0; background: transparent; border-radius: 0;
+  }
+  .tmpl-upload .pal-upload-url-row input {
+    height: 40px; padding: 8px; font-size: 16px; border-color: #1F1E1D;
+  }
+  .tmpl-upload .pal-upload-url-row input::placeholder { color: #7D7A7A; }
+  .tmpl-upload .pal-upload-url-row button { height: 40px; font-size: 14px; }
+  .tmpl-upload .pal-upload-error { width: 486px; max-width: 100%; }
   .tmpl-upload-result {
-    display: flex; align-items: center; gap: 24px; width: 100%; min-width: 0;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+    width: 100%; min-width: 0;
   }
+  .tmpl-upload-file { display: flex; align-items: stretch; gap: 24px; min-width: 0; }
   .tmpl-upload-preview {
-    width: 97px; height: 97px; object-fit: cover; flex-shrink: 0;
-    border: 1px solid var(--metime-black); display: block;
+    width: 130px; height: 130px; object-fit: cover; flex-shrink: 0;
+    border: 1px solid #1F1E1D; display: block;
   }
+  .tmpl-upload-file-meta { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; }
+  .tmpl-upload-file-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 24px; color: var(--metime-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+  .tmpl-upload-file-dims { font-family: var(--font-sans); font-size: 14px; font-weight: 300; line-height: 24px; color: var(--metime-black); }
+  .tmpl-upload-result .switch { gap: 16px; font-size: 16px; color: var(--metime-black); }
   .tmpl-upload-copy { flex: 1; min-width: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); }
-  .tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+  .tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .tmpl-upload-use {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 160px; height: 40px; padding: 0 16px;
+    width: 128px; height: 40px; padding: 0 12px;
     border-radius: 4px; border: 1px solid var(--metime-black);
-    background: #1F1E1D; color: var(--metime-white);
+    background: #52658D; color: var(--metime-white);
     font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
     cursor: pointer;
   }
-  .tmpl-upload-use:hover { background: #3D3625; }
+  .tmpl-upload-use:hover { background: #445578; }
   .tmpl-upload-another {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 128px; height: 40px; padding: 0 16px;
+    width: 128px; height: 40px; padding: 0 12px;
     background: #EDF2FC; border: 1px solid var(--metime-black); border-radius: 4px;
     font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
     color: var(--metime-black); cursor: pointer;
@@ -1127,9 +1145,12 @@
   }
   @media (max-width: 900px) {
     .tmpl-page .tmpl-card { padding: 24px 28px; }
-    .tmpl-upload-bar { min-height: 0; padding: 12px 20px; }
-    .tmpl-upload { flex-direction: column; align-items: stretch; }
-    .tmpl-upload-result, .tmpl-upload-actions { flex-wrap: wrap; }
+    .tmpl-upload-bar { min-height: 0; padding: 16px 20px; }
+    .tmpl-upload { align-items: stretch; }
+    .tmpl-upload-heading { text-align: left; }
+    .tmpl-upload-result { flex-wrap: wrap; justify-content: flex-start; }
+    .tmpl-upload-file { width: 100%; }
+    .tmpl-upload-file-name { max-width: none; }
     .tmpl-upload-actions { margin-left: 0; }
     .pal-upload-drop, .tmpl-upload-drop, .pal-upload-pills { display: none; }
     .pal-upload { width: 100%; max-width: none; }
@@ -1290,13 +1311,14 @@
   .bottom-sheet.is-lift { z-index: 241; }
   .pal-upload-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; }
   .pal-upload-pill {
-    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
-    font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1;
-    color: var(--metime-almost-black); background: var(--color-linen-500);
-    border: 1px solid #707F87; border-radius: 999px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 32px; padding: 0 24px;
+    font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1;
+    color: var(--metime-black); background: var(--metime-ice);
+    border: none; border-radius: 8px; cursor: pointer;
   }
-  .pal-upload-pill:hover { background: var(--metime-ice); }
-  .pal-upload-pill[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
+  .pal-upload-pill:hover { background: #A9BDE6; }
+  .pal-upload-pill[aria-pressed="true"] { background: #A9BDE6; }
   .pal-upload-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .pal-upload-pill-kbd {
     display: inline-flex; align-items: center; justify-content: center;
@@ -6872,6 +6894,14 @@ function isHttpImageUrl(value) {
   } catch (e) { return false; }
 }
 
+function fileNameFromUrl(value) {
+  try {
+    const path = new URL(String(value || '').trim()).pathname.split('/').pop();
+    if (path) return decodeURIComponent(path);
+  } catch (e) {}
+  return 'image';
+}
+
 function imageFileFromClipboard(e) {
   const dt = e.clipboardData;
   if (!dt) return null;
@@ -6985,8 +7015,9 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   const busy = loading || working;
   const shownTitle = busy
     ? ((working && workingLabel) ? workingLabel : 'Loading…')
-    : 'Drop an image here';
-  const ariaLabel = title || 'Drop an image here';
+    : (variant === 'tmpl' ? 'Drop an image in this area, or' : 'Drop an image here');
+  const ariaLabel = title || shownTitle;
+  const heading = variant === 'tmpl' ? 'Create a design from an image' : null;
   const isTmpl = variant === 'tmpl';
 
   const closeMenu = useCallback(() => {
@@ -7010,7 +7041,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
       setLoading(false);
       setError('');
       setMenuOpen(false);
-      onSrc(ev.target.result);
+      onSrc(ev.target.result, { name: file.name || 'image' });
     };
     reader.onerror = () => { setLoading(false); setError('Could not read that file.'); };
     reader.readAsDataURL(file);
@@ -7028,7 +7059,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     setError('');
     setLoading(true);
     loadRemoteImageSrc(url)
-      .then(src => { setLoading(false); setError(''); setMenuOpen(false); setShowUrl(false); setUrlText(''); onSrc(src); })
+      .then(src => { setLoading(false); setError(''); setMenuOpen(false); setShowUrl(false); setUrlText(''); onSrc(src, { name: fileNameFromUrl(url) }); })
       .catch(err => { setLoading(false); setError((err && err.message) || REMOTE_IMAGE_ERR); });
   }, [onSrc, isMobile]);
 
@@ -7136,10 +7167,11 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   const pills = (
     <div className="pal-upload-pills">
       <button type="button" className="pal-upload-pill" onClick={openPicker} disabled={busy}>
-        <IcFolder size={14}/> Browse
+        <IcFolder size={18}/> Browse
       </button>
       <button type="button" className="pal-upload-pill" onClick={pasteImageFromClipboard} disabled={busy}>
-        <span className="pal-upload-pill-kbd">{PASTE_SHORTCUT}</span> Paste an image
+        {variant === 'tmpl' ? <IcLink size={18}/> : <span className="pal-upload-pill-kbd">{PASTE_SHORTCUT}</span>}
+        Paste an image
       </button>
       <button
         type="button"
@@ -7147,7 +7179,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
         aria-pressed={showUrl}
         onClick={toggleUrlField}
         disabled={busy}>
-        <IcLink size={14}/> Paste a URL
+        <IcLink size={18}/> Paste a URL
       </button>
     </div>
   );
@@ -7190,6 +7222,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   if (isMobile) {
     return (
       <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
+        {heading && <div className="tmpl-upload-heading">{heading}</div>}
         <button
           type="button"
           className="pal-btn secondary pal-upload-add"
@@ -7214,16 +7247,17 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
       onClick={openPicker}
       onKeyDown={onHitKey}
       {...dropProps}>
-      <div className="pal-upload-icon"><IcImage size={18}/></div>
+      <div className="pal-upload-icon"><IcImage size={isTmpl ? 24 : 18}/></div>
       <div className={isTmpl ? 'tmpl-upload-title' : 'pal-upload-title'}>{shownTitle}</div>
     </div>
   );
 
   return (
-    <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
-      {drop}
+    <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'} {...(isTmpl ? dropProps : {})}>
+      {heading && <div className="tmpl-upload-heading">{heading}</div>}
+      {isTmpl && showUrl ? urlRow : drop}
       {pills}
-      {urlRow}
+      {!(isTmpl && showUrl) && urlRow}
       {errNode}
       {fileInputs}
     </div>
@@ -7342,24 +7376,44 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // All color work (suggested palette, swapping) happens on the palette step.
 function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout }) {
   const [imgSrc, setImgSrc] = useState(null);
-  const ingestSrc = useCallback(src => setImgSrc(src), []);
-  const reset = () => setImgSrc(null);
+  const [fileName, setFileName] = useState('image');
+  const [fileDims, setFileDims] = useState(null);
+  const [removeBg, setRemoveBg] = useState(true);
+  const ingestSrc = useCallback((src, meta) => {
+    setImgSrc(src);
+    setFileName((meta && meta.name) || 'image');
+    setFileDims(null);
+    const img = new Image();
+    img.onload = () => setFileDims({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = src;
+  }, []);
+  const reset = () => { setImgSrc(null); setFileName('image'); setFileDims(null); setRemoveBg(true); };
   const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
+  const confirm = () => onChoose(imgSrc, { removeBg, name: fileName });
   if (layout === 'bar') {
     return (
       <section className="tmpl-upload-bar">
         {!imgSrc ? (
           <PhotoIntakeZone
             variant="tmpl"
-            title="Drop a photo here or click to browse"
+            title="Drop an image in this area, or"
             subtitle={hint || 'JPG, PNG, or WebP — or paste an image'}
             onSrc={ingestSrc}/>
         ) : (
           <div className="tmpl-upload-result">
-            <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
-            <div className="tmpl-upload-copy">{resultCopy}</div>
+            <div className="tmpl-upload-heading">Create a design from an image</div>
+            <div className="tmpl-upload-file">
+              <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
+              <div className="tmpl-upload-file-meta">
+                <div>
+                  <div className="tmpl-upload-file-name">{fileName}</div>
+                  <div className="tmpl-upload-file-dims">{fileDims ? `${fileDims.w}px x ${fileDims.h}px` : '—'}</div>
+                </div>
+                <Switch checked={removeBg} onChange={setRemoveBg} label="Remove background"/>
+              </div>
+            </div>
             <div className="tmpl-upload-actions">
-              <button type="button" className="tmpl-upload-use" onClick={() => onChoose(imgSrc)}>{useLabel}</button>
+              <button type="button" className="tmpl-upload-use" onClick={confirm}>{useLabel}</button>
               <button type="button" className="tmpl-upload-another" onClick={reset}>Choose another</button>
             </div>
           </div>
@@ -7556,7 +7610,7 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft =
     <PhotoDrop
       layout="bar"
       hint="JPG, PNG, or WebP — we'll suggest a palette from it on the next step."
-      onChoose={imgSrc => onChoose({ template: null, photo: imgSrc })}/>
+      onChoose={(imgSrc, extras) => onChoose({ template: null, photo: imgSrc, removeBg: !extras || extras.removeBg !== false })}/>
   );
   return (
     <TemplateStep
@@ -8193,7 +8247,7 @@ function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
 // step, we extract a suggested palette from it (editable — remove/add via
 // the thread picker). Choosing a palette (suggested or sample) auto-generates
 // the design from the photo + that palette and enables the trace overlay.
-function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip, onBack, craft = 'cross-stitch' }) {
+function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip, onBack, craft = 'cross-stitch', removeBgDefault = true }) {
   const cfg = CRAFT_STUDIO[craft];
   const samples = useMemo(() => cfg.palettes.map(p => ({ name: p.name, colors: cfg.resolvePalette(p) })), [cfg]);
   const imgElRef = useRef(null);
@@ -8201,7 +8255,7 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   const [ready, setReady] = useState(!photo);
   const [swapIdx, setSwapIdx] = useState(null);       // index being swapped/added
   const [simplify, setSimplify] = useState(XS_SIMPLIFY_DEFAULT);
-  const [removeBg, setRemoveBg] = useState(true);
+  const [removeBg, setRemoveBg] = useState(removeBgDefault !== false);
   const swapAnchor = useRef(null);
 
   useEffect(() => {
@@ -10171,6 +10225,7 @@ function Root() {
   const [gridTemplateDone, setGridTemplateDone] = React.useState(false);
   const [gridTemplate, setGridTemplate] = React.useState(null);
   const [gridPhoto, setGridPhoto] = React.useState(null);
+  const [gridRemoveBg, setGridRemoveBg] = React.useState(true);
   const [gridDone, setGridDone] = React.useState(false);
   const [gridPalette, setGridPalette] = React.useState(null);
   const [gridOpts, setGridOpts] = React.useState({});
@@ -10181,7 +10236,7 @@ function Root() {
     setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
     setPaletteDone(false); setPalette(null); setBackingFabric(null); setQuiltBackingDone(false);
     setGridPreset(null); setGridTemplateDone(false); setGridTemplate(null); setGridPhoto(null);
-    setGridDone(false); setGridPalette(null); setGridOpts({});
+    setGridRemoveBg(true); setGridDone(false); setGridPalette(null); setGridOpts({});
     setOpenSaved(null);
   };
 
@@ -10291,9 +10346,10 @@ function Root() {
           preset={gridPreset}
           craft={craft}
           onBack={() => window.history.back()}
-          onChoose={({ template, photo }) => {
+          onChoose={({ template, photo, removeBg }) => {
             setGridTemplate(template);
             setGridPhoto(photo || null);
+            setGridRemoveBg(removeBg !== false);
             if (template) {
               // Seed the design from the template grid; color work is next.
               const grid = template.build(gridPreset);
@@ -10305,7 +10361,7 @@ function Root() {
             }
             setGridTemplateDone(true);
           }}
-          onSkip={() => { setGridTemplate(null); setGridPhoto(null); setGridOpts({}); setGridTemplateDone(true); }}/>
+          onSkip={() => { setGridTemplate(null); setGridPhoto(null); setGridRemoveBg(true); setGridOpts({}); setGridTemplateDone(true); }}/>
       );
     }
     if (!gridDone) {
@@ -10314,6 +10370,7 @@ function Root() {
           preset={gridPreset}
           photo={gridPhoto}
           template={gridTemplate}
+          removeBgDefault={gridRemoveBg}
           craft={craft}
           onBack={() => window.history.back()}
           onChoose={(pal, extra) => {
