@@ -465,10 +465,15 @@
     .coaster-tab { padding: 6px 9px; font-size: 11px; }
   }
 
-  /* Canvas viewport (scrollable, centered, scaled by zoom) */
-  .canvas-scroll { width: 100%; height: 100%; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; box-sizing: border-box; }
-  .canvas-scroll > .canvas-frame { flex-shrink: 0; position: relative; background: var(--canvas-bg); }
+  /* Canvas viewport (scrollable, centered, scaled by zoom).
+     `margin: auto` on the child centers a small design and still lets you
+     scroll to every edge once zoom makes it larger than the viewport. */
+  .canvas-scroll { width: 100%; height: 100%; overflow: auto; display: flex; padding: 24px; box-sizing: border-box; }
+  .canvas-scroll > .canvas-frame { flex-shrink: 0; position: relative; background: var(--canvas-bg); margin: auto; }
   .canvas-surface { position: absolute; inset: 0; user-select: none; touch-action: none; }
+  .canvas-scroll.is-panning, .xs-canvas-wrap.is-panning { cursor: grab; }
+  .canvas-scroll.is-panning:active, .xs-canvas-wrap.is-panning:active { cursor: grabbing; }
+  .canvas-scroll.is-panning .canvas-surface, .xs-canvas-wrap.is-panning .xs-canvas { cursor: grab; }
 
   /* Bottom-of-canvas zoom bar */
   .zoom-bar { display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-top: var(--div-border); background: var(--surface-canvas); flex-shrink: 0; }
@@ -1142,8 +1147,8 @@
   .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
   .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-  .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: safe center; justify-content: safe center; padding: 24px; background: var(--metime-cream); min-width: 0; }
-  .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; }
+  .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; padding: 24px; background: var(--metime-cream); min-width: 0; }
+  .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; margin: auto; flex-shrink: 0; }
   .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--metime-almost-black); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
   .xs-panel-head { padding: 14px 16px 8px; }
   .xs-panel-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--warm-fg-2); text-transform: uppercase; }
@@ -2355,6 +2360,7 @@ const IcEye     = ({ off }) => off
 const IcInfo    = () => <Svg><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></Svg>;
 const IcGrid    = () => <Svg><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></Svg>;
 const IcCursor  = ({ size=18 }) => <Svg size={size}><path d="M3 2l7 19 2-8 8-2z"/></Svg>;
+const IcHand    = ({ size=18 }) => <Svg size={size}><path d="M8 13V6.5a1.4 1.4 0 0 1 2.8 0V12"/><path d="M10.8 11.5V5.2a1.4 1.4 0 1 1 2.8 0V12"/><path d="M13.6 12V6.8a1.4 1.4 0 1 1 2.8 0V14a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-3.2A1.4 1.4 0 0 1 7.8 11V13"/></Svg>;
 const IcSquare  = ({ size=18 }) => <Svg size={size}><rect x="4" y="4" width="16" height="16" rx="1"/></Svg>;
 const IcTri     = ({ size=18 }) => <Svg size={size}><path d="M12 4 L21 20 L3 20 Z"/></Svg>;
 const IcHelp    = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></Svg>;
@@ -3168,7 +3174,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
     setGhost(null);
     setMarquee(null);
   }, []);
-  const { isGestureActive } = useCanvasPinchZoom(scrollRef, zoom, onZoomChange, cancelPointerInteraction);
+  const { isGestureActive } = useCanvasPinchZoom(scrollRef, zoom, onZoomChange, cancelPointerInteraction, tool === 'pan');
 
   const H=9;
   const toCell = e => {
@@ -3219,6 +3225,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
   const onDown = useCallback(e=>{
     if(e.button!==0) return;
+    if(tool==='pan') return;
     // Second finger / active pinch owns the gesture — don't start a draw/select.
     if(isGestureActive() || !e.isPrimary) {
       cancelPointerInteraction();
@@ -3292,7 +3299,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
           if(overSel){setCur('grab');return;}
         }
       }
-      setCur(tool==='paint'||tool==='hst'?'crosshair':'default'); return;
+      setCur(tool==='pan'?'grab':tool==='paint'||tool==='hst'?'crosshair':'default'); return;
     }
     if(d.type==='noop') return;
     if(d.type==='marquee'){const mr=Math.min(d.aR,r),mc=Math.min(d.aC,c);setMarquee({r:mr,c:mc,h:Math.abs(r-d.aR)+1,w:Math.abs(c-d.aC)+1});}
@@ -3575,7 +3582,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
   return (
     <div style={{position:'relative',width:'100%',height:'100%'}}>
-      <div className="canvas-scroll" ref={scrollRef}>
+      <div className={`canvas-scroll${tool === 'pan' ? ' is-panning' : ''}`} ref={scrollRef}>
         <div className="canvas-frame" style={{
           width: `${zoom*100}%`,
           aspectRatio: `${cols}/${rows}`,
@@ -4035,6 +4042,7 @@ function PresetPill({ preset, fw, fh, onApply }) {
 function ToolRail({ tool, setTool, onToggleHints, hintsOn, helpRef }) {
   const tools = [
     { id: 'select', label: 'Select', Ic: IcCursor },
+    { id: 'pan',    label: 'Move canvas', Ic: IcHand },
     { id: 'paint', label: 'Square', Ic: IcSquare },
     { id: 'hst',   label: 'Triangle', Ic: IcTri },
   ];
@@ -4342,23 +4350,27 @@ function MaterialsBlock({ materials, grandTotal, fmtY }) {
 // ── Canvas pinch / ctrl-wheel zoom (shared by quilt + cross-stitch) ───────
 // Zoom is applied by resizing content; pan is the scroll container. Pinch and
 // ctrl/cmd+wheel update zoom while anchoring the focal point under the fingers
-// (or cursor). Two-finger drag also pans. Drawing tools must bail while a
-// multi-touch gesture is active — call isGestureActive() from pointer handlers.
+// (or cursor). Two-finger drag also pans. The Move-canvas tool enables one-
+// finger pan. Drawing tools must bail while a multi-touch gesture is active —
+// call isGestureActive() from pointer handlers.
 function clampZoom(z) {
   return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, +(+z).toFixed(3)));
 }
-function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart) {
+function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart, panMode = false) {
   const zoomRef = useRef(zoom);
   const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
+  const panRef = useRef(null);
   const pendingScrollRef = useRef(null);
   const activeRef = useRef(false);
   const onZoomChangeRef = useRef(onZoomChange);
   const onGestureStartRef = useRef(onGestureStart);
+  const panModeRef = useRef(panMode);
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { onZoomChangeRef.current = onZoomChange; }, [onZoomChange]);
   useEffect(() => { onGestureStartRef.current = onGestureStart; }, [onGestureStart]);
+  useEffect(() => { panModeRef.current = panMode; }, [panMode]);
 
   useLayoutEffect(() => {
     const p = pendingScrollRef.current;
@@ -4406,31 +4418,53 @@ function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart) {
     };
 
     const onPointerDown = (e) => {
-      if (e.pointerType === 'mouse') return;
+      if (e.pointerType === 'mouse' && !panModeRef.current) return;
       pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointersRef.current.size >= 2) {
+        panRef.current = null;
         beginPinch();
         e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (panModeRef.current && e.isPrimary) {
+        panRef.current = { x: e.clientX, y: e.clientY };
+        if (!activeRef.current) {
+          activeRef.current = true;
+          onGestureStartRef.current?.();
+        }
+        try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
 
     const onPointerMove = (e) => {
       if (!pointersRef.current.has(e.pointerId)) return;
       pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pointersRef.current.size < 2 || !pinchRef.current) return;
-      e.preventDefault();
-      const pts = [...pointersRef.current.values()];
-      const m = mid(pts[0], pts[1]);
-      const p = pinchRef.current;
-      el.scrollLeft += p.lastMid.x - m.x;
-      el.scrollTop += p.lastMid.y - m.y;
-      p.lastMid = m;
-      setZoomAnchored(p.startZoom * (dist(pts[0], pts[1]) / p.startDist), m.x, m.y);
+      if (pointersRef.current.size >= 2 && pinchRef.current) {
+        e.preventDefault();
+        const pts = [...pointersRef.current.values()];
+        const m = mid(pts[0], pts[1]);
+        const p = pinchRef.current;
+        el.scrollLeft += p.lastMid.x - m.x;
+        el.scrollTop += p.lastMid.y - m.y;
+        p.lastMid = m;
+        setZoomAnchored(p.startZoom * (dist(pts[0], pts[1]) / p.startDist), m.x, m.y);
+        return;
+      }
+      if (panRef.current && pointersRef.current.size <= 1) {
+        e.preventDefault();
+        el.scrollLeft += panRef.current.x - e.clientX;
+        el.scrollTop += panRef.current.y - e.clientY;
+        panRef.current = { x: e.clientX, y: e.clientY };
+      }
     };
 
     const endPointer = (e) => {
       if (!pointersRef.current.has(e.pointerId)) return;
       pointersRef.current.delete(e.pointerId);
+      panRef.current = null;
       if (pointersRef.current.size >= 2) {
         beginPinch();
       } else {
@@ -4466,7 +4500,7 @@ function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart) {
       el.removeEventListener('gesturestart', onGesture);
       el.removeEventListener('gesturechange', onGesture);
     };
-  }, [scrollRef, onZoomChange]);
+  }, [scrollRef, onZoomChange, panMode]);
 
   const isGestureActive = useCallback(() => activeRef.current, []);
   return { isGestureActive };
@@ -5177,6 +5211,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         {isMobile && (
           <MobileToolbar items={[
             { id:'select', label:'Select', icon:<IcCursor/>, active: tool==='select', onClick:()=>setTool('select') },
+            { id:'pan', label:'Move canvas', icon:<IcHand/>, active: tool==='pan', onClick:()=>setTool('pan') },
             { id:'paint', label:'Square', icon:<IcSquare/>, active: tool==='paint', onClick:()=>setTool('paint') },
             { id:'hst', label:'Triangle', icon:<IcTri/>, active: tool==='hst', onClick:()=>setTool('hst') },
             { id:'d1', divider:true },
@@ -8609,7 +8644,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     lastRef.current = null;
     scheduleRedraw();
   }, [scheduleRedraw]);
-  const { isGestureActive } = useCanvasPinchZoom(wrapRef, zoom, setZoom, cancelPointerInteraction);
+  const { isGestureActive } = useCanvasPinchZoom(wrapRef, zoom, setZoom, cancelPointerInteraction, tool === 'pan');
 
   // Fit the grid to the available space; recompute on resize.
   useLayoutEffect(() => {
@@ -8989,6 +9024,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   };
 
   const onPointerDown = (e) => {
+    if (tool === 'pan') return;
     if (isGestureActive() || !e.isPrimary) {
       cancelPointerInteraction();
       return;
@@ -9418,6 +9454,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const TOOLS = [
     { id: 'select', label: 'Select, move, copy & resize', icon: <IcCursor/> },
+    { id: 'pan', label: 'Move canvas', icon: <IcHand/> },
     { id: 'pen', label: 'Draw', icon: <IcPen/> },
     { id: 'eraser', label: 'Erase', icon: <IcErase/> },
     { id: 'fill', label: 'Fill area', icon: <IcFill/> },
@@ -9511,10 +9548,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
               )}
             </div>
           </div>
-          <div className="xs-canvas-wrap" ref={wrapRef}>
+          <div className={`xs-canvas-wrap${tool === 'pan' ? ' is-panning' : ''}`} ref={wrapRef}>
             <canvas ref={canvasRef} className="xs-canvas"
               width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
-              style={{ cursor: tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+              style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
           </div>
           <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
