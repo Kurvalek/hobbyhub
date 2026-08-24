@@ -1075,23 +1075,24 @@
     line-height: 1.3; color: var(--metime-black); margin-top: 6px;
   }
   .tmpl-upload-bar {
-    display: flex; align-items: center; flex: 0 0 auto; min-height: 173px; padding: 24px 40px;
+    display: flex; align-items: center; flex: 0 0 auto; min-height: 0; padding: 16px 40px;
     background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
   }
   .tmpl-upload {
-    display: flex; flex-direction: column; align-items: stretch; justify-content: center;
-    width: 100%; cursor: default; text-align: center; gap: 12px;
+    display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
+    width: 100%; cursor: default; text-align: left; gap: 10px 12px;
   }
   .tmpl-upload-drop {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 100%; min-height: 125px; padding: 24px 16px;
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px;
+    flex: 0 1 auto; min-width: 0; min-height: 0; padding: 10px 14px;
     border: 1px dashed var(--metime-black); background: var(--metime-white);
-    cursor: pointer; text-align: center;
+    cursor: pointer; text-align: left;
   }
   .tmpl-upload-drop:hover, .tmpl-upload-drop.drag { background: var(--color-linen-300); }
-  .tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+  .tmpl-upload-title { font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; }
   .tmpl-upload-sub { font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
-  .tmpl-upload .pal-upload-pills { justify-content: center; }
+  .tmpl-upload .pal-upload-pills { justify-content: flex-start; flex: 0 1 auto; }
+  .tmpl-upload .pal-upload-url, .tmpl-upload .pal-upload-error { flex: 1 1 100%; max-width: none; margin: 0; }
   .tmpl-upload-result {
     display: flex; align-items: center; gap: 24px; width: 100%; min-width: 0;
   }
@@ -1126,9 +1127,12 @@
   }
   @media (max-width: 900px) {
     .tmpl-page .tmpl-card { padding: 24px 28px; }
-    .tmpl-upload-bar { min-height: 0; padding: 16px 20px; }
+    .tmpl-upload-bar { min-height: 0; padding: 12px 20px; }
+    .tmpl-upload { flex-direction: column; align-items: stretch; }
     .tmpl-upload-result, .tmpl-upload-actions { flex-wrap: wrap; }
     .tmpl-upload-actions { margin-left: 0; }
+    .pal-upload-drop, .tmpl-upload-drop, .pal-upload-pills { display: none; }
+    .pal-upload { width: 100%; max-width: none; }
   }
   @media (max-width: 600px) {
     .tmpl-page .tmpl-grid { grid-template-columns: 1fr; }
@@ -1242,26 +1246,48 @@
 
   /* Upload */
   .pal-upload {
-    display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 10px;
     text-align: left; cursor: default; width: 50%; max-width: 100%; box-sizing: border-box;
   }
   .pal-upload-drop {
-    border: 1px dashed #707F87; border-radius: 4px; padding: 28px 24px; text-align: center;
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px;
+    border: 1px dashed #707F87; border-radius: 4px; padding: 10px 14px; text-align: left;
     cursor: pointer; transition: border-color 0.15s, background 0.15s;
     background: var(--metime-white);
   }
   .pal-upload-drop:hover, .pal-upload-drop.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
-  .pal-upload-icon { color: #3c3833; margin-bottom: 8px; display: inline-flex; }
+  .pal-upload-icon { color: #3c3833; display: inline-flex; flex-shrink: 0; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
   .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
-  .pal-upload-browse {
-    background: none; border: none; padding: 0; font: inherit; color: var(--metime-tomato);
-    text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
-  }
-  .pal-upload-browse:hover { color: var(--metime-almost-black); }
-  .pal-upload-browse:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); border-radius: 2px; }
   .pal-upload-hit { cursor: pointer; }
   .pal-upload-hit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-add { align-self: flex-start; }
+  .pal-upload-sheet .popover-title {
+    font-family: var(--font-sans); font-size: 16px; font-weight: 500; color: var(--metime-black);
+  }
+  .pal-upload-sheet .bottom-sheet-head { padding: 4px 16px 8px; }
+  .pal-upload-sheet-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 16px; }
+  .pal-upload-sheet-hint { font-family: var(--font-sans); font-size: 13px; font-weight: 400; color: var(--warm-muted); line-height: 1.35; margin: -2px 0 4px; }
+  .pal-upload-method {
+    display: flex; align-items: flex-start; gap: 12px; width: 100%;
+    padding: 12px 14px; text-align: left; cursor: pointer;
+    font: inherit; color: inherit;
+    background: var(--metime-white); border: 1px solid #707F87; border-radius: 6px;
+  }
+  .pal-upload-method:hover { background: var(--color-linen-300); }
+  .pal-upload-method[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
+  .pal-upload-method:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-method:disabled { opacity: 0.5; cursor: default; }
+  .pal-upload-method-icon { display: inline-flex; flex-shrink: 0; color: var(--metime-almost-black); margin-top: 1px; }
+  .pal-upload-method-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .pal-upload-method-title { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--metime-black); line-height: 1.25; }
+  .pal-upload-method-sub { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--warm-muted); line-height: 1.3; }
+  .pal-upload-method-block { display: flex; flex-direction: column; gap: 8px; }
+  .pal-upload-method-block .pal-upload-url { padding: 0; background: transparent; border-radius: 0; }
+  .pal-upload-method-block .pal-upload-url-row { flex-direction: column; }
+  .pal-upload-method-block .pal-upload-url-row button { width: 100%; }
+  .bottom-sheet-backdrop.is-lift { z-index: 240; }
+  .bottom-sheet.is-lift { z-index: 241; }
   .pal-upload-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; }
   .pal-upload-pill {
     display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
@@ -1312,8 +1338,6 @@
     line-height: 1.35; padding: 8px 10px;
     background: rgba(232, 88, 58, 0.08); border-radius: 4px;
   }
-  .tmpl-upload .pal-upload-url { max-width: 420px; margin: 0 auto; }
-  .tmpl-upload .pal-upload-error { max-width: 420px; margin: 0 auto; }
   .pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
   /* outline (not a border) so the stroke paints over the image content */
   .pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
@@ -2395,7 +2419,7 @@ const IcCaretL  = () => <Svg><path d="m15 18-6-6 6-6"/></Svg>;
 const IcCaretR  = () => <Svg><path d="m9 18 6-6-6-6"/></Svg>;
 const IcLayers  = () => <Svg><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></Svg>;
 const IcTrash   = () => <Svg><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Svg>;
-const IcCopy    = () => <Svg><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
+const IcCopy    = ({ size }) => <Svg size={size}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Svg>;
 const IcErase   = () => <Svg><path d="M20 20H7L3 16l13-13 7 7-3 3"/><path d="M6.0 17.0 9 14"/></Svg>;
 const IcEye     = ({ off }) => off
   ? <Svg><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/></Svg>
@@ -2416,6 +2440,7 @@ const IcPen     = ({ size=18 }) => <Svg size={size}><path d="M12 20h9"/><path d=
 const IcLineTool= ({ size=18 }) => <Svg size={size}><path d="M5 19 19 5"/><circle cx="19" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none"/></Svg>;
 const IcCircle  = ({ size=18 }) => <Svg size={size}><circle cx="12" cy="12" r="8"/></Svg>;
 const IcImage   = ({ size=16 }) => <Svg size={size}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></Svg>;
+const IcCamera  = ({ size=16 }) => <Svg size={size}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></Svg>;
 const IcFolder  = ({ size=16 }) => <Svg size={size}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></Svg>;
 const IcLink    = ({ size=16 }) => <Svg size={size}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></Svg>;
 const IcUpload  = ({ size=16 }) => <Svg size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></Svg>;
@@ -3986,16 +4011,17 @@ function useIsMobile(query = '(max-width: 900px)') {
 
 // A sheet that slides up from the bottom. Reuses the app's card/panel styling
 // so its contents look identical to the desktop panel/popover.
-function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85 }) {
+function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85, sheetClassName, elevated = false }) {
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+  const lift = elevated ? ' is-lift' : '';
   return (
     <>
-      <div className="bottom-sheet-backdrop" onClick={onClose}/>
-      <div className="bottom-sheet" style={{ maxHeight: `${maxHeightVh}vh` }} role="dialog" aria-modal="true">
+      <div className={`bottom-sheet-backdrop${lift}`} onClick={onClose}/>
+      <div className={`bottom-sheet${lift}${sheetClassName ? ` ${sheetClassName}` : ''}`} style={{ maxHeight: `${maxHeightVh}vh` }} role="dialog" aria-modal="true">
         <div className="bottom-sheet-handle"/>
         {(title || showClose) && (
           <div className="bottom-sheet-head">
@@ -6943,13 +6969,17 @@ const PASTE_SHORTCUT = (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPo
 
 // Drop zone + optional URL field used by PhotoDrop and PhotoUpload so paste/URL
 // land in one place. Calls onSrc(dataUrl) — same path as a chosen file.
+// Desktop: slim dashed drop row + pills. Mobile: "+ add image" opens a sheet.
 function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel }) {
+  const isMobile = useIsMobile();
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState('');
   const [urlText, setUrlText] = useState('');
   const [showUrl, setShowUrl] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
+  const cameraRef = useRef(null);
   const urlRef = useRef(null);
   const urlId = useId();
   const busy = loading || working;
@@ -6957,6 +6987,14 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     ? ((working && workingLabel) ? workingLabel : 'Loading…')
     : 'Drop an image here';
   const ariaLabel = title || 'Drop an image here';
+  const isTmpl = variant === 'tmpl';
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setShowUrl(false);
+    setUrlText('');
+    setError('');
+  }, []);
 
   const acceptFile = useCallback(file => {
     if (!file || !file.type || !file.type.startsWith('image/')) {
@@ -6968,7 +7006,12 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     setUrlText('');
     setLoading(true);
     const reader = new FileReader();
-    reader.onload = ev => { setLoading(false); setError(''); onSrc(ev.target.result); };
+    reader.onload = ev => {
+      setLoading(false);
+      setError('');
+      setMenuOpen(false);
+      onSrc(ev.target.result);
+    };
     reader.onerror = () => { setLoading(false); setError('Could not read that file.'); };
     reader.readAsDataURL(file);
   }, [onSrc]);
@@ -6977,6 +7020,7 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     const url = String(raw || '').trim();
     setUrlText(url);
     setShowUrl(true);
+    if (isMobile) setMenuOpen(true);
     if (!isHttpImageUrl(url)) {
       setError('Enter an http(s) image URL.');
       return;
@@ -6984,9 +7028,9 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     setError('');
     setLoading(true);
     loadRemoteImageSrc(url)
-      .then(src => { setLoading(false); setError(''); onSrc(src); })
+      .then(src => { setLoading(false); setError(''); setMenuOpen(false); setShowUrl(false); setUrlText(''); onSrc(src); })
       .catch(err => { setLoading(false); setError((err && err.message) || REMOTE_IMAGE_ERR); });
-  }, [onSrc]);
+  }, [onSrc, isMobile]);
 
   useEffect(() => {
     const onPaste = e => {
@@ -7020,7 +7064,13 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     if (isHttpImageUrl(text)) acceptUrl(text);
   };
 
+  const onFileChange = e => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    acceptFile(file);
+  };
   const openPicker = () => { if (fileRef.current) fileRef.current.click(); };
+  const openCamera = () => { if (cameraRef.current) cameraRef.current.click(); };
   const onHitKey = e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
   };
@@ -7072,13 +7122,17 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     </div>
   ) : null;
   const errNode = error ? <div className="pal-upload-error" role="alert">{error}</div> : null;
-  const fileInput = <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => acceptFile(e.target.files[0])}/>;
+  const fileInputs = (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange}/>
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFileChange}/>
+    </>
+  );
   const dropProps = {
     onDragOver: e => { e.preventDefault(); setDrag(true); },
     onDragLeave: () => setDrag(false),
     onDrop,
   };
-  const browseLink = <span className="pal-upload-browse">browse your files</span>;
   const pills = (
     <div className="pal-upload-pills">
       <button type="button" className="pal-upload-pill" onClick={openPicker} disabled={busy}>
@@ -7098,46 +7152,80 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     </div>
   );
 
-  if (variant === 'tmpl') {
-    return (
-      <div className="tmpl-upload">
-        <div
-          className={`tmpl-upload-drop pal-upload-hit${drag ? ' drag' : ''}`}
-          role="button"
-          tabIndex={0}
-          aria-label={ariaLabel}
-          onClick={openPicker}
-          onKeyDown={onHitKey}
-          {...dropProps}>
-          <div className="pal-upload-icon"><IcImage size={24}/></div>
-          <div className="tmpl-upload-title">{shownTitle}</div>
-          <div className="tmpl-upload-sub">or {browseLink}</div>
+  const methodBtn = (key, icon, label, sub, onClick, pressed) => (
+    <button
+      type="button"
+      className="pal-upload-method"
+      aria-pressed={pressed || undefined}
+      onClick={onClick}
+      disabled={busy}>
+      <span className="pal-upload-method-icon">{icon}</span>
+      <span className="pal-upload-method-copy">
+        <span className="pal-upload-method-title">{label}</span>
+        <span className="pal-upload-method-sub">{sub}</span>
+      </span>
+    </button>
+  );
+
+  const menu = menuOpen ? (
+    <BottomSheet
+      onClose={closeMenu}
+      title="Add an image"
+      elevated
+      sheetClassName="pal-upload-sheet">
+      <div className="pal-upload-sheet-body">
+        <div className="pal-upload-sheet-hint">JPG, PNG, or WebP</div>
+        {methodBtn('camera', <IcCamera size={20}/>, 'Take a photo', 'Use your camera.', openCamera)}
+        {methodBtn('files', <IcImage size={20}/>, 'Choose from your photos', 'Camera roll or files.', openPicker)}
+        {methodBtn('paste', <IcCopy size={20}/>, 'Paste from clipboard', 'Whatever you last copied.', pasteImageFromClipboard)}
+        <div className="pal-upload-method-block">
+          {methodBtn('url', <IcLink size={20}/>, 'Use an image link', 'Paste a URL to an image.', toggleUrlField, showUrl)}
+          {urlRow}
         </div>
-        {pills}
-        {urlRow}
         {errNode}
-        {fileInput}
+      </div>
+    </BottomSheet>
+  ) : null;
+
+  if (isMobile) {
+    return (
+      <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
+        <button
+          type="button"
+          className="pal-btn secondary pal-upload-add"
+          onClick={() => { setError(''); setShowUrl(false); setMenuOpen(true); }}
+          disabled={busy}
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}>
+          + add image
+        </button>
+        {menu}
+        {fileInputs}
       </div>
     );
   }
+
+  const drop = (
+    <div
+      className={`${isTmpl ? 'tmpl-upload-drop' : 'pal-upload-drop'} pal-upload-hit${drag ? ' drag' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onClick={openPicker}
+      onKeyDown={onHitKey}
+      {...dropProps}>
+      <div className="pal-upload-icon"><IcImage size={18}/></div>
+      <div className={isTmpl ? 'tmpl-upload-title' : 'pal-upload-title'}>{shownTitle}</div>
+    </div>
+  );
+
   return (
-    <div className="pal-upload">
-      <div
-        className={`pal-upload-drop pal-upload-hit${drag ? ' drag' : ''}`}
-        role="button"
-        tabIndex={0}
-        aria-label={ariaLabel}
-        onClick={openPicker}
-        onKeyDown={onHitKey}
-        {...dropProps}>
-        <div className="pal-upload-icon"><IcImage size={28}/></div>
-        <div className="pal-upload-title">{shownTitle}</div>
-        <div className="pal-upload-sub">or {browseLink}</div>
-      </div>
+    <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
+      {drop}
       {pills}
       {urlRow}
       {errNode}
-      {fileInput}
+      {fileInputs}
     </div>
   );
 }
