@@ -4077,21 +4077,23 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
   filtered, color, setColor, selIds, setShapes,
   customs, setCustoms, setPinned, allColors,
   pinned, showMyPalette, onPick, onClear, title,
-  groups = GROUPS, suggested, isMobile = false }) {
+  groups = GROUPS, suggested, isMobile = false, afterPick }) {
   const [showCF, setShowCF] = useState(false);
   const [cName, setCName] = useState("");
   const [cHex, setCHex] = useState("#000000");
   // When `onPick` is provided (e.g. picking a fabric), the chip click delegates
   // there and closes the popover instead of doing the default paint behaviour.
+  const finishPick = (c) => { afterPick?.(c); onClose(); };
   const handleChip = (c) => {
     if (onPick) {
       onPick(c);
-      onClose();
+      finishPick(c);
       return;
     }
     setColor(c);
     setPinned(p => p.find(x => x.name === c.name) ? p : [...p, c]);
     if (selIds.size > 0) setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
+    finishPick(c);
   };
   const body = (
     <>
@@ -4147,9 +4149,9 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
         </div>
         <div style={{ borderTop:'1px solid var(--warm-divider-soft)', paddingTop:10 }}>
           {suggested ? (
-            <SimpleSuggested palettes={suggested} onLoad={setPinned} onSelect={setColor}/>
+            <SimpleSuggested palettes={suggested} onLoad={setPinned} onSelect={c => { setColor(c); finishPick(c); }}/>
           ) : (
-            <SuggestedPalettes onLoad={setPinned} onSelect={setColor}/>
+            <SuggestedPalettes onLoad={setPinned} onSelect={c => { setColor(c); finishPick(c); }}/>
           )}
         </div>
         <div style={{ borderTop:'1px solid var(--warm-divider-soft)', paddingTop:10 }}>
@@ -4170,10 +4172,11 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
                   if (!cName.trim() || !/^#[0-9A-Fa-f]{6}$/.test(cHex)) return;
                   const c = { name: cName.trim(), hex: cHex.toUpperCase(), group: 'Custom', custom: true };
                   setCustoms(p => [c, ...p]);
-                  if (onPick) { onPick(c); onClose(); return; }
+                  if (onPick) { onPick(c); finishPick(c); return; }
                   setColor(c);
                   setPinned(p => [...p, c]);
                   setCName(''); setCHex('#000000'); setShowCF(false);
+                  finishPick(c);
                 }}>Add</button>
                 <button className="btn btn-sm" onClick={()=>setShowCF(false)}>Cancel</button>
               </div>
@@ -4194,7 +4197,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
 }
 
 // ── Right-column blocks ───────────────────────────────────────────────────
-function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selIds, setShapes, onRecolor }) {
+function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selIds, setShapes, onRecolor, onAfterPick }) {
   const plusRef = useRef(null);
   // Clicking a palette chip sets the active paint color, and—if objects are
   // selected—recolors that selection. Two selection models are supported:
@@ -4202,10 +4205,11 @@ function MyPaletteCard({ color, pinned, setPinned, setColor, onOpenLibrary, selI
   // a caller-provided recolor (e.g. the cross-stitch cell selection).
   const handleChip = (c) => {
     setColor(c);
-    if (onRecolor) { onRecolor(c); return; }
+    if (onRecolor) { onRecolor(c); onAfterPick?.(); return; }
     if (selIds && selIds.size > 0 && setShapes) {
       setShapes(p => p.map(s => selIds.has(s.id) ? { ...s, color: c } : s));
     }
+    onAfterPick?.();
   };
   return (
     <div className="card my-palette">
@@ -5232,7 +5236,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       {isMobile && sheet === 'palette' && (
         <BottomSheet onClose={()=>setSheet(null)} title="My palette">
           <MyPaletteCard color={color} pinned={pinned} setPinned={setPinned} setColor={setColor}
-            selIds={selIds} setShapes={setShapes} onOpenLibrary={openLibrary}/>
+            selIds={selIds} setShapes={setShapes} onOpenLibrary={openLibrary}
+            onAfterPick={()=>setSheet(null)}/>
         </BottomSheet>
       )}
       {isMobile && sheet === 'size' && (
@@ -5308,7 +5313,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           onPick={picker.onPick}
           onClear={picker.onClear}
           title={picker.title}
-          isMobile={isMobile}/>
+          isMobile={isMobile}
+          afterPick={isMobile ? () => setSheet(null) : undefined}/>
       )}
 
       {showBackingPicker && (
@@ -9709,7 +9715,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       {isMobile && sheet === 'palette' && (
         <BottomSheet onClose={()=>setSheet(null)} title="My palette">
           <MyPaletteCard color={color} pinned={pal} setPinned={setPal} setColor={setColor}
-            onRecolor={hasSel ? recolorSelection : undefined} onOpenLibrary={openLibrary}/>
+            onRecolor={hasSel ? recolorSelection : undefined} onOpenLibrary={openLibrary}
+            onAfterPick={()=>setSheet(null)}/>
         </BottomSheet>
       )}
       {isMobile && sheet === 'text' && (
@@ -9785,7 +9792,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           allColors={allColors}
           pinned={pal}
           suggested={dmcSuggested}
-          isMobile={isMobile}/>
+          isMobile={isMobile}
+          afterPick={isMobile ? () => setSheet(null) : undefined}/>
       )}
 
       {showFabric && (
