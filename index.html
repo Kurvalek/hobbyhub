@@ -41,66 +41,72 @@
   html, body, #root { height: 100%; }
 
   :root {
+    /* Ice scale — fills, hovers, highlights, active / disabled */
+    --ice-50: #F5F7FC;
+    --ice-100: #EDF2FC;
+    --ice-200: #CCD6EB;
+    --ice-300: #A9BDE6;
+    --ice-400: #7A94C9;
+    --ice-500: #52658D;
+    --ice-600: #3D4E70;
+    --ice-700: #2A3752;
+
     /* metime base palette */
     --metime-black: #000000;
-    --metime-almost-black: #2E2925;
-    --metime-cream: #F5F3EE;
+    --metime-almost-black: #000000;
+    --metime-cream: var(--ice-50);
     --metime-white: #FFFFFF;
 
-    /* metime accent palette (kept available for future profile UI) */
+    /* metime accent palette */
     --metime-tomato: #E8583A;
     --metime-avocado: #B5BB46;
     --metime-olive: #B9B74B;
     --metime-grapefruit: #FDA198;
-    --metime-ice: #CCD6EB;
+    --metime-ice: var(--ice-200);
     --metime-golden: #FBBB3F;
 
-    /* Warm-tinted neutrals — derived to read warm against the cream base */
-    --warm-fg: #2E2925;
-    --warm-fg-2: #5C544A;
-    /* --warm-muted darkened from #8A8580 to meet WCAG AA (4.5:1) for body text
-       on both the cream (#F5F3EE) and white card surfaces. */
-    --warm-muted: #6E6862;
-    /* --warm-muted-2 / --warm-placeholder are reserved for non-text use
-       (borders, disabled icons, native input placeholders). */
-    --warm-muted-2: #B5AFA6;
-    --warm-placeholder: #CFC9BE;
-    --warm-hairline: #E2DDD2;
-    --warm-divider-soft: #EFE9DD;
-    --warm-hover: #EFE9DD;
+    /* Cool neutrals (legacy --warm-* names kept so existing rules pick up ice) */
+    --warm-fg: var(--metime-black);
+    --warm-fg-2: var(--ice-600);
+    --warm-muted: var(--ice-500);
+    --warm-muted-2: var(--ice-300);
+    --warm-placeholder: var(--ice-400);
+    --warm-hairline: var(--ice-200);
+    --warm-divider-soft: var(--ice-100);
+    --warm-hover: var(--ice-200);
 
-    /* Button design system (Figma: metime — design system, node 20-1371) */
-    --color-taupe-900: #120F06;
-    --color-taupe-700: #3D3625;
-    --color-taupe-600: #544D3A;
-    --color-taupe-500: #6B644F;
-    --color-taupe-100: #CEC9BE;
-    --color-linen-800: #D5D1BD;
-    --color-linen-600: #E9E7D9;
-    --color-linen-500: #F2F1E7;
-    --color-linen-300: #F7F6F0;
-    --color-linen-100: #FDFCFA;
+    /* Legacy taupe / linen names — now ice aliases so existing var() calls update */
+    --color-taupe-900: var(--metime-black);
+    --color-taupe-700: var(--ice-600);
+    --color-taupe-600: var(--ice-500);
+    --color-taupe-500: var(--ice-400);
+    --color-taupe-100: var(--ice-200);
+    --color-linen-800: var(--ice-200);
+    --color-linen-600: var(--ice-100);
+    --color-linen-500: var(--ice-200);
+    --color-linen-300: var(--ice-100);
+    --color-linen-100: var(--ice-50);
 
-    /* Primary (filled) button */
-    --btn-primary-bg: var(--color-taupe-900);
-    --btn-primary-bg-hover: var(--color-taupe-600);
-    --btn-primary-bg-active: var(--color-taupe-700);
-    --btn-primary-bg-disabled: var(--color-linen-600);
+    /* Primary (filled) button — black stroke stays; ice fills on hover / active / disabled */
+    --btn-primary-bg: var(--metime-black);
+    --btn-primary-bg-hover: var(--ice-500);
+    --btn-primary-bg-active: var(--ice-600);
+    --btn-primary-bg-disabled: var(--ice-100);
     --btn-primary-fg: var(--metime-white);
-    --btn-primary-fg-active: var(--color-taupe-100);
+    --btn-primary-fg-active: var(--ice-50);
+    --btn-stroke: var(--metime-black);
 
     /* Secondary (outline) button */
-    --btn-secondary-bg: var(--color-linen-100);
-    --btn-secondary-bg-hover: var(--color-linen-300);
-    --btn-secondary-bg-active: var(--color-linen-500);
-    --btn-secondary-border: var(--color-linen-800);
-    --btn-secondary-fg: var(--color-taupe-900);
+    --btn-secondary-bg: var(--metime-white);
+    --btn-secondary-bg-hover: var(--ice-100);
+    --btn-secondary-bg-active: var(--ice-200);
+    --btn-secondary-border: var(--metime-black);
+    --btn-secondary-fg: var(--metime-black);
 
     /* Shared button states */
-    --btn-disabled-fg: var(--color-taupe-500);
-    --btn-focus-ring: var(--color-taupe-100);
-    /* Pale taupe wash for icon/tool button hover (reads consistently over cream or white). */
-    --btn-tool-hover: rgba(18, 15, 6, 0.08);
+    --btn-disabled-fg: var(--ice-400);
+    --btn-focus-ring: var(--ice-300);
+    --btn-tool-hover: rgba(82, 101, 141, 0.16);
 
     /* Surfaces */
     --surface-card: var(--metime-white);
@@ -108,13 +114,13 @@
 
     /* Action / accent semantics */
     --action: var(--metime-black);
-    --action-hover: var(--metime-almost-black);
-    --selection: #CCD6EB;
+    --action-hover: var(--ice-500);
+    --selection: var(--ice-200);
     --metime-wave: var(--metime-tomato);
 
-    /* Shadows tuned to warm bg */
-    --shadow-sticky: 0 2px 8px rgba(46,41,37,0.08);
-    --shadow-modal: 0 8px 32px rgba(46,41,37,0.14);
+    /* Shadows */
+    --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.14);
 
     /* Fonts — Söhne (body/sans), BC Civitas (display), Söhne Mono (mono). */
     --font-sans: 'Söhne', sans-serif;
@@ -184,7 +190,7 @@
   .rp-rail .rail-divider { width: 24px; height: 1px; background: var(--warm-hairline); }
 
   /* Thin collapsed rail contents (swatch + high-level stats) */
-  .rp-rail-swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.18); cursor: pointer; padding: 0; background: none; box-shadow: 0 1px 2px rgba(46,41,37,0.12); flex-shrink: 0; }
+  .rp-rail-swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.18); cursor: pointer; padding: 0; background: none; box-shadow: 0 1px 2px rgba(0,0,0,0.12); flex-shrink: 0; }
   .rp-rail-swatch.empty { border: 1px dashed var(--warm-hairline); }
   .rp-rail-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; }
   .rp-rail-stat b { font-family: var(--font-display); font-size: 15px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; color: var(--warm-fg); }
@@ -198,7 +204,7 @@
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
       border-left: 1px solid var(--metime-almost-black);
-      box-shadow: -12px 0 32px rgba(46,41,37,0.20);
+      box-shadow: -12px 0 32px rgba(0,0,0,0.20);
       transform: translateX(0); transition: transform .22s ease;
     }
     .body.rp-closed > .right-panel { display: flex; transform: translateX(105%); box-shadow: none; pointer-events: none; }
@@ -207,14 +213,14 @@
     .xs-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
-      box-shadow: -12px 0 32px rgba(46,41,37,0.20);
+      box-shadow: -12px 0 32px rgba(0,0,0,0.20);
       transform: translateX(0); transition: transform .22s ease;
     }
     .xs-body.rp-closed > .xs-panel { display: flex; transform: translateX(105%); box-shadow: none; pointer-events: none; }
     .xs-materials { right: 16px !important; bottom: 16px; }
 
     /* Backdrop + floating close button for the expanded drawer */
-    .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(46,41,37,0.32); z-index: 120; }
+    .rp-backdrop { display: block; position: absolute; inset: 0; background: rgba(0,0,0,0.32); z-index: 120; }
     .icon-btn.rp-close, .icon-btn.xs-rp-close {
       display: inline-flex; position: absolute; top: 10px; right: 12px; z-index: 140;
       background: var(--metime-white); border: 1px solid var(--warm-hairline); box-shadow: var(--shadow-sticky);
@@ -290,12 +296,12 @@
       display: flex; align-items: center; gap: 4px; overflow-x: auto;
       padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
       background: var(--app-bg); border-top: 1px solid var(--metime-almost-black);
-      box-shadow: 0 -2px 6px rgba(46,41,37,0.08); -webkit-overflow-scrolling: touch;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.08); -webkit-overflow-scrolling: touch;
     }
     .mobile-toolbar::-webkit-scrollbar { display: none; }
     .mobile-toolbar .icon-btn { flex-shrink: 0; width: 40px; height: 40px; }
     .mobile-toolbar-divider { flex-shrink: 0; width: 1px; height: 22px; background: var(--warm-hairline); margin: 0 4px; }
-    .mt-swatch { display: block; width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(46,41,37,0.18); }
+    .mt-swatch { display: block; width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(0,0,0,0.18); }
     .mt-swatch.empty { border: 1px dashed var(--warm-hairline); background: transparent; }
 
     /* Selection toolbars become a contextual bar pinned above the toolbar.
@@ -314,11 +320,11 @@
     }
 
     /* Bottom sheet chrome. */
-    .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(46,41,37,0.32); z-index: 200; }
+    .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 200; }
     .bottom-sheet {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
       background: var(--metime-white); border-top: 1px solid var(--metime-almost-black);
-      border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(46,41,37,0.20);
+      border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0,0,0,0.20);
       display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
     }
     .bottom-sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 8px auto 2px; flex-shrink: 0; }
@@ -337,7 +343,7 @@
   }
 
   /* Header */
-  header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
+  header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
   .header-left { display: flex; align-items: center; }
   .header-center { display: flex; align-items: center; justify-content: center; }
   .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -372,15 +378,15 @@
   .icon-btn:hover { background: var(--btn-tool-hover); }
   .icon-btn:active { background: var(--btn-secondary-bg-active); }
   .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
-  .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
-  .icon-btn[aria-pressed="true"]:hover, .icon-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
+  .icon-btn[aria-pressed="true"]:hover, .icon-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
   .icon-btn:disabled { color: var(--btn-disabled-fg); cursor: not-allowed; }
   .icon-btn:disabled:hover { background: transparent; }
 
   /* Toggle switch (pill on/off control) */
   .switch { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: 12px; color: var(--warm-fg-2); user-select: none; }
   .switch-track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--color-linen-800); border: 1px solid var(--btn-secondary-border); transition: background .12s, border-color .12s; flex-shrink: 0; }
-  .switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--metime-white); box-shadow: 0 1px 2px rgba(46,41,37,0.25); transition: transform .12s; }
+  .switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--metime-white); box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform .12s; }
   .switch[aria-checked="true"] .switch-track { background: var(--color-taupe-900); border-color: var(--color-taupe-900); }
   .switch[aria-checked="true"] .switch-knob { transform: translateX(14px); }
   .switch:focus-visible { outline: none; }
@@ -393,7 +399,7 @@
 
   /* Popover (anchored floating panel) */
   .popover-backdrop { position: fixed; inset: 0; z-index: 90; background: transparent; }
-  .popover { position: fixed; z-index: 91; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 10px 32px rgba(46,41,37,0.16); font-family: var(--font-sans); }
+  .popover { position: fixed; z-index: 91; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 10px 32px rgba(0,0,0,0.16); font-family: var(--font-sans); }
   .popover-header { padding: 12px 14px 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .popover-title { font-size: 12px; font-weight: 500; color: var(--warm-fg); }
   .popover-body { padding: 4px 14px 14px; }
@@ -412,7 +418,7 @@
   .edit-link:hover { color: var(--warm-fg); }
 
   /* Floating hint pill in canvas */
-  .hint-overlay { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--metime-almost-black); color: var(--metime-white); padding: 6px 12px; border-radius: 999px; font-size: 11px; line-height: 1.4; max-width: calc(100% - 32px); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; box-shadow: 0 4px 16px rgba(46,41,37,0.18); pointer-events: none; }
+  .hint-overlay { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: var(--metime-almost-black); color: var(--metime-white); padding: 6px 12px; border-radius: 999px; font-size: 11px; line-height: 1.4; max-width: calc(100% - 32px); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.18); pointer-events: none; }
 
   /* Top-of-canvas size bar */
   .size-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 20px; border-bottom: var(--div-border); background: var(--surface-canvas); flex-shrink: 0; }
@@ -434,8 +440,8 @@
   }
   .nib-btn:hover { background: var(--btn-tool-hover); }
   .nib-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
-  .nib-btn.active { background: var(--btn-primary-bg); border-color: var(--btn-primary-bg); color: var(--btn-primary-fg); }
-  .nib-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .nib-btn.active { background: var(--btn-primary-bg); border-color: var(--btn-stroke); color: var(--btn-primary-fg); }
+  .nib-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
   .nib-chip { display: block; background: currentColor; border-radius: 1px; }
 
   /* Coaster set: 4 pages sharing palette/template, edited one at a time. */
@@ -481,11 +487,11 @@
   .zoom-bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--warm-fg-2); min-width: 40px; text-align: right; }
 
   /* Floating selection toolbar (position+coords are computed in JS, FigJam-style) */
-  .selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(46,41,37,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
+  .selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
   .selection-toolbar-divider { display: inline-block; width: 1px; height: 16px; background: var(--warm-hairline); margin: 0 2px; }
   .selection-swatch-btn { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 5px; font: inherit; color: inherit; cursor: pointer; transition: background .12s, border-color .12s; }
-  .selection-swatch-btn:hover { background: var(--surface-hover, rgba(46,41,37,0.05)); border-color: var(--warm-hairline); }
-  .selection-swatch-preview { width: 14px; height: 14px; border: 1px solid rgba(46,41,37,0.12); border-radius: 2px; flex-shrink: 0; display: block; }
+  .selection-swatch-btn:hover { background: var(--surface-hover, rgba(0,0,0,0.05)); border-color: var(--warm-hairline); }
+  .selection-swatch-preview { width: 14px; height: 14px; border: 1px solid rgba(0,0,0,0.12); border-radius: 2px; flex-shrink: 0; display: block; }
   .selection-swatch-mixed { background: conic-gradient(#E8583A 0deg 90deg, #B5BB46 90deg 180deg, #1A2E4C 180deg 270deg, #E1A92F 270deg 360deg); }
   .selection-swatch-name { font-weight: 500; color: var(--warm-fg); }
   .selection-swatch-meta { color: var(--warm-muted); font-family: var(--font-mono); font-size: 11px; }
@@ -523,10 +529,10 @@
   .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .btn:disabled, .btn[disabled] { background: transparent; border-color: var(--btn-secondary-border); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
 
-  .btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
-  .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-  .btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); color: var(--btn-primary-fg-active); }
-  .btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); }
+  .btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
+  .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
+  .btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-stroke); color: var(--btn-primary-fg-active); }
+  .btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-stroke); color: var(--btn-disabled-fg); }
 
   .btn-tertiary { background: transparent; border: none; border-bottom: 1px solid var(--color-taupe-900); border-radius: 0; padding: 0 0 1px; color: var(--color-taupe-900); }
   .btn-tertiary:hover { background: transparent; border-bottom-color: var(--color-taupe-600); color: var(--color-taupe-600); }
@@ -548,9 +554,9 @@
   .fabric-row-detail { font-size: 11px; color: var(--warm-muted); font-family: var(--font-mono); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Color chip */
-  .chip { aspect-ratio: 1; border-radius: 4px; border: 1px solid rgba(46,41,37,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
-  .chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(46,41,37,0.18); }
-  .chip.selected { outline: 3px solid var(--selection); outline-offset: 3px; box-shadow: 0 0 0 1px rgba(46,41,37,0.18) inset, 0 2px 6px rgba(46,41,37,0.12); position: relative; z-index: 2; }
+  .chip { aspect-ratio: 1; border-radius: 4px; border: 1px solid rgba(0,0,0,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
+  .chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+  .chip.selected { outline: 3px solid var(--selection); outline-offset: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,0.18) inset, 0 2px 6px rgba(0,0,0,0.12); position: relative; z-index: 2; }
 
   /* Tag pills */
   .pill { padding: 3px 8px; font-size: 11px; border-radius: 2px; cursor: pointer; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg-2); transition: all .12s; }
@@ -570,7 +576,7 @@
   .slider-label span:last-child { font-weight: 500; color: var(--warm-fg); font-variant-numeric: tabular-nums; }
 
   /* Overlay */
-  .overlay { position: fixed; inset: 0; background: rgba(46,41,37,0.32); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 100; display: flex; align-items: center; justify-content: center; }
 
   /* Signed-in account: 24px profile-circle (Figma 7:1132) + email/sign-out menu. */
   .account-menu { position: relative; z-index: 20; }
@@ -587,7 +593,7 @@
     min-width: 200px; max-width: min(280px, calc(100vw - 32px));
     padding: 12px 14px; background: var(--metime-white);
     border: 1px solid var(--metime-black); border-radius: 4px;
-    box-shadow: 0 8px 24px rgba(46,41,37,0.14);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
   }
   .account-menu-email {
     font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.3;
@@ -615,8 +621,8 @@
   .proj-header { padding: 14px 20px; display: flex; align-items: center; gap: 16px; border-bottom: none; box-shadow: none; background-color: var(--metime-cream); background-image: repeating-linear-gradient(to right, var(--metime-almost-black) 0, var(--metime-almost-black) 3px, transparent 3px, transparent 7px); background-repeat: no-repeat; background-size: 100% 1px; background-position: bottom left; flex-shrink: 0; }
   .proj-body { flex: 1; overflow-y: auto; padding: 48px 48px 64px; }
   .proj-intro { margin-bottom: 40px; }
-  .proj-heading { font-family: var(--font-display); font-size: 36px; line-height: 1.15; letter-spacing: -0.5px; color: #25211e; margin-bottom: 6px; }
-  .proj-subheading { font-size: 14px; color: #3c3833; }
+  .proj-heading { font-family: var(--font-display); font-size: 36px; line-height: 1.15; letter-spacing: -0.5px; color: #000000; margin-bottom: 6px; }
+  .proj-subheading { font-size: 14px; color: #3D4E70; }
   /* auto-fit (not auto-fill) collapses empty trailing tracks so the cards
      stretch to fill the row on desktop; at narrow widths it still resolves to a
      single column, so mobile stacking is unchanged. max-width keeps cards sane
@@ -629,7 +635,7 @@
   @media (max-width: 520px) { .proj-grid:not(.craft-grid) { grid-template-columns: 1fr; } }
   /* Setup-step card box: #707F87 / 4px, matching the palette card (Figma 2138:1989). */
   .proj-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; display: flex; flex-direction: column; }
-  .proj-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .proj-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
   .proj-card:active { transform: translateY(0); }
   .proj-card-thumb { overflow: hidden; background: var(--metime-cream); flex-shrink: 0; }
   .proj-card-thumb svg { display: block; width: 100%; height: auto; }
@@ -637,10 +643,10 @@
   .proj-card-thumb.has-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .proj-card-body { padding: 13px 15px 15px; flex: 1; }
   /* Card name / meta scale shared with .pal-card-name / .pal-card-meta. */
-  .proj-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; margin-bottom: 4px; }
-  .proj-card-dims { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-bottom: 2px; }
-  .proj-card-desc { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-bottom: 8px; }
-  .proj-card-cost { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; border-top: 1px solid #707F87; padding-top: 8px; margin-top: 8px; }
+  .proj-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; margin-bottom: 4px; }
+  .proj-card-dims { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-bottom: 2px; }
+  .proj-card-desc { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-bottom: 8px; }
+  .proj-card-cost { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; border-top: 1px solid #707F87; padding-top: 8px; margin-top: 8px; }
   .proj-card.is-soon { opacity: 0.55; cursor: default; }
   .proj-card.is-soon:hover { box-shadow: none; transform: none; }
 
@@ -659,8 +665,8 @@
   .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
   .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 0; height: 28px; padding: 0 12px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
   .saved-filter:hover { background: var(--color-linen-300); }
-  .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--color-taupe-900); color: var(--metime-white); }
-  .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--color-taupe-600); }
+  .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--metime-black); color: var(--metime-white); }
+  .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--metime-black); }
   .saved-filter:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
   .saved-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 28px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
@@ -881,7 +887,7 @@
   }
   .back-filters .fabric-filter:not(.active):hover { background: var(--metime-ice); }
   .back-filters .fabric-filter.active {
-    background: #1F1E1D; border-color: #1F1E1D; color: var(--metime-white); font-weight: 500;
+    background: var(--ice-500); border-color: var(--metime-black); color: var(--metime-white); font-weight: 500;
   }
   .back-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; flex: 0 0 auto; }
   .back-grid .fabric-card {
@@ -943,11 +949,11 @@
   .pal-page .pal-from-image-use {
     flex: 0 0 auto; width: 160px; height: 40px; padding: 0 16px; margin-left: auto;
     border-radius: 4px; border: 1px solid var(--metime-black);
-    background: #1F1E1D; color: var(--metime-white);
+    background: var(--btn-primary-bg); color: var(--metime-white);
     font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
     cursor: pointer;
   }
-  .pal-page .pal-from-image-use:hover:not(:disabled) { background: #3D3625; }
+  .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); }
   .pal-page .pal-from-image-use:disabled { opacity: 0.4; cursor: default; }
   /* Photo → chart flattening. Sits under the palette bar because it shapes the
      same generated design, and carries a live chart preview: the setting means
@@ -972,7 +978,7 @@
   .xs-flatten-btn:first-child { border-left: none; }
   .xs-flatten-btn:hover:not(.active) { background: var(--metime-cream); }
   .xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
-  .xs-flatten-btn.active { background: #1F1E1D; color: var(--metime-white); }
+  .xs-flatten-btn.active { background: var(--ice-500); color: var(--metime-white); border-color: var(--metime-black); }
   .xs-flatten-note { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); }
   .xs-flatten-check {
     display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
@@ -1163,7 +1169,7 @@
 
   /* Cross-stitch editor */
   .xs-app { display: flex; flex-direction: column; height: 100vh; background: var(--metime-cream); overflow: hidden; }
-  .xs-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,41,37,0.08); }
+  .xs-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
   .xs-title { font-family: var(--font-display); font-size: 20px; line-height: 1; color: var(--warm-fg); }
   .xs-sub { font-size: 12px; color: var(--warm-muted); font-family: var(--font-mono); }
   .xs-topbar-spacer { flex: 1; }
@@ -1175,36 +1181,36 @@
   .xs-tool:hover { background: var(--btn-tool-hover); }
   .xs-tool:active { background: var(--btn-secondary-bg-active); }
   .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
-  .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-primary-bg); }
-  .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
+  .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
   .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; padding: 24px; background: var(--metime-cream); min-width: 0; }
-  .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(46,41,37,0.15); image-rendering: pixelated; touch-action: none; margin: auto; flex-shrink: 0; }
+  .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); image-rendering: pixelated; touch-action: none; margin: auto; flex-shrink: 0; }
   .xs-panel { width: 264px; flex-shrink: 0; border-left: 1px solid var(--metime-almost-black); background: var(--metime-white); display: flex; flex-direction: column; min-height: 0; }
   .xs-panel-head { padding: 14px 16px 8px; }
   .xs-panel-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--warm-fg-2); text-transform: uppercase; }
   .xs-current { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--warm-divider-soft); }
-  .xs-current-chip { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
+  .xs-current-chip { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0; }
   .xs-swatches { flex: 1; overflow-y: auto; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 8px; align-content: start; }
-  .xs-swatch { position: relative; aspect-ratio: 1; border-radius: 6px; border: 1px solid rgba(46,41,37,0.15); cursor: pointer; transition: transform .1s; }
+  .xs-swatch { position: relative; aspect-ratio: 1; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; transition: transform .1s; }
   .xs-swatch:hover { transform: scale(1.08); }
   .xs-swatch.active { outline: 2px solid var(--metime-almost-black); outline-offset: 1px; }
   .xs-add { margin: 0 16px 14px; padding: 8px; border: 1px dashed var(--warm-muted); background: none; border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--warm-fg-2); display: flex; align-items: center; justify-content: center; gap: 6px; }
   .xs-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
-  .xs-picker { position: fixed; inset: 0; background: rgba(46,41,37,0.28); display: flex; align-items: center; justify-content: center; z-index: 60; }
-  .xs-picker-card { background: #fff; border-radius: 10px; width: 460px; max-width: calc(100vw - 32px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(46,41,37,0.2); overflow: hidden; }
+  .xs-picker { position: fixed; inset: 0; background: rgba(0,0,0,0.28); display: flex; align-items: center; justify-content: center; z-index: 60; }
+  .xs-picker-card { background: #fff; border-radius: 10px; width: 460px; max-width: calc(100vw - 32px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.2); overflow: hidden; }
   .xs-picker-list { overflow-y: auto; padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
   .xs-picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
   .xs-picker-item:hover { background: var(--metime-cream); border-color: var(--warm-hairline); }
-  .xs-picker-dot { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
+  .xs-picker-dot { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0; }
   .xs-picker-code { font-size: 12px; font-weight: 600; color: var(--warm-fg); }
   .xs-picker-name { font-size: 10px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .xs-materials { position: absolute; bottom: 16px; right: 280px; width: 232px; background: var(--metime-white); border: 1px solid var(--warm-hairline); border-radius: 10px; box-shadow: 0 6px 24px rgba(46,41,37,0.16); overflow: hidden; z-index: 20; }
+  .xs-materials { position: absolute; bottom: 16px; right: 280px; width: 232px; background: var(--metime-white); border: 1px solid var(--warm-hairline); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.16); overflow: hidden; z-index: 20; }
   .xs-materials-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; }
   .xs-materials-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 12px; }
   .xs-materials-num { font-size: 26px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1; font-family: var(--font-display); }
   .xs-materials-list { border-top: 1px solid var(--warm-divider-soft); max-height: 180px; overflow-y: auto; }
   .xs-materials-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; }
-  .xs-materials-dot { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(46,41,37,0.15); flex-shrink: 0; }
+  .xs-materials-dot { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0; }
 
   /* Palette selector page */
   .pal-body { max-width: none; }
@@ -1212,12 +1218,12 @@
   .pal-head-row { display: flex; align-items: center; gap: 16px; }
   .pal-head-row .proj-heading { flex: 1; min-width: 0; margin-bottom: 0; }
   .pal-head-row + .proj-subheading { margin-top: 6px; }
-  .pal-body .proj-subheading { font-size: 14px; font-weight: 400; color: #3c3833; }
+  .pal-body .proj-subheading { font-size: 14px; font-weight: 400; color: #3D4E70; }
   .pal-section { margin-bottom: 36px; }
   .pal-section-head { margin-bottom: 14px; }
   /* Palette-step section labels — Söhne Kräftig 20 / Buch 13 (Figma 2151:261) */
-  .pal-section-title { font-size: 20px; font-weight: 500; letter-spacing: 0; color: #25211e; }
-  .pal-section-sub { font-size: 13px; font-weight: 400; color: #3c3833; margin-top: 3px; }
+  .pal-section-title { font-size: 20px; font-weight: 500; letter-spacing: 0; color: #000000; }
+  .pal-section-sub { font-size: 13px; font-weight: 400; color: #3D4E70; margin-top: 3px; }
   /* Even rows that divide both 6 (DMC) and 12 (Kona) sample counts:
      6 / 4 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
   .pal-grid {
@@ -1250,7 +1256,7 @@
     cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
     text-align: left; font: inherit; color: inherit;
   }
-  .pal-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .pal-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
   .pal-card:active { transform: translateY(0); }
   .pal-card.selected { box-shadow: 0 0 0 2px #707F87; }
   .pal-swatches { display: flex; align-items: center; height: 32px; width: 100%; }
@@ -1262,8 +1268,8 @@
   .pal-swatch:first-child { margin-left: 0; }
   .pal-card-body { padding: 10px 0 0; min-width: 0; width: 100%; }
   /* Figma: Söhne Kräftig 14 / Buch 13 */
-  .pal-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
-  .pal-card-meta { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .pal-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; }
+  .pal-card-meta { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-top: 4px; }
 
   /* Upload */
   .pal-upload {
@@ -1277,9 +1283,9 @@
     background: var(--metime-white);
   }
   .pal-upload-drop:hover, .pal-upload-drop.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
-  .pal-upload-icon { color: #3c3833; display: inline-flex; flex-shrink: 0; }
-  .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
-  .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .pal-upload-icon { color: #3D4E70; display: inline-flex; flex-shrink: 0; }
+  .pal-upload-title { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; }
+  .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-top: 4px; }
   .pal-upload-hit { cursor: pointer; }
   .pal-upload-hit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .pal-upload-add { align-self: flex-start; }
@@ -1293,7 +1299,7 @@
     display: flex; align-items: flex-start; gap: 12px; width: 100%;
     padding: 12px 14px; text-align: left; cursor: pointer;
     font: inherit; color: inherit;
-    background: var(--metime-white); border: 1px solid #707F87; border-radius: 6px;
+    background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 6px;
   }
   .pal-upload-method:hover { background: var(--color-linen-300); }
   .pal-upload-method[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
@@ -1398,8 +1404,8 @@
   .pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
   .pal-from-image-add {
     width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-    border: 1px dashed #9A958C; background: var(--metime-white);
-    color: #3c3833; font-size: 20px; line-height: 1; font-weight: 400;
+    border: 1px dashed var(--ice-400); background: var(--metime-white);
+    color: #3D4E70; font-size: 20px; line-height: 1; font-weight: 400;
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
     padding: 0; font-family: inherit;
   }
@@ -1409,7 +1415,7 @@
   }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
-  .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(46,41,37,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
+  .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
   .pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
   .pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
   .pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
@@ -1419,15 +1425,15 @@
   /* Same box as .pal-skip-btn: 6px radius, 10/18 padding, Söhne Kräftig 14. */
   .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s; }
   .pal-btn:hover { background: var(--action-hover); }
-  .pal-btn.secondary { background: var(--metime-white); border-color: #707F87; color: #25211e; }
+  .pal-btn.secondary { background: var(--metime-white); border-color: var(--metime-black); color: #000000; }
   .pal-btn.secondary:hover { background: var(--color-linen-300); }
   .pal-skip-row { display: flex; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; }
   /* Skip for now — Figma 2151:263; box border overridden to #707F87 */
   .pal-skip-btn {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 10px 18px; border-radius: 6px;
-    border: 1px solid #707F87; background: var(--metime-white);
-    color: #25211e; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    border: 1px solid var(--metime-black); background: var(--metime-white);
+    color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
     line-height: normal; cursor: pointer;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
@@ -1440,7 +1446,7 @@
   .tmpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   @media (max-width: 900px) { .tmpl-grid { grid-template-columns: repeat(2, 1fr); } }
   .tmpl-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; text-align: left; font: inherit; color: inherit; padding: 0; }
-  .tmpl-card:hover { box-shadow: 0 8px 24px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .tmpl-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
   .tmpl-card:active { transform: translateY(0); }
   .tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
   .tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
@@ -1451,8 +1457,8 @@
   .tmpl-card-thumb.is-ratio { background: none; height: auto; }
   .tmpl-card-thumb.is-ratio svg { width: min(100%, calc(var(--tmpl-thumb-h, 300px) * var(--tmpl-ar))); height: auto; aspect-ratio: var(--tmpl-ar); }
   .tmpl-card-body { padding: 12px 15px 15px; }
-  .tmpl-card-name { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; margin-bottom: 4px; }
-  .tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; }
+  .tmpl-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; margin-bottom: 4px; }
+  .tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; }
   /* Back link — tertiary text style (Figma Button Tertiary Medium): Söhne Kräftig 14, taupe-900.
      Chevron sits outside the underline so only the label is underlined. */
   .back-link {
@@ -1470,7 +1476,7 @@
   /* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
   .pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
   .pal-suggest-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .pal-suggest-swatch { width: 44px; height: 44px; border-radius: 8px; border: 1px solid rgba(46,41,37,0.15); cursor: pointer; padding: 0; transition: transform .1s; }
+  .pal-suggest-swatch { width: 44px; height: 44px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; padding: 0; transition: transform .1s; }
   .pal-suggest-swatch:hover { transform: scale(1.06); }
   .pal-suggest-rm { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: var(--metime-black); color: var(--metime-white); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
   .pal-suggest-code { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
@@ -1480,13 +1486,13 @@
   /* Backing-fabric picker: theme filters + dense swatch grid. Filters share the
      .pal-skip-btn box (white / #707F87 / 6px / Söhne Kräftig 14). */
   .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid #707F87; background: var(--metime-white); color: #25211e; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
   .fabric-filter:not(.active):hover { background: var(--color-linen-300); }
   .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
   .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
   .fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
   .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-white); font: inherit; transition: box-shadow .15s, transform .12s; }
-  .fabric-card:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.13); transform: translateY(-2px); }
+  .fabric-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.13); transform: translateY(-2px); }
   .fabric-card:active { transform: translateY(0); }
   .fabric-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
   .fabric-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
@@ -1495,13 +1501,13 @@
      bottom sheets so it still works from the mobile fabrics sheet. */
   .overlay-lift { z-index: 220; }
   .fabric-enlarge {
-    background: var(--metime-white); border: 1px solid #E2DDD2; border-radius: 8px;
+    background: var(--metime-white); border: 1px solid #CCD6EB; border-radius: 8px;
     padding: 20px 24px; max-width: min(720px, calc(100vw - 32px)); width: 100%;
-    max-height: 90vh; overflow: auto; box-shadow: 0 8px 32px rgba(46,41,37,0.14);
+    max-height: 90vh; overflow: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.14);
     box-sizing: border-box;
   }
   .fabric-enlarge-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-  .fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; min-width: 0; }
+  .fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #000000; min-width: 0; }
   .fabric-enlarge-img {
     display: block; width: 100%; max-height: min(70vh, 640px); object-fit: contain;
     background: var(--metime-cream); border: 1px solid #707F87; border-radius: 4px;
@@ -1523,22 +1529,22 @@
   .fabric-enlarge-nav:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .fabric-enlarge-count {
     font-family: var(--font-sans); font-size: 13px; font-weight: 400;
-    color: #3c3833; white-space: nowrap; margin-left: auto; margin-right: 8px;
+    color: #3D4E70; white-space: nowrap; margin-left: auto; margin-right: 8px;
   }
   .fabric-enlarge-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
   /* In-studio backing picker (reuses the setup catalog). */
   .backing-picker-dialog {
-    background: var(--metime-white); border: 1px solid #E2DDD2; border-radius: 8px;
+    background: var(--metime-white); border: 1px solid #CCD6EB; border-radius: 8px;
     max-width: 860px; width: 100%; margin: 16px; max-height: 90vh;
-    box-shadow: 0 8px 32px rgba(46,41,37,0.14); display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14); display: flex; flex-direction: column;
     overflow: hidden; box-sizing: border-box;
   }
   .backing-picker-head {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 20px 24px 12px; border-bottom: 1px solid #EFE9DD; flex-shrink: 0;
+    padding: 20px 24px 12px; border-bottom: 1px solid #EDF2FC; flex-shrink: 0;
   }
-  .backing-picker-title { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #25211e; }
+  .backing-picker-title { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #000000; }
   .backing-picker-body { overflow-y: auto; padding: 20px 24px 24px; flex: 1; min-height: 0; }
   .backing-picker-dialog .pal-upload { width: 100%; max-width: 360px; }
   .backing-current {
@@ -1546,9 +1552,9 @@
     border-radius: 4px; overflow: hidden; background: var(--metime-white); cursor: zoom-in;
     font: inherit; color: inherit; text-align: left;
   }
-  .backing-current:hover { box-shadow: 0 6px 18px rgba(46,41,37,0.13); }
+  .backing-current:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
   .backing-current-img { display: block; width: 100%; height: 220px; object-fit: cover; }
-  .backing-current-caption { padding: 10px 12px; font-size: 13px; color: #3c3833; }
+  .backing-current-caption { padding: 10px 12px; font-size: 13px; color: #3D4E70; }
   .fabric-row-swatch.can-enlarge { cursor: zoom-in; }
   .fabric-row-swatch.can-enlarge:hover { outline: 2px solid var(--selection); outline-offset: 1px; }
 
@@ -3148,10 +3154,10 @@ function extractColors(imageData, count) {
 // c1 / c2 are the two patch colors of the generated QuiltThumb, pulled from the
 // metime accent palette so a thumb reads as a sibling of the photographed quilts.
 const PRESET_THEMES = {
-  "Coaster":        { c1:"#FBBB3F", c2:"#F5F3EE", desc:"A set of 4 — start from one design, then customize each." },
-  "Wall hanging":   { c1:"#FDA198", c2:"#F5F3EE", desc:"An accent piece for any wall" },
-  "Baby blanket":   { c1:"#E8A0C8", c2:"#F5F3EE", desc:"Cozy for little ones" },
-  "Throw":          { c1:"#B9B74B", c2:"#F5F3EE", desc:"The weekend favorite" },
+  "Coaster":        { c1:"#FBBB3F", c2:"#F5F7FC", desc:"A set of 4 — start from one design, then customize each." },
+  "Wall hanging":   { c1:"#FDA198", c2:"#F5F7FC", desc:"An accent piece for any wall" },
+  "Baby blanket":   { c1:"#E8A0C8", c2:"#F5F7FC", desc:"Cozy for little ones" },
+  "Throw":          { c1:"#B9B74B", c2:"#F5F7FC", desc:"The weekend favorite" },
 };
 
 // Cut-out product shots for the quilt "What size?" cards, keyed by preset name.
@@ -3233,7 +3239,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
   ));
   return (
     <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}} viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
-      <g stroke={pale ? "#2E2925" : "#FFFFFF"} strokeWidth="2.5" strokeDasharray={DASH} strokeLinecap="round"
+      <g stroke={pale ? "#000000" : "#FFFFFF"} strokeWidth="2.5" strokeDasharray={DASH} strokeLinecap="round"
         fill="none" opacity={pale ? 0.3 : 0.42}>
         {stitches('h')}
       </g>
@@ -3689,12 +3695,12 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
               viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="none">
               {Array.from({length:cols+1},(_,i)=>(
                 <line key={`v${i}`} x1={i} y1={0} x2={i} y2={rows}
-                  stroke={i===0||i===cols?"#E2DDD2":"#EFE9DD"}
+                  stroke={i===0||i===cols?"#CCD6EB":"#EDF2FC"}
                   strokeWidth="1" vectorEffect="non-scaling-stroke"/>
               ))}
               {Array.from({length:rows+1},(_,i)=>(
                 <line key={`h${i}`} x1={0} y1={i} x2={cols} y2={i}
-                  stroke={i===0||i===rows?"#E2DDD2":"#EFE9DD"}
+                  stroke={i===0||i===rows?"#CCD6EB":"#EDF2FC"}
                   strokeWidth="1" vectorEffect="non-scaling-stroke"/>
               ))}
             </svg>
@@ -3714,14 +3720,14 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
                 return (
                   <div key={s.id} style={pos}>
                     <svg viewBox="0 0 1 1" width="100%" height="100%" preserveAspectRatio="none" style={{display:'block'}}>
-                      <polygon points={pts} fill={s.color.hex} stroke={showSelStroke?'#CCD6EB':'rgba(46,41,37,0.10)'} strokeWidth={showSelStroke?'0.06':'0.02'}/>
+                      <polygon points={pts} fill={s.color.hex} stroke={showSelStroke?'#CCD6EB':'rgba(0,0,0,0.10)'} strokeWidth={showSelStroke?'0.06':'0.02'}/>
                     </svg>
                   </div>
                 );
               }
               return (
                 <div key={s.id} style={{...pos,background:s.color.hex,
-                  outline:isSel?'2px solid #CCD6EB':'1px solid rgba(46,41,37,0.10)',outlineOffset:isSel?'-1px':'0'}}/>
+                  outline:isSel?'2px solid #CCD6EB':'1px solid rgba(0,0,0,0.10)',outlineOffset:isSel?'-1px':'0'}}/>
               );
             })}
 
@@ -3732,7 +3738,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
                 left:`${ghost.c*cw}%`,top:`${ghost.r*ch}%`,
                 width:`${ghost.w*cw}%`,height:`${ghost.h*ch}%`,
                 background:selectedColor.hex,opacity:0.5,
-                outline:'2px dashed #2E2925',outlineOffset:'-1px',
+                outline:'2px dashed #000000',outlineOffset:'-1px',
                 boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
               }}/>
             )}
@@ -3743,8 +3749,8 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
                 position:'absolute',
                 left:`${marquee.c*cw}%`,top:`${marquee.r*ch}%`,
                 width:`${marquee.w*cw}%`,height:`${marquee.h*ch}%`,
-                background:'rgba(46,41,37,0.06)',
-                outline:'1.5px dashed #5C544A',outlineOffset:'-1px',
+                background:'rgba(0,0,0,0.06)',
+                outline:'1.5px dashed #3D4E70',outlineOffset:'-1px',
                 boxSizing:'border-box',pointerEvents:'none',borderRadius:1,
               }}/>
             )}
@@ -3774,7 +3780,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
             ))}
 
             {/* Quilting */}
-            {showQuilting && <QuiltOverlay cols={cols} rows={rows} pattern={quiltPattern} spacing={quiltSpacing} color={quiltColor?.hex||'#2E2925'}/>}
+            {showQuilting && <QuiltOverlay cols={cols} rows={rows} pattern={quiltPattern} spacing={quiltSpacing} color={quiltColor?.hex||'#000000'}/>}
           </div>
 
         </div>
@@ -3899,12 +3905,12 @@ function SuggestedPalettes({ onLoad, onSelect }) {
                   style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 0' }}
                   onClick={() => { onLoad(cols); if (cols[0]) onSelect(cols[0]); }}
                   title={`Load "${pal.name}" palette`}>
-                  <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(46,41,37,0.10)' }}>
+                  <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(0,0,0,0.10)' }}>
                     {cols.map((c,i) => (
                       <div key={i} style={{ flex:1, background:c.hex }} title={c.name}/>
                     ))}
                   </div>
-                  <span style={{ fontSize:11, color:'#5C544A', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
+                  <span style={{ fontSize:11, color:'#3D4E70', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
                 </div>
               );
             })}
@@ -3942,12 +3948,12 @@ function SimpleSuggested({ palettes, onLoad, onSelect }) {
                 style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 0' }}
                 onClick={() => { onLoad(pal.colors); if (pal.colors[0]) onSelect(pal.colors[0]); }}
                 title={`Load "${pal.name}" palette`}>
-                <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(46,41,37,0.10)' }}>
+                <div style={{ display:'flex', flex:1, borderRadius:3, overflow:'hidden', height:22, border:'1px solid rgba(0,0,0,0.10)' }}>
                   {pal.colors.map((c,i) => (
                     <div key={i} style={{ flex:1, background:c.hex }} title={c.name}/>
                   ))}
                 </div>
-                <span style={{ fontSize:11, color:'#5C544A', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
+                <span style={{ fontSize:11, color:'#3D4E70', whiteSpace:'nowrap', minWidth:60, textAlign:'right' }}>{pal.name}</span>
               </div>
             ))}
           </div>
@@ -5290,7 +5296,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
               <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
             ) : materials.items.map(item=>(
               <div key={item.name} className="mat-row">
-                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(46,41,37,0.10)',borderRadius:3,flexShrink:0}}/>
+                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
                   <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
@@ -5376,7 +5382,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
               <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
             ) : materials.items.map(item=>(
               <div key={item.name} className="mat-row">
-                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(46,41,37,0.10)',borderRadius:3,flexShrink:0}}/>
+                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
                   <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
@@ -5428,9 +5434,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       {confirmClear && (
         <div className="overlay" onClick={()=>setConfirmClear(false)}>
           <div onClick={e=>e.stopPropagation()}
-            style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:340,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)'}}>
+            style={{background:'#FFFFFF',border:'1px solid #CCD6EB',borderRadius:8,padding:24,maxWidth:340,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.14)'}}>
             <div style={{fontWeight:400,fontSize:24,marginBottom:8,fontFamily:"var(--font-display)",lineHeight:1.1}}>{isCoasterKit ? 'Clear this coaster?' : 'Clear the quilt?'}</div>
-            <div style={{fontSize:13,color:'#5C544A',marginBottom:20,lineHeight:1.5}}>{isCoasterKit ? 'This will remove all shapes from this coaster. The rest of the set is unchanged.' : 'This will remove all shapes from your design. This cannot be undone.'}</div>
+            <div style={{fontSize:13,color:'#3D4E70',marginBottom:20,lineHeight:1.5}}>{isCoasterKit ? 'This will remove all shapes from this coaster. The rest of the set is unchanged.' : 'This will remove all shapes from your design. This cannot be undone.'}</div>
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
               <button className="btn" onClick={()=>setConfirmClear(false)}>Cancel</button>
               <button className="btn btn-dark" onClick={()=>{setShapes([]);setSelIds(new Set());setConfirmClear(false);}}>{isCoasterKit ? 'Clear coaster' : 'Clear all'}</button>
@@ -5443,7 +5449,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       {showSave && (
         <div className="overlay" onClick={()=>setShowSave(false)}>
           <div onClick={e=>e.stopPropagation()}
-            style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:380,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)'}}>
+            style={{background:'#FFFFFF',border:'1px solid #CCD6EB',borderRadius:8,padding:24,maxWidth:380,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.14)'}}>
             <div style={{fontWeight:400,fontSize:24,marginBottom:16,fontFamily:"var(--font-display)",lineHeight:1.1}}>{currentQuilt?'Save a copy':'Save your quilt'}</div>
             <AccountsOfflineNote/>
             <input type="text" placeholder="Give your quilt a name…" value={saveName} onChange={e=>setSaveName(e.target.value)}
@@ -5461,7 +5467,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       {showMyQuilts && (
         <div className="overlay" onClick={()=>setShowMyQuilts(false)}>
           <div onClick={e=>e.stopPropagation()}
-            style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,padding:24,maxWidth:500,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)',maxHeight:'80vh',overflowY:'auto'}}>
+            style={{background:'#FFFFFF',border:'1px solid #CCD6EB',borderRadius:8,padding:24,maxWidth:500,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.14)',maxHeight:'80vh',overflowY:'auto'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
               <div style={{fontWeight:400,fontSize:24,fontFamily:"var(--font-display)",lineHeight:1.1}}>My quilts</div>
               <button onClick={()=>setShowMyQuilts(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--warm-muted)',display:'flex'}}><IcX/></button>
@@ -5474,15 +5480,15 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
                 {savedQuilts.map(q=>(
-                  <div key={q.id} style={{display:'flex',gap:12,alignItems:'center',padding:12,border:'1px solid #E2DDD2',borderRadius:6,cursor:'pointer',transition:'background .1s'}}
+                  <div key={q.id} style={{display:'flex',gap:12,alignItems:'center',padding:12,border:'1px solid #CCD6EB',borderRadius:6,cursor:'pointer',transition:'background .1s'}}
                     onClick={()=>{setViewQuilt(q);setShowMyQuilts(false);}} title="Preview"
-                    onMouseEnter={e=>e.currentTarget.style.background='#EFE9DD'}
+                    onMouseEnter={e=>e.currentTarget.style.background='#EDF2FC'}
                     onMouseLeave={e=>e.currentTarget.style.background='#FFFFFF'}>
                     <div style={{width:64,height:64,flexShrink:0,position:'relative',background:'#FFFFFF',borderRadius:4,overflow:'hidden'}}>
                       <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="64" height="64" preserveAspectRatio="xMidYMid meet">
                         {q.shapes.map((s,i)=>s.type==='tri'?(
                           <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`:`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`):(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`:`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
-                        ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(46,41,37,0.08)" strokeWidth="0.05"/>)}
+                        ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.08)" strokeWidth="0.05"/>)}
                       </svg>
                     </div>
                     <div style={{flex:1,minWidth:0}}>
@@ -5523,10 +5529,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         return (
           <div className="overlay" onClick={()=>setViewQuilt(null)}>
             <div onClick={e=>e.stopPropagation()}
-              style={{background:'#FFFFFF',border:'1px solid #E2DDD2',borderRadius:8,maxWidth:720,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(46,41,37,0.14)',maxHeight:'90vh',overflowY:'auto'}}>
+              style={{background:'#FFFFFF',border:'1px solid #CCD6EB',borderRadius:8,maxWidth:720,width:'100%',margin:16,boxShadow:'0 8px 32px rgba(0,0,0,0.14)',maxHeight:'90vh',overflowY:'auto'}}>
 
               {/* Top bar */}
-              <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #EFE9DD',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #EDF2FC',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div>
                   <div style={{fontWeight:400,fontSize:24,fontFamily:"var(--font-display)",lineHeight:1.1}}>{q.name}</div>
                   <div style={{fontSize:13,color:'var(--warm-muted)',marginTop:2}}>{q.fw}" × {q.fh}" · {q.preset !== 'Custom' ? q.preset : 'Custom size'} · {q.bs}" blocks</div>
@@ -5539,15 +5545,15 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
                 {/* Preview */}
-                <div style={{padding:24,borderRight:'1px solid #EFE9DD',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  <div style={{width:'100%',maxWidth:320,background:'#FFFFFF',borderRadius:4,overflow:'hidden',border:'1px solid #E2DDD2'}}>
+                <div style={{padding:24,borderRight:'1px solid #EDF2FC',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:'100%',maxWidth:320,background:'#FFFFFF',borderRadius:4,overflow:'hidden',border:'1px solid #CCD6EB'}}>
                     <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{display:'block'}}>
                       <rect width={q.cols} height={q.rows} fill="#FFFFFF"/>
-                      {Array.from({length:q.cols+1},(_,i)=><line key={`v${i}`} x1={i} y1={0} x2={i} y2={q.rows} stroke="#EFE9DD" strokeWidth="0.04"/>)}
-                      {Array.from({length:q.rows+1},(_,i)=><line key={`h${i}`} x1={0} y1={i} x2={q.cols} y2={i} stroke="#EFE9DD" strokeWidth="0.04"/>)}
+                      {Array.from({length:q.cols+1},(_,i)=><line key={`v${i}`} x1={i} y1={0} x2={i} y2={q.rows} stroke="#EDF2FC" strokeWidth="0.04"/>)}
+                      {Array.from({length:q.rows+1},(_,i)=><line key={`h${i}`} x1={0} y1={i} x2={q.cols} y2={i} stroke="#EDF2FC" strokeWidth="0.04"/>)}
                       {q.shapes.map((s,i)=>s.type==='tri'?(
                         <polygon key={i} points={s.dir==='/'?(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}`:`${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`):(s.half==='a'?`${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}`:`${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
-                      ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(46,41,37,0.08)" strokeWidth="0.05"/>)}
+                      ):<rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.08)" strokeWidth="0.05"/>)}
                     </svg>
                   </div>
                 </div>
@@ -5560,8 +5566,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                   </div>
                   <div style={{flex:1,overflowY:'auto',maxHeight:320}}>
                     {allItems.map((item,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 20px',borderBottom:'1px solid #EFE9DD'}}>
-                        <div style={{width:24,height:24,background:item.hex,border:'1px solid rgba(46,41,37,0.10)',borderRadius:3,flexShrink:0}}/>
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 20px',borderBottom:'1px solid #EDF2FC'}}>
+                        <div style={{width:24,height:24,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
                           <div style={{fontSize:11,color:'var(--warm-muted)'}}>{item.type} · {item.detail}</div>
@@ -5570,7 +5576,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                       </div>
                     ))}
                   </div>
-                  <div style={{padding:'12px 20px',borderTop:'1px solid #EFE9DD',display:'flex',flexDirection:'column',gap:12}}>
+                  <div style={{padding:'12px 20px',borderTop:'1px solid #EDF2FC',display:'flex',flexDirection:'column',gap:12}}>
                     <QuiltPdfButtons design={q}/>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                       <div>
@@ -5593,9 +5599,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
 // ── Tweaks ────────────────────────────────────────────────────────────────
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "borderColor": "#2E2925",
+  "borderColor": "#000000",
   "borderWidth": "1",
-  "appBg": "#F5F3EE",
+  "appBg": "#F5F7FC",
   "canvasBg": "#FFFFFF",
   "radius": "4"
 }/*EDITMODE-END*/;
@@ -5637,7 +5643,7 @@ function TweaksPanel() {
 
   const Row = ({ label, children }) => (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-      <span style={{ fontSize:11, color:'#5C544A' }}>{label}</span>
+      <span style={{ fontSize:11, color:'#3D4E70' }}>{label}</span>
       {children}
     </div>
   );
@@ -5645,17 +5651,17 @@ function TweaksPanel() {
   return (
     <div style={{
       position:'fixed', bottom:16, right:16, zIndex:200,
-      background:'#FFFFFF', border:'1px solid #2E2925', borderRadius:4,
+      background:'#FFFFFF', border:'1px solid #000000', borderRadius:4,
       padding:'14px 16px', width:230,
-      boxShadow:'0 4px 20px rgba(46,41,37,0.12)',
+      boxShadow:'0 4px 20px rgba(0,0,0,0.12)',
       fontFamily:"var(--font-sans)",
     }}>
-      <div style={{ fontSize:11, fontWeight:600, marginBottom:14, letterSpacing:'0.08em', textTransform:'uppercase', color:'#2E2925' }}>Tweaks</div>
+      <div style={{ fontSize:11, fontWeight:600, marginBottom:14, letterSpacing:'0.08em', textTransform:'uppercase', color:'#000000' }}>Tweaks</div>
 
       <Row label="Border color">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.borderColor} onChange={e=>set('borderColor',e.target.value)}
-            style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
+            style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.borderColor}</span>
         </div>
       </Row>
@@ -5663,7 +5669,7 @@ function TweaksPanel() {
       <Row label="Border width">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={4} step={0.5} value={t.borderWidth} onChange={e=>set('borderWidth',e.target.value)}
-            style={{ width:80, accentColor:'#2E2925' }}/>
+            style={{ width:80, accentColor:'#000000' }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
         </div>
       </Row>
@@ -5671,7 +5677,7 @@ function TweaksPanel() {
       <Row label="Corner radius">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={12} step={1} value={t.radius} onChange={e=>set('radius',e.target.value)}
-            style={{ width:80, accentColor:'#2E2925' }}/>
+            style={{ width:80, accentColor:'#000000' }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
         </div>
       </Row>
@@ -5679,7 +5685,7 @@ function TweaksPanel() {
       <Row label="Background">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.appBg} onChange={e=>set('appBg',e.target.value)}
-            style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
+            style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.appBg}</span>
         </div>
       </Row>
@@ -5687,13 +5693,13 @@ function TweaksPanel() {
       <Row label="Canvas bg">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.canvasBg} onChange={e=>set('canvasBg',e.target.value)}
-            style={{ width:28, height:24, padding:2, border:'1px solid #E2DDD2', borderRadius:3, cursor:'pointer', background:'none' }}/>
+            style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.canvasBg}</span>
         </div>
       </Row>
 
       <button onClick={()=>{ setT(TWEAK_DEFAULTS); applyTweaks(TWEAK_DEFAULTS); }}
-        style={{ marginTop:6, width:'100%', padding:'5px 0', fontSize:11, background:'none', border:'1px solid #E2DDD2', borderRadius:4, cursor:'pointer', color:'var(--warm-muted)', fontFamily:"var(--font-sans)" }}>
+        style={{ marginTop:6, width:'100%', padding:'5px 0', fontSize:11, background:'none', border:'1px solid #CCD6EB', borderRadius:4, cursor:'pointer', color:'var(--warm-muted)', fontFamily:"var(--font-sans)" }}>
         Reset defaults
       </button>
     </div>
@@ -5724,7 +5730,7 @@ function QuiltThumb({ preset }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
       {cells}
-      <rect width={W} height={H} fill="none" stroke="rgba(46,41,37,0.15)" strokeWidth="1"/>
+      <rect width={W} height={H} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1"/>
     </svg>
   );
 }
@@ -5906,11 +5912,11 @@ function AuthOverlay() {
   return (
     <div className="overlay" onClick={auth.closeAuth}>
       <div onClick={e => e.stopPropagation()}
-        style={{ background: "#FFFFFF", border: "1px solid #E2DDD2", borderRadius: 8, padding: 24, maxWidth: 400, width: "100%", margin: 16, boxShadow: "0 8px 32px rgba(46,41,37,0.14)" }}>
+        style={{ background: "#FFFFFF", border: "1px solid #CCD6EB", borderRadius: 8, padding: 24, maxWidth: 400, width: "100%", margin: 16, boxShadow: "0 8px 32px rgba(0,0,0,0.14)" }}>
         <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 8, fontFamily: "var(--font-display)", lineHeight: 1.1 }}>
           {step === "email" ? "Save to your account" : "Enter your code"}
         </div>
-        <div style={{ fontSize: 13, color: "#5C544A", marginBottom: 16, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: "#3D4E70", marginBottom: 16, lineHeight: 1.5 }}>
           {step === "email"
             ? "We'll email a 6-digit code so you can reopen this design on any device. No password."
             : `We sent a code to ${email}. Check your inbox — it expires shortly.`}
@@ -5931,7 +5937,7 @@ function AuthOverlay() {
           <div style={{ fontSize: 12, color: "var(--metime-tomato)", background: "#FBECE8", border: "1px solid #F3C9BF", borderRadius: 6, padding: "8px 10px", marginBottom: 12 }}>{error}</div>
         )}
         {!error && notice && (
-          <div style={{ fontSize: 12, color: "#5C544A", marginBottom: 12 }}>{notice}</div>
+          <div style={{ fontSize: 12, color: "#3D4E70", marginBottom: 12 }}>{notice}</div>
         )}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
           {step === "code" && (
@@ -6116,7 +6122,7 @@ function SavedQuiltThumb({ q }) {
     <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
       {(q.shapes || []).map((s, i) => s.type === 'tri' ? (
         <polygon key={i} points={s.dir === '/' ? (s.half === 'a' ? `${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c},${s.r+s.h}` : `${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h} ${s.c},${s.r+s.h}`) : (s.half === 'a' ? `${s.c},${s.r} ${s.c+s.w},${s.r} ${s.c+s.w},${s.r+s.h}` : `${s.c},${s.r} ${s.c},${s.r+s.h} ${s.c+s.w},${s.r+s.h}`)} fill={s.color.hex}/>
-      ) : <rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(46,41,37,0.08)" strokeWidth="0.05"/>)}
+      ) : <rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex} stroke="rgba(0,0,0,0.08)" strokeWidth="0.05"/>)}
     </svg>
   );
 }
@@ -7401,7 +7407,6 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
             onSrc={ingestSrc}/>
         ) : (
           <div className="tmpl-upload-result">
-            <div className="tmpl-upload-heading">Create a design from an image</div>
             <div className="tmpl-upload-file">
               <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
               <div className="tmpl-upload-file-meta">
@@ -7517,7 +7522,7 @@ function QuiltTemplateThumb({ tpl, preset, palette }) {
       {shapes.map((s, i) => s.type === 'tri'
         ? <polygon key={i} points={tplTriPoints(s)} fill={s.color.hex}/>
         : <rect key={i} x={s.c} y={s.r} width={s.w} height={s.h} fill={s.color.hex}/>)}
-      <rect width={cols} height={rows} fill="none" stroke="rgba(46,41,37,0.12)" strokeWidth="0.1"/>
+      <rect width={cols} height={rows} fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.1"/>
     </svg>
   );
 }
@@ -7529,7 +7534,7 @@ function StitchTemplateThumb({ tpl, preset }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
       {grid.map((hex, i) => hex ? <rect key={i} x={i % w} y={Math.floor(i / w)} width={1} height={1} fill={hex}/> : null)}
-      <rect width={w} height={h} fill="none" stroke="rgba(46,41,37,0.12)" strokeWidth="0.08"/>
+      <rect width={w} height={h} fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.08"/>
     </svg>
   );
 }
@@ -8152,7 +8157,7 @@ const GRID_SIZE_THEMES = { 'cross-stitch': STITCH_THEMES, 'punch-needle': PUNCH_
 const GRID_SIZE_IMAGES = { 'cross-stitch': STITCH_IMAGES, 'punch-needle': PUNCH_IMAGES };
 
 function GridSizeThumb({ preset, craft }) {
-  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name] || { c1:"#2C3E50", c2:"#EFE9DD" };
+  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name] || { c1:"#2C3E50", c2:"#EDF2FC" };
   if (/hoop/i.test(preset.name)) {
     return (
       <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -8179,7 +8184,7 @@ function GridSizeThumb({ preset, craft }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
       {cells}
-      <rect width={W} height={H} fill="none" stroke="rgba(46,41,37,0.15)" strokeWidth="1"/>
+      <rect width={W} height={H} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1"/>
     </svg>
   );
 }
@@ -8774,7 +8779,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       ctx.strokeStyle = 'rgba(255,255,255,0.62)';
       ctx.strokeRect(nx, ny, ns, ns);
       ctx.lineWidth = hair;
-      ctx.strokeStyle = 'rgba(46,41,37,0.85)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       ctx.strokeRect(nx, ny, ns, ns);
       ctx.restore();
     }
@@ -8804,7 +8809,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       ctx.strokeStyle = 'rgba(255,255,255,0.62)';
       ctx.stroke(edge);
       ctx.lineWidth = hair;
-      ctx.strokeStyle = 'rgba(46,41,37,0.92)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.92)';
       ctx.stroke(edge);
       ctx.restore();
       // The frame carries the resize affordance: a faint hairline box with a
@@ -8820,7 +8825,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       ctx.strokeStyle = 'rgba(255,255,255,0.30)';
       ctx.strokeRect(hx0, hy0, hx1 - hx0, hy1 - hy0);
       ctx.lineWidth = hair;
-      ctx.strokeStyle = 'rgba(46,41,37,0.44)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.44)';
       ctx.setLineDash([4 * hair, 4 * hair]);
       ctx.lineDashOffset = -antsRef.current * hair;
       ctx.strokeRect(hx0, hy0, hx1 - hx0, hy1 - hy0);
@@ -8837,14 +8842,14 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(px, py, hs, hs, hr); else ctx.rect(px, py, hs, hs);
         ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = 'rgba(46,41,37,0.38)';
+        ctx.shadowColor = 'rgba(0,0,0,0.38)';
         ctx.shadowBlur = 4 * hair;
         ctx.shadowOffsetY = hair;
         ctx.fill();
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
-        ctx.strokeStyle = 'rgba(46,41,37,0.88)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.88)';
         ctx.stroke();
       }
       ctx.restore();
@@ -8856,25 +8861,25 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       // Rubber band, styled to match the selection chrome: a neutral tint under
       // a hairline, rather than an off-brand blue.
       ctx.save();
-      ctx.fillStyle = 'rgba(46,41,37,0.08)';
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
       ctx.fillRect(x * cs, y * cs, w * cs, h * cs);
       ctx.translate(align, align);
       ctx.lineWidth = 3 * hair;
       ctx.strokeStyle = 'rgba(255,255,255,0.50)';
       ctx.strokeRect(x * cs, y * cs, w * cs, h * cs);
       ctx.lineWidth = hair;
-      ctx.strokeStyle = 'rgba(46,41,37,0.72)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.72)';
       ctx.strokeRect(x * cs, y * cs, w * cs, h * cs);
       ctx.restore();
     }
     if (showGrid && cs >= 5) {
-      ctx.strokeStyle = 'rgba(46,41,37,0.12)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let x = 0; x <= W; x++) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
       for (let y = 0; y <= H; y++) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(46,41,37,0.34)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.34)';
       ctx.beginPath();
       for (let x = 0; x <= W; x += CFG.majorGrid) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
       for (let y = 0; y <= H; y += CFG.majorGrid) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
@@ -9823,7 +9828,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <div className={`xs-selbar${isMobile ? ' mobile-selbar' : ''}`} style={{ position: 'absolute', top: 58, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 12, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
             borderRadius: 10, padding: '5px 6px 5px 12px', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)',
-            boxShadow: '0 1px 2px rgba(46,41,37,0.05), 0 10px 28px -6px rgba(46,41,37,0.18)' }}>
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 10px 28px -6px rgba(0,0,0,0.18)' }}>
             <span style={{ whiteSpace: 'nowrap' }}>
               <b>{selRef.current.cells.size}</b> {CFG.unitPlural} · {new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}
               {' · '}{selFrame(selRef.current).maxX - selFrame(selRef.current).minX + 1}×{selFrame(selRef.current).maxY - selFrame(selRef.current).minY + 1}
@@ -9937,7 +9942,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
               <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic' }}>Add {CFG.unitPlural} to see your {CFG.threadLabel.toLowerCase()} list.</div>
             ) : stats.colors.map(c => (
               <div key={c.hex} className="mat-row">
-                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(46,41,37,0.10)', borderRadius: 3, flexShrink: 0 }}/>
+                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 3, flexShrink: 0 }}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CFG.codePrefix} {c.code}</div>
                   <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
@@ -10021,7 +10026,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
               <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic' }}>Add {CFG.unitPlural} to see your {CFG.threadLabel.toLowerCase()} list.</div>
             ) : stats.colors.map(c => (
               <div key={c.hex} className="mat-row">
-                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(46,41,37,0.10)', borderRadius: 3, flexShrink: 0 }}/>
+                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 3, flexShrink: 0 }}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CFG.codePrefix} {c.code}</div>
                   <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
@@ -10075,7 +10080,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       {showSave && (
         <div className="overlay" onClick={() => setShowSave(false)}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)' }}>
+            style={{ background: '#FFFFFF', border: '1px solid #CCD6EB', borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)' }}>
             <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 16, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{currentStitch ? 'Save a copy' : 'Save your design'}</div>
             <AccountsOfflineNote/>
             <input type="text" placeholder="Give your design a name…" value={saveName} onChange={e => setSaveName(e.target.value)}
@@ -10092,7 +10097,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       {showMyStitches && (
         <div className="overlay" onClick={() => setShowMyStitches(false)}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, padding: 24, maxWidth: 500, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)', maxHeight: '80vh', overflowY: 'auto' }}>
+            style={{ background: '#FFFFFF', border: '1px solid #CCD6EB', borderRadius: 8, padding: 24, maxWidth: 500, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontWeight: 400, fontSize: 24, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>My designs</div>
               <button onClick={() => setShowMyStitches(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
@@ -10105,9 +10110,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {savedStitches.map(d => (
-                  <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #E2DDD2', borderRadius: 6, cursor: 'pointer', transition: 'background .1s' }}
+                  <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #CCD6EB', borderRadius: 6, cursor: 'pointer', transition: 'background .1s' }}
                     onClick={() => { setViewStitch(d); setShowMyStitches(false); }} title="Preview"
-                    onMouseEnter={e => e.currentTarget.style.background = '#EFE9DD'}
+                    onMouseEnter={e => e.currentTarget.style.background = '#EDF2FC'}
                     onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}>
                     <div style={{ width: 64, height: 64, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', borderRadius: 4, overflow: 'hidden' }}>
                       <StitchThumb w={d.w} h={d.h} cells={deserializeGrid(d.grid, d.w * d.h)} size={64} bg={(d.fabric && d.fabric.hex) || '#FFFFFF'}/>
@@ -10144,8 +10149,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         return (
           <div className="overlay" onClick={() => setViewStitch(null)}>
             <div onClick={e => e.stopPropagation()}
-              style={{ background: '#FFFFFF', border: '1px solid #E2DDD2', borderRadius: 8, maxWidth: 640, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(46,41,37,0.14)', maxHeight: '90vh', overflowY: 'auto' }}>
-              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              style={{ background: '#FFFFFF', border: '1px solid #CCD6EB', borderRadius: 8, maxWidth: 640, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #EDF2FC', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontWeight: 400, fontSize: 24, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{d.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--warm-muted)', marginTop: 2 }}>{d.w} × {d.h} {CFG.unitPlural} · {d.colorsUsed} colors{d.fabric ? ` · ${d.fabric.name} ${CFG.fabricLabel}` : ''}</div>
@@ -10156,8 +10161,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-                <div style={{ padding: 24, borderRight: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: '100%', maxWidth: 280, border: '1px solid #E2DDD2', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ padding: 24, borderRight: '1px solid #EDF2FC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '100%', maxWidth: 280, border: '1px solid #CCD6EB', borderRadius: 4, overflow: 'hidden' }}>
                     <StitchThumb w={d.w} h={d.h} cells={deserializeGrid(d.grid, d.w * d.h)} size={280} bg={(d.fabric && d.fabric.hex) || '#FFFFFF'}/>
                   </div>
                 </div>
@@ -10168,8 +10173,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                   </div>
                   <div style={{ flex: 1, overflowY: 'auto', maxHeight: 340 }}>
                     {d.colors.map(c => (
-                      <div key={c.hex} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid #EFE9DD' }}>
-                        <div style={{ width: 24, height: 24, background: c.hex, border: '1px solid rgba(46,41,37,0.10)', borderRadius: 3, flexShrink: 0 }}/>
+                      <div key={c.hex} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid #EDF2FC' }}>
+                        <div style={{ width: 24, height: 24, background: c.hex, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 3, flexShrink: 0 }}/>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 500 }}>{CFG.codePrefix} {c.code}</div>
                           <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>{c.name}</div>
@@ -10178,7 +10183,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                       </div>
                     ))}
                   </div>
-                  <div style={{ padding: '12px 20px', borderTop: '1px solid #EFE9DD', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid #EDF2FC', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Total {CFG.unitPlural}</div>
                       <div style={{ fontSize: 20, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{d.stitches}</div>
