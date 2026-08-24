@@ -799,19 +799,33 @@
   .size-back-label { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 24px; border-bottom: 1px solid currentColor; }
 
   .size-row { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--metime-black); }
-  .size-card { display: flex; flex-direction: column; padding: 32px 36px 33px; min-width: 0; background: none; border: none; border-left: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
+  /* Grid, not flex: iPad Safari shrinks flex children of <button> to content
+     width, which left-aligns the photo and parks the arrow next to the title. */
+  .size-card {
+    display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
+    width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
+    background: none; border: none; border-left: 1px solid var(--metime-black);
+    text-align: left; font: inherit; color: inherit; cursor: pointer;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
   .size-card:first-child { border-left: none; }
   .size-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-  /* Fixed-height stage so every quilt sits on the same baseline regardless of
-     how tall its own art is; the art scales inside without being cropped. */
-  .size-card-visual { flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center; height: clamp(140px, 21.6vh, 221px); overflow: hidden; }
-  .size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
-  .size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; }
-  .size-card-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; min-width: 0; }
+  .size-card-visual {
+    justify-self: stretch; width: 100%; min-width: 0;
+    display: flex; align-items: center; justify-content: center;
+    height: clamp(140px, 21.6vh, 221px); overflow: hidden;
+  }
+  .size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0 auto; object-fit: contain; }
+  .size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
+  .size-card-copy {
+    display: flex; align-items: center; justify-content: space-between;
+    justify-self: stretch; width: 100%; min-width: 0;
+    gap: 12px; margin-top: 24px;
+  }
   .size-card-text { min-width: 0; }
   .size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
   .size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
-  .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+  .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; margin-left: auto; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
   .size-card:hover .size-card-arrow,
   .size-card:focus-visible .size-card-arrow,
   .pal-page .pal-card:hover .size-card-arrow,
@@ -997,17 +1011,21 @@
     gap: 0; width: 100%; flex: 0 0 auto;
   }
   .pal-page .pal-card {
-    min-height: 230px; padding: 32px; gap: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between;
+    align-items: stretch; width: 100%; min-height: 230px; padding: 32px; gap: 0;
+    box-sizing: border-box;
     border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
     border-radius: 0; box-shadow: none; transform: none;
-    justify-content: space-between;
   }
   .pal-page .pal-card:hover { box-shadow: none; transform: none; }
   .pal-page .pal-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
   .pal-page .pal-card:nth-child(4n) { border-right: none; }
   .pal-page .pal-swatches { height: auto; min-height: 48px; flex-wrap: nowrap; }
   .pal-page .pal-swatch { width: 48px; height: 48px; margin-left: -10px; flex-shrink: 0; }
-  .pal-page .pal-card-body { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0; }
+  .pal-page .pal-card-body {
+    display: flex; align-items: center; justify-content: space-between;
+    justify-self: stretch; width: 100%; min-width: 0; gap: 12px; padding: 0;
+  }
   .pal-page .pal-card-text { min-width: 0; }
   .pal-page .pal-card-name { font-size: 20px; font-weight: 500; color: var(--metime-black); }
   .pal-page .pal-card-meta { font-size: 16px; font-weight: 300; color: var(--metime-black); margin-top: 5px; }
@@ -1045,7 +1063,8 @@
     width: 100%; flex: 0 0 auto;
   }
   .tmpl-page .tmpl-card {
-    display: flex; flex-direction: column; padding: 32px 36px 33px; min-width: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
+    width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
     background: none; border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
     border-radius: 0; box-shadow: none; transform: none;
     text-align: left; font: inherit; color: inherit; cursor: pointer;
@@ -1056,7 +1075,8 @@
   .tmpl-page .tmpl-card:active { transform: none; }
   .tmpl-page .tmpl-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
   .tmpl-page .tmpl-card-thumb {
-    flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: center;
+    flex: 0 0 auto; align-self: stretch; width: 100%; min-width: 0;
+    display: flex; align-items: center; justify-content: center;
     height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: none; padding: 0;
   }
   .tmpl-page .tmpl-card-thumb svg {
@@ -1069,7 +1089,8 @@
   }
   .tmpl-page .tmpl-card-body {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; margin-top: 24px; padding: 0; min-width: 0;
+    align-self: stretch; width: 100%; min-width: 0;
+    gap: 12px; margin-top: 24px; padding: 0;
   }
   .tmpl-page .tmpl-card-text { min-width: 0; }
   .tmpl-page .tmpl-card-name {
@@ -1118,7 +1139,18 @@
   .tmpl-upload-file { display: flex; align-items: stretch; gap: 24px; min-width: 0; }
   .tmpl-upload-preview {
     width: 130px; height: 130px; object-fit: cover; flex-shrink: 0;
-    border: 1px solid #1F1E1D; display: block;
+    border: 1px solid #1F1E1D; display: block; background: var(--metime-white);
+  }
+  .tmpl-upload-preview.is-cutout {
+    object-fit: contain;
+    background-color: var(--ice-100);
+    background-image:
+      linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }
   .tmpl-upload-file-meta { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; }
   .tmpl-upload-file-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 24px; color: var(--metime-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
@@ -1330,7 +1362,7 @@
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 28px; height: 18px; padding: 0 5px;
     font-family: var(--font-sans); font-size: 11px; font-weight: 500; line-height: 1;
-    color: var(--metime-black); background: var(--metime-white);
+    color: var(--metime-black); background: transparent;
     border: 1px solid var(--metime-black); border-radius: 4px;
   }
   .pal-upload-url {
@@ -1385,6 +1417,14 @@
   .pal-from-image-preview {
     width: 100px; height: 100px; object-fit: cover; flex-shrink: 0;
     border: none; display: block; box-sizing: border-box;
+    background-color: var(--ice-100);
+    background-image:
+      linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
     /* outline (not inset box-shadow) so the stroke paints over the image content */
     outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px;
   }
@@ -7006,6 +7046,104 @@ const PASTE_SHORTCUT = (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPo
   ? '⌘V'
   : 'Ctrl+V';
 
+// Knock the edge-connected field off a photo so "Remove background" is a real
+// cutout, not just a later chart setting. Floods from the border so a matching
+// color inside the subject stays. Returns a PNG data URL, or null if nothing
+// is safe to punch (busy photograph, already transparent, or a near-empty result).
+const PUNCH_TOL = 38;
+const PUNCH_MAX_CLEAR = 0.92;
+const PUNCH_MIN_CLEAR = 0.02;
+function punchImageBackground(img, { maxDim = 720 } = {}) {
+  if (!img || !img.width || !img.height) return null;
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  let id; try { id = ctx.getImageData(0, 0, w, h); } catch (e) { return null; }
+  const data = id.data, n = w * h;
+  const buckets = new Map();
+  const addBorder = i => {
+    const k = data[i * 4 + 3] < 32 ? 'clear'
+      : `${data[i * 4] >> 4},${data[i * 4 + 1] >> 4},${data[i * 4 + 2] >> 4}`;
+    buckets.set(k, (buckets.get(k) || 0) + 1);
+  };
+  for (let x = 0; x < w; x++) { addBorder(x); addBorder((h - 1) * w + x); }
+  for (let y = 1; y < h - 1; y++) { addBorder(y * w); addBorder(y * w + w - 1); }
+  const borderN = [...buckets.values()].reduce((a, b) => a + b, 0);
+  if (!borderN) return null;
+  const clearShare = (buckets.get('clear') || 0) / borderN;
+  if (clearShare >= 0.6) return null;
+  const mid = new Map();
+  const mx0 = Math.floor(w * 0.25), mx1 = Math.ceil(w * 0.75);
+  const my0 = Math.floor(h * 0.25), my1 = Math.ceil(h * 0.75);
+  const midArea = Math.max(1, (mx1 - mx0) * (my1 - my0));
+  for (let y = my0; y < my1; y++) {
+    for (let x = mx0; x < mx1; x++) {
+      const p = (y * w + x) * 4;
+      if (data[p + 3] < 32) continue;
+      const k = `${data[p] >> 4},${data[p + 1] >> 4},${data[p + 2] >> 4}`;
+      mid.set(k, (mid.get(k) || 0) + 1);
+    }
+  }
+  const field = [...buckets.entries()]
+    .filter(([k, c]) => k !== 'clear'
+      && c / borderN >= 0.12
+      && (mid.get(k) || 0) / midArea <= (c / borderN) * 0.5)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k]) => {
+      const [r, g, b] = k.split(',').map(Number);
+      return { r: r * 16 + 8, g: g * 16 + 8, b: b * 16 + 8 };
+    });
+  if (!field.length) return null;
+  const tol = PUNCH_TOL * PUNCH_TOL;
+  const isField = i => {
+    if (data[i * 4 + 3] < 32) return true;
+    return field.some(c => {
+      const dr = data[i * 4] - c.r, dg = data[i * 4 + 1] - c.g, db = data[i * 4 + 2] - c.b;
+      return dr * dr + dg * dg + db * db <= tol;
+    });
+  };
+  const seen = new Uint8Array(n), stack = [];
+  const push = (x, y) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const i = y * w + x;
+    if (seen[i] || !isField(i)) return;
+    seen[i] = 1; stack.push(i);
+  };
+  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+  for (let y = 1; y < h - 1; y++) { push(0, y); push(w - 1, y); }
+  while (stack.length) {
+    const i = stack.pop(), x = i % w, y = (i - x) / w;
+    push(x - 1, y); push(x + 1, y); push(x, y - 1); push(x, y + 1);
+  }
+  let cleared = 0;
+  for (let i = 0; i < n; i++) if (seen[i] && data[i * 4 + 3] >= 32) cleared++;
+  const opaque = n * (1 - clearShare);
+  if (cleared < opaque * PUNCH_MIN_CLEAR || cleared > opaque * PUNCH_MAX_CLEAR) return null;
+  for (let i = 0; i < n; i++) if (seen[i]) data[i * 4 + 3] = 0;
+  const soft = PUNCH_TOL * 1.6, soft2 = soft * soft;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (seen[i] || data[i * 4 + 3] < 32) continue;
+      if (!((x > 0 && seen[i - 1]) || (x < w - 1 && seen[i + 1])
+        || (y > 0 && seen[i - w]) || (y < h - 1 && seen[i + w]))) continue;
+      let best = Infinity;
+      for (const c of field) {
+        const dr = data[i * 4] - c.r, dg = data[i * 4 + 1] - c.g, db = data[i * 4 + 2] - c.b;
+        const d = dr * dr + dg * dg + db * db;
+        if (d < best) best = d;
+      }
+      if (best < soft2) data[i * 4 + 3] = Math.round(data[i * 4 + 3] * (best / soft2));
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  return cv.toDataURL('image/png');
+}
+
 // Drop zone + optional URL field used by PhotoDrop and PhotoUpload so paste/URL
 // land in one place. Calls onSrc(dataUrl) — same path as a chosen file.
 // Desktop: slim dashed drop row + pills. Mobile: "+ add image" opens a sheet.
@@ -7388,17 +7526,32 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
   const [fileName, setFileName] = useState('image');
   const [fileDims, setFileDims] = useState(null);
   const [removeBg, setRemoveBg] = useState(true);
+  const [cutoutSrc, setCutoutSrc] = useState(null);
+  const punchGen = useRef(0);
   const ingestSrc = useCallback((src, meta) => {
+    const gen = ++punchGen.current;
     setImgSrc(src);
     setFileName((meta && meta.name) || 'image');
     setFileDims(null);
+    setCutoutSrc(null);
     const img = new Image();
-    img.onload = () => setFileDims({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onload = () => {
+      if (gen !== punchGen.current) return;
+      setFileDims({ w: img.naturalWidth, h: img.naturalHeight });
+      requestAnimationFrame(() => {
+        if (gen !== punchGen.current) return;
+        setCutoutSrc(punchImageBackground(img));
+      });
+    };
     img.src = src;
   }, []);
-  const reset = () => { setImgSrc(null); setFileName('image'); setFileDims(null); setRemoveBg(true); };
+  const reset = () => {
+    punchGen.current++;
+    setImgSrc(null); setFileName('image'); setFileDims(null); setRemoveBg(true); setCutoutSrc(null);
+  };
   const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
-  const confirm = () => onChoose(imgSrc, { removeBg, name: fileName });
+  const displaySrc = removeBg && cutoutSrc ? cutoutSrc : imgSrc;
+  const confirm = () => onChoose(displaySrc || imgSrc, { removeBg, name: fileName });
   if (layout === 'bar') {
     return (
       <section className="tmpl-upload-bar">
@@ -7411,7 +7564,8 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
         ) : (
           <div className="tmpl-upload-result">
             <div className="tmpl-upload-file">
-              <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
+              <img className={`tmpl-upload-preview${removeBg && cutoutSrc ? ' is-cutout' : ''}`}
+                src={displaySrc} alt="Uploaded reference"/>
               <div className="tmpl-upload-file-meta">
                 <div>
                   <div className="tmpl-upload-file-name">{fileName}</div>
