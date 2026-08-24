@@ -252,8 +252,36 @@
      by a fixed bottom toolbar and slide-up sheets. Everything reuses the
      existing tokens/classes so the look is unchanged — only the layout moves. */
   @media (max-width: 900px) {
-    /* Give the canvas room so the fixed bottom toolbar never covers it. */
-    .app, .xs-app { padding-bottom: calc(58px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+    /* Studio chrome must stay on-screen. `.app` / `.xs-app` are 100vh with
+       overflow:hidden, but on mobile 100vh can exceed the visible viewport
+       (iOS URL bar) so the DOCUMENT becomes the scroller and the top bar
+       slides away. Lock that, pin the shell to 100%, and keep the header
+       sticky as a backstop if any ancestor still scrolls. */
+    html:has(.app), html:has(.xs-app),
+    body:has(.app), body:has(.xs-app) {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    .app, .xs-app {
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      padding-bottom: calc(58px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
+    }
+    .app > header, .xs-app > .xs-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    /* Center column used to be `.panel { overflow-y:auto }`, so SizeBar
+       (and ZoomBar) scrolled away with the canvas. Canvas-scroll is the
+       scroller; keep the top chrome in flow. */
+    .body { min-height: 0; overflow: hidden; }
+    .body > .panel { min-height: 0; overflow: hidden; }
+    .xs-body { min-height: 0; }
+    .canvas-scroll, .xs-canvas-wrap { overscroll-behavior: contain; }
     /* Single-column body (rails + right drawer are not rendered on mobile). */
     .body, .body.rp-closed { grid-template-columns: 1fr; }
 
@@ -9452,7 +9480,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             ))}
           </div>
         )}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
           {isCoasterKit && (
             <CoasterTabs active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}/>
           )}
