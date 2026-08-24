@@ -941,6 +941,12 @@
   .xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
   .xs-flatten-btn.active { background: #1F1E1D; color: var(--metime-white); }
   .xs-flatten-note { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); }
+  .xs-flatten-check {
+    display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none;
+  }
+  .xs-flatten-check input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; accent-color: var(--color-taupe-900); cursor: pointer; }
+  .xs-flatten-check-note { font-weight: 400; color: var(--warm-muted); }
   .xs-flatten-preview {
     display: flex; align-items: center; justify-content: center;
     flex: 0 0 auto; width: 140px; min-height: 140px; padding: 8px; box-sizing: border-box;
@@ -1202,6 +1208,36 @@
   .pal-upload-icon { color: #3c3833; margin-bottom: 8px; display: inline-flex; }
   .pal-upload-title { font-size: 14px; font-weight: 500; color: #25211e; line-height: normal; }
   .pal-upload-sub { font-size: 13px; font-weight: 400; color: #3c3833; line-height: normal; margin-top: 4px; }
+  .pal-upload-hit { cursor: pointer; }
+  .pal-upload-hit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-url {
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+    margin: 14px auto 0; width: 100%; max-width: 360px; cursor: default; text-align: left;
+  }
+  .pal-upload-url-label { font-family: var(--font-sans); font-size: 12px; font-weight: 500; color: #3c3833; }
+  .pal-upload-url-row { display: flex; gap: 6px; width: 100%; }
+  .pal-upload-url-row input {
+    flex: 1; min-width: 0; height: 32px; padding: 0 10px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 400;
+    border: 1px solid var(--metime-black); border-radius: 4px;
+    background: var(--metime-white); color: var(--warm-fg);
+  }
+  .pal-upload-url-row input:focus { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-url-row input:disabled { opacity: 0.6; }
+  .pal-upload-url-row button {
+    flex-shrink: 0; height: 32px; padding: 0 12px;
+    font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+    border: 1px solid var(--metime-black); border-radius: 4px;
+    background: var(--metime-white); color: var(--metime-black); cursor: pointer;
+  }
+  .pal-upload-url-row button:hover:not(:disabled) { background: var(--warm-hover); }
+  .pal-upload-url-row button:disabled { opacity: 0.45; cursor: default; }
+  .pal-upload-error {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: #8B2E1F;
+    margin: 8px auto 0; max-width: 360px; line-height: 1.35;
+  }
+  .tmpl-upload .pal-upload-url { margin-top: 10px; max-width: 420px; }
+  .tmpl-upload .pal-upload-error { margin-top: 6px; }
   .pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
   /* outline (not a border) so the stroke paints over the image content */
   .pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
@@ -1430,7 +1466,7 @@
 <script src="assets/tapestry-wool.js"></script>
 <script src="assets/punch-templates-data.js"></script>
 <script type="text/babel">
-const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback, createContext, useContext } = React;
+const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback, useId, createContext, useContext } = React;
 const AuthContext = createContext(null);
 function useAuth() {
   return useContext(AuthContext);
@@ -6572,10 +6608,77 @@ function xsDespeckle(grid, W, H, fit, min) {
   }
 }
 
+// Strip the background off a chart that's already been flattened. xsClearGroundField
+// only handles a motif exported on ONE flat field, which a photograph never has:
+// a strawberry on a tablecloth, a bird against a sky. But by the time the chart
+// has been flattened the background is usually down to one or two palette
+// colors, so it can be taken the same way — whatever the border ring is mostly
+// made of, flooded inward, so a matching color deep inside the subject stays.
+//
+// Colors are matched with a little slack rather than exactly, so a shade of
+// noise along the way doesn't wall the flood off. Anything that fails (a
+// close-cropped portrait, where the border IS the subject) rolls back rather
+// than handing over a chart with holes punched in it.
+const XS_BG_BORDER_SHARE = 0.14;  // share of the border ring to count as background
+const XS_BG_MAX_COLORS = 3;       // at most this many colors read as background
+const XS_BG_TOL = 40;             // RGB distance still flooded through
+const XS_BG_CENTER_MAX = 0.5;     // ...but only if the middle is this much clearer of it
+function xsClearEdgeBackground(grid, W, H, fit) {
+  const x1 = fit.dx + fit.dw, y1 = fit.dy + fit.dh;
+  const ring = [];
+  for (let x = fit.dx; x < x1; x++) { ring.push(fit.dy * W + x, (y1 - 1) * W + x); }
+  for (let y = fit.dy + 1; y < y1 - 1; y++) { ring.push(y * W + fit.dx, y * W + x1 - 1); }
+  const tally = new Map();
+  for (const i of ring) if (grid[i]) tally.set(grid[i], (tally.get(grid[i]) || 0) + 1);
+  // Crowding the border isn't enough on its own: a cream tablecloth around a
+  // cream-mounted hoop is the same color in both places, and a flood that can't
+  // tell them apart walks straight through the subject. So a color also has to
+  // be scarce in the middle of the motif to be believed as background.
+  const mid = new Map();
+  const mx0 = fit.dx + Math.floor(fit.dw * 0.25), mx1 = fit.dx + Math.ceil(fit.dw * 0.75);
+  const my0 = fit.dy + Math.floor(fit.dh * 0.25), my1 = fit.dy + Math.ceil(fit.dh * 0.75);
+  for (let y = my0; y < my1; y++) for (let x = mx0; x < mx1; x++) {
+    const v = grid[y * W + x];
+    if (v) mid.set(v, (mid.get(v) || 0) + 1);
+  }
+  const midArea = Math.max(1, (mx1 - mx0) * (my1 - my0));
+  const bgHex = [...tally.entries()]
+    .filter(([hex, n]) => n >= ring.length * XS_BG_BORDER_SHARE
+      && (mid.get(hex) || 0) / midArea <= (n / ring.length) * XS_BG_CENTER_MAX)
+    .sort((a, b) => b[1] - a[1]).slice(0, XS_BG_MAX_COLORS).map(([hex]) => hexToRgb(hex));
+  if (!bgHex.length) return;
+  // A chart only ever holds palette colors, so each one is judged once.
+  const verdict = new Map();
+  const isBg = hex => {
+    if (!hex) return true;                       // already bare fabric — flood through it
+    let v = verdict.get(hex);
+    if (v === undefined) {
+      const c = hexToRgb(hex);
+      v = bgHex.some(k => (c.r - k.r) ** 2 + (c.g - k.g) ** 2 + (c.b - k.b) ** 2 <= XS_BG_TOL * XS_BG_TOL);
+      verdict.set(hex, v);
+    }
+    return v;
+  };
+  const before = grid.slice(), stack = [];
+  let cleared = 0;
+  const push = (x, y) => {
+    if (x < fit.dx || y < fit.dy || x >= x1 || y >= y1) return;
+    const i = y * W + x;
+    if (grid[i] === null || !isBg(grid[i])) return;
+    grid[i] = null; cleared++; stack.push(i);
+  };
+  for (const i of ring) push(i % W, Math.floor(i / W));
+  while (stack.length) {
+    const i = stack.pop(), x = i % W, y = (i - x) / W;
+    push(x - 1, y); push(x + 1, y); push(x, y - 1); push(x, y + 1);
+  }
+  if (cleared > fit.dw * fit.dh * XS_FIELD_MAX_CLEAR) for (let i = 0; i < grid.length; i++) grid[i] = before[i];
+}
+
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
 // color → a ready-to-stitch design (shared by the cross-stitch template step).
 // Cells outside the fitted motif are left null: unstitched fabric.
-function buildGridFromImage(img, chosen, W, H, simplify = XS_SIMPLIFY_DEFAULT) {
+function buildGridFromImage(img, chosen, W, H, { simplify = XS_SIMPLIFY_DEFAULT, removeBg = true } = {}) {
   if (!img || !chosen || !chosen.length) return null;
   const fit = xsFitImageToGrid(img, W, H);
   if (!fit) return null;
@@ -6604,11 +6707,256 @@ function buildGridFromImage(img, chosen, W, H, simplify = XS_SIMPLIFY_DEFAULT) {
   }
   // Clear the ground before tidying, so the fringe left along the silhouette
   // has bare fabric to be absorbed into.
-  if (bg) xsClearGroundField(grid, isField, W, H, fit);
+  if (bg && removeBg) xsClearGroundField(grid, isField, W, H, fit);
   let out = grid;
   for (let p = 0; p < spec.smooth; p++) out = xsMajorityPass(out, W, H, fit);
+  // A photograph's background only reads as one color once the chart has been
+  // flattened, so this waits until after the smoothing passes — then one more
+  // pass tidies the silhouette the flood just cut.
+  if (removeBg) {
+    xsClearEdgeBackground(out, W, H, fit);
+    if (spec.smooth) out = xsMajorityPass(out, W, H, fit);
+  }
   xsDespeckle(out, W, H, fit, speck);
   return out;
+}
+
+// Shared image intake: file picker, drag-and-drop, clipboard paste, and http(s)
+// URL. Always resolves to a same-origin data URL so canvas sampling
+// (extractColors / sampleImageHex) works the same as a chosen file.
+function isHttpImageUrl(value) {
+  try {
+    const u = new URL(String(value || '').trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (e) { return false; }
+}
+
+function imageFileFromClipboard(e) {
+  const dt = e.clipboardData;
+  if (!dt) return null;
+  if (dt.files && dt.files.length) {
+    for (let i = 0; i < dt.files.length; i++) {
+      if (dt.files[i].type && dt.files[i].type.startsWith('image/')) return dt.files[i];
+    }
+  }
+  if (dt.items) {
+    for (let i = 0; i < dt.items.length; i++) {
+      const it = dt.items[i];
+      if (it.kind === 'file' && it.type && it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) return f;
+      }
+    }
+  }
+  return null;
+}
+
+function plainTextFromClipboard(e) {
+  try { return (e.clipboardData && e.clipboardData.getData('text/plain')) || ''; }
+  catch (err) { return ''; }
+}
+
+function readBlobAsDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => resolve(ev.target.result);
+    reader.onerror = () => reject(new Error('Could not read that image.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function confirmImageSrc(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(src);
+    img.onerror = () => reject(new Error('That URL does not look like an image.'));
+    img.src = src;
+  });
+}
+
+const REMOTE_IMAGE_ERR = "Couldn't load that image. Check the URL, or the site may block it — try saving the file and dropping it instead.";
+const REMOTE_CORS_ERR = "Couldn't read that image (the site blocks it). Try saving the file and dropping it instead.";
+
+function loadImageViaElement(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = img.naturalWidth || img.width;
+        cv.height = img.naturalHeight || img.height;
+        if (!cv.width || !cv.height) { reject(new Error('That URL does not look like an image.')); return; }
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(cv.toDataURL('image/png'));
+      } catch (e) {
+        reject(new Error(REMOTE_CORS_ERR));
+      }
+    };
+    img.onerror = () => reject(new Error(REMOTE_IMAGE_ERR));
+    img.src = url;
+  });
+}
+
+function loadRemoteImageSrc(url) {
+  const trimmed = String(url || '').trim();
+  return fetch(trimmed, { mode: 'cors' })
+    .then(res => {
+      if (!res.ok) throw new Error('http');
+      const ct = ((res.headers.get('content-type') || '').split(';')[0] || '').trim();
+      if (ct && !ct.startsWith('image/') && ct !== 'application/octet-stream') throw new Error('not-image');
+      return res.blob();
+    })
+    .then(blob => {
+      if (blob.type && !blob.type.startsWith('image/') && blob.type !== 'application/octet-stream') {
+        throw new Error('not-image');
+      }
+      return readBlobAsDataUrl(blob).then(confirmImageSrc);
+    })
+    .catch(err => {
+      if (err && err.message === 'not-image') {
+        return Promise.reject(new Error('That URL does not look like an image.'));
+      }
+      return loadImageViaElement(trimmed);
+    });
+}
+
+// Drop zone + URL field used by PhotoDrop and PhotoUpload so paste/URL land in
+// one place. Calls onSrc(dataUrl) — same path as a chosen file.
+function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel }) {
+  const [drag, setDrag] = useState(false);
+  const [error, setError] = useState('');
+  const [urlText, setUrlText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const fileRef = useRef(null);
+  const urlId = useId();
+  const busy = loading || working;
+  const shownTitle = busy
+    ? ((working && workingLabel) ? workingLabel : 'Loading…')
+    : title;
+
+  const acceptFile = useCallback(file => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      setError('Please choose a JPG, PNG, or WebP image.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = ev => { setLoading(false); setError(''); onSrc(ev.target.result); };
+    reader.onerror = () => { setLoading(false); setError('Could not read that file.'); };
+    reader.readAsDataURL(file);
+  }, [onSrc]);
+
+  const acceptUrl = useCallback(raw => {
+    const url = String(raw || '').trim();
+    setUrlText(url);
+    if (!isHttpImageUrl(url)) {
+      setError('Enter an http(s) image URL.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    loadRemoteImageSrc(url)
+      .then(src => { setLoading(false); setError(''); onSrc(src); })
+      .catch(err => { setLoading(false); setError((err && err.message) || REMOTE_IMAGE_ERR); });
+  }, [onSrc]);
+
+  useEffect(() => {
+    const onPaste = e => {
+      const file = imageFileFromClipboard(e);
+      if (file) { e.preventDefault(); acceptFile(file); return; }
+      const target = e.target;
+      const tag = target && target.tagName;
+      const isField = tag === 'INPUT' || tag === 'TEXTAREA' || (target && target.isContentEditable);
+      const isOurs = target && target.closest && target.closest('.pal-upload-url');
+      if (isField && !isOurs) return;
+      const text = plainTextFromClipboard(e);
+      if (text && isHttpImageUrl(text)) {
+        e.preventDefault();
+        acceptUrl(text);
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [acceptFile, acceptUrl]);
+
+  const onDrop = e => {
+    e.preventDefault();
+    setDrag(false);
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file && file.type && file.type.startsWith('image/')) { acceptFile(file); return; }
+    const text = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split('\n')[0].trim();
+    if (isHttpImageUrl(text)) acceptUrl(text);
+  };
+
+  const openPicker = () => { if (fileRef.current) fileRef.current.click(); };
+  const onHitKey = e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+  };
+
+  const urlRow = (
+    <div className="pal-upload-url">
+      <label className="pal-upload-url-label" htmlFor={urlId}>Or paste an image URL</label>
+      <div className="pal-upload-url-row">
+        <input
+          id={urlId}
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          spellCheck="false"
+          placeholder="https://"
+          value={urlText}
+          disabled={busy}
+          onChange={e => { setUrlText(e.target.value); if (error) setError(''); }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); acceptUrl(urlText); } }}
+        />
+        <button type="button" disabled={busy || !urlText.trim()} onClick={() => acceptUrl(urlText)}>Load</button>
+      </div>
+    </div>
+  );
+  const errNode = error ? <div className="pal-upload-error" role="alert">{error}</div> : null;
+  const fileInput = <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => acceptFile(e.target.files[0])}/>;
+  const dropProps = {
+    onDragOver: e => { e.preventDefault(); setDrag(true); },
+    onDragLeave: () => setDrag(false),
+    onDrop,
+  };
+  const hitProps = {
+    className: 'pal-upload-hit',
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': title,
+    onClick: openPicker,
+    onKeyDown: onHitKey,
+  };
+
+  if (variant === 'tmpl') {
+    return (
+      <div className={`tmpl-upload${drag ? ' drag' : ''}`} {...dropProps}>
+        <div {...hitProps}>
+          <div className="tmpl-upload-title">{shownTitle}</div>
+          <div className="tmpl-upload-sub">{subtitle}</div>
+        </div>
+        {urlRow}
+        {errNode}
+        {fileInput}
+      </div>
+    );
+  }
+  return (
+    <div className={`pal-upload${drag ? ' drag' : ''}`} {...dropProps}>
+      <div {...hitProps}>
+        <div className="pal-upload-icon"><IcImage size={28}/></div>
+        <div className="pal-upload-title">{shownTitle}</div>
+        <div className="pal-upload-sub">{subtitle}</div>
+      </div>
+      {urlRow}
+      {errNode}
+      {fileInput}
+    </div>
+  );
 }
 
 // Reusable photo → palette uploader. Manages its own file/extraction state and
@@ -6620,35 +6968,27 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
   const [pool, setPool] = useState([]);
   const [locked, setLocked] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState(false);
   const [opts, setOpts] = useState(() => { const o = {}; options.forEach(d => o[d.key] = d.default ?? false); return o; });
-  const fileRef = useRef(null);
   const imgElRef = useRef(null);
   const idOf = c => c[idKey];
 
-  const handleFile = useCallback(file => {
-    if (!file || !file.type.startsWith('image/')) return;
+  const ingestSrc = useCallback(src => {
     setBusy(true);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const src = ev.target.result;
-      const img = new Image();
-      img.onload = () => {
-        imgElRef.current = img;
-        const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
-        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-        const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-        let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setBusy(false); return; }
-        const raw = extractColors(pixels, count), seen = new Set(), colors = [];
-        for (const c of raw) { const k = nearest(c); if (k && !seen.has(k[idKey])) { seen.add(k[idKey]); colors.push(k); } }
-        setImgSrc(src); setPool(colors); setLocked(new Set());
-        setExtracted(colors.slice(0, Math.min(paletteSize, colors.length))); setBusy(false);
-      };
-      img.onerror = () => setBusy(false);
-      img.src = src;
+    const img = new Image();
+    img.onload = () => {
+      imgElRef.current = img;
+      const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+      let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setBusy(false); return; }
+      const raw = extractColors(pixels, count), seen = new Set(), colors = [];
+      for (const c of raw) { const k = nearest(c); if (k && !seen.has(k[idKey])) { seen.add(k[idKey]); colors.push(k); } }
+      setImgSrc(src); setPool(colors); setLocked(new Set());
+      setExtracted(colors.slice(0, Math.min(paletteSize, colors.length))); setBusy(false);
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => setBusy(false);
+    img.src = src;
   }, [nearest, idKey, paletteSize, count]);
 
   const toggleLock = useCallback(id => { setLocked(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }, []);
@@ -6662,7 +7002,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
       return prev.map(c => lk.has(idOf(c)) ? c : (fill[fi++] || c));
     });
   }, [pool, locked]);
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; fileRef.current && (fileRef.current.value = ''); };
+  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; };
   const apply = () => {
     if (!extracted || !extracted.length) return;
     const kept = extracted.filter(c => locked.has(idOf(c)));
@@ -6677,16 +7017,12 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
         {hint && <div className="pal-section-sub">{hint}</div>}
       </div>
       {!extracted && (
-        <div className={`pal-upload${drag ? ' drag' : ''}`}
-          onClick={() => fileRef.current && fileRef.current.click()}
-          onDragOver={e => { e.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}>
-          <div className="pal-upload-icon"><IcImage size={28}/></div>
-          <div className="pal-upload-title">{busy ? 'Reading colors…' : 'Drop an image here or click to browse'}</div>
-          <div className="pal-upload-sub">JPG, PNG, or WebP</div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>
-        </div>
+        <PhotoIntakeZone
+          title="Drop an image here or click to browse"
+          subtitle="JPG, PNG, or WebP — or paste an image"
+          onSrc={ingestSrc}
+          working={busy}
+          workingLabel="Reading colors…"/>
       )}
       {extracted && (
         <div className="pal-result">
@@ -6735,35 +7071,18 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // All color work (suggested palette, swapping) happens on the palette step.
 function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout }) {
   const [imgSrc, setImgSrc] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState(false);
-  const fileRef = useRef(null);
-  const handleFile = useCallback(file => {
-    if (!file || !file.type.startsWith('image/')) return;
-    setBusy(true);
-    const reader = new FileReader();
-    reader.onload = ev => { setImgSrc(ev.target.result); setBusy(false); };
-    reader.onerror = () => setBusy(false);
-    reader.readAsDataURL(file);
-  }, []);
-  const reset = () => { setImgSrc(null); fileRef.current && (fileRef.current.value = ''); };
-  const dropBind = {
-    onClick: () => fileRef.current && fileRef.current.click(),
-    onDragOver: e => { e.preventDefault(); setDrag(true); },
-    onDragLeave: () => setDrag(false),
-    onDrop: e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); },
-  };
-  const fileInput = <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])}/>;
+  const ingestSrc = useCallback(src => setImgSrc(src), []);
+  const reset = () => setImgSrc(null);
   const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
   if (layout === 'bar') {
     return (
       <section className="tmpl-upload-bar">
         {!imgSrc ? (
-          <div className={`tmpl-upload${drag ? ' drag' : ''}`} {...dropBind}>
-            <div className="tmpl-upload-title">{busy ? 'Loading…' : 'Drop a photo here or click to browse'}</div>
-            <div className="tmpl-upload-sub">{hint || 'JPG, PNG, or WebP'}</div>
-            {fileInput}
-          </div>
+          <PhotoIntakeZone
+            variant="tmpl"
+            title="Drop a photo here or click to browse"
+            subtitle={hint || 'JPG, PNG, or WebP — or paste an image'}
+            onSrc={ingestSrc}/>
         ) : (
           <div className="tmpl-upload-result">
             <img className="tmpl-upload-preview" src={imgSrc} alt="Uploaded reference"/>
@@ -6784,12 +7103,10 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
         {hint && <div className="pal-section-sub">{hint}</div>}
       </div>
       {!imgSrc ? (
-        <div className={`pal-upload${drag ? ' drag' : ''}`} {...dropBind}>
-          <div className="pal-upload-icon"><IcImage size={28}/></div>
-          <div className="pal-upload-title">{busy ? 'Loading…' : 'Drop a photo here or click to browse'}</div>
-          <div className="pal-upload-sub">JPG, PNG, or WebP</div>
-          {fileInput}
-        </div>
+        <PhotoIntakeZone
+          title="Drop a photo here or click to browse"
+          subtitle="JPG, PNG, or WebP — or paste an image"
+          onSrc={ingestSrc}/>
       ) : (
         <div className="pal-result">
           <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
@@ -7613,6 +7930,7 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   const [ready, setReady] = useState(!photo);
   const [swapIdx, setSwapIdx] = useState(null);       // index being swapped/added
   const [simplify, setSimplify] = useState(XS_SIMPLIFY_DEFAULT);
+  const [removeBg, setRemoveBg] = useState(true);
   const swapAnchor = useRef(null);
 
   useEffect(() => {
@@ -7641,16 +7959,19 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   // Build the opts (auto-generated design + trace overlay) for a chosen palette.
   const optsFor = colors => {
     if (!photo) return {};
-    const autoGrid = imgElRef.current ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h, simplify) : null;
+    const autoGrid = imgElRef.current
+      ? buildGridFromImage(imgElRef.current, colors, preset.w, preset.h, { simplify, removeBg })
+      : null;
     return { autoGrid, bgImage: photo };
   };
   // What the suggested colors would actually stitch out as. Cheap enough to
-  // rebuild whenever a color or the detail level changes, and it's the only way
-  // to judge the flattening without committing to it.
+  // rebuild whenever a color or a setting changes, and it's the only way to
+  // judge the flattening — or whether the background came off cleanly — without
+  // committing to it.
   const previewGrid = useMemo(() => {
     if (!photo || !ready || !imgElRef.current || !sugg.length) return null;
-    return buildGridFromImage(imgElRef.current, sugg, preset.w, preset.h, simplify);
-  }, [photo, ready, sugg, simplify, preset.w, preset.h]);
+    return buildGridFromImage(imgElRef.current, sugg, preset.w, preset.h, { simplify, removeBg });
+  }, [photo, ready, sugg, simplify, removeBg, preset.w, preset.h]);
   const pickSwap = c => {
     setSugg(prev => {
       const n = [...prev];
@@ -7718,6 +8039,15 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
               ))}
             </div>
             <div className="xs-flatten-note">{xsSimplifySpec(simplify).note}</div>
+            <label className="xs-flatten-check">
+              <input type="checkbox" checked={removeBg} onChange={e => setRemoveBg(e.target.checked)}/>
+              Remove image background
+              <span className="xs-flatten-check-note">
+                {removeBg
+                  ? `Whatever surrounds your subject is left as bare ${cfg.fabricLabel}.`
+                  : `The whole photo is filled in, background and all.`}
+              </span>
+            </label>
           </div>
           <div className="xs-flatten-preview">
             {previewGrid
