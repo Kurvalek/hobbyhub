@@ -1015,9 +1015,14 @@
   }
   .xs-flatten-check input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; accent-color: var(--color-taupe-900); cursor: pointer; }
   .xs-flatten-check-note { font-weight: 400; color: var(--warm-muted); }
+  /* Sized for the photo-to-chart reveal rather than for a thumbnail. At the old
+     140px a Medium Hoop chart was about one pixel per stitch, so stitches
+     arriving one after another read as nothing at all; this also puts the
+     smaller presets over the threshold where their counting grid is worth
+     drawing (see XS_REVEAL_GRID_MIN). */
   .xs-flatten-preview {
     display: flex; align-items: center; justify-content: center;
-    flex: 0 0 auto; width: 140px; min-height: 140px; padding: 8px; box-sizing: border-box;
+    flex: 0 0 auto; width: 264px; min-height: 264px; padding: 8px; box-sizing: border-box;
     background: var(--metime-cream); border: 1px solid var(--metime-black);
   }
   .xs-flatten-empty { font-family: var(--font-mono); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
@@ -1449,7 +1454,11 @@
     position: relative; width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
     border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
     box-sizing: border-box; padding: 0; cursor: pointer; overflow: hidden;
+    transition: opacity var(--art-dur) var(--ease-out), transform var(--art-dur) var(--ease-out);
   }
+  /* Held under the row until its turn comes, so the colors lift out of the
+     photo one after another instead of all appearing at once. */
+  .pal-from-image-swatch.rising { opacity: 0; transform: translateY(10px) scale(0.86); }
   .pal-from-image-x {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(245, 243, 238, 0.72); color: var(--metime-almost-black);
@@ -4148,7 +4157,7 @@ function Popover({ anchorRef, onClose, placement = 'right-bottom', children, wid
 
 // ── Mobile helpers (Canva-style bottom toolbar + bottom sheets) ───────────
 // All mobile-only; desktop keeps the existing rails/drawer/popovers untouched.
-function useIsMobile(query = '(max-width: 900px)') {
+function useMediaQuery(query) {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
   useEffect(() => {
     const mq = window.matchMedia(query);
@@ -4159,6 +4168,11 @@ function useIsMobile(query = '(max-width: 900px)') {
   }, [query]);
   return m;
 }
+function useIsMobile(query = '(max-width: 900px)') { return useMediaQuery(query); }
+// The stylesheet honours reduced motion for its transitions and keyframes, but
+// the photo-to-chart reveal is driven frame by frame in JS, so it has to ask
+// the same question itself.
+function usePrefersReducedMotion() { return useMediaQuery('(prefers-reduced-motion: reduce)'); }
 
 // A sheet that slides up from the bottom. Reuses the app's card/panel styling
 // so its contents look identical to the desktop panel/popover.
@@ -8216,6 +8230,25 @@ function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, o
   const [armedIdx, setArmedIdx] = useState(null);
   const addRef = useRef(null);
   const bar = layout === 'bar';
+  const reduced = usePrefersReducedMotion();
+
+  // The suggested colors are all known at once, but they land one after another
+  // so the palette reads as something lifted out of the photo. A single shot:
+  // once the row is up, `risen` sits at Infinity and every swatch is simply
+  // present — otherwise removing one would send the rest away and bring them
+  // back, and a swatch added later would never arrive at all.
+  const [risen, setRisen] = useState(0);
+  useEffect(() => {
+    const n = colors.length;
+    if (reduced || !n) { setRisen(Infinity); return undefined; }
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setRisen(i >= n ? Infinity : i);
+      if (i >= n) clearInterval(id);
+    }, XS_SWATCH_STAGGER_MS);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => { setArmedIdx(null); }, [colors.length]);
   useEffect(() => {
@@ -8250,7 +8283,7 @@ function ImagePaletteEditor({ photo, alt, colors, colorKey, titleOf, onRemove, o
             <button
               key={`${colorKey(c)}-${i}`}
               type="button"
-              className={`pal-from-image-swatch${armedIdx === i ? ' armed' : ''}`}
+              className={`pal-from-image-swatch${armedIdx === i ? ' armed' : ''}${i < risen ? '' : ' rising'}`}
               style={{ background: c.hex }}
               title={titleOf(c)}
               aria-label={isMobile && armedIdx === i ? `Remove ${titleOf(c)}` : titleOf(c)}
@@ -8623,7 +8656,8 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
           </div>
           <div className="xs-flatten-preview">
             {previewGrid
-              ? <StitchThumb w={preset.w} h={preset.h} cells={previewGrid} size={124}/>
+              ? <StitchReveal w={preset.w} h={preset.h} cells={previewGrid} size={248}
+                  img={imgElRef.current} majorGrid={cfg.majorGrid}/>
               : <div className="xs-flatten-empty">Keep at least one color to preview</div>}
           </div>
         </section>
@@ -8795,6 +8829,167 @@ function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
     }
   }, [w, h, cells, cw, ch, scale, bg]);
   return <canvas ref={ref} style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated', borderRadius: 4 }}/>;
+}
+
+// ── Photo → chart reveal ───────────────────────────────────────────────────
+// Where the flattening stops being an abstraction. The uploaded photo dissolves
+// into the stitches it will actually be made of, arriving across the diagonal,
+// and the counting grid draws itself in behind them.
+//
+// The photo underneath is placed with the same xsFitImageToGrid() rect the
+// chart was built from, so each stitch lands on the pixels it came from. Drawn
+// stretched to the canvas instead, the two layers slide against each other and
+// the whole thing reads as a glitch rather than a resolve.
+//
+// Only the first arrival animates. A detail level, the background checkbox, a
+// swapped floss all repaint on the spot: those are judgement calls that want an
+// answer, not a second of theatre every time.
+const XS_REVEAL_MS = 1400;
+const XS_REVEAL_FADE = 0.22;     // fraction of the run a single stitch fades over
+const XS_REVEAL_JITTER = 0.12;   // roughens the diagonal so it isn't a hard wipe
+const XS_REVEAL_GRID_AT = 0.55;  // point in the run the counting grid starts to arrive
+const XS_REVEAL_GRID_MIN = 3.5;  // px per stitch under which grid lines are just noise
+// Matches --art-stagger, so the palette lifting in and the card art rising on
+// the steps behind it are visibly the same gesture.
+const XS_SWATCH_STAGGER_MS = 55;
+// Each cell's place in the sweep. The cells are ranked along the diagonal
+// rather than ordered by it: (x + y) is triangular over a rectangle, so a raw
+// diagonal hands half the chart over in the middle of the run and leaves the
+// tail with nothing to deliver — the build looks finished long before it is.
+// Ranking spends the run at a steady number of stitches per frame instead.
+// Only stitched cells get a place, so a motif on bare fabric is paced by its
+// own size and not by the empty margin around it.
+function xsSweepOrder(w, h, cells) {
+  const n = w * h, key = new Float32Array(n), span = Math.max(1, w + h - 2), stitched = [];
+  for (let i = 0; i < n; i++) {
+    // A little jitter, so the leading edge frays instead of ruling a line.
+    const t = ((i % w) + ((i / w) | 0)) / span + (Math.random() - 0.5) * XS_REVEAL_JITTER;
+    key[i] = t < 0 ? 0 : t > 1 ? 1 : t;
+    if (!cells || cells[i]) stitched.push(i);
+  }
+  stitched.sort((a, b) => key[a] - key[b]);
+  const out = new Float32Array(n), last = Math.max(1, stitched.length - 1);
+  for (let r = 0; r < stitched.length; r++) out[stitched[r]] = r / last;
+  return out;
+}
+const xsEaseOut = t => 1 - Math.pow(1 - t, 3);
+const xsSmoothStep = (a, b, x) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFFFFF', label = 'Your photo as a chart' }) {
+  const ref = useRef(null);
+  const rafRef = useRef(0);
+  const runningRef = useRef(false);
+  const reduced = usePrefersReducedMotion();
+  // Same containment rule as StitchThumb: fit the grid in the box at its own
+  // aspect ratio rather than cropping a tall strip to a square.
+  const scale = Math.min(size / w, size / h);
+  const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+
+  // Fixed on the first paint: a setting changed mid-reveal must not reshuffle
+  // the sweep under the stitches that have already landed.
+  const orderRef = useRef(null);
+  if (!orderRef.current || orderRef.current.w !== w || orderRef.current.h !== h) {
+    orderRef.current = { w, h, a: xsSweepOrder(w, h, cells) };
+  }
+  const order = orderRef.current.a;
+  const fit = useMemo(() => (img ? xsFitImageToGrid(img, w, h) : null), [img, w, h]);
+
+  // The loop reads the latest chart through refs, so a setting changed while it
+  // is still running is picked up on the next frame instead of being lost.
+  const cellsRef = useRef(cells); cellsRef.current = cells;
+
+  const draw = useCallback(p => {
+    const cv = ref.current; if (!cv) return;
+    const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    const pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
+    if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, cw, ch);
+
+    // The photo lets go of its detail on the way out — blurring as it dims —
+    // rather than simply getting fainter.
+    const photoAlpha = 1 - xsSmoothStep(0.04, 0.62, p);
+    if (img && fit && photoAlpha > 0.004) {
+      ctx.save();
+      ctx.globalAlpha = photoAlpha;
+      if (p > 0.02) ctx.filter = `blur(${(p * 2.2).toFixed(2)}px)`;
+      ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh,
+        fit.dx * scale, fit.dy * scale, fit.dw * scale, fit.dh * scale);
+      ctx.restore();
+    }
+
+    const grid = cellsRef.current || [];
+    const reach = 1 - XS_REVEAL_FADE;
+    const solid = Math.ceil(scale);
+    for (let i = 0; i < grid.length; i++) {
+      const hex = grid[i]; if (!hex) continue;
+      const local = p >= 1 ? 1 : (p - order[i] * reach) / XS_REVEAL_FADE;
+      if (local <= 0) continue;
+      const x = (i % w) * scale, y = ((i / w) | 0) * scale;
+      ctx.fillStyle = hex;
+      if (local >= 1) { ctx.globalAlpha = 1; ctx.fillRect(x, y, solid, solid); continue; }
+      // Growing out of its own centre makes a stitch land rather than blink. It
+      // grows into exactly the rect the finished branch above paints, so there
+      // is no jump in size or position on the frame a stitch completes.
+      const e = xsEaseOut(local), s = Math.max(1, (0.45 + 0.55 * e) * solid), inset = (solid - s) / 2;
+      ctx.globalAlpha = e;
+      ctx.fillRect(x + inset, y + inset, s, s);
+    }
+    ctx.globalAlpha = 1;
+
+    // The grid is what turns a picture into something countable, so it arrives
+    // last — but only where a cell is big enough to be worth ruling.
+    const ga = scale >= XS_REVEAL_GRID_MIN ? xsSmoothStep(XS_REVEAL_GRID_AT, 1, p) : 0;
+    if (ga > 0.01) {
+      ctx.save();
+      ctx.strokeStyle = '#000';
+      const rule = (n, span, vertical) => {
+        for (let k = 0; k <= n; k++) {
+          const heavy = majorGrid && k % majorGrid === 0;
+          ctx.globalAlpha = ga * (heavy ? 0.26 : 0.09);
+          ctx.lineWidth = heavy ? 1 : 0.5;
+          const at = Math.round(k * scale) + 0.5;
+          ctx.beginPath();
+          if (vertical) { ctx.moveTo(at, 0); ctx.lineTo(at, span); } else { ctx.moveTo(0, at); ctx.lineTo(span, at); }
+          ctx.stroke();
+        }
+      };
+      rule(w, ch, true);
+      rule(h, cw, false);
+      ctx.restore();
+    }
+  }, [cw, ch, scale, w, h, order, fit, img, bg, majorGrid]);
+
+  const drawRef = useRef(draw); drawRef.current = draw;
+
+  // Mount is the first arrival, and the only time the reveal plays.
+  useEffect(() => {
+    if (reduced) { drawRef.current(1); return undefined; }
+    runningRef.current = true;
+    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const loop = now => {
+      const p = Math.min(1, (now - t0) / XS_REVEAL_MS);
+      drawRef.current(p);
+      if (p < 1) { rafRef.current = requestAnimationFrame(loop); return; }
+      runningRef.current = false;
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(rafRef.current); runningRef.current = false; };
+  }, []);
+
+  // Every later change lands finished. Skipped while the reveal owns the canvas,
+  // since it is already painting each frame from the live chart.
+  useEffect(() => {
+    if (!runningRef.current) drawRef.current(1);
+  }, [cells, cw, ch, scale, bg, majorGrid, img, reduced]);
+
+  return <canvas ref={ref} role="img" aria-label={label}
+    style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}/>;
 }
 
 function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null }) {
