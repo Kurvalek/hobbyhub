@@ -122,6 +122,16 @@
     --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.08);
     --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.14);
 
+    /* Motion — one easing and two press depths, so every tap and every step
+       change moves the same way. Cards get the shallower dip: the setup steps
+       lay them out edge to edge with 1px dividers, and a deep dip pulls a
+       visible gap open between neighbours. */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --press-scale: 0.96;
+    --press-scale-card: 0.985;
+    --press-dur: 90ms;
+    --step-dur: 260ms;
+
     /* Fonts — Söhne (body/sans), BC Civitas (display), Söhne Mono (mono). */
     --font-sans: 'Söhne', sans-serif;
     --font-display: 'BC Civitas', serif;
@@ -374,7 +384,7 @@
   .preset-pill .caret { display: inline-block; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-muted); margin-left: 2px; }
 
   /* Icon button (used in header + tool rail + popover triggers) */
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .icon-btn:hover { background: var(--btn-tool-hover); }
   .icon-btn:active { background: var(--btn-secondary-bg-active); }
   .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
@@ -523,7 +533,7 @@
 
   /* Buttons — metime design system (Figma node 20-1371).
      Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary. */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; font-size: 12px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; border-radius: 4px; cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s; border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; font-size: 12px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; border-radius: 4px; cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
   .btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
   .btn:active { background: var(--btn-secondary-bg-active); }
   .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
@@ -543,7 +553,7 @@
   .btn-xs { padding: 3px 8px; font-size: 11px; }
 
   /* Fabric row (clickable color field) */
-  .fabric-row { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: transparent; border: none; border-bottom: var(--div-border); width: 100%; cursor: pointer; text-align: left; font: inherit; color: inherit; transition: background .12s; box-sizing: border-box; }
+  .fabric-row { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: transparent; border: none; border-bottom: var(--div-border); width: 100%; cursor: pointer; text-align: left; font: inherit; color: inherit; transition: background .12s, transform var(--press-dur) var(--ease-out); box-sizing: border-box; }
   .fabric-row:hover { background: var(--warm-hover); }
   .fabric-row:focus-visible { outline: 2px solid var(--selection); outline-offset: -2px; }
   .fabric-row-swatch { width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--warm-hairline); }
@@ -1209,7 +1219,7 @@
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
-  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s; padding: 0; }
+  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .xs-tool:hover { background: var(--btn-tool-hover); }
   .xs-tool:active { background: var(--btn-secondary-bg-active); }
   .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
@@ -1466,7 +1476,7 @@
   .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
   /* Same box as .pal-skip-btn: 6px radius, 10/18 padding, Söhne Kräftig 14. */
-  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s; }
+  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s, transform var(--press-dur) var(--ease-out); }
   .pal-btn:hover { background: var(--action-hover); }
   .pal-btn.secondary { background: var(--metime-white); border-color: var(--metime-black); color: #000000; }
   .pal-btn.secondary:hover { background: var(--color-linen-300); }
@@ -1478,7 +1488,7 @@
     border: 1px solid var(--metime-black); background: var(--metime-white);
     color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
     line-height: normal; cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, transform var(--press-dur) var(--ease-out);
   }
   .pal-skip-btn:hover { background: var(--color-linen-300); }
   .pal-skip-btn:active { background: var(--color-linen-500); }
@@ -1529,7 +1539,7 @@
   /* Backing-fabric picker: theme filters + dense swatch grid. Filters share the
      .pal-skip-btn box (white / #707F87 / 6px / Söhne Kräftig 14). */
   .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s, transform var(--press-dur) var(--ease-out); }
   .fabric-filter:not(.active):hover { background: var(--color-linen-300); }
   .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
   .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
@@ -1627,6 +1637,64 @@
     .pal-from-image-use { width: 100%; justify-content: center; }
     .backing-current-img { height: 160px; }
     .fabric-enlarge-name, .backing-picker-title { font-size: 22px; }
+  }
+
+  /* ── Press feedback ────────────────────────────────────────────────────────
+     Everything pickable dips under the pointer so a tap reads as a press
+     before the next screen arrives. These rules sit last in the sheet on
+     purpose: the band-card steps flatten the boxed-card hover lift with
+     `transform: none`, and the dip has to land after that to win. Cards
+     marked "coming soon" aren't pickable, so they stay put. */
+  .size-card, .land-craft, .saved-card, .back-skip, .saved-filter {
+    transition: transform var(--press-dur) var(--ease-out);
+  }
+  .btn:active, .icon-btn:active, .xs-tool:active, .pill:active, .chip:active,
+  .fabric-row:active, .fabric-filter:active, .saved-filter:active,
+  .pal-btn:active, .pal-skip-btn:active, .pal-suggest-swatch:active {
+    transform: scale(var(--press-scale));
+  }
+  /* Already centered on its own transform, so the dip has to compose with it. */
+  .back-skip:active { transform: translateY(-50%) scale(var(--press-scale)); }
+
+  /* On the boxed cards the dip replaces the hover lift rather than stacking on
+     it, since a bare scale() drops the hover's translateY. */
+  .proj-card:not(.is-soon):active, .pal-card:active, .tmpl-card:active, .fabric-card:active,
+  .size-card:active, .land-craft:not(.is-soon):active, .saved-card:active,
+  .pal-page .pal-card:active, .tmpl-page .tmpl-card:active, .back-grid .fabric-card:active {
+    transform: scale(var(--press-scale-card));
+  }
+
+  /* ── Step-to-step transitions ──────────────────────────────────────────────
+     Every setup step is its own component, so React remounts the page root
+     when the step changes and this enter animation runs once per screen.
+     <html> carries the direction of travel (set in Root from STEP_DEPTH) so
+     Back slides in from the other side. Translate only, never scale: the
+     studios measure their canvas on mount and a scale would report the wrong
+     size. */
+  .land-page, .size-page, .back-page, .pal-page, .tmpl-page, .app, .xs-app {
+    --step-from: 16px;
+    animation: step-in var(--step-dur) var(--ease-out) both;
+  }
+  /* Only the offset flips, so the reduced-motion `animation: none` below stays
+     the single animation declaration and doesn't have to out-specify this. */
+  :root[data-nav="back"] .land-page,
+  :root[data-nav="back"] .size-page,
+  :root[data-nav="back"] .back-page,
+  :root[data-nav="back"] .pal-page,
+  :root[data-nav="back"] .tmpl-page,
+  :root[data-nav="back"] .app,
+  :root[data-nav="back"] .xs-app { --step-from: -16px; }
+
+  @keyframes step-in {
+    from { opacity: 0; transform: translate3d(var(--step-from), 0, 0); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root { --press-scale: 1; --press-scale-card: 1; }
+    .land-page, .size-page, .back-page, .pal-page, .tmpl-page, .app, .xs-app {
+      animation: none;
+    }
   }
 </style>
 </head>
@@ -10428,6 +10496,17 @@ function Root() {
   const stepRef = React.useRef(stepKey); stepRef.current = stepKey;
   const prevStepRef = React.useRef(stepKey);
   const isPoppingRef = React.useRef(false);
+
+  // Which way the step transition should slide. A layout effect lands the
+  // attribute on <html> before the browser paints the freshly mounted screen,
+  // so its enter animation picks a side on the very first frame.
+  const navFromRef = React.useRef(stepKey);
+  React.useLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+    const from = STEP_DEPTH[navFromRef.current] ?? 0, to = STEP_DEPTH[stepKey] ?? 0;
+    navFromRef.current = stepKey;
+    document.documentElement.dataset.nav = to < from ? 'back' : 'fwd';
+  }, [stepKey]);
 
   // Reverse a single step. Returns true if it actually moved (so popstate knows
   // whether a transition happened); 'craft' returns false to let the browser
