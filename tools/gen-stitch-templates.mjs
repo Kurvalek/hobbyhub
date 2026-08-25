@@ -1,12 +1,16 @@
 // One-time authoring script: builds the cross-stitch chart data consumed by
 // index.html (window.STITCH_TEMPLATE_DATA) into assets/stitch-templates-data.js.
 //
-// Charts come from one of two sources:
+// Charts come from one of three sources:
 //   • an image in assets/stitch-templates/ (`file`) — cover-fit + box-sampled
 //     down to a canonical grid, with the background auto-detected from the image
 //     corners and dropped (→ empty cells);
 //   • a drawing function (`draw`) — the Bookmark designs are authored here with
-//     the shape primitives below so they default to the metime brand palette.
+//     the shape primitives below so they default to the metime brand palette;
+//   • a design stitched in the studio and saved (`saved`) — exported out of a
+//     saved-designs blob into assets/stitch-templates/saved/*.json. These are
+//     already stitch-for-stitch charts in real floss colors, so they come in
+//     exactly as drawn.
 //
 // Either way every kept cell is snapped to the nearest DMC floss (the same
 // Euclidean match the app uses) and quantized to a small palette.
@@ -24,6 +28,7 @@ import { PNG } from 'pngjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const IMG_DIR = path.join(ROOT, 'assets', 'stitch-templates');
+const SAVED_DIR = path.join(IMG_DIR, 'saved');
 const PREVIEW_DIR = path.join(__dirname, '_preview');
 const OUT_JS = path.join(ROOT, 'assets', 'stitch-templates-data.js');
 
@@ -253,100 +258,6 @@ function drawCoralWave(cv) {
   }
 }
 
-// Medium Hoop — a floral ring with the middle left bare for lettering. The
-// ring's inner edge stays outside r=38 because a four-line verse at 11 stitches
-// rasterizes to about 43x54, whose corners reach r=34.5; that margin is what
-// keeps the words from crowding the flowers. Nothing fills the background, so
-// the text lands on bare aida rather than on top of stitching.
-function drawWreathFrame(cv) {
-  const cx = 60, cy = 60, R = 47;
-  // Five tapered petals around a contrasting core.
-  const bloom = (x, y, hex, core, size) => {
-    for (let k = 0; k < 5; k++) cv.ray(x, y, k * 72 + ((x * 7 + y * 3) % 36), size, 1.3, 2.5, hex);
-    cv.ellipse(x, y, 1.7, 1.7, core);
-  };
-  // A leaf pair splayed off the ring's tangent, plus a short inward stem.
-  const leafPair = (x, y, tangent, hex) => {
-    cv.ray(x, y, tangent + 32, 8, 1.2, 2.4, hex);
-    cv.ray(x, y, tangent - 32, 8, 1.2, 2.4, hex);
-    cv.ray(x, y, tangent + 90, 5, 1.1, 1.4, hex);
-  };
-  const petalHues = [BRAND.tomato, BRAND.coral, BRAND.golden, BRAND.tomato, BRAND.coral, BRAND.golden];
-  const N = 16;
-  for (let i = 0; i < N; i++) {
-    const deg = (i * 360) / N, rad = (deg * Math.PI) / 180;
-    const x = cx + Math.sin(rad) * R, y = cy - Math.cos(rad) * R;
-    if (i % 2 === 0) {
-      const j = i / 2;
-      bloom(x, y, petalHues[j % petalHues.length], j % 2 === 0 ? BRAND.ink : BRAND.golden, j % 3 === 0 ? 6 : 5);
-    } else {
-      // Tangent points along the ring; +90 from the radial direction.
-      leafPair(x, y, deg + 90, i % 4 === 1 ? BRAND.olive : BRAND.slate);
-    }
-  }
-  // Tiny buds tucked between, so the ring reads continuous instead of beaded.
-  for (let i = 0; i < N; i++) {
-    const deg = (i * 360) / N + 360 / (N * 2), rad = (deg * Math.PI) / 180;
-    const r = R + (i % 2 ? 7 : -7);
-    cv.ellipse(cx + Math.sin(rad) * r, cy - Math.cos(rad) * r, 1.6, 1.6, i % 3 ? BRAND.olive : BRAND.coral);
-  }
-}
-
-// Medium Hoop — a matchbox with its tray pushed part-way out, matches showing.
-// Drawn in three-quarter view: a front face with a top and right face angled
-// off it, the way the reference illustrations sit. The oval label is stitched
-// cream so initials read against it, and it's sized to take "K+W" at 14
-// stitches (32x11) with margin.
-function drawMatchbox(cv) {
-  const ink = BRAND.ink;
-  // ── Sleeve: front face, plus top and right faces for depth ──
-  const fx = 12, fy = 54, fw = 72, fh = 44;      // front face
-  const dx = 14, dy = 13;                        // depth offset (up and right)
-  cv.rect(fx, fy, fw, fh, BRAND.tomato);
-  // Top face — a parallelogram, drawn as two triangles.
-  cv.tri(fx, fy, fx + dx, fy - dy, fx + fw + dx, fy - dy, BRAND.coral);
-  cv.tri(fx, fy, fx + fw, fy, fx + fw + dx, fy - dy, BRAND.coral);
-  // Right face, a shade darker so the corner turns.
-  cv.tri(fx + fw, fy, fx + fw + dx, fy - dy, fx + fw + dx, fy + fh - dy, BRAND.slate);
-  cv.tri(fx + fw, fy, fx + fw, fy + fh, fx + fw + dx, fy + fh - dy, BRAND.slate);
-
-  // ── The tray, pushed part-way out of the top ──
-  // Built back to front: pale card interior, then the matches standing in it,
-  // then the tray's near wall drawn over the stick ends so they read as sitting
-  // down inside it rather than floating on top.
-  const tw = 46, tH = 26;
-  const tx = fx + dx + 6, tBot = fy - dy + 6, ty = tBot - tH;
-  const wall = 9;
-  // Interior in slate, not pale card: the sticks are cream, and on a light
-  // ground they disappeared into it.
-  cv.rect(tx, ty, tw, tH, BRAND.slate);
-  for (let k = 0; k < 7; k++) {
-    const mx = tx + 5 + k * 6;
-    cv.capsule(mx, tBot - 3, mx, ty + 6, 1.2, 1.2, BRAND.cream);
-    cv.ellipse(mx, ty + 4, 2.1, 2.5, BRAND.tomato);
-  }
-  cv.rect(tx, tBot - wall, tw, wall, BRAND.golden);
-  cv.rect(tx, tBot - wall, tw, 1, ink);
-
-  // ── Label: an ink ring with a cream field, where the initials go ──
-  const lx = fx + fw / 2, ly = fy + fh / 2 + 1;
-  cv.ellipse(lx, ly, 25, 13.5, ink);
-  cv.ellipse(lx, ly, 23.5, 12, BRAND.cream);
-  // Two rules instead of a busier pattern — at this scale a check would collide
-  // with the oval and read as noise.
-  cv.rect(fx + 4, fy + 3, fw - 8, 2, BRAND.golden);
-  cv.rect(fx + 4, fy + fh - 5, fw - 8, 2, BRAND.golden);
-
-  // ── Outlines last, so every face keeps a crisp edge ──
-  cv.rect(fx, fy, fw, 1, ink); cv.rect(fx, fy + fh - 1, fw, 1, ink);
-  cv.rect(fx, fy, 1, fh, ink); cv.rect(fx + fw - 1, fy, 1, fh, ink);
-  cv.capsule(fx, fy, fx + dx, fy - dy, 0.6, 0.6, ink);
-  cv.capsule(fx + fw, fy, fx + fw + dx, fy - dy, 0.6, 0.6, ink);
-  cv.capsule(fx + dx, fy - dy, fx + fw + dx, fy - dy, 0.6, 0.6, ink);
-  cv.capsule(fx + fw + dx, fy - dy, fx + fw + dx, fy + fh - dy, 0.6, 0.6, ink);
-  cv.rect(tx, ty, tw, 1, ink); cv.rect(tx, ty, 1, tH, ink); cv.rect(tx + tw - 1, ty, 1, tH, ink);
-}
-
 // ── Per-design conversion config. `w`/`h` = canonical grid the chart is baked
 // at (build() in-app nearest-neighbour resamples it to each preset size).
 // `bgTol` = RGB distance from the auto-detected corner background under which a
@@ -356,22 +267,25 @@ function drawMatchbox(cv) {
 const DESIGNS = [
   { file: 'alien.png',        id: 'alien',        name: 'Little Alien',      desc: 'A friendly space visitor.',        presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
   { file: 'ufo.png',          id: 'ufo',          name: 'Flying Saucer',     desc: 'A beaming little UFO.',            presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
-  { file: 'moth.png',         id: 'moth',         name: 'Celestial Moth',    desc: 'A moon-phase moth motif.',         presets: ['Coaster Set', 'Small Hoop', 'Medium Hoop'], w: 104, h: 104, bgTol: 46, colors: 14 },
-  { file: 'heart.png',        id: 'heart',        name: 'Floral Heart',      desc: 'Wildflowers in a heart.',          presets: ['Coaster Set', 'Small Hoop', 'Medium Hoop'], w: 104, h: 104, bgTol: 40, colors: 16 },
-  { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: 'A vase of summer blooms.',         presets: ['Small Hoop', 'Medium Hoop'],              w: 104, h: 104, bgTol: 52, colors: 14 },
-  { file: 'alphabet.png',     id: 'alphabet',     name: 'Alphabet Sampler',  desc: 'A classic bordered ABC sampler.',  presets: ['Medium Hoop'],                            w: 112, h: 112, bgTol: 60, colors: 6 },
+  // Medium Hoop is served entirely by the two stitched designs at the bottom of
+  // this list, so the traced charts only cover the smaller sizes now.
+  { file: 'moth.png',         id: 'moth',         name: 'Celestial Moth',    desc: 'A moon-phase moth motif.',         presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 46, colors: 14 },
+  { file: 'heart.png',        id: 'heart',        name: 'Floral Heart',      desc: 'Wildflowers in a heart.',          presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 40, colors: 16 },
+  { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: 'A vase of summer blooms.',         presets: ['Small Hoop'],                             w: 104, h: 104, bgTol: 52, colors: 14 },
   { draw: drawLeafStack,      id: 'leaf-stack',   name: 'Cutout Leaves',     desc: 'Five paper-cut leaves in a frame.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
   { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: 'One blocky fish on still water.',  presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
   { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: 'Petals tossed across a slate field.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
   { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: 'A bold coral ribbon on ink.',      presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
-  // `seedText` rides along to the studio, which loads it into the text tool and
-  // opens on that tool — see xsBuildTemplates + CrossStitchApp in index.html.
-  // These two charts deliberately leave a hole for lettering, so the placeholder
-  // is part of the design rather than something the maker has to invent.
-  { draw: drawWreathFrame,    id: 'wreath-verse', name: 'Wreath & Words',    desc: 'A floral ring around your own words.', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 8,
-    seedText: { text: 'YOUR\nCLEVER\nTEXT\nHERE', font: 'sampler', size: 11 } },
-  { draw: drawMatchbox,       id: 'matchbox',     name: 'Matchbox Monogram', desc: 'A struck-open matchbox with your initials.', presets: ['Medium Hoop'],                 w: 120, h: 120, colors: 10,
-    seedText: { text: 'K+W', font: 'sampler', size: 14 } },
+  // ── Medium Hoop: designs stitched in the studio and saved, taken in as-is ──
+  // The lettering is already stitched into these charts, so `seedText` carries
+  // no words — it opens the studio on the text tool with the font and height the
+  // chart's own lettering was stitched at, ready for the maker's words. Both
+  // were measured off the charts (tools/_id-saved-font.mjs), which is why the
+  // matchbox is Sans and the wreath is Sampler.
+  { saved: 'perfect-match.json', id: 'perfect-match', name: 'Perfect Match', desc: 'An open matchbox with your initials.', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
+    clear: clearPerfectMatch, seedText: { font: 'sans', size: 12 } },
+  { saved: 'wreath-quote.json',  id: 'wreath-quote',  name: 'Wreath Quote',  desc: 'A floral ring around your own words.', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
+    clear: clearWreathQuote, seedText: { font: 'sampler', size: 11 } },
 ];
 
 function readPNG(file) {
@@ -478,6 +392,64 @@ function writePreview(id, colors, idx, W, H) {
   fs.writeFileSync(path.join(PREVIEW_DIR, id + '.png'), PNG.sync.write(png));
 }
 
+// ── Lifting placeholder lettering back out of a saved chart ────────────────
+// Both Medium Hoop charts were stitched with placeholder words in them. The
+// words have to go, or the maker's own text stamps on top of them and the label
+// turns to mush. Everything else stays exactly as saved, so these clear by
+// colour inside a bounded area rather than blanking a rectangle.
+
+// The quote is the only stitching in the wreath's olive inside the ring, so
+// clearing that colour within r=36 of centre lifts the words without costing a
+// single leaf or petal — the ring itself sits out past r=40.
+function clearWreathQuote(cells, W, H) {
+  const cx = 59.5, cy = 59.5, R = 36;
+  let n = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (cells[i] !== '#BCB34C') continue;
+    if ((x - cx) ** 2 + (y - cy) ** 2 > R * R) continue;
+    cells[i] = null; n++;
+  }
+  return n;
+}
+
+// The initials are the only dark stitching inside the label oval. They get
+// repainted in the oval's own field colour, sampled from just above them, so
+// the label stays a label instead of turning into a hole.
+function clearPerfectMatch(cells, W, H) {
+  const field = cells[67 * W + 60];
+  let n = 0;
+  for (let y = 69; y < 84; y++) for (let x = 41; x < 73; x++) {
+    const i = y * W + x;
+    if (cells[i] === '#1E1108' || cells[i] === '#000000') { cells[i] = field; n++; }
+  }
+  return n;
+}
+
+// A studio design saved out of the app → the {r,g,b}|null grid quantize()
+// wants. Runs are "<count>.<colorIdx>" joined by "|" with 0 = empty, matching
+// serializeGrid() in index.html.
+function savedGrid(d) {
+  const src = JSON.parse(fs.readFileSync(path.join(SAVED_DIR, d.saved), 'utf8'));
+  if (src.w !== d.w || src.h !== d.h) {
+    throw new Error(`${d.saved} is ${src.w}x${src.h} but the design is declared ${d.w}x${d.h}`);
+  }
+  const cells = new Array(src.w * src.h).fill(null);
+  let i = 0;
+  for (const run of src.rle.split('|')) {
+    const dot = run.indexOf('.');
+    const c = +run.slice(0, dot), v = +run.slice(dot + 1);
+    for (let k = 0; k < c && i < cells.length; k++) { if (v > 0) cells[i] = src.colors[v - 1] || null; i++; }
+  }
+  if (d.clear) {
+    const lifted = d.clear(cells, src.w, src.h);
+    console.log(`  ${d.id}: lifted ${lifted} lettering stitches`);
+  }
+  return cells.map(hex => hex
+    ? { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
+    : null);
+}
+
 // A drawn canvas of hex-or-null cells → the {r,g,b}|null grid quantize() wants.
 function drawnGrid(d) {
   const cv = Canvas(d.w, d.h);
@@ -489,12 +461,12 @@ function drawnGrid(d) {
 
 const out = [];
 for (const d of DESIGNS) {
-  const grid = d.draw ? drawnGrid(d) : sampleGrid(readPNG(d.file), d.w, d.h, d.bgTol);
+  const grid = d.draw ? drawnGrid(d) : d.saved ? savedGrid(d) : sampleGrid(readPNG(d.file), d.w, d.h, d.bgTol);
   const { colors, idx } = quantize(grid, d.colors);
-  // Despeckling trims anti-aliasing noise out of traced photos. Drawn charts are
-  // already clean and use deliberate single stitches (an eye, a flower center),
-  // so they skip it.
-  const clean = d.draw ? idx : despeckle(idx, d.w, d.h);
+  // Despeckling trims anti-aliasing noise out of traced photos. Drawn and
+  // stitched charts are already clean and use deliberate single stitches (an
+  // eye, a flower center, a comma), so they skip it.
+  const clean = (d.draw || d.saved) ? idx : despeckle(idx, d.w, d.h);
   const rle = toRLE(clean);
   const used = new Set(clean); const fill = clean.filter(Boolean).length;
   writePreview(d.id, colors, clean, d.w, d.h);

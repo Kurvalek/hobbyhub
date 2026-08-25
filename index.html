@@ -6548,10 +6548,10 @@ function xsBuildTemplates(data) {
   return (data || []).map(entry => ({
     id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
     w: entry.w, h: entry.h,
-    // Charts that leave a deliberate gap for lettering (a wreath's middle, a
-    // matchbox label) carry the placeholder that belongs there. The studio
-    // loads it into the text tool so it's ready to position, rather than
-    // stitching words the maker then has to pick back out.
+    // Charts built around lettering carry the font and height their words want,
+    // and optionally the words themselves. The studio opens on the text tool
+    // with those settings so the maker can type straight into the design
+    // instead of hunting for a face that matches the chart.
     seedText: entry.seedText || null,
     build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
   }));
@@ -8809,8 +8809,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   // Mobile bottom-sheet router: null | 'palette' | 'text' | 'materials'
   const [sheet, setSheet] = useState(null);
   // Desktop shows the text controls whenever the tool is active, but on mobile
-  // they live in a sheet that only opens on a tap. A seeded template would
-  // otherwise arrive with the placeholder armed and nothing on screen saying so.
+  // they live in a sheet that only opens on a tap, so a lettering template would
+  // arrive on the text tool with nothing on screen to type into.
   useEffect(() => { if (seedText && isMobile) setSheet('text'); }, [isMobile]);
   const defaultPalette = useMemo(() => CFG.defaultCodes.map(CFG.byCode).filter(Boolean), [CFG]);
   const initPalette = useMemo(() => {
@@ -8827,8 +8827,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
-  // A template that left room for lettering opens on the text tool, so the
-  // placeholder is already tracking the cursor and one click drops it in.
+  // A template built around lettering opens on the text tool, so the font and
+  // height that suit the chart are already chosen and typing is the next step.
   const [tool, setTool] = useState(seedText ? "text" : "pen");
   // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
   // pencil when you switch back to it.
@@ -8854,7 +8854,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(CFG.fabrics[0]);
   const [showFabric, setShowFabric] = useState(false);
-  const [text, setText] = useState(seedText ? seedText.text : "");
+  // A seed usually carries only a font and height; words are optional, and an
+  // absent one has to land as "" or the textarea goes uncontrolled.
+  const [text, setText] = useState(seedText && seedText.text ? seedText.text : "");
   const [textFont, setTextFont] = useState(seedText && seedText.font ? seedText.font : "sans");
   const [textSize, setTextSize] = useState(seedText && seedText.size ? seedText.size : 14);
   // Canvas falls back to a generic face without complaint when a webfont hasn't
