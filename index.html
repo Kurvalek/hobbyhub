@@ -130,7 +130,10 @@
     --press-scale: 0.96;
     --press-scale-card: 0.985;
     --press-dur: 90ms;
-    --step-dur: 260ms;
+    --step-dur: 300ms;
+    --art-dur: 440ms;
+    --art-rise: 14px;
+    --art-stagger: 55ms;
 
     /* Fonts — Söhne (body/sans), BC Civitas (display), Söhne Mono (mono). */
     --font-sans: 'Söhne', sans-serif;
@@ -1665,36 +1668,43 @@
   }
 
   /* ── Step-to-step transitions ──────────────────────────────────────────────
-     Every setup step is its own component, so React remounts the page root
-     when the step changes and this enter animation runs once per screen.
-     <html> carries the direction of travel (set in Root from STEP_DEPTH) so
-     Back slides in from the other side. Translate only, never scale: the
-     studios measure their canvas on mount and a scale would report the wrong
-     size. */
-  .land-page, .size-page, .back-page, .pal-page, .tmpl-page, .app, .xs-app {
-    --step-from: 16px;
-    animation: step-in var(--step-dur) var(--ease-out) both;
+     Every setup step is its own component, so React remounts the page root on
+     each move and these enter animations run once per screen. The steps all
+     share the same furniture though — olive header, grapefruit hero, golden
+     footer — so animating the whole page made identical pixels flicker every
+     time, which is what read as a jump. Only what actually changes moves: the
+     step title crossfades and the card artwork drifts up into place. The
+     studios are a genuinely different screen, so those fade in whole. */
+  .app, .xs-app, .size-title {
+    animation: step-fade var(--step-dur) var(--ease-out) both;
   }
-  /* Only the offset flips, so the reduced-motion `animation: none` below stays
-     the single animation declaration and doesn't have to out-specify this. */
-  :root[data-nav="back"] .land-page,
-  :root[data-nav="back"] .size-page,
-  :root[data-nav="back"] .back-page,
-  :root[data-nav="back"] .pal-page,
-  :root[data-nav="back"] .tmpl-page,
-  :root[data-nav="back"] .app,
-  :root[data-nav="back"] .xs-app { --step-from: -16px; }
+  .land-craft-visual, .size-card-visual,
+  .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches {
+    animation: art-rise var(--art-dur) var(--ease-out) both;
+    animation-delay: calc(var(--art-i, 0) * var(--art-stagger));
+  }
+  /* Each card hands its position to the art inside it, so a row fills in one
+     card after the next rather than landing as a single block. Anything past
+     the first row shares the last delay — the stagger is there to soften the
+     arrival, not to march down a long grid. */
+  :is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(2) { --art-i: 1; }
+  :is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(3) { --art-i: 2; }
+  :is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(4) { --art-i: 3; }
+  :is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(n+5) { --art-i: 4; }
 
-  @keyframes step-in {
-    from { opacity: 0; transform: translate3d(var(--step-from), 0, 0); }
+  @keyframes step-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes art-rise {
+    from { opacity: 0; transform: translate3d(0, var(--art-rise), 0); }
     to   { opacity: 1; transform: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     :root { --press-scale: 1; --press-scale-card: 1; }
-    .land-page, .size-page, .back-page, .pal-page, .tmpl-page, .app, .xs-app {
-      animation: none;
-    }
+    .app, .xs-app, .size-title, .land-craft-visual, .size-card-visual,
+    .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches { animation: none; }
   }
 </style>
 </head>
@@ -10496,17 +10506,6 @@ function Root() {
   const stepRef = React.useRef(stepKey); stepRef.current = stepKey;
   const prevStepRef = React.useRef(stepKey);
   const isPoppingRef = React.useRef(false);
-
-  // Which way the step transition should slide. A layout effect lands the
-  // attribute on <html> before the browser paints the freshly mounted screen,
-  // so its enter animation picks a side on the very first frame.
-  const navFromRef = React.useRef(stepKey);
-  React.useLayoutEffect(() => {
-    if (typeof document === 'undefined') return;
-    const from = STEP_DEPTH[navFromRef.current] ?? 0, to = STEP_DEPTH[stepKey] ?? 0;
-    navFromRef.current = stepKey;
-    document.documentElement.dataset.nav = to < from ? 'back' : 'fwd';
-  }, [stepKey]);
 
   // Reverse a single step. Returns true if it actually moved (so popstate knows
   // whether a transition happened); 'craft' returns false to let the browser
