@@ -15,12 +15,14 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Rye&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@7.9.0/css/iconoir.css" rel="stylesheet"/>
 <style>
   /* Self-hosted brand type — Söhne (sans + mono) and BC Civitas (display).
-     Trial ("TEST") cuts as supplied. Dancing Script (Google) is kept only for
-     the cross-stitch text tool's optional script style. */
+     Trial ("TEST") cuts as supplied. Dancing Script and Rye (Google) are kept
+     only for the cross-stitch text tool — the script and sampler styles. Rye's
+     wedge serifs are the classic stitched-sampler alphabet, and they survive
+     being rasterized down to ~12 stitches, which most display faces don't. */
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Sohne-Light.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }
@@ -523,12 +525,12 @@
   .card:last-child { border-bottom: none; }
 
   /* Inputs */
-  input[type=text], input[type=email], select {
+  input[type=text], input[type=email], select, textarea {
     width: 100%; padding: 7px 10px; font-size: 13px; font-family: var(--font-sans);
     border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); outline: none;
     border-radius: 4px; transition: border-color .15s;
   }
-  input[type=text]:focus, input[type=email]:focus, select:focus { border-color: var(--metime-almost-black); }
+  input[type=text]:focus, input[type=email]:focus, select:focus, textarea:focus { border-color: var(--metime-almost-black); }
   select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%238A8580' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
   input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
   input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
@@ -6546,6 +6548,11 @@ function xsBuildTemplates(data) {
   return (data || []).map(entry => ({
     id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
     w: entry.w, h: entry.h,
+    // Charts that leave a deliberate gap for lettering (a wreath's middle, a
+    // matchbox label) carry the placeholder that belongs there. The studio
+    // loads it into the text tool so it's ready to position, rather than
+    // stitching words the maker then has to pick back out.
+    seedText: entry.seedText || null,
     build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
   }));
 }
@@ -8688,34 +8695,84 @@ const CRAFT_STUDIO = {
   },
 };
 const XS_FONTS = {
-  serif:  { label: "Serif",  family: '"BC Civitas", serif',        weight: 400 },
-  sans:   { label: "Sans",   family: '"Söhne", sans-serif',        weight: 600 },
-  script: { label: "Script", family: '"Dancing Script", cursive',  weight: 700 },
+  serif:   { label: "Serif",   family: '"BC Civitas", serif',        weight: 400 },
+  sans:    { label: "Sans",    family: '"Söhne", sans-serif',        weight: 600 },
+  script:  { label: "Script",  family: '"Dancing Script", cursive',  weight: 700 },
+  sampler: { label: "Sampler", family: '"Rye", serif',               weight: 400 },
 };
+// Line pitch for multi-line text, in stitches. Tighter than a typographic
+// leading would be: at this size the gap is counted in whole stitches, and
+// anything looser reads as separate blocks rather than one stitched verse.
+function xsLineHeight(sizeCells) { return Math.max(sizeCells + 2, Math.round(sizeCells * 1.35)); }
 // Render text to an offscreen canvas at 1px-per-stitch and return the list of
-// [dx,dy] cell offsets that are "on" — i.e. the text as stitches.
+// [dx,dy] cell offsets that are "on" — i.e. the text as stitches. Newlines
+// stack as centered lines, since a long phrase can't fit one line on a hoop
+// and sampler layouts read centered anyway.
 function rasterizeText(text, font, sizeCells) {
   if (!text) return [];
   const f = XS_FONTS[font] || XS_FONTS.sans;
-  const fontStr = `${f.weight} ${Math.max(6, sizeCells)}px ${f.family}`;
+  const size = Math.max(6, sizeCells);
+  const fontStr = `${f.weight} ${size}px ${f.family}`;
+  const lines = String(text).split('\n').map(s => s.trim());
+  if (!lines.some(Boolean)) return [];
   const cv = document.createElement('canvas');
   let ctx = cv.getContext('2d');
   ctx.font = fontStr;
-  const m = ctx.measureText(text);
-  const asc = Math.ceil(m.actualBoundingBoxAscent || sizeCells * 0.8);
-  const desc = Math.ceil(m.actualBoundingBoxDescent || sizeCells * 0.25);
-  const w = Math.max(1, Math.ceil(m.width) + 2), h = Math.max(1, asc + desc + 2);
+  const lineH = xsLineHeight(size);
+  const metrics = lines.map(ln => {
+    const m = ctx.measureText(ln || ' ');
+    return {
+      w: Math.ceil(m.width),
+      asc: Math.ceil(m.actualBoundingBoxAscent || size * 0.8),
+      desc: Math.ceil(m.actualBoundingBoxDescent || size * 0.25),
+    };
+  });
+  // Baselines march down by lineH from the first line's ascent; the canvas has
+  // to reach the lowest descender of any line, not just the last one.
+  const base0 = metrics[0].asc + 1;
+  const w = Math.max(1, Math.max(...metrics.map(m => m.w)) + 2);
+  const h = Math.max(1, Math.max(...metrics.map((m, i) => base0 + i * lineH + m.desc)) + 1);
   cv.width = w; cv.height = h;
   ctx = cv.getContext('2d');
   ctx.font = fontStr;
   ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'center';
   ctx.fillStyle = '#000';
-  ctx.fillText(text, 1, asc + 1);
+  lines.forEach((ln, i) => { if (ln) ctx.fillText(ln, w / 2, base0 + i * lineH); });
   let data;
   try { data = ctx.getImageData(0, 0, w, h).data; } catch (e) { return []; }
   const out = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (data[(y * w + x) * 4 + 3] >= 128) out.push([x, y]); }
   return out;
+}
+// Text tool controls, shared by the desktop panel and the mobile sheet so the
+// two can't drift apart. A textarea rather than a single-line input because
+// stitched text is stacked — a phrase long enough to be worth saying doesn't
+// fit across one hoop — so Enter starts a new centered line.
+function StitchTextControls({ text, setText, textFont, setTextFont, textSize, setTextSize, autoFocus = false }) {
+  return (
+    <>
+      {/* Four rows because the seeded verses run to four lines, and a shorter
+          box hid the last one behind a scroll. */}
+      <textarea rows={4} placeholder="Type text… Enter for a new line" value={text}
+        onChange={e => setText(e.target.value)} autoFocus={autoFocus}
+        style={{ resize: 'vertical', minHeight: 74, lineHeight: 1.35 }}/>
+      {/* Four fonts don't fit one row at a readable size, so they wrap 2x2. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {Object.keys(XS_FONTS).map(id => (
+          <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
+            style={{ flex: '1 1 42%', fontFamily: XS_FONTS[id].family, fontSize: 14 }}
+            onClick={() => setTextFont(id)}>{XS_FONTS[id].label}</button>
+        ))}
+      </div>
+      <label className="xs-ctrl" style={{ gap: 8 }}>
+        <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
+        <input type="range" min={6} max={40} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }}/>
+        <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
+      </label>
+      <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Hover the canvas to place it, then click to stitch the text.</div>
+    </>
+  );
 }
 // Small canvas preview of a stitch grid (used in the saved-designs list/preview).
 function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
@@ -8740,7 +8797,7 @@ function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   return <canvas ref={ref} style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated', borderRadius: 4 }}/>;
 }
 
-function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch' }) {
+function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,
@@ -8751,6 +8808,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const isMobile = useIsMobile();
   // Mobile bottom-sheet router: null | 'palette' | 'text' | 'materials'
   const [sheet, setSheet] = useState(null);
+  // Desktop shows the text controls whenever the tool is active, but on mobile
+  // they live in a sheet that only opens on a tap. A seeded template would
+  // otherwise arrive with the placeholder armed and nothing on screen saying so.
+  useEffect(() => { if (seedText && isMobile) setSheet('text'); }, [isMobile]);
   const defaultPalette = useMemo(() => CFG.defaultCodes.map(CFG.byCode).filter(Boolean), [CFG]);
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
@@ -8766,7 +8827,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
-  const [tool, setTool] = useState("pen");
+  // A template that left room for lettering opens on the text tool, so the
+  // placeholder is already tracking the cursor and one click drops it in.
+  const [tool, setTool] = useState(seedText ? "text" : "pen");
   // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
   // pencil when you switch back to it.
   const [penNib, setPenNib] = useState(1);
@@ -8791,10 +8854,24 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(CFG.fabrics[0]);
   const [showFabric, setShowFabric] = useState(false);
-  const [text, setText] = useState("");
-  const [textFont, setTextFont] = useState("sans");
-  const [textSize, setTextSize] = useState(14);
-  const textStamp = useMemo(() => rasterizeText(text, textFont, textSize), [text, textFont, textSize]);
+  const [text, setText] = useState(seedText ? seedText.text : "");
+  const [textFont, setTextFont] = useState(seedText && seedText.font ? seedText.font : "sans");
+  const [textSize, setTextSize] = useState(seedText && seedText.size ? seedText.size : 14);
+  // Canvas falls back to a generic face without complaint when a webfont hasn't
+  // arrived yet, so early in a session the script and sampler styles rasterized
+  // as plain serif — same cell count as Serif, wrong letterforms. Wait for the
+  // faces, then re-rasterize. fontsReady is in the memo's deps purely to
+  // retrigger it once they land.
+  const [fontsReady, setFontsReady] = useState(() => typeof document === 'undefined' || !document.fonts);
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    let alive = true;
+    Promise.all(Object.values(XS_FONTS).map(f =>
+      document.fonts.load(`${f.weight} 16px ${f.family}`).catch(() => null)
+    )).then(() => { if (alive) setFontsReady(true); });
+    return () => { alive = false; };
+  }, []);
+  const textStamp = useMemo(() => rasterizeText(text, textFont, textSize), [text, textFont, textSize, fontsReady]);
   // Materials + save state (mirrors the quilt flow; cloud library when signed in).
   const auth = useAuth();
   const user = auth && auth.user;
@@ -10122,20 +10199,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
             <div style={{ borderBottom: '1px solid var(--warm-divider-soft)' }}>
               <div className="xs-panel-head"><div className="xs-panel-title">Text</div></div>
               <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input type="text" placeholder="Type text…" value={text} onChange={e => setText(e.target.value)} autoFocus/>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {Object.keys(XS_FONTS).map(id => (
-                    <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
-                      style={{ flex: 1, fontFamily: XS_FONTS[id].family, fontSize: 14 }}
-                      onClick={() => setTextFont(id)}>{XS_FONTS[id].label}</button>
-                  ))}
-                </div>
-                <label className="xs-ctrl" style={{ gap: 8 }}>
-                  <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
-                  <input type="range" min={6} max={40} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }}/>
-                  <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
-                </label>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Hover the canvas to place it, then click to stitch the text.</div>
+                <StitchTextControls autoFocus
+                  text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
+                  textSize={textSize} setTextSize={setTextSize}/>
               </div>
             </div>
           )}
@@ -10218,20 +10284,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
       {isMobile && sheet === 'text' && (
         <BottomSheet onClose={()=>setSheet(null)} title="Text">
           <div style={{ padding: '2px 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input type="text" placeholder="Type text…" value={text} onChange={e => setText(e.target.value)}/>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {Object.keys(XS_FONTS).map(id => (
-                <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
-                  style={{ flex: 1, fontFamily: XS_FONTS[id].family, fontSize: 14 }}
-                  onClick={() => setTextFont(id)}>{XS_FONTS[id].label}</button>
-              ))}
-            </div>
-            <label className="xs-ctrl" style={{ gap: 8 }}>
-              <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
-              <input type="range" min={6} max={40} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }}/>
-              <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
-            </label>
-            <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Hover the canvas to place it, then click to stitch the text.</div>
+            <StitchTextControls
+              text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
+              textSize={textSize} setTextSize={setTextSize}/>
           </div>
         </BottomSheet>
       )}
@@ -10646,7 +10701,8 @@ function Root() {
     }
     return (
       <CrossStitchApp preset={gridPreset} palette={gridPalette} craft={craft}
-        bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid} onBack={resetAll}/>
+        bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid}
+        seedText={gridTemplate && gridTemplate.seedText} onBack={resetAll}/>
     );
   }
 
