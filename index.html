@@ -15,7 +15,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=Rye&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=Dancing+Script:wght@500;600;700&family=Rye&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@7.9.0/css/iconoir.css" rel="stylesheet"/>
 <style>
   /* Self-hosted brand type — Söhne (sans + mono) and BC Civitas (display).
@@ -156,6 +156,58 @@
     --div-border: 1px solid var(--metime-almost-black);
     --app-bg: var(--metime-cream);
     --canvas-bg: var(--metime-white);
+  }
+
+  /* ── Brand tokens (2026 direction) ────────────────────────────────────────
+     Deliberately a NEW namespace rather than a repoint of the --metime-* /
+     --ice-* tokens above: both studios read those, and the editor is meant to
+     stay exactly as it is. Nothing here has any effect until an element sits
+     inside .brand-shell (see the brand layer at the end of this stylesheet). */
+  :root {
+    --brand-paper:  #F8F5ED;   /* primary page ground */
+    --brand-cream:  #F2EAD9;   /* secondary surfaces, inset fields */
+    --brand-ink:    #171717;   /* text + controls */
+    --brand-olive:  #BBC13F;
+    --brand-tomato: #EF5535;
+    --brand-lilac:  #ACA6CE;
+    --brand-butter: #F0C75E;
+    --brand-camel:  #A36C42;
+    --brand-blue:   #CBD7ED;
+
+    /* Ink at reduced strength. Hairlines are the main structural device, so
+       they get three weights: a visible rule, a quiet divider, and a wash used
+       for inset fields sitting on top of a colour panel. */
+    --brand-rule:    rgba(23, 23, 23, 0.22);
+    --brand-rule-2:  rgba(23, 23, 23, 0.12);
+    --brand-wash:    rgba(23, 23, 23, 0.05);
+    /* Both cleared against paper AND cream at 4.5:1, since captions and spec
+       labels run at 12–13px and the small-text bar applies. Ink below about
+       0.61 alpha fails on paper, so these sit deliberately above that. */
+    --brand-muted:   rgba(23, 23, 23, 0.72);
+    --brand-muted-2: rgba(23, 23, 23, 0.66);
+
+    /* A grotesk, per the brand direction. Helvetica Neue is present on the
+       Apple devices this ships to and degrades through Helvetica → Arial;
+       metrics are close enough that the tight heading tracking below holds. */
+    --brand-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    /* Display scale. Fluid so a 92px hero on a desktop becomes a 40px hero on
+       a phone without a separate breakpoint for every heading. */
+    --brand-display-xl: clamp(36px, 5.6vw, 88px);
+    --brand-display-l:  clamp(30px, 3.9vw, 54px);
+    --brand-display-m:  clamp(25px, 2.5vw, 34px);
+    --brand-display-s:  clamp(21px, 1.7vw, 26px);
+    --brand-body:       17px;   /* ≥16px per the brief */
+    --brand-body-s:     16px;
+    --brand-label:      14px;   /* interface labels */
+    --brand-eyebrow:    12px;   /* caps micro-label, letterspaced */
+
+    /* Headings run tight; body runs comfortable. */
+    --brand-track-display: -0.028em;
+    --brand-leading-display: 0.98;
+    --brand-leading-body: 1.5;
+
+    --brand-gutter: clamp(20px, 4.2vw, 64px);
   }
 
   body {
@@ -1716,6 +1768,983 @@
     :root { --press-scale: 1; --press-scale-card: 1; }
     .app, .xs-app, .size-title, .land-craft-visual, .size-card-visual,
     .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches { animation: none; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BRAND LAYER
+     ───────────────────────────────────────────────────────────────────────────
+     STUDIO BOUNDARY: every selector below is nested under .brand-shell, which
+     only the presentation page roots carry (craft picker, size, backing,
+     template, palette). The studios mount as .app / .xs-app and never get it,
+     so nothing here — type, buttons, spacing, colour — can reach the canvas,
+     the tool rails or the panels. Add the class to a new screen to opt in; it
+     is never applied globally.
+
+     Note the near-miss this protects against: .size-hero / .size-card are setup
+     furniture but .size-bar is the studio's block-size slider. Scoping by
+     ancestor rather than by prefix keeps those apart.
+
+     STRUCTURE: flat panels, hairline rules, inset colour fields, no drop
+     shadows, square-to-2px corners. One colour field per screen (the heading
+     band); content areas stay paper so artwork and swatches carry the colour.
+     ═════════════════════════════════════════════════════════════════════════ */
+
+  .brand-shell {
+    font-family: var(--brand-font);
+    font-size: var(--brand-body);
+    line-height: var(--brand-leading-body);
+    color: var(--brand-ink);
+    background: var(--brand-paper);
+    -webkit-font-smoothing: antialiased;
+    /* A nowrap heading or 1px rule can overshoot the viewport by a few pixels
+       and the resulting scrollbar then eats width, which overshoots again. */
+    overflow-x: clip;
+  }
+  .brand-shell :is(h1, h2, h3, h4) {
+    font-family: var(--brand-font);
+    font-weight: 700;
+    letter-spacing: var(--brand-track-display);
+    line-height: var(--brand-leading-display);
+    color: var(--brand-ink);
+  }
+  /* Setup screens are edge-to-edge bands, so the shell itself owns no padding;
+     each band pulls the shared gutter instead. */
+  .brand-shell .brand-bleed { padding-inline: var(--brand-gutter); }
+
+  /* ── Motifs ───────────────────────────────────────────────────────────────
+     The wiggle (the thread mark carried in the wordmark) and the stitch X.
+     Both are pure decoration: aria-hidden at the call site, and inert here so
+     they can never eat a click or be mistaken for a close control. The X in
+     particular sits near copy, never on or beside a dismissable surface. */
+  .brand-shell .brand-wiggle,
+  .brand-shell .brand-x,
+  .brand-shell .brand-xrule {
+    pointer-events: none;
+    user-select: none;
+    flex: none;
+  }
+  .brand-shell .brand-wiggle {
+    display: block;
+    height: 14px;
+    width: auto;
+    color: var(--brand-tomato);
+    overflow: visible;
+  }
+  .brand-shell .brand-wiggle.is-lg { height: 20px; }
+  .brand-shell .brand-wiggle.is-sm { height: 10px; }
+  .brand-shell .brand-xrule {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--brand-tomato);
+  }
+  .brand-shell .brand-x { display: block; }
+
+  /* ── Editorial labels ─────────────────────────────────────────────────────
+     Small caps micro-labels. Ink rather than tomato: at 12px, tomato on paper
+     is ~3.2:1, which clears the 3:1 bar for graphics but not the 4.5:1 one for
+     text. Tomato stays on the motifs and on display-size numerals. */
+  .brand-shell .brand-eyebrow {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin: 0 0 16px;
+    font-size: var(--brand-eyebrow);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+  }
+  .brand-shell .brand-eyebrow-num { color: var(--brand-ink); opacity: 0.55; }
+  .brand-shell .brand-eyebrow.is-plain {
+    font-family: "Bodoni Moda", "Times New Roman", serif;
+    font-style: italic;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-size: 21px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* Caption: the small factual line that gives the editorial read. */
+  .brand-shell .brand-caption {
+    font-size: var(--brand-eyebrow);
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-muted-2);
+  }
+
+  /* Label / value rows under a hairline — used for real metadata only. */
+  .brand-shell .brand-specs { display: block; width: 100%; margin-top: 14px; }
+  .brand-shell .brand-spec {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 0;
+    border-top: 1px solid var(--brand-rule-2);
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .brand-shell .brand-spec-k {
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--brand-muted-2);
+    font-weight: 500;
+  }
+  .brand-shell .brand-spec-v {
+    font-weight: 500;
+    color: var(--brand-ink);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Navigation ───────────────────────────────────────────────────────────
+     Paper, one hairline, wordmark left. The real logo asset is used as-is; its
+     own tomato wiggle is the mark's thread, so no extra wiggle here. */
+  .brand-shell .brand-nav {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    min-height: 74px;
+    padding-block: 14px;
+    background: var(--brand-paper);
+    border-bottom: 1px solid var(--brand-ink);
+    box-shadow: none;
+  }
+  .brand-shell .brand-nav-logo {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+    text-decoration: none;
+    border-radius: 2px;
+  }
+  .brand-shell .brand-nav-logo img { display: block; width: 104px; height: auto; }
+  .brand-shell .brand-nav-note {
+    flex: 1 1 auto;
+    text-align: center;
+    min-width: 0;
+  }
+  .brand-shell .brand-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-left: auto;
+  }
+  /* The auth trigger + account chip live in the nav; give them the brand's
+     interface-label treatment without touching the studio's copy of them. */
+  .brand-shell .brand-nav .land-login,
+  .brand-shell .brand-nav .account-menu-btn {
+    font-family: var(--brand-font);
+    font-size: var(--brand-label);
+    font-weight: 500;
+    color: var(--brand-ink);
+  }
+
+  /* ── Heading band ─────────────────────────────────────────────────────────
+     The one colour field per screen. Left-aligned, generous, with the wiggle
+     sitting under the heading. Height is content-driven so a two-line title
+     wraps instead of overflowing a fixed band. */
+  .brand-shell .brand-head {
+    position: relative;
+    display: block;
+    flex-shrink: 0;
+    height: auto;
+    overflow-x: clip;
+    padding-block: clamp(20px, 2.4vw, 36px);
+    background: var(--brand-cream);
+    border-bottom: 1px solid var(--brand-ink);
+  }
+  .brand-shell .brand-head.tone-olive  { background: var(--brand-olive); }
+  .brand-shell .brand-head.tone-butter { background: var(--brand-butter); }
+  .brand-shell .brand-head.tone-blue   { background: var(--brand-blue); }
+  .brand-shell .brand-head.tone-lilac  { background: var(--brand-lilac); }
+  .brand-shell .brand-head.tone-cream  { background: var(--brand-cream); }
+  .brand-shell .brand-head.tone-paper  { background: var(--brand-paper); }
+
+  /* Utility row above the heading: back on the left, step actions on the
+     right. Sits on the colour field, so it uses ink at full strength. */
+  .brand-shell .brand-head-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 34px;
+    margin-bottom: clamp(16px, 2vw, 30px);
+  }
+  .brand-shell .brand-head-top-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  /* Grid rather than flex so the heading column has a real measure: the title
+     runs at display size while the sub-copy beside it stays at body size, and a
+     `ch` measure on either would be relative to the wrong font. With no aside
+     the heading simply occupies the first column and the colour field carries
+     the rest, which is where the composition wants the space anyway. */
+  .brand-shell .brand-head-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+    align-items: end;
+    gap: clamp(20px, 4vw, 56px);
+  }
+  .brand-shell .brand-head-text { min-width: 0; }
+  /* Long titles ("Choose a starting point") take the full band width; the
+     sub-copy keeps its own measure so the paragraph never runs edge to edge. */
+  .brand-shell .brand-head-text.is-wide { grid-column: 1 / -1; }
+  .brand-shell .brand-head-aside {
+    min-width: 0;
+    padding-bottom: 6px;
+    text-align: right;
+  }
+  /* Reuses .size-title so the existing step-title crossfade keeps working. */
+  .brand-shell .brand-title,
+  .brand-shell h1.size-title {
+    margin: 0;
+    font-family: var(--brand-font);
+    font-weight: 700;
+    font-size: var(--brand-display-l);
+    line-height: var(--brand-leading-display);
+    letter-spacing: var(--brand-track-display);
+    color: var(--brand-ink);
+    text-align: left;
+    text-wrap: balance;
+  }
+  .brand-shell .brand-title.is-xl,
+  .brand-shell h1.size-title.is-xl {
+    font-size: var(--brand-display-xl);
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  @media (max-width: 899px) {
+    .brand-shell .brand-title.is-xl,
+    .brand-shell h1.size-title.is-xl { white-space: normal; text-wrap: balance; }
+  }
+  .brand-shell .brand-head-wiggle { margin-top: clamp(14px, 1.6vw, 22px); }
+  .brand-shell .brand-head-sub {
+    margin-top: 16px;
+    max-width: 52ch;
+    font-size: var(--brand-body-s);
+    line-height: var(--brand-leading-body);
+    color: var(--brand-ink);
+  }
+
+  /* Back link — inherits ink on whatever colour field it lands on. */
+  .brand-shell .size-back {
+    position: static;
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--brand-ink);
+    border-radius: 2px;
+  }
+  .brand-shell .size-back-label {
+    font-family: var(--brand-font);
+    font-size: var(--brand-label);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid currentColor;
+  }
+  .brand-shell .size-back-icon { width: 16px; height: 16px; }
+  .brand-shell .size-back-icon img { width: 12px; height: auto; }
+
+  /* ── Controls ─────────────────────────────────────────────────────────────
+     Square-ish, hairline, flat. No offset shadows anywhere. */
+  .brand-shell .brand-btn,
+  .brand-shell .back-skip,
+  .brand-shell .tmpl-upload-use,
+  .brand-shell .tmpl-upload-another,
+  .brand-shell .pal-page .pal-from-image-use {
+    /* .back-skip is absolutely placed in the pre-brand hero; pin it back into
+       the heading's flex row so it cannot sit on top of the title. */
+    position: static;
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    width: auto;
+    height: 40px;
+    padding: 0 18px;
+    background: var(--brand-paper);
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+    box-shadow: none;
+    font-family: var(--brand-font);
+    font-size: var(--brand-label);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    color: var(--brand-ink);
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s;
+  }
+  .brand-shell .brand-btn:hover,
+  .brand-shell .back-skip:hover,
+  .brand-shell .tmpl-upload-another:hover { background: var(--brand-cream); }
+  .brand-shell .back-skip:active { transform: none; }
+  .brand-shell .brand-btn.is-primary,
+  .brand-shell .tmpl-upload-use,
+  .brand-shell .pal-page .pal-from-image-use {
+    background: var(--brand-ink);
+    border-color: var(--brand-ink);
+    color: var(--brand-paper);
+  }
+  .brand-shell .brand-btn.is-primary:hover:not(:disabled),
+  .brand-shell .tmpl-upload-use:hover:not(:disabled),
+  .brand-shell .pal-page .pal-from-image-use:hover:not(:disabled) { background: #000; }
+  .brand-shell .brand-btn:disabled,
+  .brand-shell .pal-page .pal-from-image-use:disabled { opacity: 0.38; cursor: default; }
+
+  /* One focus treatment across the shell: a 2px ink ring, offset so it reads
+     on both paper and colour fields. */
+  .brand-shell :is(a, button, [role="button"], input, label):focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+  .brand-shell .land-craft:focus-visible,
+  .brand-shell .size-card:focus-visible,
+  .brand-shell .tmpl-card:focus-visible,
+  .brand-shell .pal-card:focus-visible,
+  .brand-shell .saved-card:focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: -4px;
+    box-shadow: none;
+  }
+
+  /* ── Product bands (shared by craft / size / template / palette) ──────────
+     Edge-to-edge columns split by hairlines. Flat, no lift on hover; hover
+     just warms the cell so the artwork stays the thing you look at. */
+  .brand-shell :is(.land-crafts, .size-row, .tmpl-grid, .pal-grid) { background: var(--brand-paper); }
+  .brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card) {
+    background: var(--brand-paper);
+    border-radius: 0;
+    box-shadow: none;
+    transform: none;
+    transition: background 0.16s;
+  }
+  .brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card):hover { background: var(--brand-cream); box-shadow: none; transform: none; }
+  .brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card).is-soon:hover { background: var(--brand-paper); }
+
+  /* Card copy: bold grotesk name, comfortable description, numbered label. */
+  .brand-shell :is(.land-craft-name, .size-card-name, .tmpl-card-name, .pal-card-name) {
+    font-family: var(--brand-font);
+    font-size: var(--brand-display-s);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+    color: var(--brand-ink);
+  }
+  .brand-shell :is(.land-craft-desc, .size-card-dims, .tmpl-card-desc, .pal-card-meta) {
+    font-family: var(--brand-font);
+    font-size: var(--brand-body-s);
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--brand-muted);
+  }
+  /* Small numbered category label at the top of each product cell.
+     Written last inside its card and pulled up here with `order`, so a card's
+     text content still begins with the item's name — the existing check
+     scripts select cards by leading text. It's aria-hidden either way, so the
+     DOM/visual mismatch isn't exposed to assistive tech. */
+  .brand-shell .brand-index {
+    order: -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: clamp(14px, 1.6vw, 22px);
+    font-size: var(--brand-eyebrow);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+  }
+  /* `order` only applies to flex/grid children. .land-craft, .size-card and
+     .pal-card are already one or the other; .tmpl-card is a plain button, so
+     give it a column so its label can be hoisted too. */
+  .brand-shell .tmpl-card { display: flex; flex-direction: column; }
+  .brand-shell .brand-index-n { color: var(--brand-ink); opacity: 0.5; font-variant-numeric: tabular-nums; }
+  .brand-shell .brand-index-kind { color: var(--brand-muted-2); }
+
+  /* Artwork sits on paper — no inset plate. Transparent cutouts come next. */
+  .brand-shell .brand-plate { background: none; border: none; }
+
+  /* Hover arrow: keep the existing affordance, just quieter and ink-coloured. */
+  .brand-shell :is(.land-craft-arrow, .size-card-arrow, .saved-card-arrow) img { opacity: 0.85; }
+
+  /* ── Craft selection ─────────────────────────────────────────────────────
+     The olive heading band is this screen's colour moment, so the craft cells
+     stay paper and the project photography does the talking. */
+  .brand-shell.land-page { background: var(--brand-paper); }
+  /* Drop the old 360px floor — with the taller heading it pushes the page a
+     sliver past the viewport and you get a dead 80–160px scroll. */
+  .brand-shell .land-main,
+  .brand-shell .land-crafts { min-height: 0; }
+  .brand-shell .land-crafts { border-bottom: 1px solid var(--brand-ink); }
+  .brand-shell .land-craft {
+    padding: clamp(22px, 2.4vw, 34px) var(--brand-gutter) clamp(26px, 2.6vw, 36px);
+    border-left: 1px solid var(--brand-ink);
+  }
+  .brand-shell .land-craft:first-child { border-left: none; }
+  /* The old 1px pseudo-divider is replaced by a real border above. */
+  .brand-shell .land-craft + .land-craft::before { display: none; }
+  /* Inset field padding belongs on the plate, not the image: a max-height:100%
+     image with its own padding measures 100% + padding and overflows the box. */
+  .brand-shell .land-craft-visual {
+    padding: 0;
+    margin-bottom: clamp(20px, 2.2vw, 30px);
+    background: none;
+    border: none;
+    min-height: 0;
+  }
+  .brand-shell .land-craft-visual img {
+    max-width: min(300px, 100%);
+    max-height: min(240px, 28vh);
+    padding: 0;
+  }
+  .brand-shell .land-craft-desc-row { align-items: flex-start; gap: 12px; margin-top: 8px; }
+  .brand-shell .land-craft-arrow { width: 36px; height: 36px; margin-top: 0; }
+  .brand-shell .land-craft-arrow img { width: 20px; height: auto; }
+
+  /* ── Size band ───────────────────────────────────────────────────────────── */
+  .brand-shell.size-page { background: var(--brand-paper); }
+  .brand-shell .size-row { border-bottom: 1px solid var(--brand-ink); }
+  .brand-shell .size-card {
+    padding: clamp(22px, 2.2vw, 30px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+    border-left: 1px solid var(--brand-ink);
+  }
+  .brand-shell .size-card:first-child { border-left: none; }
+  .brand-shell .size-card-visual {
+    padding: 0;
+    background: none;
+    border: none;
+    height: clamp(120px, 18vh, 190px);
+  }
+  .brand-shell .size-card-visual img,
+  .brand-shell .size-card-visual svg { max-height: 100%; max-width: 100%; }
+  .brand-shell .size-card-copy { margin-top: clamp(18px, 2vw, 26px); align-items: flex-start; }
+  .brand-shell .size-card-dims { margin-top: 7px; }
+  .brand-shell .size-card-arrow { width: 36px; height: 36px; }
+  .brand-shell .size-card-arrow img { width: 20px; height: auto; }
+
+  /* ── Utility strip ───────────────────────────────────────────────────────
+     One compact row for the secondary actions a step supports (image import,
+     blank canvas). Cream so it reads as a tool shelf, not as content. */
+  .brand-shell .brand-utility {
+    display: block;
+    flex: 0 0 auto;
+    padding-block: 16px;
+    background: var(--brand-cream);
+    border-bottom: 1px solid var(--brand-ink);
+  }
+  .brand-shell .brand-utility-intake,
+  .brand-shell .brand-utility-result {
+    display: flex;
+    align-items: center;
+    gap: clamp(14px, 2vw, 28px);
+    flex-wrap: wrap;
+  }
+  /* The URL field and any error open on their own line rather than squeezing
+     the source buttons. */
+  .brand-shell .brand-utility-url,
+  .brand-shell .brand-utility-intake .err-msg { flex: 1 0 100%; }
+  .brand-shell .brand-utility-url .pal-upload-url-row { max-width: 520px; }
+  .brand-shell .brand-utility-intake .err-msg {
+    background: var(--brand-tomato);
+    color: #fff;
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: 13px;
+  }
+  .brand-shell .brand-utility-result .tmpl-upload-preview {
+    width: 96px;
+    height: 96px;
+    border: 1px solid var(--brand-ink);
+  }
+  .brand-shell .brand-utility-result-meta { flex: 1 1 220px; min-width: 0; }
+  .brand-shell .brand-utility-result-meta .tmpl-upload-file-name {
+    font-family: var(--brand-font);
+    font-size: var(--brand-label);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--brand-ink);
+    max-width: none;
+  }
+  .brand-shell .brand-utility-result-meta .brand-specs { margin-top: 8px; max-width: 280px; }
+  .brand-shell .brand-utility-result-meta .switch {
+    gap: 10px;
+    margin-top: 12px;
+    font-family: var(--brand-font);
+    font-size: 13px;
+    color: var(--brand-ink);
+  }
+  .brand-shell .brand-utility-text { min-width: 0; flex: 0 1 auto; }
+  .brand-shell .brand-utility-title {
+    font-size: var(--brand-label);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    color: var(--brand-ink);
+  }
+  /* Label-sized rather than body-sized: this is a hint attached to the adjacent
+     controls, and the strip has to stay compact next to the template grid. */
+  .brand-shell .brand-utility-sub {
+    margin-top: 3px;
+    font-size: var(--brand-label);
+    line-height: 1.4;
+    color: var(--brand-muted);
+  }
+  .brand-shell .brand-utility-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  /* Import pills adopt the flat control box. */
+  .brand-shell .pal-upload-pill {
+    height: 34px;
+    padding: 0 14px;
+    background: var(--brand-paper);
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-ink);
+  }
+  .brand-shell .pal-upload-pill:hover,
+  .brand-shell .pal-upload-pill[aria-pressed="true"] { background: var(--brand-cream); }
+  .brand-shell .pal-upload-pill-kbd {
+    border-color: var(--brand-rule);
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: 11px;
+    color: var(--brand-muted);
+  }
+  .brand-shell .pal-upload-url { background: transparent; padding: 0; border-radius: 0; }
+  .brand-shell .pal-upload-url-row input {
+    height: 34px;
+    padding: 0 10px;
+    background: var(--brand-paper);
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: var(--brand-body-s);
+    color: var(--brand-ink);
+  }
+  .brand-shell .pal-upload-url-row button {
+    height: 34px;
+    border-radius: 2px;
+    border-color: var(--brand-ink);
+    background: var(--brand-paper);
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .brand-shell .tmpl-upload-drop { gap: 10px; }
+  .brand-shell .tmpl-upload-title { font-size: var(--brand-label); font-weight: 500; color: var(--brand-ink); }
+  .brand-shell .tmpl-upload-sub { font-size: 13px; color: var(--brand-muted); }
+
+  /* ── Template step ───────────────────────────────────────────────────────
+     Bigger, quieter thumbs on a cream plate; metadata only where it exists. */
+  .brand-shell.tmpl-page { background: var(--brand-paper); }
+  .brand-shell .tmpl-page .tmpl-grid,
+  .brand-shell .tmpl-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
+  .brand-shell .tmpl-page .tmpl-card,
+  .brand-shell .tmpl-card {
+    padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+    border-right: 1px solid var(--brand-ink);
+    /* Rows close themselves, so a part-filled last row reads as a short row in
+       a ruled table rather than as a staircase of dangling column rules. The
+       grid's own bottom border completes that last rule across the full width. */
+    border-bottom: 1px solid var(--brand-ink);
+    overflow: visible;
+  }
+  .brand-shell .tmpl-page .tmpl-card-thumb,
+  .brand-shell .tmpl-card-thumb {
+    height: clamp(190px, 27vh, 280px);
+    padding: 0;
+    box-sizing: border-box;
+    background: none;
+    border: none;
+  }
+  .brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
+  .brand-shell .tmpl-card-thumb.is-ratio {
+    height: clamp(190px, 27vh, 280px);
+    background: none;
+  }
+  .brand-shell .tmpl-page .tmpl-card-body,
+  .brand-shell .tmpl-card-body {
+    display: block;
+    margin-top: clamp(18px, 2vw, 26px);
+    padding: 0;
+  }
+  .brand-shell .tmpl-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+  }
+  .brand-shell .tmpl-page .tmpl-card-desc,
+  .brand-shell .tmpl-card-desc { margin-top: 7px; }
+  .brand-shell .tmpl-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
+  .brand-shell .tmpl-card .size-card-arrow img { width: 19px; height: auto; }
+
+  /* ── Palette step ────────────────────────────────────────────────────────
+     Two clearly separated zones: what you're making (preview + chosen colours)
+     and how it converts. Suggested palettes come last, under their own rule. */
+  .brand-shell.pal-page { background: var(--brand-paper); }
+  .brand-shell .brand-section {
+    flex: 0 0 auto;
+    padding-block: clamp(22px, 2.6vw, 38px);
+    background: var(--brand-paper);
+    border-bottom: 1px solid var(--brand-ink);
+  }
+  .brand-shell .brand-section.is-quiet { background: var(--brand-cream); }
+  .brand-shell .brand-section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 24px;
+    flex-wrap: wrap;
+    margin-bottom: clamp(16px, 2vw, 26px);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--brand-rule);
+  }
+  .brand-shell .brand-section-head-text { min-width: 0; }
+  .brand-shell .brand-section-head-text .brand-section-note { margin-top: 6px; }
+  .brand-shell .brand-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  /* A section with no children is a labelled header for the full-bleed band
+     that follows it (the palette grid), so its own rule becomes that band's
+     top edge and the inner divider is redundant. */
+  .brand-shell .brand-section.is-head-only { padding-bottom: clamp(16px, 1.8vw, 24px); }
+  .brand-shell .brand-section.is-head-only .brand-section-head {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  /* Project focus pair: the live chart beside the colours going into it. */
+  .brand-shell .brand-project {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(20px, 3vw, 40px);
+  }
+  @media (max-width: 900px) {
+    .brand-shell .brand-project { grid-template-columns: minmax(0, 1fr); }
+  }
+  .brand-shell .brand-section-title {
+    font-size: var(--brand-display-m);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    color: var(--brand-ink);
+  }
+  .brand-shell .brand-section-note {
+    font-size: var(--brand-body-s);
+    line-height: var(--brand-leading-body);
+    color: var(--brand-muted);
+    max-width: 58ch;
+  }
+  /* Selected-colour row and photo preview become the focal pair. */
+  .brand-shell .pal-suggest-bar {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border-bottom: none;
+  }
+  .brand-shell .pal-page .pal-from-image {
+    align-items: center;
+    gap: clamp(18px, 2.4vw, 32px);
+    flex-wrap: wrap;
+  }
+  .brand-shell .pal-page .pal-from-image-preview {
+    width: clamp(120px, 13vw, 164px);
+    height: clamp(120px, 13vw, 164px);
+    border: 1px solid var(--brand-ink);
+    outline: none;
+  }
+  .brand-shell .pal-page .pal-from-image-main { gap: clamp(18px, 2.4vw, 32px); flex-wrap: wrap; }
+  .brand-shell .pal-page .pal-from-image-swatches { gap: 10px; }
+  .brand-shell .pal-page .pal-from-image-swatch {
+    width: clamp(52px, 4.6vw, 66px);
+    height: clamp(52px, 4.6vw, 66px);
+    box-shadow: inset 0 0 0 1px var(--brand-rule);
+  }
+  .brand-shell .pal-page .pal-from-image-add {
+    width: clamp(52px, 4.6vw, 66px);
+    height: clamp(52px, 4.6vw, 66px);
+    background: var(--brand-paper);
+    border: 1px dashed var(--brand-rule);
+    color: var(--brand-ink);
+  }
+  .brand-shell .pal-page .pal-from-image-add:hover { background: var(--brand-cream); }
+  .brand-shell .pal-busy { font-size: var(--brand-body-s); color: var(--brand-muted); padding: 4px 0; }
+
+  /* Conversion controls: same content, presented as a tool block rather than
+     as another band of product. */
+  .brand-shell .xs-flatten {
+    gap: clamp(20px, 2.6vw, 36px);
+    padding: 0;
+    background: none;
+    border-bottom: none;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .brand-shell .xs-flatten-title {
+    font-family: var(--brand-font);
+    font-size: var(--brand-label);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--brand-ink);
+  }
+  .brand-shell .xs-flatten-sub {
+    font-family: var(--brand-font);
+    font-size: var(--brand-body-s);
+    line-height: 1.45;
+    color: var(--brand-muted);
+    max-width: 62ch;
+  }
+  .brand-shell .xs-flatten-row { border: 1px solid var(--brand-ink); border-radius: 2px; }
+  .brand-shell .xs-flatten-btn {
+    height: 36px;
+    padding: 0 16px;
+    background: var(--brand-paper);
+    border-left-color: var(--brand-ink);
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-ink);
+  }
+  .brand-shell .xs-flatten-btn:hover:not(.active) { background: var(--brand-cream); }
+  .brand-shell .xs-flatten-btn.active { background: var(--brand-ink); color: var(--brand-paper); }
+  .brand-shell .xs-flatten-note {
+    font-family: var(--brand-font);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--brand-muted-2);
+  }
+  .brand-shell .xs-flatten-check {
+    font-family: var(--brand-font);
+    font-size: var(--brand-body-s);
+    font-weight: 500;
+    color: var(--brand-ink);
+    flex-wrap: wrap;
+  }
+  .brand-shell .xs-flatten-check-note { font-weight: 400; color: var(--brand-muted); }
+  .brand-shell .xs-flatten-preview {
+    background: var(--brand-cream);
+    border: 1px solid var(--brand-ink);
+    border-radius: 0;
+  }
+  .brand-shell .xs-flatten-empty {
+    font-family: var(--brand-font);
+    font-size: 13px;
+    color: var(--brand-muted);
+  }
+
+  /* Suggested palettes: swatches stay the largest thing in the cell. */
+  .brand-shell .pal-page .pal-grid,
+  .brand-shell .pal-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
+  .brand-shell .pal-page .pal-card,
+  .brand-shell .pal-card {
+    align-content: start;
+    min-height: 0;
+    padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+    border-right: 1px solid var(--brand-ink);
+    border-bottom: 1px solid var(--brand-ink);  /* see .tmpl-card */
+    border-radius: 0;
+  }
+  .brand-shell .pal-page .pal-swatches,
+  .brand-shell .pal-swatches {
+    height: auto;
+    min-height: 0;
+    margin-bottom: clamp(18px, 2vw, 26px);
+  }
+  .brand-shell .pal-page .pal-swatch,
+  .brand-shell .pal-swatch {
+    width: clamp(46px, 4vw, 60px);
+    height: clamp(46px, 4vw, 60px);
+    margin-left: -8px;
+    box-shadow: inset 0 0 0 1px var(--brand-rule);
+  }
+  .brand-shell .pal-swatch:first-child { margin-left: 0; }
+  .brand-shell .pal-page .pal-card-body,
+  .brand-shell .pal-card-body { display: block; padding: 0; }
+  .brand-shell .pal-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+  }
+  .brand-shell .pal-page .pal-card-meta,
+  .brand-shell .pal-card-meta { margin-top: 7px; }
+  .brand-shell .pal-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
+  .brand-shell .pal-card .size-card-arrow img { width: 19px; height: auto; }
+
+  /* ── Backing step ────────────────────────────────────────────────────────── */
+  .brand-shell.back-page { background: var(--brand-paper); }
+  .brand-shell .back-filters {
+    justify-content: flex-start;
+    min-height: 0;
+    padding-block: 16px;
+    background: var(--brand-cream);
+    border-bottom: 1px solid var(--brand-ink);
+  }
+  .brand-shell .back-filters .fabric-filter {
+    min-width: 0;
+    height: 34px;
+    padding: 0 14px;
+    background: var(--brand-paper);
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-ink);
+  }
+  .brand-shell .back-filters .fabric-filter:not(.active):hover { background: var(--brand-cream); }
+  .brand-shell .back-filters .fabric-filter.active { background: var(--brand-ink); color: var(--brand-paper); }
+  .brand-shell .back-grid .fabric-card { border-color: var(--brand-rule); box-shadow: none; }
+  .brand-shell .back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--brand-ink); }
+
+  /* ── Saved designs ───────────────────────────────────────────────────────
+     Kept in place and fully functional; restyled to the same editorial grid. */
+  .brand-shell .saved-sec { background: var(--brand-paper); border-top: 1px solid var(--brand-ink); }
+  .brand-shell .saved-toolbar { padding: 16px var(--brand-gutter); }
+  .brand-shell .saved-head-title {
+    font-family: var(--brand-font);
+    font-size: var(--brand-eyebrow);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+  }
+  .brand-shell .saved-count { font-weight: 500; opacity: 0.55; }
+  .brand-shell .saved-filter {
+    height: 30px;
+    padding: 0 12px;
+    background: var(--brand-paper);
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--brand-ink);
+  }
+  .brand-shell .saved-filter:hover { background: var(--brand-cream); }
+  .brand-shell .saved-filter.is-on { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--brand-paper); }
+  .brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
+  .brand-shell .saved-card {
+    gap: 14px;
+    padding: 22px var(--brand-gutter) 26px;
+    background: var(--brand-paper);
+    border-right-color: var(--brand-ink);
+    transition: background 0.16s;
+  }
+  .brand-shell .saved-card:hover { background: var(--brand-cream); }
+  .brand-shell .saved-card:nth-child(n+5) { border-top-color: var(--brand-ink); }
+  .brand-shell .saved-thumb { background: none; border: none; }
+  .brand-shell .saved-name {
+    font-family: var(--brand-font);
+    font-size: var(--brand-body-s);
+    font-weight: 700;
+    letter-spacing: -0.008em;
+    color: var(--brand-ink);
+  }
+  .brand-shell .saved-meta {
+    font-family: var(--brand-font);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--brand-muted);
+  }
+  .brand-shell .saved-empty { font-family: var(--brand-font); font-size: var(--brand-body-s); color: var(--brand-muted); padding: 30px var(--brand-gutter); }
+  @media (max-width: 1080px) { .brand-shell .saved-card:nth-child(n+3) { border-top-color: var(--brand-ink); } }
+  @media (max-width: 600px) { .brand-shell .saved-card:nth-child(n+2) { border-top-color: var(--brand-ink); } }
+
+  /* ── Footer ──────────────────────────────────────────────────────────────
+     Replaces the golden dead band: a flexible paper spacer that absorbs the
+     leftover viewport height, then a hairline strip carrying a factual caption
+     and a few stitch Xs as margin detail. */
+  .brand-shell .brand-spacer {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--brand-paper);
+  }
+  .brand-shell .brand-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    padding-block: 16px;
+    background: var(--brand-paper);
+    border-top: 1px solid var(--brand-ink);
+  }
+  .brand-shell .brand-footer .brand-xrule { margin-left: auto; }
+
+  /* ── Responsive ──────────────────────────────────────────────────────────
+     The bands already collapse 4 → 2 → 1 via the existing media queries; these
+     only relax the brand's own spacing and stack the heading pairs. */
+  @media (max-height: 820px) {
+    .brand-shell .brand-head { padding-block: 16px; }
+    .brand-shell .brand-head-wiggle { margin-top: 10px; }
+    .brand-shell .brand-head-sub { margin-top: 10px; }
+    .brand-shell .land-craft { padding-block: 16px; }
+    .brand-shell .land-craft-visual { margin-bottom: 14px; }
+    .brand-shell .land-craft-visual img { max-height: min(200px, 24vh); }
+  }
+  @media (max-width: 1080px) {
+    .brand-shell .brand-head-main { display: block; }
+    .brand-shell .brand-head-aside { max-width: 52ch; margin-top: 18px; padding-bottom: 0; text-align: left; }
+    .brand-shell .brand-head-text:not(.is-wide) { max-width: 30ch; }
+  }
+  @media (max-width: 900px) {
+    .brand-shell .brand-nav { min-height: 62px; }
+    .brand-shell .brand-nav-logo img { width: 88px; }
+    .brand-shell .brand-nav-note { display: none; }
+    .brand-shell .brand-head { padding-block: 24px; }
+    .brand-shell .brand-head-text,
+    .brand-shell .brand-head-text.is-wide { max-width: none; }
+    .brand-shell .brand-utility { align-items: stretch; flex-direction: column; }
+    .brand-shell .brand-utility-actions { margin-left: 0; }
+    .brand-shell .xs-flatten { gap: 20px; }
+    .brand-shell .land-craft-visual img { max-height: 190px; }
+    .brand-shell .tmpl-page .tmpl-card-thumb,
+    .brand-shell .tmpl-card-thumb,
+    .brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
+    .brand-shell .tmpl-card-thumb.is-ratio { height: clamp(170px, 24vh, 230px); }
+  }
+  @media (max-width: 600px) {
+    .brand-shell .brand-head-top { flex-wrap: nowrap; justify-content: space-between; }
+    .brand-shell .land-craft { border-left: none; border-top: 1px solid var(--brand-ink); }
+    .brand-shell .land-craft:first-child { border-top: none; }
+    .brand-shell .size-card { border-left: none; }
+    .brand-shell .tmpl-page .tmpl-card,
+    .brand-shell .tmpl-card,
+    .brand-shell .pal-page .pal-card,
+    .brand-shell .pal-card { border-right: none; border-bottom: 1px solid var(--brand-ink); }
+    .brand-shell .xs-flatten-preview { width: 100%; }
+    .brand-shell .brand-footer { padding-block: 14px; }
   }
 </style>
 </head>
@@ -5897,11 +6926,14 @@ function ProjectCard({ preset, onSelect }) {
 }
 
 const CRAFTS = [
-  { id: "cross-stitch", name: "Cross-stitch", desc: "Design your own cross-stitch project", ready: true,
+  { id: "cross-stitch", name: "Cross-stitch", ready: true,
+    desc: "Turn an image into a stitchable grid, with thread counts worked out.",
     image: "assets/landing/craft-cross-stitch.png", imgW: 256, imgH: 256 },
-  { id: "quilt", name: "Quilt", desc: "Design your own quilt project", ready: true,
+  { id: "quilt", name: "Quilt", ready: true,
+    desc: "Compose with squares and half-square triangles, then get the yardage.",
     image: "assets/landing/craft-quilt.jpg", imgW: 208, imgH: 260 },
-  { id: "punch-needle", name: "Punch Needle", desc: "Design your own punch needle project", ready: true,
+  { id: "punch-needle", name: "Punch Needle", ready: true,
+    desc: "Build bold, tactile forms with yarn quantities made to match.",
     image: "assets/landing/craft-punch-needle.jpg", imgW: 215, imgH: 269 },
 ];
 
@@ -6253,6 +7285,161 @@ function AuthProvider({ children }) {
   );
 }
 
+// ── Brand system ───────────────────────────────────────────────────────────
+// Shared presentation furniture for the setup flow (craft → size → backing →
+// template → palette). All of it is styled by the `.brand-shell` layer at the
+// end of the stylesheet, and a screen opts in by putting `brand-shell` on its
+// page root. The two studios never do, which is what keeps the editor's type,
+// density and controls out of reach of these styles.
+
+const BRAND_NOTE = 'Craft design, made material';
+// Step numbering for the eyebrow labels. Quilting carries an extra backing step,
+// so the two grid crafts and the quilt count differently.
+const BRAND_STEPS = { 'cross-stitch': 3, 'punch-needle': 3, quilt: 4 };
+const BRAND_CRAFT_LABEL = { 'cross-stitch': 'Cross-stitch', 'punch-needle': 'Punch needle', quilt: 'Quilting' };
+const brandNum = n => String(n).padStart(2, '0');
+
+// metime's wiggle: the thread mark carried under the wordmark. Built from
+// alternating quadratic arcs rather than shipped as a fixed file so one
+// component covers any width — pass the cycle count and let CSS set the height.
+function BrandWiggle({ cycles = 5, className = '' }) {
+  const unit = 40, amp = 22, h = 30, mid = h / 2;
+  let d = `M 0 ${mid}`;
+  for (let i = 0; i < cycles * 2; i++) d += ` q ${unit / 4} ${i % 2 ? amp : -amp} ${unit / 2} 0`;
+  return (
+    <svg className={`brand-wiggle ${className}`.trim()} viewBox={`0 0 ${cycles * unit} ${h}`}
+      width={cycles * unit} height={h} fill="none" aria-hidden="true" focusable="false">
+      <path d={d} stroke="currentColor" strokeWidth="7" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// Stitch X — a restrained separator and margin detail. Decoration only: always
+// aria-hidden, and inert via CSS so it can't take a click. Deliberately only
+// ever rendered in rules and footers, never on or beside a dismissable
+// surface, so it can't be misread as a close button.
+function BrandX({ size = 11 }) {
+  return (
+    <svg className="brand-x" viewBox="0 0 12 12" width={size} height={size} fill="none" aria-hidden="true" focusable="false">
+      <path d="M2 2 10 10M10 2 2 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function BrandXRule({ count = 3, size = 11 }) {
+  return (
+    <span className="brand-xrule" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => <BrandX key={i} size={size}/>)}
+    </span>
+  );
+}
+
+// Shared nav. The wordmark is the shipped asset used unmodified — its own
+// tomato wiggle is the mark's thread, so no extra wiggle is added beside it.
+function BrandNav() {
+  return (
+    <header className="brand-nav brand-bleed">
+      <a className="brand-nav-logo" href="/" aria-label="metime — home">
+        <img src="assets/metime-logo.svg" alt="metime" width="104" height="35"/>
+      </a>
+      <div className="brand-nav-right">
+        <LandingAuth/>
+      </div>
+    </header>
+  );
+}
+
+// "02  CROSS-STITCH" — the small step + craft label that sits above each
+// heading. The number is the quiet half so the craft stays readable.
+function BrandEyebrow({ step, label, plain }) {
+  return (
+    <p className={`brand-eyebrow${plain ? ' is-plain' : ''}`}>
+      {step != null && <span className="brand-eyebrow-num">{brandNum(step)}</span>}
+      <span>{label}</span>
+    </p>
+  );
+}
+
+// The heading band: one colour field per screen, left-aligned, wiggle beneath
+// the title. Height is content-driven so long titles wrap instead of spilling.
+function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actions, cycles = 5, wide }) {
+  return (
+    <section className={`brand-head brand-bleed tone-${tone}`}>
+      {(back || actions) && (
+        <div className="brand-head-top">
+          {back}
+          {actions && <div className="brand-head-top-end">{actions}</div>}
+        </div>
+      )}
+      <div className="brand-head-main">
+        <div className={`brand-head-text${wide ? ' is-wide' : ''}`}>
+          {eyebrow}
+          <h1 className={`size-title brand-title${xl ? ' is-xl' : ''}`}>{title}</h1>
+          <BrandWiggle cycles={cycles} className={`brand-head-wiggle${xl ? ' is-lg' : ''}`}/>
+          {sub && <p className="brand-head-sub">{sub}</p>}
+        </div>
+        {aside && <div className="brand-head-aside">{aside}</div>}
+      </div>
+    </section>
+  );
+}
+
+// Standard back control for the heading band.
+function BrandBack({ onBack }) {
+  if (!onBack) return null;
+  return (
+    <button className="size-back" type="button" onClick={onBack}>
+      <span className="size-back-icon" aria-hidden="true">
+        <img src="assets/setup/arrow-left.svg" alt="" width="12" height="12"/>
+      </span>
+      <span className="size-back-label">Back</span>
+    </button>
+  );
+}
+
+// A titled content band with its own hairline — used to keep distinct jobs on
+// one screen visually separate (e.g. conversion controls vs suggested palettes).
+function BrandSection({ title, note, quiet, actions, children }) {
+  const headOnly = !children;
+  return (
+    <section className={`brand-section brand-bleed${quiet ? ' is-quiet' : ''}${headOnly ? ' is-head-only' : ''}`}>
+      <div className="brand-section-head">
+        <div className="brand-section-head-text">
+          <h2 className="brand-section-title">{title}</h2>
+          {note && <p className="brand-section-note">{note}</p>}
+        </div>
+        {actions && <div className="brand-section-actions">{actions}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// Label / value rows under hairlines. Rows whose value is missing are dropped
+// rather than rendered as an em dash, so a card only ever states real data.
+function BrandSpecs({ rows }) {
+  const real = (rows || []).filter(r => r && r.v !== null && r.v !== undefined && r.v !== '');
+  if (!real.length) return null;
+  // Spans, not divs: these rows render inside <button> product cards, whose
+  // content model is phrasing content. CSS gives them their block layout.
+  return (
+    <span className="brand-specs">
+      {real.map(r => (
+        <span className="brand-spec" key={r.k}>
+          <span className="brand-spec-k">{r.k}</span>
+          <span className="brand-spec-v">{r.v}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// Flexible paper spacer plus the footer rule. The spacer takes over the job the
+// golden band used to do — absorbing leftover viewport height — without
+// pretending to be content.
+function BrandFooter() {
+  return <div className="brand-spacer" aria-hidden="true"/>;
+}
+
 // Tiny SVG preview of a saved quilt (same shape rendering as the "My quilts" list).
 function SavedQuiltThumb({ q }) {
   return (
@@ -6341,25 +7528,20 @@ function SavedDesigns({ onOpen }) {
 
 function CraftSelector({ onSelect, onOpenSaved }) {
   return (
-    <div className="land-page">
+    <div className="land-page brand-shell">
       <div className="land-fill">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="land-hero" aria-label="What are you making?">
-        <img className="land-hero-photo is-left" src="assets/landing/hero-left.png?v=4" alt="" width="4167" height="4167"/>
-        <img className="land-hero-photo is-right" src="assets/landing/hero-right.png?v=3" alt="" width="4220" height="4191"/>
-        <img className="land-hero-wave" src="assets/landing/hero-wave.svg" alt="" width="678" height="338"/>
-        <h1 className="land-hero-title">What are you<br/>making?</h1>
-      </section>
+      <BrandNav/>
+      <BrandHead
+        tone="olive"
+        xl
+        wide
+        cycles={6}
+        eyebrow={<BrandEyebrow plain label="Make something as unique as you."/>}
+        title="What are you making?"
+        sub="Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making."/>
       <div className="land-main">
         <div className="land-crafts">
-          {CRAFTS.map(c => (
+          {CRAFTS.map((c, i) => (
             <div key={c.id}
               className={c.ready ? "land-craft" : "land-craft is-soon"}
               role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
@@ -6385,7 +7567,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         </div>
       </div>
       <SavedDesigns onOpen={onOpenSaved}/>
-      <footer className="land-footer" aria-hidden="true"/>
+      <BrandFooter/>
       </div>
     </div>
   );
@@ -6393,32 +7575,20 @@ function CraftSelector({ onSelect, onOpenSaved }) {
 
 function ProjectSelector({ onSelect, onBack }) {
   return (
-    <div className="size-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">What size?</h1>
-      </section>
+    <div className="size-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="butter"
+        back={<BrandBack onBack={onBack}/>}
+        eyebrow={<BrandEyebrow step={1} label={`Quilting · step 1 of ${BRAND_STEPS.quilt}`}/>}
+        title="What size?"
+        sub="Every size is a real finished quilt, so the piecing and yardage are worked out from here on."/>
       <div className="size-row">
-        {PRESETS.map(p => (
+        {PRESETS.map((p, i) => (
           <ProjectCard key={p.name} preset={p} onSelect={onSelect}/>
         ))}
       </div>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note="Quilting — choose a finished size"/>
     </div>
   );
 }
@@ -7246,7 +8416,10 @@ function punchImageBackground(img, { maxDim = 720 } = {}) {
 // Drop zone + optional URL field used by PhotoDrop and PhotoUpload so paste/URL
 // land in one place. Calls onSrc(dataUrl) — same path as a chosen file.
 // Desktop: slim dashed drop row + pills. Mobile: "+ add image" opens a sheet.
-function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel }) {
+// `utility` is the brand shell's compact form: one row of label + source
+// buttons, with the whole strip still acting as the drop target. Same handlers
+// and same sources as the other variants — only the layout differs.
+function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel, extra }) {
   const isMobile = useIsMobile();
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState('');
@@ -7263,8 +8436,11 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     ? ((working && workingLabel) ? workingLabel : 'Loading…')
     : (variant === 'tmpl' ? 'Drop an image in this area, or' : 'Drop an image here');
   const ariaLabel = title || shownTitle;
+  const isUtility = variant === 'utility';
   const heading = variant === 'tmpl' ? 'Create a design from an image' : null;
-  const isTmpl = variant === 'tmpl';
+  // The utility strip reuses the tmpl drop/pill boxes (and its whole-strip drop
+  // handlers), so it counts as `isTmpl` for everything except the heading.
+  const isTmpl = variant === 'tmpl' || isUtility;
 
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
@@ -7465,6 +8641,50 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     </BottomSheet>
   ) : null;
 
+  if (isUtility) {
+    const label = (
+      <div className="brand-utility-text">
+        <div className="brand-utility-title">{title || 'Start from your own image'}</div>
+        <div className="brand-utility-sub">
+          {busy ? (workingLabel || 'Loading…') : (subtitle || 'JPG, PNG or WebP.')}
+        </div>
+      </div>
+    );
+    if (isMobile) {
+      return (
+        <div className="brand-utility-intake">
+          {label}
+          <div className="brand-utility-actions">
+            <button
+              type="button"
+              className="brand-btn"
+              onClick={() => { setError(''); setShowUrl(false); setMenuOpen(true); }}
+              disabled={busy}
+              aria-haspopup="dialog"
+              aria-expanded={menuOpen}>
+              Add an image
+            </button>
+            {extra}
+          </div>
+          {menu}
+          {fileInputs}
+        </div>
+      );
+    }
+    return (
+      <div className="brand-utility-intake" {...dropProps}>
+        {label}
+        <div className="brand-utility-actions">
+          {pills}
+          {extra}
+        </div>
+        {showUrl && <div className="brand-utility-url">{urlRow}</div>}
+        {errNode}
+        {fileInputs}
+      </div>
+    );
+  }
+
   if (isMobile) {
     return (
       <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
@@ -7620,7 +8840,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // Upload-only photo picker for the cross-stitch template step. It just captures
 // the image (as a data URL) and hands it forward — NO color extraction here.
 // All color work (suggested palette, swapping) happens on the palette step.
-function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout }) {
+function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout, extra }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [fileName, setFileName] = useState('image');
   const [fileDims, setFileDims] = useState(null);
@@ -7651,6 +8871,37 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
   const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
   const displaySrc = removeBg && cutoutSrc ? cutoutSrc : imgSrc;
   const confirm = () => onChoose(displaySrc || imgSrc, { removeBg, name: fileName });
+  // Brand shell: one compact strip. Empty state offers the sources; once an
+  // image is in, the same strip becomes the confirm row. Same actions as the
+  // `bar` layout, just folded into a single line of furniture.
+  if (layout === 'utility') {
+    return (
+      <section className="brand-utility brand-bleed">
+        {!imgSrc ? (
+          <PhotoIntakeZone
+            variant="utility"
+            title="Start from your own image"
+            subtitle={hint}
+            extra={extra}
+            onSrc={ingestSrc}/>
+        ) : (
+          <div className="brand-utility-result">
+            <img className={`tmpl-upload-preview${removeBg && cutoutSrc ? ' is-cutout' : ''}`}
+              src={displaySrc} alt="Uploaded reference"/>
+            <div className="brand-utility-result-meta">
+              <div className="tmpl-upload-file-name">{fileName}</div>
+              <BrandSpecs rows={[{ k: 'Source', v: fileDims ? `${fileDims.w} × ${fileDims.h} px` : null }]}/>
+              <Switch checked={removeBg} onChange={setRemoveBg} label="Remove background"/>
+            </div>
+            <div className="brand-utility-actions">
+              <button type="button" className="tmpl-upload-use" onClick={confirm}>{useLabel}</button>
+              <button type="button" className="tmpl-upload-another" onClick={reset}>Choose another</button>
+            </div>
+          </div>
+        )}
+      </section>
+    );
+  }
   if (layout === 'bar') {
     return (
       <section className="tmpl-upload-bar">
@@ -7797,32 +9048,24 @@ function StitchTemplateThumb({ tpl, preset }) {
 
 // Generic template-step shell (reused by quilt + cross-stitch). Optional
 // uploadNode renders a photo bar above the template grid.
-function TemplateStep({ title, onBack, templates, renderThumb, onChoose, onSkip, uploadNode }) {
+function TemplateStep({ title, eyebrow, sub, tone = 'blue', footNote, onBack, templates, renderThumb, onChoose, onSkip, uploadNode, metaOf }) {
   return (
-    <div className="tmpl-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero has-skip">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">{title}</h1>
-        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
-      </section>
+    <div className="tmpl-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone={tone}
+        wide
+        back={<BrandBack onBack={onBack}/>}
+        actions={
+          <button type="button" className="back-skip" onClick={onSkip}
+            title="Start from a blank canvas">Skip for now</button>
+        }
+        eyebrow={eyebrow}
+        title={title}
+        sub={sub}/>
       {uploadNode}
       <div className="tmpl-grid">
-        {templates.map(t => {
+        {templates.map((t, i) => {
           // Templates that carry their own grid size preview at that
           // proportion (see .tmpl-card-thumb.is-ratio); the rest keep the
           // fixed-height thumb box.
@@ -7833,19 +9076,22 @@ function TemplateStep({ title, onBack, templates, renderThumb, onChoose, onSkip,
               <span className={ar ? 'tmpl-card-thumb is-ratio' : 'tmpl-card-thumb'}
                     style={ar ? { '--tmpl-ar': String(ar) } : undefined}>{renderThumb(t)}</span>
               <span className="tmpl-card-body">
-                <span className="tmpl-card-text">
-                  <span className="tmpl-card-name">{t.name}</span>
-                  <span className="tmpl-card-desc">{t.desc}</span>
+                <span className="tmpl-card-head">
+                  <span className="tmpl-card-text">
+                    <span className="tmpl-card-name">{t.name}</span>
+                    <span className="tmpl-card-desc">{t.desc}</span>
+                  </span>
+                  <span className="size-card-arrow" aria-hidden="true">
+                    <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+                  </span>
                 </span>
-                <span className="size-card-arrow" aria-hidden="true">
-                  <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
-                </span>
+                {metaOf && <BrandSpecs rows={metaOf(t)}/>}
               </span>
             </button>
           );
         })}
       </div>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note={footNote}/>
     </div>
   );
 }
@@ -7855,10 +9101,14 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
   const p = PRESETS.find(x => x.name === preset) || PRESETS[0];
   return (
     <TemplateStep
-      title="Pick a template"
+      title="Choose a starting point"
+      eyebrow={<BrandEyebrow step={4} label={`Quilting · step 4 of ${BRAND_STEPS.quilt}`}/>}
+      sub="A layout to build on, or a blank canvas. Either way you can change every block once you're in the studio."
+      footNote={`Quilting — ${p.label || p.name}`}
       onBack={onBack}
       templates={QUILT_TEMPLATES}
       renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p} palette={palette}/>}
+      metaOf={t => [{ k: 'Finished size', v: presetDims(p) }]}
       onChoose={onChoose} onSkip={onSkip}/>
   );
 }
@@ -7867,18 +9117,26 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
 // selection here — the photo is carried forward and all color work (suggested
 // palette from the photo, sample palettes) happens on the next (palette) step.
 function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft = 'cross-stitch' }) {
+  const cfg = CRAFT_STUDIO[craft];
+  const craftLabel = BRAND_CRAFT_LABEL[craft] || cfg.label;
   const uploadNode = (
     <PhotoDrop
-      layout="bar"
-      hint="JPG, PNG, or WebP — we'll suggest a palette from it on the next step."
+      layout="utility"
+      hint="JPG, PNG or WebP. We'll suggest a palette from it on the next step."
       onChoose={(imgSrc, extras) => onChoose({ template: null, photo: imgSrc, removeBg: !extras || extras.removeBg !== false })}/>
   );
   return (
     <TemplateStep
-      title="Pick a template"
+      title="Choose a starting point"
+      eyebrow={<BrandEyebrow step={2} label={`${craftLabel} · step 2 of ${BRAND_STEPS[craft] || 3}`}/>}
+      sub={`A chart to build on, your own image, or a blank canvas. Every ${cfg.unit} stays editable in the studio.`}
+      footNote={`${craftLabel} — ${preset.name}`}
       onBack={onBack}
       templates={stitchTemplatesFor(preset, craft)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
+      metaOf={t => [
+        { k: 'Chart', v: t.w > 0 && t.h > 0 ? `${t.w} × ${t.h} ${cfg.unitPlural}` : null },
+      ]}
       uploadNode={uploadNode}
       onChoose={t => onChoose({ template: t, photo: null })}
       onSkip={onSkip}/>
@@ -8128,33 +9386,22 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
   const [inspect, setInspect] = useState(null);
   const apply = (name, image, thumb) => chooseBackingFromImage(name, image, thumb, onChoose);
   return (
-    <div className="back-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero has-skip">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">Pick a backing fabric</h1>
-        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
-      </section>
+    <div className="back-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="cream"
+        back={<BrandBack onBack={onBack}/>}
+        actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
+        eyebrow={<BrandEyebrow step={2} label={`Quilting · step 2 of ${BRAND_STEPS.quilt}`}/>}
+        title="Pick a backing fabric"
+        wide
+        sub="It also seeds the palette we suggest on the next step, so pick something you like the colours of."/>
       <BackingFabricPicker
         layout="page"
         showUpload={false}
         onPickFab={(fab, list) => setInspect({ fabric: fab, fabrics: list })}
         onPickUpload={imgSrc => apply('Your fabric', imgSrc)}/>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note="Quilting — backing fabric"/>
       {inspect && (
         <FabricEnlargeOverlay
           fabric={inspect.fabric}
@@ -8354,48 +9601,44 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
   const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
 
   return (
-    <div className="pal-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero has-skip">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">Pick a palette</h1>
-        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
-      </section>
+    <div className="pal-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="lilac"
+        wide
+        back={<BrandBack onBack={onBack}/>}
+        actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
+        eyebrow={<BrandEyebrow step={3} label={`Quilting · step 3 of ${BRAND_STEPS.quilt}`}/>}
+        title="Find your palette."
+        sub="Colour is where it starts to look like yours. Every swatch here is a real Kona cotton we can cut for you."/>
       {photo && (
-        <section className="pal-suggest-bar">
+        <BrandSection
+          title="Your backing"
+          note="Lifted from the fabric you picked. Tap a colour to drop it.">
           {!ready ? (
             <div className="pal-busy">Reading colors from your fabric…</div>
           ) : (
-            <ImagePaletteEditor
-              layout="bar"
-              photo={photo}
-              alt="Your backing fabric"
-              colors={sugg}
-              colorKey={c => c.name}
-              titleOf={c => c.name}
-              onRemove={removeAt}
-              onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-              onUse={() => onChoose(sugg)}
-              onPreviewClick={fabricFullSrc(backing) ? () => setInspect(true) : undefined}/>
+            <div className="pal-suggest-bar">
+              <ImagePaletteEditor
+                layout="bar"
+                photo={photo}
+                alt="Your backing fabric"
+                colors={sugg}
+                colorKey={c => c.name}
+                titleOf={c => c.name}
+                onRemove={removeAt}
+                onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+                onUse={() => onChoose(sugg)}
+                onPreviewClick={fabricFullSrc(backing) ? () => setInspect(true) : undefined}/>
+            </div>
           )}
-        </section>
+        </BrandSection>
       )}
+      <BrandSection
+        title={photo ? 'Or start from a suggested palette' : 'Suggested palettes'}
+        note="Curated Kona cottons that work together. You can change any of them in the studio."/>
       <div className="pal-grid">
-        {samples.map(s => (
+        {samples.map((s, i) => (
           <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors)}>
             <div className="pal-swatches">
               {s.colors.map((c, i) => (
@@ -8403,18 +9646,20 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
               ))}
             </div>
             <div className="pal-card-body">
-              <div className="pal-card-text">
-                <div className="pal-card-name">{s.name}</div>
-                <div className="pal-card-meta">{s.colors.length} fabrics</div>
+              <div className="pal-card-head">
+                <div className="pal-card-text">
+                  <div className="pal-card-name">{s.name}</div>
+                  <div className="pal-card-meta">{s.colors.length} fabrics</div>
+                </div>
+                <span className="size-card-arrow" aria-hidden="true">
+                  <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+                </span>
               </div>
-              <span className="size-card-arrow" aria-hidden="true">
-                <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
-              </span>
             </div>
           </button>
         ))}
       </div>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note="Quilting — palette"/>
       {swapIdx !== null && (
         <KonaPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
@@ -8494,30 +9739,18 @@ function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
 function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
   const cfg = CRAFT_STUDIO[craft];
   return (
-    <div className="size-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">What size?</h1>
-      </section>
+    <div className="size-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="butter"
+        back={<BrandBack onBack={onBack}/>}
+        eyebrow={<BrandEyebrow step={1} label={`${BRAND_CRAFT_LABEL[craft] || cfg.label} · step 1 of ${BRAND_STEPS[craft] || 3}`}/>}
+        title="What size?"
+        sub={`Every size is a real finished piece, so the ${cfg.unitPlural} and materials are worked out from here on.`}/>
       <div className="size-row">
         {cfg.presets.map(p => <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}/>)}
       </div>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note={`${BRAND_CRAFT_LABEL[craft] || cfg.label} — choose a finished size`}/>
     </div>
   );
 }
@@ -8586,84 +9819,88 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
   };
   const removeAt = i => setSugg(prev => prev.filter((_, j) => j !== i));
 
+  const craftLabel = BRAND_CRAFT_LABEL[craft] || cfg.label;
   return (
-    <div className="pal-page">
-      <header className="land-header">
-        <a className="land-logo" href="/" aria-label="metime — home">
-          <img src="assets/landing/metime-logo-white.svg" alt="metime" width="112" height="38"/>
-        </a>
-        <div className="land-header-right">
-          <LandingAuth/>
-        </div>
-      </header>
-      <section className="size-hero has-skip">
-        {onBack && (
-          <button className="size-back" type="button" onClick={onBack}>
-            <span className="size-back-icon" aria-hidden="true">
-              <img src="assets/setup/arrow-left.svg" alt="" width="14" height="13.5"/>
-            </span>
-            <span className="size-back-label">Back</span>
-          </button>
-        )}
-        <h1 className="size-title">Pick a palette</h1>
-        <button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>
-      </section>
+    <div className="pal-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="lilac"
+        wide
+        back={<BrandBack onBack={onBack}/>}
+        actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
+        eyebrow={<BrandEyebrow step={3} label={`${craftLabel} · step 3 of ${BRAND_STEPS[craft] || 3}`}/>}
+        title="Find your palette."
+        sub={`Colour is where it starts to look like yours. Every ${cfg.threadLabel.toLowerCase()} here is a real ${cfg.codePrefix} shade we can send you.`}/>
+      {/* Primary focus: what it will actually stitch out as, beside the colours
+          it will use. The live chart lives here rather than next to the detail
+          controls so the project — not the setting — is the thing on show. */}
       {photo && (
-        <section className="pal-suggest-bar">
+        <BrandSection
+          title="Your project"
+          note={`${preset.w} × ${preset.h} ${cfg.unitPlural} · ${cfg.gaugeLabel}. Tap a colour to drop it.`}>
           {!ready ? (
             <div className="pal-busy">Reading colors from your photo…</div>
           ) : (
-            <ImagePaletteEditor
-              layout="bar"
-              photo={photo}
-              alt="Your uploaded photo"
-              colors={sugg}
-              colorKey={c => c.code}
-              titleOf={c => `${cfg.codePrefix} ${c.code} ${c.name}`}
-              onRemove={removeAt}
-              onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
-              onUse={() => onChoose(sugg, optsFor(sugg))}
-              maxColors={cfg.paletteMax}/>
+            <div className="brand-project">
+              <div className="xs-flatten-preview">
+                {previewGrid
+                  ? <StitchReveal w={preset.w} h={preset.h} cells={previewGrid} size={248}
+                      img={imgElRef.current} majorGrid={cfg.majorGrid}/>
+                  : <div className="xs-flatten-empty">Keep at least one color to preview</div>}
+              </div>
+              <div className="pal-suggest-bar">
+                <ImagePaletteEditor
+                  layout="bar"
+                  photo={photo}
+                  alt="Your uploaded photo"
+                  colors={sugg}
+                  colorKey={c => c.code}
+                  titleOf={c => `${cfg.codePrefix} ${c.code} ${c.name}`}
+                  onRemove={removeAt}
+                  onAdd={ref => { swapAnchor.current = ref.current; setSwapIdx(sugg.length); }}
+                  onUse={() => onChoose(sugg, optsFor(sugg))}
+                  maxColors={cfg.paletteMax}/>
+              </div>
+            </div>
           )}
-        </section>
+        </BrandSection>
       )}
+      {/* Conversion controls, kept in their own band so they never read as
+          another row of palettes to choose from. */}
       {photo && ready && (
-        <section className="xs-flatten">
-          <div className="xs-flatten-main">
-            <div className="xs-flatten-title">How much detail?</div>
-            <div className="xs-flatten-sub">
-              A photo holds more shading than {cfg.unitPlural} can show. Flattening trades that
-              detail for broad blocks of color — fewer stray {cfg.unitPlural}, and a chart you can follow.
+        <BrandSection
+          quiet
+          title="How much detail?"
+          note={`A photo holds more shading than ${cfg.unitPlural} can show. Flattening trades that detail for broad blocks of colour — fewer stray ${cfg.unitPlural}, and a chart you can follow.`}>
+          <section className="xs-flatten">
+            <div className="xs-flatten-main">
+              <div className="xs-flatten-row" role="group" aria-label="Detail level">
+                {XS_SIMPLIFY.map(s => (
+                  <button key={s.id} type="button" title={s.note}
+                    className={`xs-flatten-btn${simplify === s.id ? ' active' : ''}`}
+                    aria-pressed={simplify === s.id}
+                    onClick={() => setSimplify(s.id)}>{s.label}</button>
+                ))}
+              </div>
+              <div className="xs-flatten-note">{xsSimplifySpec(simplify).note}</div>
+              <label className="xs-flatten-check">
+                <input type="checkbox" checked={removeBg} onChange={e => setRemoveBg(e.target.checked)}/>
+                Remove image background
+                <span className="xs-flatten-check-note">
+                  {removeBg
+                    ? `Whatever surrounds your subject is left as bare ${cfg.fabricLabel}.`
+                    : `The whole photo is filled in, background and all.`}
+                </span>
+              </label>
             </div>
-            <div className="xs-flatten-row" role="group" aria-label="Detail level">
-              {XS_SIMPLIFY.map(s => (
-                <button key={s.id} type="button" title={s.note}
-                  className={`xs-flatten-btn${simplify === s.id ? ' active' : ''}`}
-                  aria-pressed={simplify === s.id}
-                  onClick={() => setSimplify(s.id)}>{s.label}</button>
-              ))}
-            </div>
-            <div className="xs-flatten-note">{xsSimplifySpec(simplify).note}</div>
-            <label className="xs-flatten-check">
-              <input type="checkbox" checked={removeBg} onChange={e => setRemoveBg(e.target.checked)}/>
-              Remove image background
-              <span className="xs-flatten-check-note">
-                {removeBg
-                  ? `Whatever surrounds your subject is left as bare ${cfg.fabricLabel}.`
-                  : `The whole photo is filled in, background and all.`}
-              </span>
-            </label>
-          </div>
-          <div className="xs-flatten-preview">
-            {previewGrid
-              ? <StitchReveal w={preset.w} h={preset.h} cells={previewGrid} size={248}
-                  img={imgElRef.current} majorGrid={cfg.majorGrid}/>
-              : <div className="xs-flatten-empty">Keep at least one color to preview</div>}
-          </div>
-        </section>
+          </section>
+        </BrandSection>
       )}
+      <BrandSection
+        title={photo ? 'Or start from a suggested palette' : 'Suggested palettes'}
+        note={`Curated ${cfg.threadPlural} that work together. You can change any of them in the studio.`}/>
       <div className="pal-grid">
-        {samples.map(s => (
+        {samples.map((s, i) => (
           <button key={s.name} className="pal-card" onClick={() => onChoose(s.colors, optsFor(s.colors))}>
             <div className="pal-swatches">
               {s.colors.map((c, i) => (
@@ -8672,18 +9909,20 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
               ))}
             </div>
             <div className="pal-card-body">
-              <div className="pal-card-text">
-                <div className="pal-card-name">{s.name}</div>
-                <div className="pal-card-meta">{s.colors.length} {cfg.threadPlural}</div>
+              <div className="pal-card-head">
+                <div className="pal-card-text">
+                  <div className="pal-card-name">{s.name}</div>
+                  <div className="pal-card-meta">{s.colors.length} {cfg.threadPlural}</div>
+                </div>
+                <span className="size-card-arrow" aria-hidden="true">
+                  <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
+                </span>
               </div>
-              <span className="size-card-arrow" aria-hidden="true">
-                <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
-              </span>
             </div>
           </button>
         ))}
       </div>
-      <footer className="size-footer" aria-hidden="true"/>
+      <BrandFooter note={`${craftLabel} — ${preset.name}`}/>
       {swapIdx !== null && (
         <DmcPicker anchorRef={swapAnchor} craft={craft} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
