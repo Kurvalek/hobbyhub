@@ -892,6 +892,8 @@
   .size-card-text { min-width: 0; }
   .size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
   .size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
+  /* Kit price, fetched live from Shopify. Absent for sizes we don't sell yet. */
+  .size-card-price { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--metime-black); margin-top: 6px; font-variant-numeric: tabular-nums; }
   .size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; margin-left: auto; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
   .size-card:hover .size-card-arrow,
   .size-card:focus-visible .size-card-arrow,
@@ -2231,6 +2233,7 @@
   .brand-shell .size-card-visual svg { max-height: 100%; max-width: 100%; }
   .brand-shell .size-card-copy { margin-top: clamp(18px, 2vw, 26px); align-items: flex-start; }
   .brand-shell .size-card-dims { margin-top: 7px; }
+  .brand-shell .size-card-price { font-family: var(--brand-font); font-size: var(--brand-body-s); font-weight: 500; line-height: 1.4; color: var(--brand-ink); margin-top: 7px; }
   .brand-shell .size-card-arrow { width: 36px; height: 36px; }
   .brand-shell .size-card-arrow img { width: 20px; height: auto; }
 
@@ -2628,14 +2631,17 @@
 
   /* ── Saved designs ───────────────────────────────────────────────────────
      Kept in place and fully functional; restyled to the same editorial grid. */
-  .brand-shell .saved-sec { background: var(--brand-paper); border-top: 1px solid var(--brand-ink); }
+  /* The craft band already draws the rule above this section — don't add another. */
+  .brand-shell .saved-sec { background: var(--brand-paper); border-top: none; }
   .brand-shell .saved-toolbar { padding: 16px var(--brand-gutter); }
   .brand-shell .saved-head-title {
-    font-family: var(--brand-font);
-    font-size: var(--brand-eyebrow);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    font-family: "Bodoni Moda", "Times New Roman", serif;
+    font-style: italic;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-size: 21px;
+    letter-spacing: 0;
+    text-transform: none;
     color: var(--brand-ink);
   }
   .brand-shell .saved-count { font-weight: 500; opacity: 0.55; }
@@ -2860,80 +2866,237 @@ function sb() {
 // the Admin API key) — it's scoped only to unauthenticated storefront reads
 // and cart creation, so it's fine to ship in this static page.
 //
-// The kit entries below hold PRODUCT GIDs (not variant GIDs). Each flat-price
-// kit is a single-variant product, so we store the product GID (easy to read
-// off the admin URL — the number in Products → the kit → .../products/NUMBER)
-// and let the code resolve that product's first/default variant at checkout
-// time via the Storefront API (see resolveVariantId below). The product GID
-// looks like "gid://shopify/Product/1234567890".
-const SHOPIFY_STORE_DOMAIN = "0kfj40-r8.myshopify.com";
-// ⬇︎ THE ONLY FIELD LEFT TO FILL IN. Paste your Storefront API access token
-// here. To create one: Shopify admin → Settings → Apps and sales channels →
-// Develop apps → create an app → Storefront API scopes (enable
-// unauthenticated_write_checkouts, unauthenticated_read_checkouts, and
-// unauthenticated_read_product_listings) → Install app → copy the Storefront
-// API access token. This token is public/client-safe, so it's fine here.
-const SHOPIFY_STOREFRONT_TOKEN = "YOUR_PUBLIC_STOREFRONT_ACCESS_TOKEN";
+// The kit entries below hold product HANDLES (the URL slug in the Shopify admin
+// and in products_export.csv), not numeric ids — handles survive a re-import,
+// which product ids do not. Each size is its own single-variant, flat-price
+// product, so we resolve that product's one variant (and its price) on demand
+// via the Storefront API — see resolveKit below.
+const SHOPIFY_STORE_DOMAIN = "shop.makemetime.com";
+// Storefront API access token. Public/client-safe by design, so it ships in the
+// page. To rotate: Shopify admin → Settings → Apps and sales channels → Develop
+// apps → the app → Storefront API scopes (unauthenticated_write_checkouts,
+// unauthenticated_read_checkouts, unauthenticated_read_product_listings).
+//
+// The kit products must also be PUBLISHED to the sales channel this token
+// belongs to. The Storefront API treats an unpublished product as if it were
+// deleted — `product(handle:)` returns null — so an unpublished kit shows no
+// price and can't be bought, with no error to explain why.
+const SHOPIFY_STOREFRONT_TOKEN = "bfff7cb8fba2b3d0cc0359fc5e38d859";
 const SHOPIFY_STOREFRONT_API_VERSION = "2025-07";
-// Map from kit type to its Shopify PRODUCT GID. The first variant of each
-// product is resolved on demand (and cached) at checkout time.
-const SHOPIFY_KIT_PRODUCTS = {
-  "quilt": "gid://shopify/Product/9579160666333",
-  "cross-stitch": "gid://shopify/Product/9579160600797",
+// Maps each craft's finished-size preset to the Shopify product that sells it.
+// The keys must match the preset `name` strings exactly (PRESETS for quilts,
+// STITCH_PRESETS and PUNCH_PRESETS for the grid crafts) — that name is what a
+// saved design carries, and it's the only link between a design and its kit.
+//
+// Two deliberate gaps: punch needle's "Small Hoop" has no product yet, and the
+// cross-stitch-wall-art-large product has no matching preset. An unmapped
+// preset falls back to save-only rather than erroring.
+const SHOPIFY_KITS = {
+  "quilt": {
+    "Coaster":      "quilted-coaster-set",
+    "Wall hanging": "quilted-wall-hanging",
+    "Baby blanket": "baby-quilt",
+    "Throw":        "throw-quilt",
+  },
+  "cross-stitch": {
+    "Coaster Set":  "cross-stitch-coaster-set",
+    "Bookmark":     "cross-stitch-bookmark",
+    "Small Hoop":   "cross-stitch-wall-art-small",
+    "Medium Hoop":  "cross-stitch-wall-art-medium",
+  },
+  "punch-needle": {
+    "Coaster":      "punch-needle-coaster-set",
+    "Wall Hanging": "punch-needle-wall-art",
+    "Pillow":       "punch-needle-pillow",
+  },
 };
 // Line-item property carried into the Shopify order; the fulfillment backend
 // keys off this exact name to trace a kit back to its design.
 const DESIGN_ID_ATTRIBUTE = "_design_id";
 
-// True until the placeholders above are replaced with real values. When still
-// unconfigured, the checkout button falls back to the save-only behavior so
-// the app keeps working before Shopify is wired up.
-function shopifyConfigured(type) {
-  const product = SHOPIFY_KIT_PRODUCTS[type];
+// Quilts store the chosen preset as `preset`; the grid crafts store it as
+// `presetName`. Callers shouldn't have to know which, so both go through here.
+function kitPresetName(type, design) {
+  if (!design) return null;
+  return type === "quilt" ? design.preset : design.presetName;
+}
+
+// The Shopify product handle for a design's size, or null when that size isn't
+// sold yet (punch needle "Small Hoop", or a design saved as "Custom").
+function kitHandle(type, design) {
+  const forType = SHOPIFY_KITS[type];
+  if (!forType) return null;
+  return forType[kitPresetName(type, design)] || null;
+}
+
+// True once the store credentials are real. Kept separate from the per-design
+// check so the price lookups (which have no design in hand) can reuse it.
+function shopifyStoreConfigured() {
   return (
     !!SHOPIFY_STORE_DOMAIN && !SHOPIFY_STORE_DOMAIN.startsWith("your-store") &&
-    !!SHOPIFY_STOREFRONT_TOKEN && !SHOPIFY_STOREFRONT_TOKEN.startsWith("YOUR_") &&
-    !!product && !product.includes("REPLACE_WITH")
+    !!SHOPIFY_STOREFRONT_TOKEN && !SHOPIFY_STOREFRONT_TOKEN.startsWith("YOUR_")
   );
 }
 
-// Session cache of product GID → resolved variant GID, so repeat checkouts in
-// the same page load don't re-query the Storefront API.
-const shopifyVariantCache = new Map();
+// Whether this specific design can be bought: the store has to be wired up and
+// its size has to map to a product. When false the checkout button falls back
+// to the save-only behavior so the app keeps working regardless.
+function shopifyConfigured(type, design) {
+  return shopifyStoreConfigured() && !!kitHandle(type, design);
+}
 
-// Resolves a product GID to its first/default variant GID via the Storefront
-// API. Single-variant kit products have exactly one variant, which is the one
-// we add to the cart. Results are memoized in shopifyVariantCache. Throws a
-// clear error if the product or its variant can't be found.
-async function resolveVariantId(productGid) {
-  if (shopifyVariantCache.has(productGid)) return shopifyVariantCache.get(productGid);
-  const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`;
-  const query = `
-    query($id: ID!) {
-      product(id: $id) {
-        variants(first: 1) { nodes { id } }
-      }
-    }`;
-  const res = await fetch(endpoint, {
+// Session cache of product handle → { variantId, amount, currencyCode,
+// availableForSale }, so the size cards and the checkout button share one
+// lookup and repeat checkouts in the same page load cost nothing.
+const shopifyKitCache = new Map();
+
+// Shared endpoint + headers for every Storefront call.
+function storefrontEndpoint() {
+  return `https://${SHOPIFY_STORE_DOMAIN}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`;
+}
+
+async function storefrontQuery(query, variables) {
+  const res = await fetch(storefrontEndpoint(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_TOKEN,
     },
-    body: JSON.stringify({ query, variables: { id: productGid } }),
+    body: JSON.stringify({ query, variables }),
   });
-  if (!res.ok) throw new Error(`Shopify variant lookup failed (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(`Shopify request failed (HTTP ${res.status})`);
   const body = await res.json();
   if (body.errors && body.errors.length) {
     throw new Error(body.errors[0].message || "Shopify GraphQL error");
   }
-  const product = body.data && body.data.product;
-  if (!product) throw new Error("Shopify product not found — check the product GID");
-  const nodes = product.variants && product.variants.nodes;
-  const variantId = nodes && nodes[0] && nodes[0].id;
-  if (!variantId) throw new Error("Shopify product has no purchasable variant");
-  shopifyVariantCache.set(productGid, variantId);
-  return variantId;
+  return body.data || {};
+}
+
+// The one variant and price of a single-variant kit product. `productByHandle`
+// is deprecated, so this uses `product(handle:)`.
+const KIT_FIELDS = `
+  fragment KitFields on Product {
+    variants(first: 1) {
+      nodes { id availableForSale price { amount currencyCode } }
+    }
+  }`;
+
+// Flattens a product node into the shape we cache. Returns null for a product
+// that doesn't exist, isn't published to this token's sales channel, or somehow
+// has no variant — all of which we treat the same: not purchasable.
+function kitFromProductNode(product) {
+  const variant = product && product.variants && product.variants.nodes && product.variants.nodes[0];
+  if (!variant || !variant.id) return null;
+  return {
+    variantId: variant.id,
+    amount: variant.price ? Number(variant.price.amount) : null,
+    currencyCode: variant.price ? variant.price.currencyCode : null,
+    availableForSale: variant.availableForSale !== false,
+  };
+}
+
+// Resolves several handles in ONE request using field aliases, so a size
+// selector showing four kits makes a single network call. Handles already in
+// the cache are skipped. Resolves to a Map of handle → kit (or null).
+async function resolveKits(handles) {
+  const wanted = Array.from(new Set((handles || []).filter(Boolean)));
+  const missing = wanted.filter((h) => !shopifyKitCache.has(h));
+  if (missing.length) {
+    // Aliases must be valid GraphQL names, so index rather than use the handle
+    // (handles contain hyphens). We map back by position.
+    const aliases = missing.map((_, i) => `k${i}`);
+    const args = missing.map((_, i) => `$h${i}: String!`).join(", ");
+    const selections = missing
+      .map((_, i) => `k${i}: product(handle: $h${i}) { ...KitFields }`)
+      .join("\n      ");
+    const variables = {};
+    missing.forEach((handle, i) => { variables[`h${i}`] = handle; });
+    const data = await storefrontQuery(
+      `query kits(${args}) {\n      ${selections}\n    }\n    ${KIT_FIELDS}`,
+      variables
+    );
+    missing.forEach((handle, i) => {
+      shopifyKitCache.set(handle, kitFromProductNode(data[aliases[i]]));
+    });
+  }
+  const out = new Map();
+  wanted.forEach((h) => out.set(h, shopifyKitCache.get(h) || null));
+  return out;
+}
+
+// Single-handle convenience used at checkout. Throws with a clear reason so the
+// button can surface why a kit couldn't be added, rather than failing silently.
+async function resolveKit(handle) {
+  if (!handle) throw new Error("This size isn't available as a kit yet");
+  const kit = (await resolveKits([handle])).get(handle);
+  if (!kit) {
+    throw new Error(
+      `Shopify product "${handle}" not found — check the handle, and that it's published to this token's sales channel`
+    );
+  }
+  return kit;
+}
+
+// Formats a Storefront money amount for display. Whole-dollar kit prices show
+// without cents ("$38"), anything else keeps them ("$38.50").
+function formatKitPrice(kit) {
+  if (!kit || kit.amount == null || !Number.isFinite(kit.amount)) return null;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: kit.currencyCode || "USD",
+      minimumFractionDigits: Number.isInteger(kit.amount) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(kit.amount);
+  } catch {
+    return `$${Number.isInteger(kit.amount) ? kit.amount : kit.amount.toFixed(2)}`;
+  }
+}
+
+// Live prices for every sellable size of one craft, keyed by preset name, for
+// the size-picker cards. One batched request per craft per page load.
+//
+// Pricing is advisory here — Shopify is still the authority at checkout — so
+// every failure mode (store not configured, offline, product unpublished, size
+// not sold) resolves to "no price for that preset" and the cards just render
+// without one. Nothing here can block a buyer from designing.
+function useKitPrices(type) {
+  const [prices, setPrices] = useState({});
+  useEffect(() => {
+    if (!type || !shopifyStoreConfigured()) return;
+    const handles = SHOPIFY_KITS[type];
+    if (!handles) return;
+    let alive = true;
+    resolveKits(Object.values(handles))
+      .then((kits) => {
+        if (!alive) return;
+        const next = {};
+        Object.keys(handles).forEach((presetName) => {
+          const kit = kits.get(handles[presetName]);
+          if (kit) next[presetName] = kit;
+        });
+        setPrices(next);
+      })
+      .catch((e) => console.warn("Kit price lookup failed:", e));
+    return () => { alive = false; };
+  }, [type]);
+  return prices;
+}
+
+// The price of the one kit a saved design maps to, for the checkout button.
+// Resolves to null when that size isn't sold.
+function useKitPrice(type, design) {
+  const handle = kitHandle(type, design);
+  const [kit, setKit] = useState(() => (handle ? shopifyKitCache.get(handle) || null : null));
+  useEffect(() => {
+    if (!handle || !shopifyStoreConfigured()) { setKit(null); return; }
+    let alive = true;
+    resolveKits([handle])
+      .then((kits) => { if (alive) setKit(kits.get(handle) || null); })
+      .catch((e) => console.warn("Kit price lookup failed:", e));
+    return () => { alive = false; };
+  }, [handle]);
+  return kit;
 }
 
 // Creates a Shopify cart with a single kit line item that carries the studio
@@ -2941,7 +3104,6 @@ async function resolveVariantId(productGid) {
 // Throws on userErrors or network/HTTP failure so callers can surface a clear
 // inline error instead of silently dropping the design link.
 async function addKitToShopifyCart({ variantId, designId }) {
-  const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`;
   const query = `
     mutation cartCreate($input: CartInput!) {
       cartCreate(input: $input) {
@@ -2958,20 +3120,8 @@ async function addKitToShopifyCart({ variantId, designId }) {
       }],
     },
   };
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_TOKEN,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
-  if (!res.ok) throw new Error(`Shopify cart create failed (HTTP ${res.status})`);
-  const body = await res.json();
-  if (body.errors && body.errors.length) {
-    throw new Error(body.errors[0].message || "Shopify GraphQL error");
-  }
-  const result = body.data && body.data.cartCreate;
+  const data = await storefrontQuery(query, variables);
+  const result = data.cartCreate;
   if (result && result.userErrors && result.userErrors.length) {
     throw new Error(result.userErrors[0].message || "Shopify cart error");
   }
@@ -3400,6 +3550,12 @@ async function downloadDesignPdf(type, design, doc) {
 function KitCheckoutButton({ type, design, savedId, onSaved }) {
   const [state, setState] = useState(savedId ? { status: "done", id: savedId } : { status: "idle" });
   const busy = state.status === "saving" || state.status === "redirecting";
+  // Shown next to the button so the buyer sees the amount before being handed
+  // off to Shopify. Null for a size we don't sell, which is also the signal to
+  // label the button as save-only.
+  const kit = useKitPrice(type, design);
+  const price = formatKitPrice(kit);
+  const sellable = !!kitHandle(type, design);
   // Uploads the design if not already saved and returns its api id.
   const ensureSaved = async () => {
     if (savedId) return savedId;
@@ -3420,16 +3576,17 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
       setState({ status: "error", message: "Couldn't reach the kit service — try again" });
       return;
     }
-    // Not connected to Shopify yet — keep the design saved and stop here.
-    if (!shopifyConfigured(type)) {
+    // Either Shopify isn't wired up yet or this size has no kit product — keep
+    // the design saved and stop here.
+    if (!shopifyConfigured(type, design)) {
       setState({ status: "done", id: designId });
       return;
     }
     setState({ status: "redirecting", id: designId });
     try {
-      // Resolve the product GID to its first/default variant (cached), then
-      // create the cart with that variant carrying the design id.
-      const variantId = await resolveVariantId(SHOPIFY_KIT_PRODUCTS[type]);
+      // The design's size decides the product; each is single-variant, so
+      // resolving the handle gives us the exact variant to buy.
+      const { variantId } = await resolveKit(kitHandle(type, design));
       const checkoutUrl = await addKitToShopifyCart({ variantId, designId });
       window.location.href = checkoutUrl;
     } catch (e) {
@@ -3440,7 +3597,8 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
   const label = state.status === "saving" ? "Saving…"
     : state.status === "redirecting" ? "Opening checkout…"
     : state.status === "done" ? "Saved for checkout ✓"
-    : "Add to cart";
+    : sellable ? (price ? `Add to cart — ${price}` : "Add to cart")
+    : "Save for checkout";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
       <button className="btn btn-dark" disabled={busy}
@@ -3452,6 +3610,11 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
       {state.status === "done" && (
         <div style={{ fontSize: 11, color: "var(--warm-muted)", fontVariantNumeric: "tabular-nums" }}>
           Kit ID {state.id}
+        </div>
+      )}
+      {state.status === "idle" && !sellable && (
+        <div style={{ fontSize: 11, color: "var(--warm-muted)" }}>
+          This size isn't sold as a kit yet
         </div>
       )}
       {state.status === "error" && (
@@ -6901,12 +7064,12 @@ function QuiltThumb({ preset }) {
   );
 }
 
-function ProjectCard({ preset, onSelect }) {
+function ProjectCard({ preset, onSelect, price }) {
   const art = PRESET_IMAGES[preset.name];
   const label = preset.label || preset.name;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
-      aria-label={`${label}, ${presetDims(preset)}`}>
+      aria-label={[label, presetDims(preset), price && `kit ${price}`].filter(Boolean).join(", ")}>
       <span className="size-card-visual">
         {art
           ? <img src={art.src} alt="" width={art.w} height={art.h}/>
@@ -6916,6 +7079,7 @@ function ProjectCard({ preset, onSelect }) {
         <span className="size-card-text">
           <span className="size-card-name">{label}</span>
           <span className="size-card-dims">{presetDims(preset)}</span>
+          {price && <span className="size-card-price">Kit {price}</span>}
         </span>
         <span className="size-card-arrow" aria-hidden="true">
           <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
@@ -7574,6 +7738,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
 }
 
 function ProjectSelector({ onSelect, onBack }) {
+  const prices = useKitPrices("quilt");
   return (
     <div className="size-page brand-shell">
       <BrandNav/>
@@ -7584,8 +7749,9 @@ function ProjectSelector({ onSelect, onBack }) {
         title="What size?"
         sub="Every size is a real finished quilt, so the piecing and yardage are worked out from here on."/>
       <div className="size-row">
-        {PRESETS.map((p, i) => (
-          <ProjectCard key={p.name} preset={p} onSelect={onSelect}/>
+        {PRESETS.map((p) => (
+          <ProjectCard key={p.name} preset={p} onSelect={onSelect}
+            price={formatKitPrice(prices[p.name])}/>
         ))}
       </div>
       <BrandFooter note="Quilting — choose a finished size"/>
@@ -9709,7 +9875,7 @@ function GridSizeThumb({ preset, craft }) {
   );
 }
 
-function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
+function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch', price }) {
   const cfg = CRAFT_STUDIO[craft];
   const image = (GRID_SIZE_IMAGES[craft] || {})[preset.name];
   const dims = isCoasterSize(preset.name)
@@ -9717,7 +9883,7 @@ function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
     : `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
-      aria-label={`${preset.name}, ${dims}`}>
+      aria-label={[preset.name, dims, price && `kit ${price}`].filter(Boolean).join(", ")}>
       <span className="size-card-visual">
         {image
           ? <img src={image} alt=""/>
@@ -9727,6 +9893,7 @@ function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
         <span className="size-card-text">
           <span className="size-card-name">{preset.name}</span>
           <span className="size-card-dims">{dims}</span>
+          {price && <span className="size-card-price">Kit {price}</span>}
         </span>
         <span className="size-card-arrow" aria-hidden="true">
           <img src="assets/landing/arrow-right.svg" alt="" width="26.5" height="25.5"/>
@@ -9738,6 +9905,7 @@ function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch' }) {
 
 function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
   const cfg = CRAFT_STUDIO[craft];
+  const prices = useKitPrices(cfg.checkoutType);
   return (
     <div className="size-page brand-shell">
       <BrandNav/>
@@ -9748,7 +9916,10 @@ function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
         title="What size?"
         sub={`Every size is a real finished piece, so the ${cfg.unitPlural} and materials are worked out from here on.`}/>
       <div className="size-row">
-        {cfg.presets.map(p => <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}/>)}
+        {cfg.presets.map(p => (
+          <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}
+            price={formatKitPrice(prices[p.name])}/>
+        ))}
       </div>
       <BrandFooter note={`${BRAND_CRAFT_LABEL[craft] || cfg.label} — choose a finished size`}/>
     </div>

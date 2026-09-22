@@ -1,7 +1,7 @@
 // Turns a stored design record into a physical Bill of Materials — the pick-list
-// used to pull supplies and pack a kit. Both design types already persist their
+// used to pull supplies and pack a kit. Every design type already persists its
 // materials breakdown when uploaded (quilt: `materials`/`backCalc`/`bindCalc`;
-// cross-stitch: `colors`/`stitches`/`fabric`), so this module reshapes those
+// the grid crafts: `colors`/`stitches`/`fabric`), so this module reshapes those
 // precomputed numbers into supplies rather than recomputing geometry.
 
 // Full-coverage stitches a single DMC skein reliably covers at 14-count with two
@@ -12,6 +12,18 @@ const STITCHES_PER_SKEIN = Number(process.env.STITCHES_PER_SKEIN) || 1500;
 // and finish. 3" per side => +6" total on each dimension.
 const AIDA_MARGIN_IN = Number(process.env.AIDA_MARGIN_IN) || 3;
 const DEFAULT_AIDA_COUNT = 14;
+
+// Loops a single skein of tapestry wool covers. A punch needle loop eats far
+// more yarn than a cross stitch does thread, so this is much lower than
+// STITCHES_PER_SKEIN. Conservative on purpose; tune via env.
+const LOOPS_PER_SKEIN = Number(process.env.LOOPS_PER_SKEIN) || 350;
+
+// Monk's cloth has to be held taut in a gripper frame, so it needs a wider
+// margin than Aida — the frame itself claims several inches per side.
+const MONKS_CLOTH_MARGIN_IN = Number(process.env.MONKS_CLOTH_MARGIN_IN) || 4;
+
+// Loops per inch the studio designs punch needle at (CRAFT_STUDIO gauge).
+const DEFAULT_PUNCH_GAUGE = 5;
 
 // Renders eighths-of-a-yard as a tidy fraction (ported from the studio's fmtY).
 function fmtYards(y) {
@@ -105,11 +117,58 @@ function crossStitchBom(data) {
   };
 }
 
+// Same shape as crossStitchBom, but the units are loops rather than stitches,
+// the thread is tapestry wool, and the ground fabric is monk's cloth.
+//
+// Only what the design itself determines is listed. Finishing supplies differ by
+// kit rather than by design — a hoop for the wall art, backing fabric for the
+// pillow, felt for the coasters — so the packer takes those from the order's
+// SKU, not from here.
+function punchNeedleBom(data) {
+  const colors = data?.colors || [];
+  const yarn = colors.map((c) => ({
+    code: c.code || "?",
+    name: c.name || "Custom",
+    hex: c.hex || null,
+    loops: c.count || 0,
+    skeins: Math.max(1, Math.ceil((c.count || 0) / LOOPS_PER_SKEIN)),
+  }));
+  const totalSkeins = yarn.reduce((s, y) => s + y.skeins, 0);
+  const totalLoops = data.stitches || colors.reduce((s, c) => s + (c.count || 0), 0);
+
+  const gauge = DEFAULT_PUNCH_GAUGE;
+  const w = data.w || 0;
+  const h = data.h || 0;
+  const finishedInches = w && h
+    ? { w: round2(w / gauge), h: round2(h / gauge) }
+    : null;
+  const monksCloth = finishedInches
+    ? {
+        color: data?.fabric?.name || null,
+        w: round2(finishedInches.w + MONKS_CLOTH_MARGIN_IN * 2),
+        h: round2(finishedInches.h + MONKS_CLOTH_MARGIN_IN * 2),
+      }
+    : null;
+
+  return {
+    type: "punch-needle",
+    gauge,
+    finishedLoops: w && h ? { w, h } : null,
+    finishedInches,
+    monksCloth,
+    needle: "Adjustable punch needle, regular gauge",
+    yarn,
+    totalLoops,
+    totalSkeins,
+  };
+}
+
 // Given a stored design record ({ id, type, data }), returns a structured BOM,
 // or null if the type isn't recognized.
 export function designToBom(record) {
   if (!record || !record.data) return null;
   if (record.type === "quilt") return quiltBom(record.data);
   if (record.type === "cross-stitch") return crossStitchBom(record.data);
+  if (record.type === "punch-needle") return punchNeedleBom(record.data);
   return null;
 }

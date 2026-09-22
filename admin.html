@@ -204,6 +204,10 @@ function supplyRows(item) {
     if (bom.aida) rows.push({ key: "aida", label: `Aida ${bom.aida.count}ct${bom.aida.color ? " · " + bom.aida.color : ""}`, qty: `${bom.aida.w}" × ${bom.aida.h}"` });
     if (bom.needle) rows.push({ key: "needle", label: bom.needle, qty: "1" });
     for (const f of bom.floss) rows.push({ key: "floss:" + f.code, label: f.name, code: f.code, hex: f.hex, qty: f.skeins + (f.skeins === 1 ? " skein" : " skeins") });
+  } else if (bom.type === "punch-needle") {
+    if (bom.monksCloth) rows.push({ key: "cloth", label: `Monk's cloth${bom.monksCloth.color ? " · " + bom.monksCloth.color : ""}`, qty: `${bom.monksCloth.w}" × ${bom.monksCloth.h}"` });
+    if (bom.needle) rows.push({ key: "needle", label: bom.needle, qty: "1" });
+    for (const y of bom.yarn) rows.push({ key: "yarn:" + y.code, label: y.name, code: y.code, hex: y.hex, qty: y.skeins + (y.skeins === 1 ? " skein" : " skeins") });
   } else if (bom.type === "quilt") {
     for (const fab of bom.fabrics) rows.push({ key: "fab:" + (fab.code || fab.name), label: fab.name, code: fab.code, hex: fab.hex, qty: fab.yardsLabel });
     if (bom.batting) rows.push({ key: "batting", label: "Batting", qty: `${bom.batting.w}" × ${bom.batting.h}"` });
@@ -236,7 +240,9 @@ function itemView(order, item, idx) {
 
   const meta = [];
   if (item.bom?.finishedStitches) meta.push(`${item.bom.finishedStitches.w}×${item.bom.finishedStitches.h} st`);
+  if (item.bom?.finishedLoops) meta.push(`${item.bom.finishedLoops.w}×${item.bom.finishedLoops.h} loops`);
   if (item.bom?.finishedInches && item.bom.type === "cross-stitch") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}" @14ct`);
+  if (item.bom?.finishedInches && item.bom.type === "punch-needle") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}" @${item.bom.gauge || 5}/in`);
   if (item.bom?.finishedInches && item.bom.type === "quilt") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}"`);
   if (item.designId) meta.push("design " + item.designId);
 
@@ -308,8 +314,10 @@ function orderCard(order) {
 // list — the "go to the shelf" summary.
 function aggregateView(orders) {
   const floss = new Map();   // code -> { name, hex, skeins }
+  const yarn = new Map();    // code -> { name, hex, skeins }
   const fabric = new Map();  // name -> { code, hex, yards }
   let aidaCount = 0, needles = 0, battingCount = 0;
+  let clothCount = 0, punchNeedles = 0;
   for (const o of orders) {
     for (const it of (o.items || [])) {
       const bom = it.bom; if (!bom) continue;
@@ -320,6 +328,13 @@ function aggregateView(orders) {
         for (const f of bom.floss) {
           const e = floss.get(f.code) || { name: f.name, hex: f.hex, skeins: 0 };
           e.skeins += f.skeins * q; floss.set(f.code, e);
+        }
+      } else if (bom.type === "punch-needle") {
+        if (bom.monksCloth) clothCount += q;
+        punchNeedles += q;
+        for (const y of bom.yarn) {
+          const e = yarn.get(y.code) || { name: y.name, hex: y.hex, skeins: 0 };
+          e.skeins += y.skeins * q; yarn.set(y.code, e);
         }
       } else if (bom.type === "quilt") {
         if (bom.batting) battingCount += q;
@@ -333,10 +348,13 @@ function aggregateView(orders) {
   const rows = [];
   if (aidaCount) rows.push({ label: "Aida cloth pieces", qty: aidaCount });
   if (needles) rows.push({ label: "Tapestry needles", qty: needles });
+  if (clothCount) rows.push({ label: "Monk's cloth pieces", qty: clothCount });
+  if (punchNeedles) rows.push({ label: "Punch needles", qty: punchNeedles });
   if (battingCount) rows.push({ label: "Batting pieces", qty: battingCount });
   const flossRows = [...floss.entries()].sort((a,b)=>b[1].skeins-a[1].skeins);
+  const yarnRows = [...yarn.entries()].sort((a,b)=>b[1].skeins-a[1].skeins);
   const fabricRows = [...fabric.entries()].sort((a,b)=>b[1].yards-a[1].yards);
-  if (!rows.length && !flossRows.length && !fabricRows.length) return null;
+  if (!rows.length && !flossRows.length && !yarnRows.length && !fabricRows.length) return null;
 
   return h("div", { class: "agg-box" },
     h("h3", { class: "sec" }, "Aggregate supplies · " + orders.length + " orders"),
@@ -344,6 +362,10 @@ function aggregateView(orders) {
     ...flossRows.map(([code, e]) => h("div", { class: "supply" },
       e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
       h("span", { class: "name" }, e.name), h("span", { class: "code" }, " DMC " + code),
+      h("span", { class: "qty" }, e.skeins + " skeins"))),
+    ...yarnRows.map(([code, e]) => h("div", { class: "supply" },
+      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
+      h("span", { class: "name" }, e.name), h("span", { class: "code" }, " wool " + code),
       h("span", { class: "qty" }, e.skeins + " skeins"))),
     ...fabricRows.map(([name, e]) => h("div", { class: "supply" },
       e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
