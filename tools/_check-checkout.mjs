@@ -13,6 +13,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { chromePath } from './_verify.mjs';
+// The real BOM function, so "what the review page lists" is checked against the
+// same arithmetic the packer's pick-list comes from rather than a copy of it.
+import { designToBom } from '../api/_lib/bom.js';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const LIVE = process.argv.includes('--live');
@@ -101,6 +104,11 @@ const storefrontCalls = [];
 // purchase, recorded so we can prove a guest reaches checkout without saving.
 const cartCalls = [];
 const designSaves = [];
+// Every /api/bom request and the BOM it answered with.
+const bomCalls = [];
+// Uploaded designs by id, so GET /api/designs/:id can hand one back the way the
+// real store does — that read is how the review page survives being rebuilt.
+const designStore = new Map();
 const SHOPIFY_HOST = 'shop.makemetime.com';
 const STUB_CHECKOUT_URL = `https://${SHOPIFY_HOST}/cart/c/check-cart-token`;
 const STUB_DESIGN_ID = '00000000-0000-4000-8000-00000000cafe';
@@ -116,10 +124,34 @@ page.on('request', (req) => {
     let body = {};
     try { body = JSON.parse(req.postData() || '{}'); } catch {}
     designSaves.push({ type: body.type, data: body.data, auth: !!req.headers().authorization });
+    designStore.set(STUB_DESIGN_ID, { type: body.type, data: body.data });
     return req.respond({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ id: STUB_DESIGN_ID }),
     });
+  }
+
+  // Reading a design back by id. Anonymous in the real API too — the uuid is the
+  // capability, which is what lets a guest return to their own kit.
+  const readMatch = new URL(url).pathname.match(/^\/api\/designs\/(.+)$/);
+  if (readMatch && req.method() === 'GET') {
+    const rec = designStore.get(decodeURIComponent(readMatch[1]));
+    if (!rec) return req.respond({ status: 404, contentType: 'application/json', body: '{"error":"not_found"}' });
+    return req.respond({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ id: readMatch[1], type: rec.type, name: rec.data.name || 'Untitled', data: rec.data }),
+    });
+  }
+
+  // The supply list. Deliberately the real designToBom rather than canned rows,
+  // so a change to the skein constants shows up as a change on the page.
+  if (new URL(url).pathname === '/api/bom' && req.method() === 'POST') {
+    let body = {};
+    try { body = JSON.parse(req.postData() || '{}'); } catch {}
+    const bom = designToBom({ type: body.type, data: body.data });
+    bomCalls.push({ type: body.type, bom });
+    if (!bom) return req.respond({ status: 422, contentType: 'application/json', body: '{"error":"unsupported_for_type"}' });
+    return req.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ bom }) });
   }
 
   // Where a real purchase lands. Answered locally so the run never touches the
@@ -435,12 +467,73 @@ check(!!unsold && /sold as a kit/i.test(unsold.title),
 check(!!unsold && !/\$/.test(unsold.text), 'punch needle Small Hoop: no price on the label',
   unsold ? `"${unsold.text}"` : '');
 
-// ── 4. A guest buys without saving or signing in first ─────────────────────
-// The point of the whole change: one click from canvas to checkout. The design
-// still gets uploaded (Shopify needs something to attach), but the shopper is
-// never asked to save or make an account.
+// Clicks Buy kit in whichever editor is showing and waits for the review page.
+// Deliberately not a navigation: the studio stays mounted underneath.
+async function buyKit() {
+  await page.evaluate(() => {
+    const bar = document.querySelector('.header-right') || document.querySelector('.xs-topbar');
+    const btn = [...bar.querySelectorAll('button.btn')].find(b => /^Buy kit/.test(b.textContent));
+    if (btn) btn.click();
+  });
+  await page.waitForSelector('.kit-layer .kit-band', { timeout: 15000 }).catch(() => null);
+  await new Promise(r => setTimeout(r, 700));
+}
+
+// The review page scrolls inside its own fixed layer, so the document is never
+// taller than the viewport and `fullPage` captures only the first screen. Grow the
+// viewport to the layer's own scroll height instead, then put it back.
+async function shootReview(slug) {
+  for (const [w, tag] of [[1440, ''], [390, '-mobile']]) {
+    await page.setViewport({ width: w, height: 950 });
+    await new Promise(r => setTimeout(r, 500));
+    const h = await page.evaluate(() => {
+      const l = document.querySelector('.kit-layer');
+      return l ? l.scrollHeight : 950;
+    });
+    await page.setViewport({ width: w, height: Math.min(2600, Math.max(950, h)) });
+    await new Promise(r => setTimeout(r, 500));
+    await page.screenshot({ path: `tools/_shot-kit-review-${slug}${tag}.png` });
+  }
+  await page.setViewport({ width: 1440, height: 950 });
+  await new Promise(r => setTimeout(r, 400));
+}
+
+// What the review page is currently saying.
+const reviewPage = () => page.evaluate(() => {
+  const layer = document.querySelector('.kit-layer');
+  if (!layer) return null;
+  const groups = [...layer.querySelectorAll('.kit-group')].map(g => ({
+    title: (g.querySelector('.kit-group-title') || {}).textContent?.trim() || '',
+    rows: [...g.querySelectorAll('.kit-row')].map(r => ({
+      label: (r.querySelector('.kit-row-label') || {}).textContent?.trim() || '',
+      qty: (r.querySelector('.kit-row-qty') || {}).textContent?.trim() || null,
+      swatch: !!r.querySelector('.kit-sw'),
+    })),
+  }));
+  return {
+    title: (layer.querySelector('.brand-title') || {}).textContent?.trim() || '',
+    sub: (layer.querySelector('.brand-head-sub') || {}).textContent?.trim() || '',
+    price: (layer.querySelector('.kit-buy-v') || {}).textContent?.trim() || null,
+    checkout: (layer.querySelector('.kit-buy-go') || {}).textContent?.trim() || null,
+    hasPreview: !!layer.querySelector('.kit-tile-art svg, .kit-tile-art canvas'),
+    tiles: layer.querySelectorAll('.kit-tile').length,
+    specs: [...layer.querySelectorAll('.brand-spec')].map(s => [
+      s.querySelector('.brand-spec-k').textContent.trim(),
+      s.querySelector('.brand-spec-v').textContent.trim(),
+    ]),
+    groups,
+    // Whether the studio is still mounted behind it — the whole reason the page
+    // is a layer and not a replacement.
+    studioBehind: !!document.querySelector('.app, .xs-app'),
+  };
+});
+
+// ── 4. A guest reviews the kit, then buys, without saving or signing in ────
+// The design is uploaded when Buy kit is pressed — Shopify needs something to
+// attach, and the review page has to survive a rebuilt document — but the shopper
+// is never asked to save or make an account.
 console.log('\n── guest purchase ──');
-designSaves.length = 0; cartCalls.length = 0; storefrontCalls.length = 0;
+designSaves.length = 0; cartCalls.length = 0; storefrontCalls.length = 0; bomCalls.length = 0;
 await walkToEditor('Quilt', 'Baby Blanket', ['skip', 'skip', 'template']);
 // The variant the stub minted for this handle, so the assertion below doesn't
 // depend on where baby-quilt happened to sit in the batch.
@@ -449,15 +542,11 @@ const babyVariant = `gid://shopify/ProductVariant/${1000 + babyIndex}`;
 const signedOut = await page.evaluate(() => !/Sign out|My account/i.test(document.body.innerText));
 check(signedOut, 'starting from a signed-out session');
 
-const navigated = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
-await page.evaluate(() => {
-  const bar = document.querySelector('.header-right');
-  const btn = [...bar.querySelectorAll('button.btn')].find(b => /^Buy kit/.test(b.textContent));
-  if (btn) btn.click();
-});
-await navigated;
-await new Promise(r => setTimeout(r, 600));
-
+await buyKit();
+const quiltReview = await reviewPage();
+check(!!quiltReview, 'Buy kit opens the kit review page');
+check(page.url() !== STUB_CHECKOUT_URL, 'Buy kit no longer jumps straight to Shopify', page.url());
+check(cartCalls.length === 0, 'no cart is created before the maker has seen the kit', `${cartCalls.length}`);
 check(designSaves.length === 1, 'the design is uploaded exactly once', `${designSaves.length} POSTs`);
 check(designSaves[0] && !designSaves[0].auth, 'uploaded with no Authorization header (guest)');
 check(designSaves[0]?.type === 'quilt', 'uploaded under the right craft type', designSaves[0]?.type);
@@ -465,78 +554,188 @@ check(designSaves[0]?.type === 'quilt', 'uploaded under the right craft type', d
 // display name ("Baby Blanket") — that mapping is what picks the product.
 check(designSaves[0]?.data?.preset === 'Baby blanket', 'uploaded record carries the chosen size',
   designSaves[0]?.data?.preset);
-check(cartCalls.length === 1, 'one cart was created', `${cartCalls.length}`);
+
+if (quiltReview) {
+  console.log(JSON.stringify(quiltReview, null, 1));
+  check(quiltReview.studioBehind, 'the studio stays mounted under the review page');
+  check(quiltReview.hasPreview, 'the design is previewed on the page');
+  check(quiltReview.tiles === 1, 'one preview tile, with room for the finished-product shot',
+    `${quiltReview.tiles}`);
+  check(quiltReview.price === '$89', 'the kit price is stated', String(quiltReview.price));
+  check(quiltReview.checkout === 'Checkout', 'Checkout is the call to action', String(quiltReview.checkout));
+  const kitGroup = quiltReview.groups.find(g => /In your kit/i.test(g.title));
+  const ownGroup = quiltReview.groups.find(g => /You'll need/i.test(g.title));
+  check(!!kitGroup, 'there is an "In your kit" list');
+  check(!!ownGroup, "there is a \"You'll need\" list");
+  const labels = (kitGroup?.rows || []).map(r => r.label);
+  check(labels.some(l => /^Kona /.test(l)), 'the quilt fabrics are listed by Kona code', labels.slice(0, 3).join(' | '));
+  check(labels.includes('Batting'), 'batting is listed');
+  check(labels.some(l => /cutting and assembly guide/i.test(l)), 'the printed guide is listed');
+  check((kitGroup?.rows || []).some(r => r.swatch), 'fabric rows carry a colour swatch');
+  const yards = (kitGroup?.rows || []).filter(r => /^Kona /.test(r.label)).map(r => r.qty);
+  check(yards.length > 0 && yards.every(q => /yd$/.test(q || '')), 'fabrics are quantified in yards', yards.join(' | '));
+  check(quiltReview.specs.some(([k]) => /Finished size/i.test(k)), 'the finished size is stated',
+    JSON.stringify(quiltReview.specs));
+  await shootReview('quilt');
+}
+
+// The numbers on the page have to be the packer's numbers, not a second opinion.
+check(bomCalls.length >= 1, 'the review page asked the server for the supply list', `${bomCalls.length} calls`);
+const quiltBom = bomCalls[bomCalls.length - 1]?.bom;
+if (quiltBom) {
+  const want = (quiltBom.fabrics || []).map(f => `Kona ${f.code} — ${f.name}`);
+  const got = (quiltReview?.groups.find(g => /In your kit/i.test(g.title))?.rows || []).map(r => r.label);
+  check(want.length > 0 && want.every(l => got.includes(l)),
+    'every fabric designToBom returned is on the page', `${want.length} wanted, page has ${got.length} rows`);
+}
+
+// Only now does Shopify get involved.
+const navigated = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+await page.evaluate(() => document.querySelector('.kit-layer .kit-buy-go').click());
+await navigated;
+await new Promise(r => setTimeout(r, 600));
+check(cartCalls.length === 1, 'Checkout creates one cart', `${cartCalls.length}`);
 const line = cartCalls[0]?.lines?.[0];
 check(babyIndex >= 0 && line?.merchandiseId === babyVariant,
   'the cart line is the Baby Blanket variant', `${line?.merchandiseId} (wanted ${babyVariant})`);
 check(line?.attributes?.[0]?.key === '_design_id' && line?.attributes?.[0]?.value === STUB_DESIGN_ID,
   'the design id rides along on the cart line', JSON.stringify(line?.attributes));
 check(page.url() === STUB_CHECKOUT_URL, 'the browser is sent to the Shopify checkout URL', page.url());
+check(designSaves.length === 1, 'Checkout does not upload a second copy', `${designSaves.length} POSTs`);
 
-// The grid editors build their record differently (commitFloat, then
-// buildStitchRecord), so buy once from there too rather than trusting the quilt.
-designSaves.length = 0; cartCalls.length = 0;
-await walkToEditor('Cross-stitch', 'Bookmark', ['template', 'skip']);
-const navigated2 = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
-await page.evaluate(() => {
-  const bar = document.querySelector('.xs-topbar');
-  const btn = [...bar.querySelectorAll('button.btn')].find(b => /^Buy kit/.test(b.textContent));
-  if (btn) btn.click();
-});
-await navigated2;
-await new Promise(r => setTimeout(r, 600));
-check(designSaves.length === 1 && designSaves[0].type === 'cross-stitch',
-  'a grid design uploads on buy', `${designSaves.length} POSTs, type ${designSaves[0]?.type}`);
-check(designSaves[0]?.data?.presetName === 'Bookmark', 'the grid record carries its size',
-  designSaves[0]?.data?.presetName);
-check(designSaves[0]?.data?.stitches > 0, 'the grid record has stitches in it',
-  `${designSaves[0]?.data?.stitches}`);
-check(cartCalls[0]?.lines?.[0]?.attributes?.[0]?.value === STUB_DESIGN_ID,
-  'the grid cart line carries the design id');
-check(page.url() === STUB_CHECKOUT_URL, 'the grid editor reaches checkout too', page.url());
+// The grid crafts list skeins rather than yardage, and their record is built
+// differently (commitFloat, then buildStitchRecord), so both are walked too.
+for (const { craft, size, type, unit, thread } of [
+  { craft: 'Cross-stitch', size: 'Bookmark', type: 'cross-stitch', unit: 'stitches', thread: 'floss' },
+  { craft: 'Punch Needle', size: 'Pillow', type: 'punch-needle', unit: 'loops', thread: 'yarn' },
+]) {
+  console.log(`\n${craft}:`);
+  designSaves.length = 0; cartCalls.length = 0; bomCalls.length = 0;
+  await walkToEditor(craft, size, ['template', 'skip']);
+  await buyKit();
+  const review = await reviewPage();
+  check(!!review, `${craft}: Buy kit opens the review page`);
+  check(designSaves.length === 1 && designSaves[0].type === type,
+    `${craft}: the design uploads on buy`, `${designSaves.length} POSTs, type ${designSaves[0]?.type}`);
+  check(designSaves[0]?.data?.presetName === size, `${craft}: the record carries its size`,
+    designSaves[0]?.data?.presetName);
+  check(designSaves[0]?.data?.stitches > 0, `${craft}: the record has ${unit} in it`,
+    `${designSaves[0]?.data?.stitches}`);
 
-// ── 5. Coming back from checkout ───────────────────────────────────────────
-// Buying redirects the tab to Shopify, so Back is the obvious way home. When the
-// browser keeps the page in its back-forward cache that just works; when it
-// doesn't — a phone under memory pressure, an unload listener, devtools open —
-// the document is rebuilt, and it used to rebuild as "What are you making?".
-console.log('\n── back from checkout ──');
+  const bom = bomCalls[bomCalls.length - 1]?.bom;
+  const rows = review?.groups.find(g => /In your kit/i.test(g.title))?.rows || [];
+  if (bom) {
+    // The listed skeins are the ones designToBom worked out, per colour.
+    const want = (bom[thread] || []).map(t => ({
+      label: `DMC ${t.code} — ${t.name}`,
+      qty: `${t.skeins} skein${t.skeins === 1 ? '' : 's'}`,
+    }));
+    const missing = want.filter(w => !rows.some(r => r.label === w.label && r.qty === w.qty));
+    check(want.length > 0 && missing.length === 0,
+      `${craft}: every ${thread} colour is listed with the skeins designToBom worked out`,
+      missing.length ? `missing ${JSON.stringify(missing.slice(0, 3))}` : `${want.length} colours`);
+    check(rows.some(r => /needle/i.test(r.label)), `${craft}: the needle is listed`,
+      rows.map(r => r.label).find(l => /needle/i.test(l)) || 'none');
+    check(review?.specs.some(([k, v]) => /Skeins/i.test(k) && v === String(bom.totalSkeins)),
+      `${craft}: the skein total matches the BOM`, JSON.stringify(review?.specs));
+  }
+  // Punch needle kits differ by SKU, not by design: the pillow's backing and
+  // insert come from KIT_INFO, because designToBom deliberately leaves them out.
+  if (type === 'punch-needle') {
+    check(rows.some(r => /pillow insert/i.test(r.label)),
+      'the pillow kit lists its backing and insert', rows.map(r => r.label).join(' | '));
+  }
+  await shootReview(type);
+
+  const gone = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+  await page.evaluate(() => document.querySelector('.kit-layer .kit-buy-go').click());
+  await gone;
+  await new Promise(r => setTimeout(r, 500));
+  check(cartCalls[0]?.lines?.[0]?.attributes?.[0]?.value === STUB_DESIGN_ID,
+    `${craft}: the cart line carries the design id`);
+  check(page.url() === STUB_CHECKOUT_URL, `${craft}: Checkout reaches Shopify`, page.url());
+}
+
+// ── 5. Back out of the review page, back out of checkout ───────────────────
+// Two different Backs. From the review page the studio is still mounted, so the
+// canvas has to come back exactly as it was left. From Shopify the document may
+// have been thrown away entirely, in which case the review page is rebuilt from
+// the design id in the history entry.
+console.log('\n── back from the review page ──');
 await walkToEditor('Quilt', 'Throw Blanket', ['skip', 'skip', 'template']);
-const tplBefore = await page.evaluate(() => history.state && history.state.quiltTemplateId);
-// Opt this document out of the back-forward cache, the way a phone evicting the
-// tab does, so Back is forced to build the page again from the history entry.
-await page.evaluate(() => window.addEventListener('unload', () => {}));
-const gone = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
-await page.evaluate(() => {
-  const btn = [...document.querySelectorAll('.header-right button.btn')].find(b => /^Buy kit/.test(b.textContent));
-  if (btn) btn.click();
+const patchesBefore = await page.evaluate(() => {
+  const m = document.body.innerText.match(/Patches placed\s*(\d+)/);
+  return m ? +m[1] : null;
 });
-await gone;
-check(page.url() === STUB_CHECKOUT_URL, 'reached checkout', page.url());
-
-await page.goBack({ waitUntil: 'load', timeout: 20000 }).catch(e => console.log('  goBack:', e.message));
-await new Promise(r => setTimeout(r, 1400));
-const returned = await page.evaluate(() => ({
+const tplBefore = await page.evaluate(() => history.state && history.state.quiltTemplateId);
+await buyKit();
+check(await page.evaluate(() => history.state && history.state.step) === 'cart',
+  'the review page gets its own history entry');
+check(await page.evaluate(() => history.state && history.state.cartDesignId) === STUB_DESIGN_ID,
+  'the entry carries the design id, not the design');
+await page.goBack({ timeout: 15000 }).catch(e => console.log('  goBack:', e.message));
+await new Promise(r => setTimeout(r, 900));
+const backToEditor = await page.evaluate(() => ({
+  layer: !!document.querySelector('.kit-layer'),
   editor: !!document.querySelector('.app'),
-  craft: /What are you making/.test(document.body.innerText),
   step: history.state && history.state.step,
-  tpl: history.state && history.state.quiltTemplateId,
   patches: (() => {
     const m = document.body.innerText.match(/Patches placed\s*(\d+)/);
     return m ? +m[1] : null;
   })(),
 }));
-check(returned.editor, 'Back from checkout returns to the studio', JSON.stringify(returned));
+check(!backToEditor.layer, 'Back closes the review page', JSON.stringify(backToEditor));
+check(backToEditor.editor, 'Back lands on the editor');
+check(backToEditor.step === 'q-editor', 'the entry describes the editor step again', String(backToEditor.step));
+check(patchesBefore > 0 && backToEditor.patches === patchesBefore,
+  'the canvas comes back untouched', `${backToEditor.patches} vs ${patchesBefore} patches`);
+
+console.log('\n── back from checkout ──');
+await buyKit();
+// Opt this document out of the back-forward cache, the way a phone evicting the
+// tab does, so Back is forced to build the page again from the history entry.
+await page.evaluate(() => window.addEventListener('unload', () => {}));
+const gone = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+await page.evaluate(() => document.querySelector('.kit-layer .kit-buy-go').click());
+await gone;
+check(page.url() === STUB_CHECKOUT_URL, 'reached checkout', page.url());
+
+await page.goBack({ waitUntil: 'load', timeout: 20000 }).catch(e => console.log('  goBack:', e.message));
+await page.waitForSelector('.kit-layer .kit-band', { timeout: 15000 }).catch(() => null);
+await new Promise(r => setTimeout(r, 1000));
+const returned = await page.evaluate(() => ({
+  layer: !!document.querySelector('.kit-layer'),
+  craft: /What are you making/.test(document.body.innerText),
+  step: history.state && history.state.step,
+  tpl: history.state && history.state.quiltTemplateId,
+  price: (document.querySelector('.kit-buy-v') || {}).textContent?.trim() || null,
+  rows: document.querySelectorAll('.kit-layer .kit-row').length,
+}));
+check(returned.layer, 'Back from checkout rebuilds the review page', JSON.stringify(returned));
 check(!returned.craft, 'not dumped on the craft picker');
-check(returned.step === 'q-editor', 'the entry still describes the studio step', String(returned.step));
-check(returned.tpl === tplBefore, 'the size and template are still chosen', `${returned.tpl} vs ${tplBefore}`);
-check(returned.patches > 0, 'the quilt top is rebuilt, not blank', `${returned.patches} patches`);
+check(returned.step === 'cart', 'the entry still describes the review step', String(returned.step));
+check(returned.tpl === tplBefore, 'the size and template are still recorded underneath',
+  `${returned.tpl} vs ${tplBefore}`);
+check(returned.rows > 0, 'the supply list is listed again', `${returned.rows} rows`);
+check(returned.price === '$149', 'and priced again', String(returned.price));
+
+// One more Back, from a rebuilt review page, has to reach the studio rather than
+// the craft picker — the snapshot carries the editor state underneath for exactly
+// this.
+await page.goBack({ timeout: 15000 }).catch(e => console.log('  goBack:', e.message));
+await new Promise(r => setTimeout(r, 1200));
+const deeper = await page.evaluate(() => ({
+  editor: !!document.querySelector('.app'),
+  step: history.state && history.state.step,
+}));
+check(deeper.editor, 'Back again reaches the studio, not the craft picker', JSON.stringify(deeper));
+check(deeper.step === 'q-editor', 'on the editor entry', String(deeper.step));
 
 // ── 6. Re-ordering a design already in the library ─────────────────────────
 // The saved-design preview is the second way in, and it used to read "Saved for
-// checkout ✓" with nowhere to go for anything already uploaded. The library UI
-// itself sits behind the account wall, so rather than sign in, mount the button
-// on its own with savedId set — which is the state that used to go wrong.
+// checkout ✓" with nowhere to go for anything already uploaded. Now it routes to
+// the same review page. The library UI itself sits behind the account wall, so
+// rather than sign in, mount the button on its own with savedId set.
 console.log('\n── library re-order ──');
 await page.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
 await page.waitForFunction(
@@ -546,21 +745,33 @@ await page.waitForFunction(
 const reorder = await page.evaluate(async () => {
   const host = document.createElement('div');
   document.body.appendChild(host);
+  let reviewed = null;
   ReactDOM.createRoot(host).render(React.createElement(KitCheckoutButton, {
     type: 'quilt',
     design: { preset: 'Throw', shapes: [] },
     savedId: '00000000-0000-4000-8000-0000000000aa',
+    onReview: (kit) => { reviewed = kit; },
   }));
   // Let the render settle and the price lookup resolve.
   await new Promise(r => setTimeout(r, 1200));
   const b = host.querySelector('button');
-  return b ? { text: b.textContent.trim(), disabled: b.disabled } : null;
+  if (b) b.click();
+  await new Promise(r => setTimeout(r, 900));
+  return {
+    text: b ? b.textContent.trim() : null,
+    disabled: b ? b.disabled : null,
+    reviewed,
+  };
 });
-check(!!reorder, 'the saved-design preview renders a kit button', reorder ? reorder.text : 'none found');
-check(!!reorder && /Add to cart/.test(reorder.text),
-  'a design already in the library can still be bought', reorder ? `label "${reorder.text}"` : '');
-check(!!reorder && /\$149/.test(reorder.text), 'the re-order button carries the price', reorder?.text);
-check(!!reorder && !reorder.disabled, 'the re-order button is enabled', `disabled=${reorder?.disabled}`);
+check(!!reorder.text, 'the saved-design preview renders a kit button', reorder.text || 'none found');
+check(/Review kit/.test(reorder.text || ''),
+  'a design already in the library routes to the review page', `label "${reorder.text}"`);
+check(/\$149/.test(reorder.text || ''), 'the re-order button carries the price', reorder.text);
+check(reorder.disabled === false, 'the re-order button is enabled', `disabled=${reorder.disabled}`);
+check(reorder.reviewed?.designId === '00000000-0000-4000-8000-0000000000aa',
+  're-ordering reuses the stored design rather than uploading again',
+  JSON.stringify(reorder.reviewed?.designId));
+check(reorder.reviewed?.type === 'quilt', 'and carries the craft type', reorder.reviewed?.type);
 
 // ── 7. Graceful degradation when Shopify is unreachable ────────────────────
 // Pricing is advisory, so an outage must never stop someone from designing: the

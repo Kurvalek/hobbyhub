@@ -2452,6 +2452,153 @@
   @media (max-width: 900px) {
     .brand-shell .brand-project { grid-template-columns: minmax(0, 1fr); }
   }
+
+  /* ── Kit review ───────────────────────────────────────────────────────────
+     The last screen before Shopify. The design on the left at a size worth
+     looking at, the reckoning on the right: what's in the box, what isn't, and
+     what it costs. Two equal columns rather than a narrow sidebar, because the
+     supply list is the reason someone is on this page. */
+
+  /* Full page to look at, but the studio is still mounted underneath so Back
+     returns to the canvas exactly as it was — nothing saves a design mid-edit.
+     Opaque and scrollable in its own right, so what's behind is unreachable. */
+  .kit-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--brand-paper);
+  }
+  .kit-layer .kit-page { min-height: 100%; }
+
+  .brand-shell .kit-band {
+    flex: 1 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(24px, 4vw, 56px);
+    padding-block: clamp(24px, 3vw, 44px);
+    background: var(--brand-paper);
+    border-bottom: 1px solid var(--brand-ink);
+  }
+  @media (max-width: 900px) {
+    .brand-shell .kit-band { grid-template-columns: minmax(0, 1fr); }
+  }
+  /* One tile today. auto-fit rather than a fixed column so a second tile — a
+     generated shot of the finished thing — drops in beside it without a
+     layout change, and doesn't leave a hole meanwhile. */
+  .brand-shell .kit-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+  }
+  .brand-shell .kit-tile {
+    margin: 0;
+    padding: 16px;
+    background: #FFFFFF;
+    border: 1px solid var(--brand-ink);
+    border-radius: 2px;
+  }
+  /* Square by default, but capped: on a wide screen an uncapped square preview
+     runs far past the supply list beside it and pushes the specs below the fold. */
+  .brand-shell .kit-tile-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    max-height: 360px;
+    overflow: hidden;
+  }
+  .brand-shell .kit-tile-art > * { max-width: 100%; max-height: 100%; }
+  .brand-shell .kit-tile-cap {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--brand-rule-2);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--brand-muted-2);
+  }
+  .brand-shell .kit-group + .kit-group { margin-top: clamp(22px, 2.4vw, 32px); }
+  .brand-shell .kit-group-title {
+    font-size: var(--brand-display-s);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--brand-rule);
+  }
+  .brand-shell .kit-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .brand-shell .kit-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--brand-rule-2);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .brand-shell .kit-sw {
+    flex: 0 0 auto;
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    border: 1px solid rgba(23, 23, 23, 0.18);
+    transform: translateY(2px);
+  }
+  .brand-shell .kit-row-label { flex: 1 1 auto; min-width: 0; }
+  .brand-shell .kit-row-qty {
+    flex: 0 0 auto;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* The bring-your-own list is the one thing on the page that isn't a promise,
+     so it reads a step back from the supplies above it. */
+  .brand-shell .kit-list.is-own .kit-row { color: var(--brand-muted); }
+  .brand-shell .kit-buy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: clamp(22px, 2.4vw, 32px);
+    padding-top: 16px;
+    border-top: 1px solid var(--brand-ink);
+  }
+  .brand-shell .kit-buy-k {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--brand-muted-2);
+  }
+  .brand-shell .kit-buy-v {
+    display: block;
+    margin-top: 3px;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .brand-shell .kit-buy-go { height: 46px; padding: 0 26px; }
+  .brand-shell .kit-note {
+    margin-top: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--brand-muted);
+  }
+  .brand-shell .kit-err {
+    margin-top: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #B3261E;
+  }
   .brand-shell .brand-section-title {
     font-size: var(--brand-display-m);
     font-weight: 700;
@@ -2913,6 +3060,70 @@ const SHOPIFY_KITS = {
 // Line-item property carried into the Shopify order; the fulfillment backend
 // keys off this exact name to trace a kit back to its design.
 const DESIGN_ID_ATTRIBUTE = "_design_id";
+
+// What the kit review page says about a box, beyond the supplies the design
+// itself determines. /api/bom already derives the fabric, thread and needle from
+// the design — this covers only what it can't know.
+//
+// `included` is the printed matter every kit of that craft ships with, worded
+// from the product descriptions in shopify-products.csv. `extras` is keyed by
+// finished-size preset (same keys as SHOPIFY_KITS) for finishing that varies by
+// kit rather than by design — api/_lib/bom.js leaves these out of the BOM on
+// purpose, because the packer takes them from the order's SKU. `yourOwn` is the
+// tools a maker needs to have already.
+const KIT_INFO = {
+  "quilt": {
+    included: [
+      "Printed cutting and assembly guide matched to your design",
+    ],
+    yourOwn: [
+      "Sewing machine and matching thread",
+      "Rotary cutter, ruler and mat (or sharp scissors)",
+      "Iron and pressing surface",
+      "Pins or clips",
+    ],
+  },
+  "cross-stitch": {
+    included: [
+      "Printed chart with a full-colour symbol legend",
+      "Printed step-by-step instructions",
+    ],
+    extras: {
+      "Small Hoop":  ["Wooden hoop to finish and hang it in"],
+      "Medium Hoop": ["Wooden hoop to finish and hang it in"],
+    },
+    yourOwn: [
+      "Embroidery hoop or frame, if your kit doesn't include one",
+      "Small sharp scissors",
+      "An iron, to press the finished piece",
+    ],
+  },
+  "punch-needle": {
+    included: [
+      "Printed chart with a full-colour legend",
+      "Printed step-by-step instructions",
+    ],
+    extras: {
+      "Wall Hanging": ["Wooden hoop to finish and hang it in"],
+      "Pillow":       ["Backing fabric and a pillow insert"],
+      "Coaster":      ["Felt backing for all four coasters"],
+    },
+    yourOwn: [
+      "Gripper frame or stretcher bars to hold the cloth taut",
+      "Small sharp scissors",
+      "Fabric glue, for finishing the backs",
+    ],
+  },
+};
+
+// The "in your kit" extras for a design's size, plus the printed matter that
+// comes with every kit of that craft.
+function kitIncludes(type, design) {
+  const info = KIT_INFO[type];
+  if (!info) return [];
+  const extras = (info.extras && info.extras[kitPresetName(type, design)]) || [];
+  return [...extras, ...(info.included || [])];
+}
 
 // Quilts store the chosen preset as `preset`; the grid crafts store it as
 // `presetName`. Callers shouldn't have to know which, so both go through here.
@@ -3538,18 +3749,147 @@ async function downloadDesignPdf(type, design, doc) {
   URL.revokeObjectURL(url);
 }
 
-// The purchase sequence behind every buy button: (1) send the design to the
-// design-store API, (2) resolve the kit its finished size maps to, (3) create a
-// Shopify cart whose line item carries the design id as `_design_id`, and (4)
-// hand off to the hosted checkout. No account is needed anywhere in here — a
-// guest's design lands unowned, which is the whole reason the API allows it.
+// Reads a stored design back by id (GET /api/designs/:id). No auth: the uuid is
+// the capability, which is what lets a guest return to their own kit. Used when
+// the browser rebuilt the document on the review step — the design is far too big
+// to have travelled in the history entry, so only its id did.
+async function fetchDesignRecord(id) {
+  const res = await fetch(`/api/designs/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`design fetch failed (HTTP ${res.status})`);
+  const body = await res.json();
+  if (!body || !body.data || !body.type) throw new Error("design fetch failed (bad response)");
+  return { type: body.type, record: { ...body.data, name: body.data.name || body.name } };
+}
+
+// The supplies a design turns into (POST /api/bom). Like /api/render, the design
+// travels in the request body, so this works for a canvas that was never saved.
+//
+// The arithmetic is deliberately not done here: skein counts and cut margins come
+// from the server's env constants, and the same function produces the packer's
+// pick-list. A second copy in this page could quietly tell a maker something
+// different from what ends up in the box.
+async function fetchDesignBom(type, design) {
+  const res = await fetch("/api/bom", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, data: apiSafeDesign(design) }),
+  });
+  if (!res.ok) throw new Error(`bom failed (HTTP ${res.status})`);
+  const json = await res.json();
+  if (!json || !json.bom) throw new Error("bom response had no bom");
+  return json.bom;
+}
+
+// Loads the BOM for one design, or null while it's in flight or if it failed.
+// A failure is never surfaced as an error: the review page has a local fallback
+// that lists the same colours without the skein counts, and a supply list that
+// can't be fetched is no reason to stop someone buying.
+function useDesignBom(type, design) {
+  const [bom, setBom] = useState(null);
+  const key = design ? JSON.stringify(apiSafeDesign(design)) : null;
+  useEffect(() => {
+    if (!type || !key) { setBom(null); return; }
+    let alive = true;
+    fetchDesignBom(type, JSON.parse(key))
+      .then((b) => { if (alive) setBom(b); })
+      .catch((e) => console.warn("BOM lookup failed:", e));
+    return () => { alive = false; };
+  }, [type, key]);
+  return bom;
+}
+
+function kitSkeinLabel(n) {
+  return `${n} skein${n === 1 ? "" : "s"}`;
+}
+
+function kitInchBox(o) {
+  return `${o.w}" × ${o.h}"`;
+}
+
+// The server's BOM as rows for the review list: an optional colour swatch, a
+// label, and how much of it comes in the box. Labels match the ones on the
+// printed sheet (api/_lib/render/instructions.js) so the page, the paperwork and
+// the packer's list all name the same thing the same way.
+function kitSupplyRows(type, bom) {
+  if (!bom) return null;
+  const rows = [];
+  const named = (code, name) => (code ? `DMC ${code} — ${name}` : name);
+  if (type === "quilt") {
+    (bom.fabrics || []).forEach((f) => rows.push({
+      hex: f.hex, label: f.code ? `Kona ${f.code} — ${f.name}` : f.name, qty: f.yardsLabel,
+    }));
+    if (bom.batting) rows.push({ label: "Batting", qty: kitInchBox(bom.batting) });
+    if (bom.backing) rows.push({ label: "Backing fabric", qty: bom.backing.yardsLabel });
+    if (bom.binding) rows.push({ label: "Binding fabric", qty: bom.binding.yardsLabel });
+    return rows;
+  }
+  if (type === "cross-stitch") {
+    if (bom.aida) rows.push({
+      label: `Aida cloth, ${bom.aida.count}-count${bom.aida.color ? ` (${bom.aida.color})` : ""}`,
+      qty: kitInchBox(bom.aida),
+    });
+    if (bom.needle) rows.push({ label: `${bom.needle} needle`, qty: "1" });
+    (bom.floss || []).forEach((f) => rows.push({ hex: f.hex, label: named(f.code, f.name), qty: kitSkeinLabel(f.skeins) }));
+    return rows;
+  }
+  if (bom.monksCloth) rows.push({
+    label: `Monk's cloth${bom.monksCloth.color ? ` (${bom.monksCloth.color})` : ""}`,
+    qty: kitInchBox(bom.monksCloth),
+  });
+  // Already reads as a full product name, so it doesn't take " needle" the way
+  // the tapestry needle does.
+  if (bom.needle) rows.push({ label: bom.needle, qty: "1" });
+  (bom.yarn || []).forEach((y) => rows.push({ hex: y.hex, label: named(y.code, y.name), qty: kitSkeinLabel(y.skeins) }));
+  return rows;
+}
+
+// The same list built from what the design already carries, for the moment before
+// /api/bom answers and for the case where it never does. Quantities that are the
+// server's to work out (skeins, cut sizes) are left off rather than guessed.
+function kitSupplyRowsLocal(type, record) {
+  if (!record) return [];
+  if (type === "quilt") {
+    const rows = ((record.materials && record.materials.items) || []).map((m) => ({
+      hex: m.hex, label: m.code ? `Kona ${m.code} — ${m.name}` : m.name, qty: fmtY(m.yards || 0),
+    }));
+    if (record.backing && record.backCalc) rows.push({ label: "Backing fabric", qty: fmtY(record.backCalc.yards) });
+    if (record.binding && record.bindCalc) rows.push({ label: "Binding fabric", qty: fmtY(record.bindCalc.yards) });
+    return rows;
+  }
+  const cfg = CRAFT_STUDIO[type];
+  const unit = cfg ? cfg.unitPlural : "stitches";
+  return (record.colors || []).map((c) => ({
+    hex: c.hex, label: c.code ? `DMC ${c.code} — ${c.name}` : c.name, qty: `${c.count} ${unit}`,
+  }));
+}
+
+// Resolve the kit for a design's size, create the cart, and hand off to Shopify's
+// hosted checkout. Split out of the save step so the review page can run just
+// this half for a design that's already uploaded.
+async function startKitCheckout(type, design, designId) {
+  // Each kit is a single-variant product, so resolving the handle its size maps
+  // to gives us the exact variant to buy.
+  const { variantId } = await resolveKit(kitHandle(type, design));
+  const checkoutUrl = await addKitToShopifyCart({ variantId, designId });
+  window.location.href = checkoutUrl;
+}
+
+// What every buy button does: send the design to the design-store API, then hand
+// the maker to the kit review page, which is where the Shopify half happens (see
+// startKitCheckout). No account is needed anywhere in here — a guest's design
+// lands unowned, which is the whole reason the API allows it.
+//
+// The upload has to happen before the review page rather than at checkout,
+// because the review page is a history entry a browser can rebuild from nothing.
+// A stored id is the only thing small enough to put in that entry and the only
+// thing that survives the document being thrown away.
 //
 // `design` is read while rendering, to price the kit and decide whether it can
 // be sold at all. `getDesign` is called on click instead, which is what lets the
 // editor sell a canvas that was never saved: the record is built from live state
 // at the moment someone buys. Local-only fields and embedded photos are stripped
 // by apiSafeDesign so the upload stays under the API's payload cap.
-function useKitPurchase({ type, design, getDesign, savedId, onSaved }) {
+function useKitPurchase({ type, design, getDesign, savedId, onSaved, onReview }) {
   // Always starts idle, including for a design already in the library. Seeding
   // "done" from savedId used to leave the library's button reading "Saved for
   // checkout ✓" with nowhere to go — an already-uploaded design still needs to
@@ -3594,13 +3934,16 @@ function useKitPurchase({ type, design, getDesign, savedId, onSaved }) {
       setState({ status: "done", id: designId });
       return;
     }
+    if (onReview) {
+      // Back to idle, not "done": Back from the review page comes straight to
+      // this button, and it has to be ready to send them forward again.
+      setState({ status: "idle" });
+      onReview({ type, designId, record });
+      return;
+    }
     setState({ status: "redirecting", id: designId });
     try {
-      // Each kit is a single-variant product, so resolving the handle its size
-      // maps to gives us the exact variant to buy.
-      const { variantId } = await resolveKit(kitHandle(type, record));
-      const checkoutUrl = await addKitToShopifyCart({ variantId, designId });
-      window.location.href = checkoutUrl;
+      await startKitCheckout(type, record, designId);
     } catch (e) {
       console.warn("Shopify checkout failed:", e);
       setState({ status: "error", message: "Couldn't reach checkout — your design is safe, try again in a moment" });
@@ -3612,14 +3955,14 @@ function useKitPurchase({ type, design, getDesign, savedId, onSaved }) {
 
 // Checkout button in the saved-design preview modals — the re-order path for
 // something already in the library. The editor header is where a design is
-// bought the first time (see BuyKitButton).
-function KitCheckoutButton({ type, design, savedId, onSaved }) {
+// bought the first time (see BuyKitButton). Both land on the same review page.
+function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
   const { status, message, busy, price, sellable, submit } =
-    useKitPurchase({ type, design, savedId, onSaved });
+    useKitPurchase({ type, design, savedId, onSaved, onReview });
   const label = status === "saving" ? "Saving…"
     : status === "redirecting" ? "Opening checkout…"
     : status === "done" ? "Saved for checkout ✓"
-    : sellable ? (price ? `Add to cart — ${price}` : "Add to cart")
+    : sellable ? (price ? `Review kit — ${price}` : "Review kit")
     : "Save for checkout";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
@@ -3649,9 +3992,9 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
 // used for a canvas with nothing stitched on it yet. A size with no kit product
 // behind it disables the same way rather than disappearing, so the header
 // doesn't reflow between sizes.
-function BuyKitButton({ type, design, getDesign, blockedReason, onSaved }) {
+function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onReview }) {
   const { status, message, busy, price, sellable, submit } =
-    useKitPurchase({ type, design, getDesign, onSaved });
+    useKitPurchase({ type, design, getDesign, onSaved, onReview });
   // Not being sold outranks an empty canvas: telling someone to add stitches
   // first would imply the kit exists once they do.
   const blocked = (!sellable ? "This size isn't sold as a kit yet" : null) || blockedReason;
@@ -4844,6 +5187,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
 
   useEffect(()=>{
     const handleKey = e => {
+      if(studioCovered()) return;
       if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
       const sids=selRef.current;
       if(sids.size===0) return;
@@ -6073,7 +6417,7 @@ function SizeBar({ bs, minBs = 2, maxBs, onBsChange, fw, fh, cols, rows, onUndo,
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
-function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack }) {
+function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack, onReview = null }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
   // Clamp the starting block size to what this preset allows (Coaster tops out
   // at 2" and can go to 1"), so the size control opens in a coherent range.
@@ -6357,6 +6701,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
   useEffect(() => {
     const handleKey = e => {
+      if (studioCovered()) return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         undo();
@@ -6374,7 +6719,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
   useEffect(() => {
     const onKey = e => {
-      if (!(e.metaKey || e.ctrlKey)) return;
+      if (!(e.metaKey || e.ctrlKey) || studioCovered()) return;
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
       if (e.key === '=' || e.key === '+') { e.preventDefault(); adjustZoom(+ZOOM_STEP); }
@@ -6559,7 +6904,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           {/* Buying needs no account and no prior save — the record is built from
               the canvas on click, so this is the shortest path to a kit. An empty
               quilt top is held back; the kit would be fabric with no layout. */}
-          <BuyKitButton type="quilt" design={{ preset }}
+          <BuyKitButton type="quilt" design={{ preset }} onReview={onReview}
             blockedReason={materials.total === 0 ? 'Place some patches first' : null}
             getDesign={()=>buildQuiltRecord(currentQuiltId ?? Date.now(), (currentQuilt && currentQuilt.name) || 'Untitled')}
             onSaved={id=>{ if (currentQuiltId != null) setSavedQuilts(p=>p.map(x=>x.id===currentQuiltId?{...x,apiId:id}:x)); }}/>
@@ -6972,7 +7317,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                         <div style={{fontSize:11,color:'var(--warm-muted)'}}>Grand total</div>
                         <div style={{fontSize:20,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmtY(q.grandTotal)}</div>
                       </div>
-                      <KitCheckoutButton type="quilt" design={q} savedId={q.apiId}
+                      <KitCheckoutButton type="quilt" design={q} savedId={q.apiId} onReview={onReview}
                         onSaved={id=>setSavedQuilts(p=>p.map(x=>x.id===q.id?{...x,apiId:id}:x))}/>
                     </div>
                   </div>
@@ -10462,7 +10807,7 @@ function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFF
     style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}/>;
 }
 
-function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null }) {
+function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,
@@ -11531,6 +11876,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 
   useEffect(() => {
     const onKey = (e) => {
+      if (studioCovered()) return;
       const tag = e.target.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
@@ -11756,7 +12102,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
         )}
         {/* Buying needs no account and no prior save. An empty board is blocked
             because the kit would be cloth and no yarn. */}
-        <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }}
+        <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }} onReview={onReview}
           blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
           getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
           onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
@@ -12151,7 +12497,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                       <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Total {CFG.unitPlural}</div>
                       <div style={{ fontSize: 20, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{d.stitches}</div>
                     </div>
-                    <KitCheckoutButton type={CFG.checkoutType} design={d} savedId={d.apiId}
+                    <KitCheckoutButton type={CFG.checkoutType} design={d} savedId={d.apiId} onReview={onReview}
                       onSaved={id=>setSavedStitches(p=>p.map(x=>x.id===d.id?{...x,apiId:id}:x))}/>
                   </div>
                 </div>
@@ -12164,14 +12510,173 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   );
 }
 
+// True while the kit review page is covering the studio. The editors stay mounted
+// underneath on purpose, so a Back returns an unsaved canvas untouched — which
+// also means their window-level key handlers are still listening. Those have to
+// sit out while something else owns the screen: Cmd+Z would otherwise undo work
+// the maker can't currently see.
+function studioCovered() {
+  return typeof document !== "undefined" && !!document.querySelector(".kit-layer");
+}
+
+// The last screen before Shopify: the design at a size worth looking at, beside
+// everything that comes in the box and everything that doesn't. Reached from Buy
+// kit in either editor and from the library's re-order button, both of which
+// upload the design first — so `designId` is always a real stored id by the time
+// this renders, and Checkout only has to do the Shopify half.
+//
+// The supply list comes from /api/bom, the same function that builds the packer's
+// pick-list. Until it answers (or if it never does) the list falls back to what
+// the design already carries, which is the same colours minus the skein counts.
+// Nothing here blocks Checkout.
+function KitReviewPage({ type, record, designId, onBack }) {
+  const bom = useDesignBom(type, record);
+  const price = formatKitPrice(useKitPrice(type, record));
+  const [state, setState] = useState({ status: "idle" });
+  const cfg = CRAFT_STUDIO[type];
+  const isQuilt = type === "quilt";
+
+  const supplies = kitSupplyRows(type, bom) || kitSupplyRowsLocal(type, record);
+  const included = kitIncludes(type, record);
+  const yourOwn = (KIT_INFO[type] && KIT_INFO[type].yourOwn) || [];
+
+  const name = record.name || "Untitled";
+  const sub = isQuilt
+    ? `${name} · ${record.fw}" × ${record.fh}" · ${record.preset}`
+    : `${name} · ${record.w} × ${record.h} ${cfg.unitPlural} · ${record.presetName}`;
+  const specs = isQuilt
+    ? [
+        { k: "Finished size", v: record.fw && record.fh ? `${record.fw}" × ${record.fh}"` : null },
+        { k: "Block size", v: record.bs ? `${record.bs}"` : null },
+        { k: "Fabric total", v: bom ? bom.totalYardsLabel : fmtY(record.grandTotal || 0) },
+      ]
+    : [
+        { k: "Finished size", v: bom && bom.finishedInches ? kitInchBox(bom.finishedInches) : null },
+        { k: cfg.unitTitle, v: record.stitches != null ? String(record.stitches) : null },
+        { k: "Colours", v: String((record.colors || []).length) },
+        { k: "Skeins", v: bom ? String(bom.totalSkeins) : null },
+      ];
+
+  const go = async () => {
+    if (state.status === "redirecting") return;
+    setState({ status: "redirecting" });
+    try {
+      await startKitCheckout(type, record, designId);
+    } catch (e) {
+      console.warn("Shopify checkout failed:", e);
+      setState({ status: "error", message: "Couldn't reach checkout — your design is safe, try again in a moment" });
+    }
+  };
+
+  const row = (r, i) => (
+    <li className="kit-row" key={`${r.label}-${i}`}>
+      {r.hex && <span className="kit-sw" style={{ background: r.hex }} aria-hidden="true"/>}
+      <span className="kit-row-label">{r.label}</span>
+      {r.qty && <span className="kit-row-qty">{r.qty}</span>}
+    </li>
+  );
+
+  return (
+    <div className="kit-page brand-shell">
+      <BrandNav/>
+      <BrandHead
+        tone="butter"
+        wide
+        back={<BrandBack onBack={onBack}/>}
+        eyebrow={<BrandEyebrow plain label={BRAND_CRAFT_LABEL[type] || "Kit"}/>}
+        title="Review your kit"
+        sub={sub}/>
+      <div className="kit-band brand-bleed">
+        <div className="kit-preview">
+          <div className="kit-tiles">
+            <figure className="kit-tile">
+              <div className="kit-tile-art">
+                {isQuilt
+                  ? <SavedQuiltThumb q={record}/>
+                  : <StitchThumb w={record.w} h={record.h} cells={deserializeGrid(record.grid, record.w * record.h)}
+                      size={320} bg={(record.fabric && record.fabric.hex) || "#FFFFFF"}/>}
+              </div>
+              <figcaption className="kit-tile-cap">Your design</figcaption>
+            </figure>
+            {/* Second tile: a generated photo of the finished thing on a table.
+                Nothing writes `mockup` yet, so today this renders one tile — the
+                grid above is sized to take the second without moving anything. */}
+            {record.mockup && (
+              <figure className="kit-tile">
+                <div className="kit-tile-art">
+                  <img src={record.mockup} alt={`${name} as a finished ${(BRAND_CRAFT_LABEL[type] || "piece").toLowerCase()}`}/>
+                </div>
+                <figcaption className="kit-tile-cap">Finished, roughly</figcaption>
+              </figure>
+            )}
+          </div>
+          <BrandSpecs rows={specs}/>
+        </div>
+        <div className="kit-panel">
+          <section className="kit-group">
+            <h2 className="kit-group-title">In your kit</h2>
+            <ul className="kit-list">
+              {supplies.map(row)}
+              {included.map((label, i) => row({ label }, `inc${i}`))}
+            </ul>
+            {!bom && (
+              <p className="kit-note">Working out exact quantities — the colours are final.</p>
+            )}
+          </section>
+          {yourOwn.length > 0 && (
+            <section className="kit-group">
+              <h2 className="kit-group-title">You'll need</h2>
+              <ul className="kit-list is-own">
+                {yourOwn.map((label, i) => row({ label }, `own${i}`))}
+              </ul>
+            </section>
+          )}
+          <div className="kit-buy">
+            <div>
+              <span className="kit-buy-k">Kit price</span>
+              <span className="kit-buy-v">{price || "—"}</span>
+            </div>
+            <button type="button" className="brand-btn is-primary kit-buy-go"
+              disabled={state.status === "redirecting"} onClick={go}>
+              {state.status === "redirecting" ? "Opening checkout…" : "Checkout"}
+            </button>
+          </div>
+          {state.status === "error"
+            ? <p className="kit-err">{state.message}</p>
+            : <p className="kit-note">Shipping and tax are worked out on the next screen. Made to order — your kit is cut and packed for this design.</p>}
+        </div>
+      </div>
+      <BrandFooter/>
+    </div>
+  );
+}
+
+// The wait while a design is read back from the store, after the browser rebuilt
+// the document on the review step. Not the review page with empty rows: a kit
+// list that's still filling in reads like a kit that's missing things.
+function KitReviewLoading() {
+  return (
+    <div className="kit-page brand-shell">
+      <BrandNav/>
+      <BrandHead tone="butter" wide
+        eyebrow={<BrandEyebrow plain label="Your kit"/>}
+        title="Fetching your design…"/>
+      <BrandFooter/>
+    </div>
+  );
+}
+
 // Depth of each step in the setup flow, so the History integration can tell a
 // forward move (push a new entry) from a backward move (reverse one step).
+// The review page sits past every editor, so Back from it always returns to the
+// canvas the design came from.
 const STEP_DEPTH = {
   'craft': 0,
   'q-size': 1, 'q-backing': 2, 'q-palette': 3, 'q-template': 4, 'q-editor': 5,
   'xs-size': 1, 'xs-template': 2, 'xs-palette': 3, 'xs-editor': 4,
   'pn-size': 1, 'pn-template': 2, 'pn-palette': 3, 'pn-editor': 4,
   'saved': 1,
+  'cart': 6,
 };
 // Crafts that run on the shared grid studio, and the prefix their setup steps
 // use. Both walk the same size → template → palette → editor chain, so they
@@ -12201,6 +12706,14 @@ function restoredGridOpts(s) {
   if (!t || !s.gridPreset) return {};
   const chart = t.build(s.gridPreset);
   return { bgImage: null, autoGrid: s.gridPalette ? xsRecolorGrid(chart, s.gridPalette) : chart };
+}
+// The review page an entry points at, as { type, designId }. The design itself is
+// orders of magnitude too big for a history entry, so only its stored id travels
+// and the record is read back from the API.
+function snapshotCart(s) {
+  return s && s.step === 'cart' && s.cartType && s.cartDesignId
+    ? { type: s.cartType, designId: s.cartDesignId }
+    : null;
 }
 // The snapshot this document loaded into, when the browser kept one for the
 // entry. 'craft' needs nothing restored, and 'saved' can't be (it points at a
@@ -12238,14 +12751,41 @@ function Root() {
   const [gridOpts, setGridOpts] = React.useState(landed ? restoredGridOpts(landed) : {});
   // A saved item opened straight from the landing page: { type, item }.
   const [openSaved, setOpenSaved] = React.useState(null);
+  // The kit review page, once a buy button has uploaded the design it's for:
+  // { type, designId, record }. Sits over whichever editor opened it, so Back
+  // returns to that canvas untouched.
+  const [cartKit, setCartKit] = React.useState(null);
+  // A review page this document landed on after being rebuilt from nothing. The
+  // record arrives over the network, so unlike every other step it can't paint on
+  // the first render — hence a separate pending state rather than seeding cartKit.
+  const [cartPending, setCartPending] = React.useState(() => snapshotCart(landed));
 
   const resetAll = () => {
     setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
     setPaletteDone(false); setPalette(null); setBackingFabric(null); setQuiltBackingDone(false);
     setGridPreset(null); setGridTemplateDone(false); setGridTemplate(null); setGridPhoto(null);
     setGridRemoveBg(true); setGridDone(false); setGridPalette(null); setGridOpts({});
-    setOpenSaved(null);
+    setOpenSaved(null); setCartKit(null); setCartPending(null);
   };
+
+  // Read the design back for a review page the browser rebuilt. On failure the
+  // pending state simply clears, which drops the maker onto the editor step the
+  // same snapshot already restored — a canvas beats an error page.
+  React.useEffect(() => {
+    if (!cartPending) return;
+    let alive = true;
+    fetchDesignRecord(cartPending.designId)
+      .then(({ type, record }) => {
+        if (!alive) return;
+        setCartKit({ type: type || cartPending.type, designId: cartPending.designId, record });
+        setCartPending(null);
+      })
+      .catch((e) => {
+        console.warn('Could not restore the kit review page:', e);
+        if (alive) setCartPending(null);
+      });
+    return () => { alive = false; };
+  }, [cartPending]);
 
   // ── Browser Back = previous step ──────────────────────────────────────────
   // The screens above are a plain state machine with no URL, so the browser's
@@ -12254,6 +12794,9 @@ function Root() {
   // screen back from the entry's own snapshot on `popstate`. The in-app "Back"
   // links route through history.back() too, so both paths behave identically.
   const stepKey = React.useMemo(() => {
+    // Ahead of everything else: the review page is reached from inside an editor,
+    // so the state that decides which editor is still set underneath it.
+    if (cartKit || cartPending) return 'cart';
     if (openSaved) return 'saved';
     if (!craft) return 'craft';
     const p = GRID_CRAFTS[craft];
@@ -12268,7 +12811,7 @@ function Root() {
     if (!paletteDone) return 'q-palette';
     if (!templateDone) return 'q-template';
     return 'q-editor';
-  }, [openSaved, craft, gridPreset, gridTemplateDone, gridDone, selectedPreset, quiltBackingDone, paletteDone, templateDone]);
+  }, [cartKit, cartPending, openSaved, craft, gridPreset, gridTemplateDone, gridDone, selectedPreset, quiltBackingDone, paletteDone, templateDone]);
 
   const prevStepRef = React.useRef(stepKey);
 
@@ -12277,21 +12820,29 @@ function Root() {
   // only small, rebuildable things: templates by id, never the uploaded photo or
   // the built chart. `hadPhoto` is kept so a restore knows the difference between
   // "no template" and "traced from a photo we can no longer produce".
-  const snapshot = () => ({
-    step: stepKey,
-    craft,
-    preset: selectedPreset,
-    backingFabric,
-    palette,
-    quiltTemplateId: quiltTemplate ? quiltTemplate.id : null,
-    quiltBackingDone, paletteDone, templateDone,
-    gridPreset,
-    gridPalette,
-    gridRemoveBg,
-    gridTemplateId: gridTemplate ? gridTemplate.id : null,
-    gridTemplateDone, gridDone,
-    hadPhoto: !!gridPhoto,
-  });
+  const snapshot = () => {
+    // Only the stored id, never the record. The rest of the flow state still goes
+    // in, so an entry that can't produce its design falls back to the editor it
+    // was bought from rather than the craft picker.
+    const cart = cartKit || cartPending;
+    return {
+      step: stepKey,
+      craft,
+      preset: selectedPreset,
+      backingFabric,
+      palette,
+      quiltTemplateId: quiltTemplate ? quiltTemplate.id : null,
+      quiltBackingDone, paletteDone, templateDone,
+      gridPreset,
+      gridPalette,
+      gridRemoveBg,
+      gridTemplateId: gridTemplate ? gridTemplate.id : null,
+      gridTemplateDone, gridDone,
+      hadPhoto: !!gridPhoto,
+      cartType: cart ? cart.type : null,
+      cartDesignId: cart ? cart.designId : null,
+    };
+  };
 
   // Put the screen back from an entry's snapshot. Used for popstate, where the
   // document is still alive; a document that was thrown away and rebuilt seeds
@@ -12316,6 +12867,17 @@ function Root() {
     setGridOpts(restoredGridOpts(s));
     setGridTemplateDone(ok && !!s.gridTemplateDone);
     setGridDone(ok && !!s.gridDone);
+    // Going back past the review page clears it, revealing the editor restored
+    // above. Arriving on it (forward, after a Back) re-fetches unless the design
+    // in hand is already the right one.
+    const cart = snapshotCart(s);
+    if (!cart) {
+      setCartKit(null);
+      setCartPending(null);
+    } else if (!cartKit || cartKit.designId !== cart.designId) {
+      setCartKit(null);
+      setCartPending(cart);
+    }
   };
 
   const snapshotRef = React.useRef(snapshot); snapshotRef.current = snapshot;
@@ -12357,147 +12919,171 @@ function Root() {
     prevStepRef.current = stepKey;
   }, [stepKey]);
 
-  // Opening a saved design bypasses the craft/size/palette steps and drops the
-  // user straight onto the matching editor with that design loaded.
-  if (openSaved) {
-    if (openSaved.type === 'quilt') {
-      return (
-        <>
-          <App initialPreset={openSaved.item.preset || 'Throw'}
-            initialPalette={openSaved.item.pinned || null}
-            initialQuilt={openSaved.item} onBack={resetAll}/>
-          <TweaksPanel/>
-        </>
-      );
-    }
-    return (
-      <CrossStitchApp
-        craft={openSaved.type === 'punch' ? 'punch-needle' : 'cross-stitch'}
-        preset={{ name: openSaved.item.presetName || 'Custom', w: openSaved.item.w, h: openSaved.item.h }}
-        palette={openSaved.item.palette}
-        initialDesign={openSaved.item} onBack={resetAll}/>
-    );
-  }
+  // What a buy button does now: the design is uploaded, and the maker gets to see
+  // what's in the box before Shopify takes over.
+  const openCart = (kit) => setCartKit(kit);
 
-  if (!craft) {
-    return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
-  }
-
-  if (GRID_CRAFTS[craft]) {
-    const cfg = CRAFT_STUDIO[craft];
-    if (!gridPreset) {
-      return <CrossStitchSizeSelector craft={craft} onBack={() => window.history.back()}
-        onSelect={name => setGridPreset(cfg.presets.find(p => p.name === name))}/>;
-    }
-    if (!gridTemplateDone) {
-      return (
-        <CrossStitchTemplateSelector
-          preset={gridPreset}
-          craft={craft}
-          onBack={() => window.history.back()}
-          onChoose={({ template, photo, removeBg }) => {
-            setGridTemplate(template);
-            setGridPhoto(photo || null);
-            setGridRemoveBg(removeBg !== false);
-            if (template) {
-              // Seed the design from the template grid; color work is next.
-              const grid = template.build(gridPreset);
-              const hasCells = grid && grid.some(Boolean);
-              setGridOpts({ bgImage: null, autoGrid: hasCells ? grid : null });
-            } else {
-              // Photo (or nothing yet): the design + trace are built on the palette step.
-              setGridOpts({});
-            }
-            setGridTemplateDone(true);
-          }}
-          onSkip={() => { setGridTemplate(null); setGridPhoto(null); setGridRemoveBg(true); setGridOpts({}); setGridTemplateDone(true); }}/>
-      );
-    }
-    if (!gridDone) {
-      return (
-        <CrossStitchPaletteSelector
-          preset={gridPreset}
-          photo={gridPhoto}
-          template={gridTemplate}
-          removeBgDefault={gridRemoveBg}
-          craft={craft}
-          onBack={() => window.history.back()}
-          onChoose={(pal, extra) => {
-            const colors = pal && pal.length ? pal : null;
-            setGridPalette(colors);
-            setGridOpts(o => {
-              const next = { ...o, ...(extra || null) };
-              // A chosen palette overrides the template's default brand colors.
-              // We always re-dress the template's own chart rather than whatever
-              // grid is in state, so stepping back here and picking a different
-              // palette recolors the original instead of a recolored copy.
-              // (A photo-traced design is already built from the palette.)
-              if (gridTemplate) {
-                const chart = gridTemplate.build(gridPreset);
-                next.autoGrid = colors ? xsRecolorGrid(chart, colors) : chart;
-              }
-              return next;
-            });
-            setGridDone(true);
-          }}
-          onSkip={() => {
-            setGridPalette(null);
-            setGridOpts(o => {
-              const next = { ...o };
-              if (gridPhoto) next.bgImage = gridPhoto;
-              // No palette — back to the template's brand colors.
-              if (gridTemplate) next.autoGrid = gridTemplate.build(gridPreset);
-              return next;
-            });
-            setGridDone(true);
-          }}/>
-      );
-    }
-    return (
-      <CrossStitchApp preset={gridPreset} palette={gridPalette} craft={craft}
-        bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid}
-        seedText={gridTemplate && gridTemplate.seedText} onBack={resetAll}/>
-    );
-  }
-
-  if (!selectedPreset) {
-    return <ProjectSelector onSelect={setSelectedPreset} onBack={() => window.history.back()}/>;
-  }
-  if (!quiltBackingDone) {
-    return (
-      <QuiltBackingSelector
-        preset={selectedPreset}
-        onBack={() => window.history.back()}
-        onChoose={b => { setBackingFabric(b); setQuiltBackingDone(true); }}
-        onSkip={() => { setBackingFabric(null); setQuiltBackingDone(true); }}/>
-    );
-  }
-  if (!paletteDone) {
-    return (
-      <PaletteSelector
-        presetName={selectedPreset}
-        backing={backingFabric}
-        onBack={() => window.history.back()}
-        onChoose={pal => { setPalette(pal); setPaletteDone(true); }}
-        onSkip={() => { setPalette(null); setPaletteDone(true); }}/>
-    );
-  }
-  if (!templateDone) {
-    return (
-      <TemplateSelector
-        preset={selectedPreset}
-        palette={palette}
-        onBack={() => window.history.back()}
-        onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
-        onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
-    );
-  }
+  // The review page covers the studio rather than replacing it. Nothing autosaves
+  // a canvas mid-edit, so unmounting the editor to show a cart would quietly throw
+  // away the work someone is about to buy — and Back would hand them a blank one.
   return (
     <>
-      <App initialPreset={selectedPreset} initialPalette={palette} initialBacking={backingFabric} initialTemplate={quiltTemplate} onBack={resetAll}/>
-      <TweaksPanel/>
+      {studioScreen()}
+      {cartKit && (
+        <div className="kit-layer">
+          <KitReviewPage type={cartKit.type} record={cartKit.record} designId={cartKit.designId}
+            onBack={() => window.history.back()}/>
+        </div>
+      )}
+      {!cartKit && cartPending && <div className="kit-layer"><KitReviewLoading/></div>}
     </>
   );
+
+  // Hoisted, so it can be called above while the screens themselves stay in the
+  // reading order of the flow.
+  function studioScreen() {
+    // Opening a saved design bypasses the craft/size/palette steps and drops the
+    // user straight onto the matching editor with that design loaded.
+    if (openSaved) {
+      if (openSaved.type === 'quilt') {
+        return (
+          <>
+            <App initialPreset={openSaved.item.preset || 'Throw'}
+              initialPalette={openSaved.item.pinned || null}
+              initialQuilt={openSaved.item} onBack={resetAll} onReview={openCart}/>
+            <TweaksPanel/>
+          </>
+        );
+      }
+      return (
+        <CrossStitchApp
+          craft={openSaved.type === 'punch' ? 'punch-needle' : 'cross-stitch'}
+          preset={{ name: openSaved.item.presetName || 'Custom', w: openSaved.item.w, h: openSaved.item.h }}
+          palette={openSaved.item.palette}
+          initialDesign={openSaved.item} onBack={resetAll} onReview={openCart}/>
+      );
+    }
+
+    if (!craft) {
+      return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
+    }
+
+    if (GRID_CRAFTS[craft]) {
+      const cfg = CRAFT_STUDIO[craft];
+      if (!gridPreset) {
+        return <CrossStitchSizeSelector craft={craft} onBack={() => window.history.back()}
+          onSelect={name => setGridPreset(cfg.presets.find(p => p.name === name))}/>;
+      }
+      if (!gridTemplateDone) {
+        return (
+          <CrossStitchTemplateSelector
+            preset={gridPreset}
+            craft={craft}
+            onBack={() => window.history.back()}
+            onChoose={({ template, photo, removeBg }) => {
+              setGridTemplate(template);
+              setGridPhoto(photo || null);
+              setGridRemoveBg(removeBg !== false);
+              if (template) {
+                // Seed the design from the template grid; color work is next.
+                const grid = template.build(gridPreset);
+                const hasCells = grid && grid.some(Boolean);
+                setGridOpts({ bgImage: null, autoGrid: hasCells ? grid : null });
+              } else {
+                // Photo (or nothing yet): the design + trace are built on the palette step.
+                setGridOpts({});
+              }
+              setGridTemplateDone(true);
+            }}
+            onSkip={() => { setGridTemplate(null); setGridPhoto(null); setGridRemoveBg(true); setGridOpts({}); setGridTemplateDone(true); }}/>
+        );
+      }
+      if (!gridDone) {
+        return (
+          <CrossStitchPaletteSelector
+            preset={gridPreset}
+            photo={gridPhoto}
+            template={gridTemplate}
+            removeBgDefault={gridRemoveBg}
+            craft={craft}
+            onBack={() => window.history.back()}
+            onChoose={(pal, extra) => {
+              const colors = pal && pal.length ? pal : null;
+              setGridPalette(colors);
+              setGridOpts(o => {
+                const next = { ...o, ...(extra || null) };
+                // A chosen palette overrides the template's default brand colors.
+                // We always re-dress the template's own chart rather than whatever
+                // grid is in state, so stepping back here and picking a different
+                // palette recolors the original instead of a recolored copy.
+                // (A photo-traced design is already built from the palette.)
+                if (gridTemplate) {
+                  const chart = gridTemplate.build(gridPreset);
+                  next.autoGrid = colors ? xsRecolorGrid(chart, colors) : chart;
+                }
+                return next;
+              });
+              setGridDone(true);
+            }}
+            onSkip={() => {
+              setGridPalette(null);
+              setGridOpts(o => {
+                const next = { ...o };
+                if (gridPhoto) next.bgImage = gridPhoto;
+                // No palette — back to the template's brand colors.
+                if (gridTemplate) next.autoGrid = gridTemplate.build(gridPreset);
+                return next;
+              });
+              setGridDone(true);
+            }}/>
+        );
+      }
+      return (
+        <CrossStitchApp preset={gridPreset} palette={gridPalette} craft={craft}
+          bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid}
+          seedText={gridTemplate && gridTemplate.seedText} onBack={resetAll} onReview={openCart}/>
+      );
+    }
+
+    if (!selectedPreset) {
+      return <ProjectSelector onSelect={setSelectedPreset} onBack={() => window.history.back()}/>;
+    }
+    if (!quiltBackingDone) {
+      return (
+        <QuiltBackingSelector
+          preset={selectedPreset}
+          onBack={() => window.history.back()}
+          onChoose={b => { setBackingFabric(b); setQuiltBackingDone(true); }}
+          onSkip={() => { setBackingFabric(null); setQuiltBackingDone(true); }}/>
+      );
+    }
+    if (!paletteDone) {
+      return (
+        <PaletteSelector
+          presetName={selectedPreset}
+          backing={backingFabric}
+          onBack={() => window.history.back()}
+          onChoose={pal => { setPalette(pal); setPaletteDone(true); }}
+          onSkip={() => { setPalette(null); setPaletteDone(true); }}/>
+      );
+    }
+    if (!templateDone) {
+      return (
+        <TemplateSelector
+          preset={selectedPreset}
+          palette={palette}
+          onBack={() => window.history.back()}
+          onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
+          onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
+      );
+    }
+    return (
+      <>
+        <App initialPreset={selectedPreset} initialPalette={palette} initialBacking={backingFabric} initialTemplate={quiltTemplate} onBack={resetAll} onReview={openCart}/>
+        <TweaksPanel/>
+      </>
+    );
+  }
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<AuthProvider><Root/></AuthProvider>);
