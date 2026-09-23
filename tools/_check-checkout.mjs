@@ -518,18 +518,27 @@ async function buyKit() {
   await new Promise(r => setTimeout(r, 700));
 }
 
-// The review page scrolls inside its own fixed layer, so the document is never
-// taller than the viewport and `fullPage` captures only the first screen. Grow the
-// viewport to the layer's own scroll height instead, then put it back.
+// The review page lives in a fixed layer sized to the window, so the document is
+// never taller than the viewport and `fullPage` captures only the first screen.
+// Grow the viewport by whatever the worst-overflowing column is hiding, so one
+// shot shows the whole page, then put it back. Measured per width because the
+// columns reflow: what overflows at 1440 isn't what overflows at 390.
 async function shootReview(slug) {
+  // First at a real window, which is the only way to see the thing the layout is
+  // for: both columns cut off mid-content and the price bar sitting on the floor.
+  await page.setViewport({ width: 1440, height: 900 });
+  await new Promise(r => setTimeout(r, 500));
+  await page.screenshot({ path: `tools/_shot-kit-review-${slug}-window.png` });
   for (const [w, tag] of [[1440, ''], [390, '-mobile']]) {
     await page.setViewport({ width: w, height: 950 });
     await new Promise(r => setTimeout(r, 500));
-    const h = await page.evaluate(() => {
-      const l = document.querySelector('.kit-layer');
-      return l ? l.scrollHeight : 950;
+    const hidden = await page.evaluate(() => {
+      const layer = document.querySelector('.kit-layer');
+      if (!layer) return 0;
+      const ports = [layer, ...layer.querySelectorAll('.kit-scroll')];
+      return Math.max(0, ...ports.map(p => p.scrollHeight - p.clientHeight));
     });
-    await page.setViewport({ width: w, height: Math.min(2600, Math.max(950, h)) });
+    await page.setViewport({ width: w, height: Math.min(2600, 950 + hidden) });
     await new Promise(r => setTimeout(r, 500));
     await page.screenshot({ path: `tools/_shot-kit-review-${slug}${tag}.png` });
   }
@@ -628,6 +637,99 @@ if (quiltBom) {
   check(want.length > 0 && want.every(l => got.includes(l)),
     'every fabric designToBom returned is on the page', `${want.length} wanted, page has ${got.length} rows`);
 }
+
+// ── 4b. The way forward stays put while the two halves scroll on their own ────
+// Someone reading down a long colour list shouldn't have to scroll back up to find
+// the button, and scrolling that list shouldn't carry the design it describes off
+// the screen. A shortish window so these assertions don't depend on this particular
+// kit's list happening to be long enough to overflow — but not past the point where
+// the layout deliberately gives up and hands the page back to its own scroller.
+console.log('\n── review page scrolling ──');
+await page.setViewport({ width: 1440, height: 720 });
+await new Promise(r => setTimeout(r, 500));
+const scrollModel = await page.evaluate(async () => {
+  const layer = document.querySelector('.kit-layer');
+  const ports = [...layer.querySelectorAll('.kit-scroll')];
+  const [left, right] = [ports[0], ports[ports.length - 1]];
+  const go = layer.querySelector('.kit-buy-go');
+  const onScreen = () => {
+    const r = go.getBoundingClientRect();
+    return r.top >= 0 && r.bottom <= window.innerHeight + 1;
+  };
+  const before = onScreen();
+  right.scrollTop = right.scrollHeight;
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  return {
+    ports: ports.length,
+    layerScrolls: layer.scrollHeight > layer.clientHeight + 1,
+    rightOverflows: right.scrollHeight > right.clientHeight + 1,
+    rightMoved: right.scrollTop > 0,
+    leftStayed: left.scrollTop === 0,
+    footOutsideList: !layer.querySelector('.kit-foot').closest('.kit-scroll'),
+    goBefore: before,
+    goAfter: onScreen(),
+  };
+});
+console.log(JSON.stringify(scrollModel));
+check(scrollModel.ports === 2, 'the review page has one scrollport per column', `${scrollModel.ports}`);
+check(!scrollModel.layerScrolls, 'the page itself does not scroll — its columns do');
+check(scrollModel.rightOverflows, 'the supply column has more in it than fits, so the rest of this means something');
+check(scrollModel.rightMoved && scrollModel.leftStayed,
+  'scrolling the supply list leaves the design column exactly where it was',
+  `left at ${scrollModel.leftStayed ? 0 : 'moved'}`);
+check(scrollModel.footOutsideList, 'the price and Checkout sit outside the scrolling list');
+check(scrollModel.goBefore && scrollModel.goAfter,
+  'Checkout is on screen both before and after the list is scrolled to its end',
+  `before ${scrollModel.goBefore}, after ${scrollModel.goAfter}`);
+
+// Past a certain shortness there's no room left to divide, and a scroll area
+// squeezed to nothing would clip the button — so the layout gives up on its own
+// terms and hands the page back to the document scroller.
+await page.setViewport({ width: 1440, height: 520 });
+await new Promise(r => setTimeout(r, 400));
+const shortWindow = await page.evaluate(() => {
+  const layer = document.querySelector('.kit-layer');
+  const r = layer.querySelector('.kit-buy-go').getBoundingClientRect();
+  return {
+    layerScrolls: layer.scrollHeight > layer.clientHeight + 1,
+    goVisible: r.top >= 0 && r.bottom <= window.innerHeight + 1,
+  };
+});
+check(shortWindow.layerScrolls && shortWindow.goVisible,
+  'in a window too short to divide, the page scrolls and Checkout is still on screen',
+  JSON.stringify(shortWindow));
+
+// On a phone there's one column and the page scrolls as a whole — two stacked
+// scrollports is just two places to get stuck. The bar earns its keep by sticking
+// to the bottom of the window instead, so it's showing the entire time the supply
+// list is. Short again on purpose: a real phone is taller, and at a real height
+// this kit's ten rows fit on one screen with nothing left to pin against.
+await page.setViewport({ width: 390, height: 430 });
+await new Promise(r => setTimeout(r, 500));
+const mobileScroll = await page.evaluate(async () => {
+  const layer = document.querySelector('.kit-layer');
+  const right = layer.querySelector('.kit-col:last-child');
+  const go = layer.querySelector('.kit-buy-go');
+  // Bring the top of the supply column to the top of the window: from here the
+  // bar should already be pinned, with the whole list still to come below it.
+  layer.scrollTop += right.getBoundingClientRect().top;
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+  const r = go.getBoundingClientRect();
+  return {
+    layerScrolls: layer.scrollHeight > layer.clientHeight + 1,
+    oneColumn: getComputedStyle(layer.querySelector('.kit-band')).gridTemplateColumns.split(' ').length === 1,
+    listStillBelow: layer.querySelector('.kit-col:last-child .kit-scroll').getBoundingClientRect().bottom > window.innerHeight,
+    goVisible: r.top >= 0 && r.bottom <= window.innerHeight + 1,
+  };
+});
+console.log(JSON.stringify(mobileScroll));
+check(mobileScroll.oneColumn, 'on a phone the two columns stack');
+check(mobileScroll.layerScrolls, 'stacked, the page scrolls as one');
+check(mobileScroll.listStillBelow && mobileScroll.goVisible,
+  'Checkout is pinned to the bottom of the window with the list still running past it',
+  `visible ${mobileScroll.goVisible}, list overruns ${mobileScroll.listStillBelow}`);
+await page.setViewport({ width: 1440, height: 950 });
+await new Promise(r => setTimeout(r, 400));
 
 // Only now does Shopify get involved.
 const navigated = page.waitForNavigation({ timeout: 15000 }).catch(() => null);

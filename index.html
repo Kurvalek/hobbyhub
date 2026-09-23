@@ -2481,29 +2481,102 @@
 
   /* Full page to look at, but the studio is still mounted underneath so Back
      returns to the canvas exactly as it was — nothing saves a design mid-edit.
-     Opaque and scrollable in its own right, so what's behind is unreachable. */
+     Opaque and exactly the height of the window: the columns inside scroll, the
+     layer itself doesn't. That's what lets the price and Checkout hold still
+     while a long supply list moves past them. */
   .kit-layer {
     position: fixed;
     inset: 0;
     z-index: 300;
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
     background: var(--brand-paper);
   }
-  .kit-layer .kit-page { min-height: 100%; }
+  .kit-layer .kit-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  /* The wordmark and the heading band keep their full height — they're the only
+     thing telling you where you are, and a flex row shrinks by default. */
+  .kit-layer .kit-page > .brand-nav,
+  .kit-layer .kit-page > .brand-head { flex: 0 0 auto; }
 
+  /* Everything under the heading, and no taller: min-height: 0 is what stops a
+     long list sizing this to its content and walking the pinned footer off the
+     bottom of the window. */
   .brand-shell .kit-band {
-    flex: 1 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: clamp(24px, 4vw, 56px);
-    padding-block: clamp(24px, 3vw, 44px);
+    align-items: stretch;
     background: var(--brand-paper);
-    border-bottom: 1px solid var(--brand-ink);
   }
+  /* A scrollport each, divided by a rule rather than a gap. Reading down the
+     supply list shouldn't carry the design it's a list for off the screen, and
+     checking the design against the colours shouldn't lose your place in them. */
+  .brand-shell .kit-col {
+    --kit-l: clamp(18px, 2.2vw, 34px);
+    --kit-r: clamp(18px, 2.2vw, 34px);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .brand-shell .kit-col:first-child { --kit-l: var(--brand-gutter); }
+  .brand-shell .kit-col:last-child { --kit-r: var(--brand-gutter); }
+  .brand-shell .kit-col + .kit-col { border-left: 1px solid var(--brand-ink); }
+  .brand-shell .kit-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: clamp(24px, 3vw, 44px);
+  }
+  /* The price and the way forward, pinned to the bottom of the column. This is
+     the last screen before money changes hands and that button is the only exit,
+     so it doesn't depend on someone scrolling to find it. Its rule runs the full
+     width of the column — the padding is on the contents — so it reads as part of
+     the page's structure and not as a box floating over the list. */
+  .brand-shell .kit-foot {
+    flex: 0 0 auto;
+    padding-bottom: clamp(16px, 2vw, 24px);
+    background: var(--brand-paper);
+    border-top: 1px solid var(--brand-ink);
+  }
+  .brand-shell .kit-scroll,
+  .brand-shell .kit-foot > * {
+    padding-left: var(--kit-l);
+    padding-right: var(--kit-r);
+  }
+  /* Give the page back to its own scroller and pin the bar to the window instead.
+     Used on a phone, where one column means two stacked scrollports would just be
+     two places to get stuck, and in any window too short to divide — a scroll area
+     squeezed to nothing would clip the Checkout button, which is the one thing
+     this layout exists to keep on screen. */
+  @media (max-width: 900px), (max-height: 620px) {
+    .kit-layer { overflow-y: auto; }
+    .kit-layer .kit-page { height: auto; min-height: 100%; }
+    .brand-shell .kit-scroll { overflow-y: visible; }
+    .brand-shell .kit-foot {
+      position: sticky;
+      bottom: 0;
+      padding-top: 2px;
+    }
+  }
+  /* Stacked, so the rule between the columns turns and lies down. */
   @media (max-width: 900px) {
     .brand-shell .kit-band { grid-template-columns: minmax(0, 1fr); }
+    .brand-shell .kit-col {
+      --kit-l: var(--brand-gutter);
+      --kit-r: var(--brand-gutter);
+    }
+    .brand-shell .kit-col + .kit-col {
+      border-left: none;
+      border-top: 1px solid var(--brand-ink);
+    }
   }
   /* One tile today. auto-fit rather than a fixed column so a second tile — a
      generated shot of the finished thing — drops in beside it without a
@@ -2613,9 +2686,7 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    margin-top: clamp(22px, 2.4vw, 32px);
     padding-top: 16px;
-    border-top: 1px solid var(--brand-ink);
   }
   .brand-shell .kit-buy-k {
     display: block;
@@ -12883,86 +12954,93 @@ function KitReviewPage({ type, record, designId, onBack }) {
         eyebrow={<BrandEyebrow plain label={BRAND_CRAFT_LABEL[type] || "Kit"}/>}
         title="Review your kit"
         sub={sub}/>
-      <div className="kit-band brand-bleed">
-        <div className="kit-preview">
-          <div className="kit-tiles">
-            <figure className="kit-tile">
-              <div className="kit-tile-art">
-                {isQuilt
-                  ? <SavedQuiltThumb q={record}/>
-                  : <StitchThumb w={record.w} h={record.h} cells={deserializeGrid(record.grid, record.w * record.h)}
-                      size={320} bg={(record.fabric && record.fabric.hex) || "#FFFFFF"}/>}
-              </div>
-              <figcaption className="kit-tile-cap">Your design</figcaption>
-            </figure>
-            {/* The same design as the finished object. Left out entirely unless the
-                image service is configured, so there's never a button here that
-                can't do anything. */}
-            {mockup.available && (
+      <div className="kit-band">
+        <div className="kit-col">
+          <div className="kit-scroll">
+            <div className="kit-tiles">
               <figure className="kit-tile">
                 <div className="kit-tile-art">
-                  {mockup.status === 'done'
-                    ? <img src={mockup.image} alt={`${name} made up as a finished ${(BRAND_CRAFT_LABEL[type] || 'piece').toLowerCase()} piece`}/>
-                    : (
-                      <div className="kit-tile-blank">
-                        {mockup.status === 'working'
-                          ? <p className="kit-tile-msg">Making a picture of it finished — this takes up to a minute.</p>
-                          : (
-                            <>
-                              <button type="button" className="brand-btn" onClick={mockup.generate}>
-                                See it finished
-                              </button>
-                              {mockup.status === 'error'
-                                ? <p className="kit-tile-msg is-err">{mockup.message}</p>
-                                : <p className="kit-tile-msg">An impression of your design made up in real materials.</p>}
-                            </>
-                          )}
-                      </div>
-                    )}
+                  {isQuilt
+                    ? <SavedQuiltThumb q={record}/>
+                    : <StitchThumb w={record.w} h={record.h} cells={deserializeGrid(record.grid, record.w * record.h)}
+                        size={320} bg={(record.fabric && record.fabric.hex) || "#FFFFFF"}/>}
                 </div>
-                <figcaption className="kit-tile-cap">
-                  {mockup.status === 'done' ? 'Illustration, not a photo of your kit' : 'Finished piece'}
-                </figcaption>
+                <figcaption className="kit-tile-cap">Your design</figcaption>
               </figure>
-            )}
-          </div>
-          <BrandSpecs rows={specs}/>
-        </div>
-        <div className="kit-panel">
-          <section className="kit-group">
-            <h2 className="kit-group-title">In your kit</h2>
-            <ul className="kit-list">
-              {supplies.map(row)}
-              {included.map((label, i) => row({ label }, `inc${i}`))}
-            </ul>
-            {!bom && (
-              <p className="kit-note">Working out exact quantities — the colours are final.</p>
-            )}
-          </section>
-          {yourOwn.length > 0 && (
-            <section className="kit-group">
-              <h2 className="kit-group-title">You'll need</h2>
-              <ul className="kit-list is-own">
-                {yourOwn.map((label, i) => row({ label }, `own${i}`))}
-              </ul>
-            </section>
-          )}
-          <div className="kit-buy">
-            <div>
-              <span className="kit-buy-k">Kit price</span>
-              <span className="kit-buy-v">{price || "—"}</span>
+              {/* The same design as the finished object. Left out entirely unless the
+                  image service is configured, so there's never a button here that
+                  can't do anything. */}
+              {mockup.available && (
+                <figure className="kit-tile">
+                  <div className="kit-tile-art">
+                    {mockup.status === 'done'
+                      ? <img src={mockup.image} alt={`${name} made up as a finished ${(BRAND_CRAFT_LABEL[type] || 'piece').toLowerCase()} piece`}/>
+                      : (
+                        <div className="kit-tile-blank">
+                          {mockup.status === 'working'
+                            ? <p className="kit-tile-msg">Making a picture of it finished — this takes up to a minute.</p>
+                            : (
+                              <>
+                                <button type="button" className="brand-btn" onClick={mockup.generate}>
+                                  See it finished
+                                </button>
+                                {mockup.status === 'error'
+                                  ? <p className="kit-tile-msg is-err">{mockup.message}</p>
+                                  : <p className="kit-tile-msg">An impression of your design made up in real materials.</p>}
+                              </>
+                            )}
+                        </div>
+                      )}
+                  </div>
+                  <figcaption className="kit-tile-cap">
+                    {mockup.status === 'done' ? 'Illustration, not a photo of your kit' : 'Finished piece'}
+                  </figcaption>
+                </figure>
+              )}
             </div>
-            <button type="button" className="brand-btn is-primary kit-buy-go"
-              disabled={state.status === "redirecting"} onClick={go}>
-              {state.status === "redirecting" ? "Opening checkout…" : "Checkout"}
-            </button>
+            <BrandSpecs rows={specs}/>
           </div>
-          {state.status === "error"
-            ? <p className="kit-err">{state.message}</p>
-            : <p className="kit-note">Shipping and tax are worked out on the next screen. Made to order — your kit is cut and packed for this design.</p>}
+        </div>
+        <div className="kit-col">
+          <div className="kit-scroll">
+            <section className="kit-group">
+              <h2 className="kit-group-title">In your kit</h2>
+              <ul className="kit-list">
+                {supplies.map(row)}
+                {included.map((label, i) => row({ label }, `inc${i}`))}
+              </ul>
+              {!bom && (
+                <p className="kit-note">Working out exact quantities — the colours are final.</p>
+              )}
+            </section>
+            {yourOwn.length > 0 && (
+              <section className="kit-group">
+                <h2 className="kit-group-title">You'll need</h2>
+                <ul className="kit-list is-own">
+                  {yourOwn.map((label, i) => row({ label }, `own${i}`))}
+                </ul>
+              </section>
+            )}
+          </div>
+          {/* Outside the scrolling list on purpose, so it stays on screen however
+              many colours the design turned out to need. */}
+          <div className="kit-foot">
+            <div className="kit-buy">
+              <div>
+                <span className="kit-buy-k">Kit price</span>
+                <span className="kit-buy-v">{price || "—"}</span>
+              </div>
+              <button type="button" className="brand-btn is-primary kit-buy-go"
+                disabled={state.status === "redirecting"} onClick={go}>
+                {state.status === "redirecting" ? "Opening checkout…" : "Checkout"}
+              </button>
+            </div>
+            {state.status === "error"
+              ? <p className="kit-err">{state.message}</p>
+              : <p className="kit-note">Shipping and tax are worked out on the next screen. Made to order — your kit is cut and packed for this design.</p>}
+          </div>
         </div>
       </div>
-      <BrandFooter/>
     </div>
   );
 }
