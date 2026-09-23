@@ -106,6 +106,21 @@ const cartCalls = [];
 const designSaves = [];
 // Every /api/bom request and the BOM it answered with.
 const bomCalls = [];
+// Every /api/mockup POST, including the reference PNG the studio drew.
+const mockupCalls = [];
+// Flipped to false for the last section, to prove the preview disappears rather
+// than offering a button that can't work when no image key is set.
+let mockupConfigured = true;
+// Set to an HTTP status to make the image service fail, for the failure path.
+let mockupFails = 0;
+// Stands in for the generated photo. Legible in the screenshots and obviously not
+// the design's own preview, which is the whole job of a stub here.
+const STUB_MOCKUP = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320">' +
+  '<rect width="320" height="320" fill="#D65C44"/>' +
+  '<text x="160" y="168" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#FFF">' +
+  'generated preview</text></svg>'
+);
 // Uploaded designs by id, so GET /api/designs/:id can hand one back the way the
 // real store does — that read is how the review page survives being rebuilt.
 const designStore = new Map();
@@ -140,6 +155,30 @@ page.on('request', (req) => {
     return req.respond({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ id: readMatch[1], type: rec.type, name: rec.data.name || 'Untitled', data: rec.data }),
+    });
+  }
+
+  // The finished-product preview. The image model is never called — this stands in
+  // for it — but the reference PNG the studio drew is kept so we can prove the page
+  // sends a real picture of the design rather than an empty square.
+  if (new URL(url).pathname === '/api/mockup') {
+    if (req.method() === 'GET') {
+      return req.respond({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ configured: mockupConfigured }),
+      });
+    }
+    let body = {};
+    try { body = JSON.parse(req.postData() || '{}'); } catch {}
+    mockupCalls.push({ type: body.type, presetName: body.presetName, image: body.image });
+    if (!mockupConfigured) return req.respond({ status: 501, contentType: 'application/json', body: '{"error":"mockups_not_configured"}' });
+    if (mockupFails) return req.respond({
+      status: mockupFails, contentType: 'application/json',
+      body: JSON.stringify({ error: mockupFails === 422 ? 'blocked_by_moderation' : 'mockup_failed' }),
+    });
+    return req.respond({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ image: STUB_MOCKUP }),
     });
   }
 
@@ -559,7 +598,8 @@ if (quiltReview) {
   console.log(JSON.stringify(quiltReview, null, 1));
   check(quiltReview.studioBehind, 'the studio stays mounted under the review page');
   check(quiltReview.hasPreview, 'the design is previewed on the page');
-  check(quiltReview.tiles === 1, 'one preview tile, with room for the finished-product shot',
+  // Two: the design itself, and the finished-product preview alongside it.
+  check(quiltReview.tiles === 2, 'the design and the finished-product preview sit side by side',
     `${quiltReview.tiles}`);
   check(quiltReview.price === '$89', 'the kit price is stated', String(quiltReview.price));
   check(quiltReview.checkout === 'Checkout', 'Checkout is the call to action', String(quiltReview.checkout));
@@ -655,6 +695,152 @@ for (const { craft, size, type, unit, thread } of [
     `${craft}: the cart line carries the design id`);
   check(page.url() === STUB_CHECKOUT_URL, `${craft}: Checkout reaches Shopify`, page.url());
 }
+
+// ── 4b. The finished-product preview ───────────────────────────────────────
+// A second tile on the review page renders the design as the made-up object. It's
+// a button rather than automatic because every press is a paid image-model call,
+// and the result is cached so an abandoned checkout doesn't pay twice.
+console.log('\n── finished-product preview ──');
+mockupCalls.length = 0;
+await walkToEditor('Cross-stitch', 'Medium Hoop', ['template', 'skip']);
+await buyKit();
+
+// Reads the preview tile: the one whose caption isn't "Your design". Matched on the
+// caption alone, since the preview's own copy also mentions the design.
+const previewTile = () => page.evaluate(() => {
+  const cap = t => (t.querySelector('.kit-tile-cap') || {}).textContent?.trim() || '';
+  const tiles = [...document.querySelectorAll('.kit-layer .kit-tile')];
+  const tile = tiles.find(t => !/^Your design$/i.test(cap(t))) || null;
+  if (!tile) return { tiles: tiles.length, present: false };
+  const img = tile.querySelector('img');
+  return {
+    tiles: tiles.length,
+    present: true,
+    cta: (tile.querySelector('button') || {}).textContent?.trim() || null,
+    msg: (tile.querySelector('.kit-tile-msg') || {}).textContent?.trim() || null,
+    cap: cap(tile),
+    img: img ? img.getAttribute('src') : null,
+    // Proof it actually decoded, rather than being a broken <img> with a src.
+    shown: img ? img.naturalWidth > 0 : false,
+  };
+});
+
+const before = await previewTile();
+check(before.present, 'a second tile offers the finished-product preview', JSON.stringify(before));
+check(before.tiles === 2, 'two tiles side by side once the service is configured', `${before.tiles}`);
+check(/See it finished/i.test(before.cta || ''), 'it offers a button rather than generating on arrival',
+  String(before.cta));
+check(mockupCalls.length === 0, 'nothing is generated until asked', `${mockupCalls.length} calls`);
+
+const previewBtn = '.kit-layer .kit-tile .kit-tile-blank button';
+await page.click(previewBtn);
+await page.waitForFunction(
+  () => {
+    const cap = t => (t.querySelector('.kit-tile-cap') || {}).textContent?.trim() || '';
+    const t = [...document.querySelectorAll('.kit-layer .kit-tile')].find(e => !/^Your design$/i.test(cap(e)));
+    return !!(t && t.querySelector('img'));
+  },
+  { timeout: 15000 }
+).catch(() => null);
+const after = await previewTile();
+check(mockupCalls.length === 1, 'pressing it asks the server once', `${mockupCalls.length} calls`);
+check(after.img === STUB_MOCKUP, 'the returned image is what gets shown', String(after.img).slice(0, 40));
+check(after.shown, 'and it actually decodes');
+check(/not a photo/i.test(after.cap || ''), 'the caption says it is an illustration', String(after.cap));
+
+// The prompt is the server's business; the client may only say which kit it is.
+const call = mockupCalls[0] || {};
+check(call.type === 'cross-stitch', 'the craft is sent', String(call.type));
+check(call.presetName === 'Medium Hoop', 'the finished size is sent', String(call.presetName));
+check(!('prompt' in call), 'the client sends no prompt of its own', Object.keys(call).join(','));
+
+// The reference image has to be a real picture of the design. Decode the PNG the
+// studio drew and check it carries the design's own colours.
+const ref = await page.evaluate(async (dataUrl) => {
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = dataUrl; });
+  const cv = document.createElement('canvas');
+  cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, cv.width, cv.height);
+  const seen = new Set();
+  for (let i = 0; i < data.length; i += 4) {
+    seen.add(`#${[data[i], data[i + 1], data[i + 2]].map(v => v.toString(16).padStart(2, '0')).join('')}`);
+  }
+  return { w: cv.width, h: cv.height, colors: [...seen] };
+}, call.image);
+check(ref.w === 1024 && ref.h === 1024, 'the reference image is a 1024px square', `${ref.w}x${ref.h}`);
+check(ref.colors.length > 2, 'it is a picture of the design, not a blank square',
+  `${ref.colors.length} distinct colours`);
+// Every colour in the design should appear in the raster it drew.
+const designColors = (designSaves[designSaves.length - 1]?.data?.colors || []).map(c => c.hex.toLowerCase());
+const drawn = new Set(ref.colors);
+const absent = designColors.filter(h => !drawn.has(h));
+check(designColors.length > 0 && absent.length === 0,
+  "every one of the design's thread colours is in the reference image",
+  absent.length ? `missing ${absent.join(' ')}` : `${designColors.length} colours`);
+await shootReview('mockup-cross-stitch');
+
+// Leaving and coming back must not pay for the same picture twice.
+await page.goBack({ timeout: 15000 }).catch(() => null);
+await new Promise(r => setTimeout(r, 700));
+await buyKit();
+const again = await previewTile();
+check(mockupCalls.length === 1, 'returning to the review page reuses the cached preview',
+  `${mockupCalls.length} calls`);
+check(again.img === STUB_MOCKUP, 'and shows it straight away', String(again.img).slice(0, 40));
+
+// A preview that fails says so and offers another go, and — the point of the
+// section — leaves the kit buyable. The picture is a nicety; the order isn't.
+mockupFails = 502;
+mockupCalls.length = 0;
+await walkToEditor('Quilt', 'Throw Blanket', ['skip', 'skip', 'template']);
+// Every save in this harness comes back as the same stub id, so the cached preview
+// from the section above would be handed to this design too. Real designs get their
+// own ids, so clearing it here is a harness detail, not a product one.
+await page.evaluate(() => sessionStorage.clear());
+await buyKit();
+await page.click(previewBtn);
+await page.waitForFunction(() => !!document.querySelector('.kit-layer .kit-tile-msg.is-err'), { timeout: 15000 })
+  .catch(() => null);
+const failed = await previewTile();
+check(/Couldn't make the preview/i.test(failed.msg || ''), 'a failed preview says so in plain words',
+  String(failed.msg));
+check(/See it finished/i.test(failed.cta || ''), 'and offers another go', String(failed.cta));
+check(!failed.img, 'with no broken image left behind', String(failed.img));
+const buyableAfterFail = await page.evaluate(() => {
+  const go = document.querySelector('.kit-layer .kit-buy-go');
+  return !!go && !go.disabled;
+});
+check(buyableAfterFail, 'and the kit is still buyable');
+await shootReview('mockup-failed');
+
+// A design the model refuses is a different message: nothing is wrong with the kit.
+mockupFails = 422;
+await page.click(previewBtn);
+await page.waitForFunction(
+  () => /still fine to order/i.test(document.querySelector('.kit-layer .kit-tile-msg.is-err')?.textContent || ''),
+  { timeout: 15000 }
+).catch(() => null);
+const refused = await previewTile();
+check(/still fine to order/i.test(refused.msg || ''),
+  'a refused design says the kit is unaffected', String(refused.msg));
+mockupFails = 0;
+
+// With no image key set the tile is absent rather than dead.
+mockupConfigured = false;
+mockupCalls.length = 0;
+await walkToEditor('Punch Needle', 'Coaster', ['template', 'skip']);
+await buyKit();
+const unconfigured = await previewTile();
+check(!unconfigured.present, 'no preview tile when the image service is unconfigured',
+  JSON.stringify(unconfigured));
+check(unconfigured.tiles === 1, 'just the design, and no empty slot', `${unconfigured.tiles}`);
+check(mockupCalls.length === 0, 'and nothing is asked of it', `${mockupCalls.length} calls`);
+const stillBuyable = await page.evaluate(() => !!document.querySelector('.kit-layer .kit-buy-go'));
+check(stillBuyable, 'the kit is still buyable without a preview');
+mockupConfigured = true;
 
 // ── 5. Back out of the review page, back out of checkout ───────────────────
 // Two different Backs. From the review page the studio is still mounted, so the

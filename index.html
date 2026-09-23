@@ -2511,6 +2511,32 @@
     overflow: hidden;
   }
   .brand-shell .kit-tile-art > * { max-width: 100%; max-height: 100%; }
+  .brand-shell .kit-tile-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  /* The preview tile before there's a preview in it. Cream rather than white, so
+     an empty tile reads as a waiting surface instead of a failed image. */
+  .brand-shell .kit-tile-blank {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    background: var(--brand-cream);
+    text-align: center;
+  }
+  .brand-shell .kit-tile-msg {
+    max-width: 30ch;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--brand-muted);
+  }
+  .brand-shell .kit-tile-msg.is-err { color: #B3261E; }
   .brand-shell .kit-tile-cap {
     margin-top: 14px;
     padding-top: 10px;
@@ -3861,6 +3887,139 @@ function kitSupplyRowsLocal(type, record) {
   return (record.colors || []).map((c) => ({
     hex: c.hex, label: c.code ? `DMC ${c.code} — ${c.name}` : c.name, qty: `${c.count} ${unit}`,
   }));
+}
+
+// ── Finished-product preview ───────────────────────────────────────────────
+// Draws a design to a flat PNG for an image model to work from. The model needs
+// to see the actual layout — a written description would produce a picture of
+// some other person's quilt — and the browser already holds everything needed,
+// so this is a local redraw rather than another server-side renderer.
+//
+// Deliberately plain: no quilting lines, no grid, no fabric texture, one cell or
+// patch per block of flat colour. The prompt asks for the craft's texture to be
+// added, and any that's baked in here gets reinterpreted rather than reproduced.
+const MOCKUP_INPUT_PX = 1024;
+
+function drawQuiltToCanvas(ctx, record, scale) {
+  const tri = (s) => {
+    const x = s.c * scale, y = s.r * scale, w = s.w * scale, h = s.h * scale;
+    // Same two diagonals and two halves the saved-quilt thumbnails use.
+    const pts = s.dir === '/'
+      ? (s.half === 'a' ? [[x, y], [x + w, y], [x, y + h]] : [[x + w, y], [x + w, y + h], [x, y + h]])
+      : (s.half === 'a' ? [[x, y], [x + w, y], [x + w, y + h]] : [[x, y], [x, y + h], [x + w, y + h]]);
+    ctx.beginPath();
+    pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.closePath();
+    ctx.fill();
+  };
+  for (const s of record.shapes || []) {
+    ctx.fillStyle = (s.color && s.color.hex) || '#FFFFFF';
+    if (s.type === 'tri') tri(s);
+    // Rounded out by a pixel: at this scale, exact edges leave hairlines of
+    // background between patches that the model reads as sashing.
+    else ctx.fillRect(Math.floor(s.c * scale), Math.floor(s.r * scale),
+      Math.ceil(s.w * scale) + 1, Math.ceil(s.h * scale) + 1);
+  }
+}
+
+// A PNG data URL of the design, letterboxed into a square at its own proportions
+// so a bookmark doesn't arrive stretched. Returns null for a record with nothing
+// in it, which is what keeps a blank board from being sent off to be rendered.
+function designToPng(type, record) {
+  if (!record) return null;
+  const cv = document.createElement('canvas');
+  cv.width = MOCKUP_INPUT_PX;
+  cv.height = MOCKUP_INPUT_PX;
+  const ctx = cv.getContext('2d');
+  if (!ctx) return null;
+
+  if (type === 'quilt') {
+    const cols = record.cols || 0, rows = record.rows || 0;
+    if (!cols || !rows || !(record.shapes || []).length) return null;
+    const scale = Math.min(MOCKUP_INPUT_PX / cols, MOCKUP_INPUT_PX / rows);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.save();
+    ctx.translate((MOCKUP_INPUT_PX - cols * scale) / 2, (MOCKUP_INPUT_PX - rows * scale) / 2);
+    drawQuiltToCanvas(ctx, record, scale);
+    ctx.restore();
+    return cv.toDataURL('image/png');
+  }
+
+  const w = record.w || 0, h = record.h || 0;
+  if (!w || !h) return null;
+  const cells = deserializeGrid(record.grid, w * h);
+  if (!cells.some(Boolean)) return null;
+  const scale = Math.min(MOCKUP_INPUT_PX / w, MOCKUP_INPUT_PX / h);
+  // The cloth colour fills the whole square, not just the stitched area: the
+  // model treats the surround as the fabric the piece is worked on.
+  ctx.fillStyle = (record.fabric && record.fabric.hex) || '#FFFFFF';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  const ox = (MOCKUP_INPUT_PX - w * scale) / 2, oy = (MOCKUP_INPUT_PX - h * scale) / 2;
+  for (let i = 0; i < cells.length; i++) {
+    if (!cells[i]) continue;
+    ctx.fillStyle = cells[i];
+    ctx.fillRect(Math.floor(ox + (i % w) * scale), Math.floor(oy + Math.floor(i / w) * scale),
+      Math.ceil(scale), Math.ceil(scale));
+  }
+  return cv.toDataURL('image/png');
+}
+
+// Asks the server to render the design as the finished object (POST /api/mockup).
+// The prompt is built server-side from the craft and size — this sends only the
+// picture and which kit it is, so nobody can spend the image budget on whatever
+// they like.
+// An image model can take the better part of a minute, so this is generous — but
+// not unbounded, because a request that never answers would leave the button
+// spinning for ever.
+const MOCKUP_TIMEOUT_MS = 90000;
+
+async function generateKitMockup(type, record) {
+  const image = designToPng(type, record);
+  if (!image) throw new Error('nothing on the canvas to render');
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), MOCKUP_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch('/api/mockup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, presetName: kitPresetName(type, record), image }),
+      signal: abort.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (res.status === 422) throw new Error('blocked');
+  if (!res.ok) throw new Error(`mockup failed (HTTP ${res.status})`);
+  const body = await res.json();
+  if (!body || !body.image) throw new Error('mockup response had no image');
+  return body.image;
+}
+
+// Generated previews already paid for, keyed by stored design id. An image model
+// call costs real money and takes the better part of a minute, so leaving the
+// review page and coming back — which happens on every abandoned checkout — must
+// not spend it again. sessionStorage rather than localStorage: one tab's shopping
+// trip, and a few hundred KB per design is not worth keeping for ever.
+const MOCKUP_CACHE_PREFIX = 'metime.mockup.';
+
+function cachedMockup(designId) {
+  if (!designId || typeof sessionStorage === 'undefined') return null;
+  try {
+    return sessionStorage.getItem(MOCKUP_CACHE_PREFIX + designId) || null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheMockup(designId, image) {
+  if (!designId || typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(MOCKUP_CACHE_PREFIX + designId, image);
+  } catch {
+    // Over quota, or storage blocked. The preview still shows for this visit.
+  }
 }
 
 // Resolve the kit for a design's size, create the cart, and hand off to Shopify's
@@ -12510,6 +12669,56 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   );
 }
 
+// The finished-product preview for one design: whether the service is up, the
+// image once there is one, and the one call that makes it.
+//
+// Generating is a button rather than something that happens on arrival. Each press
+// costs a real image-model call and takes tens of seconds, and the review page is
+// reachable by anyone who clicks Buy kit — spending that on every visit, including
+// the ones that never buy, is a bill with no purchase behind it. Once generated the
+// result is cached for the visit, so leaving and coming back is free.
+function useKitMockup(type, record, designId) {
+  const [available, setAvailable] = useState(null); // null until the probe answers
+  const cached = cachedMockup(designId);
+  const [state, setState] = useState(() => (cached ? { status: 'done', image: cached } : { status: 'idle' }));
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/mockup')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => { if (alive) setAvailable(!!(b && b.configured)); })
+      .catch(() => { if (alive) setAvailable(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // A design swapped underneath (the library's preview, re-ordering something
+  // else) has its own preview, or none.
+  useEffect(() => {
+    const hit = cachedMockup(designId);
+    setState(hit ? { status: 'done', image: hit } : { status: 'idle' });
+  }, [designId]);
+
+  const generate = async () => {
+    if (state.status === 'working') return;
+    setState({ status: 'working' });
+    try {
+      const image = await generateKitMockup(type, record);
+      cacheMockup(designId, image);
+      setState({ status: 'done', image });
+    } catch (e) {
+      console.warn('Mockup failed:', e);
+      setState({
+        status: 'error',
+        message: e.message === 'blocked'
+          ? "That design couldn't be rendered — it's still fine to order"
+          : "Couldn't make the preview just now — your kit is unaffected",
+      });
+    }
+  };
+
+  return { available, status: state.status, image: state.image, message: state.message, generate };
+}
+
 // True while the kit review page is covering the studio. The editors stay mounted
 // underneath on purpose, so a Back returns an unsaved canvas untouched — which
 // also means their window-level key handlers are still listening. Those have to
@@ -12531,6 +12740,7 @@ function studioCovered() {
 // Nothing here blocks Checkout.
 function KitReviewPage({ type, record, designId, onBack }) {
   const bom = useDesignBom(type, record);
+  const mockup = useKitMockup(type, record, designId);
   const price = formatKitPrice(useKitPrice(type, record));
   const [state, setState] = useState({ status: "idle" });
   const cfg = CRAFT_STUDIO[type];
@@ -12598,15 +12808,34 @@ function KitReviewPage({ type, record, designId, onBack }) {
               </div>
               <figcaption className="kit-tile-cap">Your design</figcaption>
             </figure>
-            {/* Second tile: a generated photo of the finished thing on a table.
-                Nothing writes `mockup` yet, so today this renders one tile — the
-                grid above is sized to take the second without moving anything. */}
-            {record.mockup && (
+            {/* The same design as the finished object. Left out entirely unless the
+                image service is configured, so there's never a button here that
+                can't do anything. */}
+            {mockup.available && (
               <figure className="kit-tile">
                 <div className="kit-tile-art">
-                  <img src={record.mockup} alt={`${name} as a finished ${(BRAND_CRAFT_LABEL[type] || "piece").toLowerCase()}`}/>
+                  {mockup.status === 'done'
+                    ? <img src={mockup.image} alt={`${name} made up as a finished ${(BRAND_CRAFT_LABEL[type] || 'piece').toLowerCase()} piece`}/>
+                    : (
+                      <div className="kit-tile-blank">
+                        {mockup.status === 'working'
+                          ? <p className="kit-tile-msg">Making a picture of it finished — this takes up to a minute.</p>
+                          : (
+                            <>
+                              <button type="button" className="brand-btn" onClick={mockup.generate}>
+                                See it finished
+                              </button>
+                              {mockup.status === 'error'
+                                ? <p className="kit-tile-msg is-err">{mockup.message}</p>
+                                : <p className="kit-tile-msg">An impression of your design made up in real materials.</p>}
+                            </>
+                          )}
+                      </div>
+                    )}
                 </div>
-                <figcaption className="kit-tile-cap">Finished, roughly</figcaption>
+                <figcaption className="kit-tile-cap">
+                  {mockup.status === 'done' ? 'Illustration, not a photo of your kit' : 'Finished piece'}
+                </figcaption>
               </figure>
             )}
           </div>
