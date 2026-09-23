@@ -12178,25 +12178,64 @@ const STEP_DEPTH = {
 // share one set of flow state and one set of step components.
 const GRID_CRAFTS = { 'cross-stitch': 'xs', 'punch-needle': 'pn' };
 
+// ── Restoring a step from its history entry ────────────────────────────────
+// Each entry carries a snapshot of the choices that identify its step (see
+// `snapshot` in Root). These rebuild the parts that aren't themselves
+// serializable: templates are stored by id and their chart is rebuilt.
+function findQuiltTemplate(id) {
+  return id ? QUILT_TEMPLATES.find(t => t.id === id) || null : null;
+}
+function findGridTemplate(craft, id) {
+  return id ? (GRID_TEMPLATES[craft] || []).find(t => t.id === id) || null : null;
+}
+// An uploaded photo only ever lived in memory, so a traced design can't come
+// back. Those steps hand the maker back to the template picker instead of a
+// palette step with nothing to trace.
+function gridStepsRestorable(s) {
+  return !s.hadPhoto || !!s.gridTemplateId;
+}
+// Re-dress the template's own chart exactly as the palette step does, so a
+// restored grid craft opens on its design rather than an empty board.
+function restoredGridOpts(s) {
+  const t = findGridTemplate(s.craft, s.gridTemplateId);
+  if (!t || !s.gridPreset) return {};
+  const chart = t.build(s.gridPreset);
+  return { bgImage: null, autoGrid: s.gridPalette ? xsRecolorGrid(chart, s.gridPalette) : chart };
+}
+// The snapshot this document loaded into, when the browser kept one for the
+// entry. 'craft' needs nothing restored, and 'saved' can't be (it points at a
+// library item this render knows nothing about), so both start clean.
+function landedSnapshot() {
+  if (typeof window === 'undefined') return null;
+  const s = window.history.state;
+  if (!s || !s.step || s.step === 'craft' || s.step === 'saved') return null;
+  return s;
+}
+
 function Root() {
-  const [craft, setCraft] = React.useState(null);
-  const [selectedPreset, setSelectedPreset] = React.useState(null);
-  const [templateDone, setTemplateDone] = React.useState(false);
-  const [quiltTemplate, setQuiltTemplate] = React.useState(null);
-  const [paletteDone, setPaletteDone] = React.useState(false);
-  const [palette, setPalette] = React.useState(null);
-  const [backingFabric, setBackingFabric] = React.useState(null);
-  const [quiltBackingDone, setQuiltBackingDone] = React.useState(false);
+  // Seeded during the first render rather than in an effect, so a restored step
+  // is what actually paints — an effect would flash the craft picker first.
+  const landed = React.useRef(landedSnapshot()).current;
+  const gridOk = !!landed && gridStepsRestorable(landed);
+
+  const [craft, setCraft] = React.useState(landed ? landed.craft || null : null);
+  const [selectedPreset, setSelectedPreset] = React.useState(landed ? landed.preset || null : null);
+  const [templateDone, setTemplateDone] = React.useState(!!landed && !!landed.templateDone);
+  const [quiltTemplate, setQuiltTemplate] = React.useState(landed ? findQuiltTemplate(landed.quiltTemplateId) : null);
+  const [paletteDone, setPaletteDone] = React.useState(!!landed && !!landed.paletteDone);
+  const [palette, setPalette] = React.useState(landed ? landed.palette || null : null);
+  const [backingFabric, setBackingFabric] = React.useState(landed ? landed.backingFabric || null : null);
+  const [quiltBackingDone, setQuiltBackingDone] = React.useState(!!landed && !!landed.quiltBackingDone);
   // Grid-craft flow state, shared by cross-stitch and punch needle — only one
   // craft is ever mid-flow, and their steps are the same shape.
-  const [gridPreset, setGridPreset] = React.useState(null);
-  const [gridTemplateDone, setGridTemplateDone] = React.useState(false);
-  const [gridTemplate, setGridTemplate] = React.useState(null);
+  const [gridPreset, setGridPreset] = React.useState(landed ? landed.gridPreset || null : null);
+  const [gridTemplateDone, setGridTemplateDone] = React.useState(gridOk && !!landed.gridTemplateDone);
+  const [gridTemplate, setGridTemplate] = React.useState(landed ? findGridTemplate(landed.craft, landed.gridTemplateId) : null);
   const [gridPhoto, setGridPhoto] = React.useState(null);
-  const [gridRemoveBg, setGridRemoveBg] = React.useState(true);
-  const [gridDone, setGridDone] = React.useState(false);
-  const [gridPalette, setGridPalette] = React.useState(null);
-  const [gridOpts, setGridOpts] = React.useState({});
+  const [gridRemoveBg, setGridRemoveBg] = React.useState(landed ? landed.gridRemoveBg !== false : true);
+  const [gridDone, setGridDone] = React.useState(gridOk && !!landed.gridDone);
+  const [gridPalette, setGridPalette] = React.useState(landed ? landed.gridPalette || null : null);
+  const [gridOpts, setGridOpts] = React.useState(landed ? restoredGridOpts(landed) : {});
   // A saved item opened straight from the landing page: { type, item }.
   const [openSaved, setOpenSaved] = React.useState(null);
 
@@ -12211,9 +12250,9 @@ function Root() {
   // ── Browser Back = previous step ──────────────────────────────────────────
   // The screens above are a plain state machine with no URL, so the browser's
   // Back button used to leave the app entirely. We mirror the current step into
-  // the History API: push an entry when the user moves forward, and reverse
-  // exactly one step on `popstate`. The in-app "Back" links route through
-  // history.back() too, so both paths behave identically and stay in sync.
+  // the History API: push an entry when the maker moves forward, and put the
+  // screen back from the entry's own snapshot on `popstate`. The in-app "Back"
+  // links route through history.back() too, so both paths behave identically.
   const stepKey = React.useMemo(() => {
     if (openSaved) return 'saved';
     if (!craft) return 'craft';
@@ -12231,48 +12270,90 @@ function Root() {
     return 'q-editor';
   }, [openSaved, craft, gridPreset, gridTemplateDone, gridDone, selectedPreset, quiltBackingDone, paletteDone, templateDone]);
 
-  const stepRef = React.useRef(stepKey); stepRef.current = stepKey;
   const prevStepRef = React.useRef(stepKey);
-  const isPoppingRef = React.useRef(false);
 
-  // Reverse a single step. Returns true if it actually moved (so popstate knows
-  // whether a transition happened); 'craft' returns false to let the browser
-  // navigate away from the site as usual.
-  const goBack = () => {
-    switch (stepRef.current) {
-      case 'q-editor':    setTemplateDone(false); return true;
-      case 'q-template':  setPaletteDone(false); return true;
-      case 'q-palette':   setQuiltBackingDone(false); return true;
-      case 'q-backing':   setSelectedPreset(null); return true;
-      case 'q-size':      setCraft(null); return true;
-      case 'xs-editor':   case 'pn-editor':   setGridDone(false); return true;
-      case 'xs-palette':  case 'pn-palette':  setGridTemplateDone(false); return true;
-      case 'xs-template': case 'pn-template': setGridPreset(null); return true;
-      case 'xs-size':     case 'pn-size':     setCraft(null); return true;
-      case 'saved':       resetAll(); return true;
-      default:            return false;
-    }
+  // What goes into a history entry. Everything here has to survive being
+  // serialized by the browser and stored for the life of the entry, so it holds
+  // only small, rebuildable things: templates by id, never the uploaded photo or
+  // the built chart. `hadPhoto` is kept so a restore knows the difference between
+  // "no template" and "traced from a photo we can no longer produce".
+  const snapshot = () => ({
+    step: stepKey,
+    craft,
+    preset: selectedPreset,
+    backingFabric,
+    palette,
+    quiltTemplateId: quiltTemplate ? quiltTemplate.id : null,
+    quiltBackingDone, paletteDone, templateDone,
+    gridPreset,
+    gridPalette,
+    gridRemoveBg,
+    gridTemplateId: gridTemplate ? gridTemplate.id : null,
+    gridTemplateDone, gridDone,
+    hadPhoto: !!gridPhoto,
+  });
+
+  // Put the screen back from an entry's snapshot. Used for popstate, where the
+  // document is still alive; a document that was thrown away and rebuilt seeds
+  // the same values through useState above instead.
+  const applySnapshot = (s) => {
+    if (!s || !s.step || s.step === 'craft' || s.step === 'saved') { resetAll(); return; }
+    const ok = gridStepsRestorable(s);
+    setOpenSaved(null);
+    setCraft(s.craft || null);
+    setSelectedPreset(s.preset || null);
+    setBackingFabric(s.backingFabric || null);
+    setPalette(s.palette || null);
+    setQuiltTemplate(findQuiltTemplate(s.quiltTemplateId));
+    setQuiltBackingDone(!!s.quiltBackingDone);
+    setPaletteDone(!!s.paletteDone);
+    setTemplateDone(!!s.templateDone);
+    setGridPreset(s.gridPreset || null);
+    setGridPalette(s.gridPalette || null);
+    setGridRemoveBg(s.gridRemoveBg !== false);
+    setGridTemplate(findGridTemplate(s.craft, s.gridTemplateId));
+    setGridPhoto(null);
+    setGridOpts(restoredGridOpts(s));
+    setGridTemplateDone(ok && !!s.gridTemplateDone);
+    setGridDone(ok && !!s.gridDone);
   };
-  const goBackRef = React.useRef(goBack); goBackRef.current = goBack;
+
+  const snapshotRef = React.useRef(snapshot); snapshotRef.current = snapshot;
+  const applyRef = React.useRef(applySnapshot); applyRef.current = applySnapshot;
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.history.replaceState({ step: stepRef.current }, '');
-    const onPop = () => { if (goBackRef.current()) isPoppingRef.current = true; };
+    // Every entry describes its own step, so a pop is applied directly rather
+    // than reversed one step at a time. That keeps a multi-entry jump — a
+    // long-press on Back, or several presses before React catches up — landing
+    // exactly where the browser actually went.
+    const onPop = (e) => applyRef.current(e.state);
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    // A popstate-driven change already consumed a history entry — don't push.
-    if (isPoppingRef.current) { isPoppingRef.current = false; prevStepRef.current = stepKey; return; }
-    if (stepKey === prevStepRef.current) return;
+    const cur = window.history.state;
+    // Already sitting on this step's entry: we just popped onto it, or this is
+    // the first render. Refresh its snapshot rather than adding a duplicate.
+    if (cur && cur.step === stepKey) {
+      window.history.replaceState(snapshotRef.current(), '');
+      prevStepRef.current = stepKey;
+      return;
+    }
     const d = STEP_DEPTH[stepKey] ?? 0, pd = STEP_DEPTH[prevStepRef.current] ?? 0;
-    // Forward move: add an entry so Back returns here. Backward/reset not via a
-    // pop (e.g. the editor's "Back to projects"): collapse onto the current entry.
-    if (d > pd) window.history.pushState({ step: stepKey }, '');
-    else window.history.replaceState({ step: stepKey }, '');
+    if (d > pd) {
+      // Forward: add an entry so Back returns here.
+      window.history.pushState(snapshotRef.current(), '');
+    } else {
+      window.history.replaceState(snapshotRef.current(), '');
+      // A jump backwards the browser didn't make itself — the studio's "Back to
+      // projects". Rewind by as many entries as steps so the browser's position
+      // matches the screen; left stacked up, they made Back a dead button for
+      // the next few presses.
+      if (pd > d) window.history.go(d - pd);
+    }
     prevStepRef.current = stepKey;
   }, [stepKey]);
 

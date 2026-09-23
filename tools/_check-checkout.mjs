@@ -182,10 +182,15 @@ page.on('request', (req) => {
 });
 
 const url = `http://127.0.0.1:${port}/index.html`;
+// Navigating to a URL the tab is already on counts as a reload, and the app now
+// resumes the step recorded on that history entry. Every load below wants to look
+// like a first visit instead, so each gets a URL the tab has never seen.
+let visit = 0;
+const freshUrl = () => `${url}?visit=${++visit}`;
 try {
-  await page.goto(url, { waitUntil: 'networkidle0', timeout: 20000 });
+  await page.goto(freshUrl(), { waitUntil: 'networkidle0', timeout: 20000 });
 } catch {
-  await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+  await page.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
 }
 await page.waitForFunction(
   () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
@@ -267,7 +272,7 @@ if (mapping.unreachable) {
 console.log('\n── size cards ──');
 for (const [craft, expected] of Object.entries(EXPECTED)) {
   storefrontCalls.length = 0;
-  await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+  await page.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
   await page.waitForFunction(
     () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
     { timeout: 15000 }
@@ -322,7 +327,7 @@ for (const [craft, expected] of Object.entries(EXPECTED)) {
 // order their steps differently — quilt is backing, palette, template; the grid
 // crafts are template, palette — so the caller spells the sequence out.
 async function walkToEditor(craft, size, steps) {
-  await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+  await page.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
   await page.waitForFunction(
     () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
     { timeout: 15000 }
@@ -490,13 +495,50 @@ check(cartCalls[0]?.lines?.[0]?.attributes?.[0]?.value === STUB_DESIGN_ID,
   'the grid cart line carries the design id');
 check(page.url() === STUB_CHECKOUT_URL, 'the grid editor reaches checkout too', page.url());
 
-// ── 5. Re-ordering a design already in the library ─────────────────────────
+// ── 5. Coming back from checkout ───────────────────────────────────────────
+// Buying redirects the tab to Shopify, so Back is the obvious way home. When the
+// browser keeps the page in its back-forward cache that just works; when it
+// doesn't — a phone under memory pressure, an unload listener, devtools open —
+// the document is rebuilt, and it used to rebuild as "What are you making?".
+console.log('\n── back from checkout ──');
+await walkToEditor('Quilt', 'Throw Blanket', ['skip', 'skip', 'template']);
+const tplBefore = await page.evaluate(() => history.state && history.state.quiltTemplateId);
+// Opt this document out of the back-forward cache, the way a phone evicting the
+// tab does, so Back is forced to build the page again from the history entry.
+await page.evaluate(() => window.addEventListener('unload', () => {}));
+const gone = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+await page.evaluate(() => {
+  const btn = [...document.querySelectorAll('.header-right button.btn')].find(b => /^Buy kit/.test(b.textContent));
+  if (btn) btn.click();
+});
+await gone;
+check(page.url() === STUB_CHECKOUT_URL, 'reached checkout', page.url());
+
+await page.goBack({ waitUntil: 'load', timeout: 20000 }).catch(e => console.log('  goBack:', e.message));
+await new Promise(r => setTimeout(r, 1400));
+const returned = await page.evaluate(() => ({
+  editor: !!document.querySelector('.app'),
+  craft: /What are you making/.test(document.body.innerText),
+  step: history.state && history.state.step,
+  tpl: history.state && history.state.quiltTemplateId,
+  patches: (() => {
+    const m = document.body.innerText.match(/Patches placed\s*(\d+)/);
+    return m ? +m[1] : null;
+  })(),
+}));
+check(returned.editor, 'Back from checkout returns to the studio', JSON.stringify(returned));
+check(!returned.craft, 'not dumped on the craft picker');
+check(returned.step === 'q-editor', 'the entry still describes the studio step', String(returned.step));
+check(returned.tpl === tplBefore, 'the size and template are still chosen', `${returned.tpl} vs ${tplBefore}`);
+check(returned.patches > 0, 'the quilt top is rebuilt, not blank', `${returned.patches} patches`);
+
+// ── 6. Re-ordering a design already in the library ─────────────────────────
 // The saved-design preview is the second way in, and it used to read "Saved for
 // checkout ✓" with nowhere to go for anything already uploaded. The library UI
 // itself sits behind the account wall, so rather than sign in, mount the button
 // on its own with savedId set — which is the state that used to go wrong.
 console.log('\n── library re-order ──');
-await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+await page.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
 await page.waitForFunction(
   () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
   { timeout: 15000 }
@@ -520,7 +562,7 @@ check(!!reorder && /Add to cart/.test(reorder.text),
 check(!!reorder && /\$149/.test(reorder.text), 'the re-order button carries the price', reorder?.text);
 check(!!reorder && !reorder.disabled, 'the re-order button is enabled', `disabled=${reorder?.disabled}`);
 
-// ── 6. Graceful degradation when Shopify is unreachable ────────────────────
+// ── 7. Graceful degradation when Shopify is unreachable ────────────────────
 // Pricing is advisory, so an outage must never stop someone from designing: the
 // cards still render, just without prices, and nothing throws.
 console.log('\n── storefront unreachable ──');
@@ -533,7 +575,7 @@ plain.on('request', (req) => {
   if (url.includes('/api/') && url.includes('graphql.json')) return req.abort('failed');
   req.continue();
 });
-await plain.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load', timeout: 40000 });
+await plain.goto(freshUrl(), { waitUntil: 'load', timeout: 40000 });
 await plain.waitForFunction(
   () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
   { timeout: 15000 }
