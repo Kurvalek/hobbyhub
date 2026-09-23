@@ -16,6 +16,6 @@
   },
   "devDependencies": {
     "pngjs": "^7.0.0",
-    "vercel": "^37.14.0"
+    "vercel": "^59.25.4"
   }
 }
