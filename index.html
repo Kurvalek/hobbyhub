@@ -53,10 +53,15 @@
     --ice-600: #3D4E70;
     --ice-700: #2A3752;
 
-    /* metime base palette */
-    --metime-black: #000000;
-    --metime-almost-black: #000000;
-    --metime-cream: var(--ice-50);
+    /* metime base palette.
+       The studio reads the brand's warm grounds and ink directly, so the editor
+       sits in the same room as the setup flow and the kit review page instead of
+       the cool near-white it used to. The ice scale below stays exactly as it is:
+       it still carries selection, focus and the interaction states, where a cool
+       tone is genuinely useful for standing apart from warm fabric and thread. */
+    --metime-black: #171717;
+    --metime-almost-black: #171717;
+    --metime-cream: #F8F5ED;
     --metime-white: #FFFFFF;
 
     /* metime accent palette */
@@ -67,15 +72,18 @@
     --metime-ice: var(--ice-200);
     --metime-golden: #FBBB3F;
 
-    /* Cool neutrals (legacy --warm-* names kept so existing rules pick up ice) */
+    /* Text and structure (legacy --warm-* names kept so existing rules pick these
+       up). Ink at decreasing strength rather than a separate grey ramp, which is
+       how the brand builds its hierarchy — and reduced ink stays neutral against
+       the warm ground where a cool grey turned slightly blue on it. */
     --warm-fg: var(--metime-black);
-    --warm-fg-2: var(--ice-600);
-    --warm-muted: var(--ice-500);
-    --warm-muted-2: var(--ice-300);
-    --warm-placeholder: var(--ice-400);
-    --warm-hairline: var(--ice-200);
-    --warm-divider-soft: var(--ice-100);
-    --warm-hover: var(--ice-200);
+    --warm-fg-2: rgba(23, 23, 23, 0.78);
+    --warm-muted: rgba(23, 23, 23, 0.66);
+    --warm-muted-2: rgba(23, 23, 23, 0.38);
+    --warm-placeholder: rgba(23, 23, 23, 0.44);
+    --warm-hairline: rgba(23, 23, 23, 0.16);
+    --warm-divider-soft: rgba(23, 23, 23, 0.08);
+    --warm-hover: #F2EAD9;
 
     /* Legacy taupe / linen names — now ice aliases so existing var() calls update */
     --color-taupe-900: var(--metime-black);
@@ -89,29 +97,33 @@
     --color-linen-300: var(--ice-100);
     --color-linen-100: var(--ice-50);
 
-    /* Primary (filled) button — black stroke stays; ice fills on hover / active / disabled */
+    /* Primary (filled) button — ink fill, deepening rather than shifting hue on
+       hover, which is how the brand's primary behaves. */
     --btn-primary-bg: var(--metime-black);
-    --btn-primary-bg-hover: var(--ice-500);
-    --btn-primary-bg-active: var(--ice-600);
-    --btn-primary-bg-disabled: var(--ice-100);
-    --btn-primary-fg: var(--metime-white);
-    --btn-primary-fg-active: var(--ice-50);
+    --btn-primary-bg-hover: #000000;
+    --btn-primary-bg-active: #000000;
+    --btn-primary-bg-disabled: rgba(23, 23, 23, 0.12);
+    --btn-primary-fg: #F8F5ED;
+    --btn-primary-fg-active: #F8F5ED;
     --btn-stroke: var(--metime-black);
 
-    /* Secondary (outline) button */
-    --btn-secondary-bg: var(--metime-white);
-    --btn-secondary-bg-hover: var(--ice-100);
-    --btn-secondary-bg-active: var(--ice-200);
+    /* Secondary (outline) button — paper face, cream on hover. Matches .brand-btn
+       so a button means the same thing on both sides of Buy kit. */
+    --btn-secondary-bg: #F8F5ED;
+    --btn-secondary-bg-hover: #F2EAD9;
+    --btn-secondary-bg-active: #EADFC7;
     --btn-secondary-border: var(--metime-black);
     --btn-secondary-fg: var(--metime-black);
 
     /* Shared button states */
-    --btn-disabled-fg: var(--ice-400);
+    --btn-disabled-fg: rgba(23, 23, 23, 0.34);
     --btn-focus-ring: var(--ice-300);
-    --btn-tool-hover: rgba(82, 101, 141, 0.16);
+    --btn-tool-hover: rgba(23, 23, 23, 0.08);
 
-    /* Surfaces */
-    --surface-card: var(--metime-white);
+    /* Surfaces. The artboard stays white on purpose: it is the ground a maker
+       judges fabric and thread colour against, and a cream field behind the work
+       would warm every swatch sitting on it. */
+    --surface-card: #F8F5ED;
     --surface-canvas: var(--metime-white);
 
     /* Action / accent semantics */
@@ -137,9 +149,13 @@
     --art-rise: 14px;
     --art-stagger: 55ms;
 
-    /* Fonts — Söhne (body/sans), BC Civitas (display), Söhne Mono (mono). */
-    --font-sans: 'Söhne', sans-serif;
-    --font-display: 'BC Civitas', serif;
+    /* Fonts. Sans and display both run the brand grotesk so the editor's chrome
+       reads as the same product as the pages around it; the display face keeps a
+       separate token because it is set bold and tight where the brand headings are.
+       Mono stays: the panel's readouts are columns of figures that want to line up,
+       and that is a tool affordance rather than a brand surface. */
+    --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
     --font-mono: 'Söhne Mono', monospace;
 
     /* Type scale (Figma 02 - typography) — used at editorial moments;
@@ -153,7 +169,9 @@
     --text-3xl: 30px;
 
     /* Tweakable structural tokens (kept for backwards-compat with TweaksPanel) */
-    --div-border: 1px solid var(--metime-almost-black);
+    /* The brand builds structure out of hairlines rather than fills or shadows, so
+       the panel divisions drop from solid black to the brand's visible rule weight. */
+    --div-border: 1px solid rgba(23, 23, 23, 0.22);
     --app-bg: var(--metime-cream);
     --canvas-bg: var(--metime-white);
   }
@@ -234,7 +252,7 @@
      Expanding restores the full panel column on desktop, and slides it in as a
      drawer over a backdrop on mobile. */
   .body { position: relative; transition: grid-template-columns .22s ease; }
-  .right-panel { position: relative; display: flex; flex-direction: column; background: var(--metime-white); border-left: 1px solid var(--metime-almost-black); }
+  .right-panel { position: relative; display: flex; flex-direction: column; background: var(--app-bg); border-left: var(--div-border); }
   /* Higher specificity than .icon-btn so these stay hidden off-mobile regardless
      of source order — otherwise the close button becomes an in-flow grid item
      and pushes the panel to a wrapped column. */
@@ -252,7 +270,7 @@
   .rp-rail {
     display: flex; flex-direction: column; align-items: center; gap: 12px;
     padding: 12px 6px; background: var(--app-bg); flex-shrink: 0; width: 52px;
-    border-left: 1px solid var(--metime-almost-black); z-index: 40; overflow: hidden;
+    border-left: var(--div-border); z-index: 40; overflow: hidden;
   }
   .rp-rail .rail-divider { width: 24px; height: 1px; background: var(--warm-hairline); }
 
@@ -270,7 +288,7 @@
     .right-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
       width: min(300px, 88vw); z-index: 130;
-      border-left: 1px solid var(--metime-almost-black);
+      border-left: var(--div-border);
       box-shadow: -12px 0 32px rgba(0,0,0,0.20);
       transform: translateX(0); transition: transform .22s ease;
     }
@@ -362,7 +380,7 @@
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
       display: flex; align-items: center; gap: 4px; overflow-x: auto;
       padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-      background: var(--app-bg); border-top: 1px solid var(--metime-almost-black);
+      background: var(--app-bg); border-top: var(--div-border);
       box-shadow: 0 -2px 6px rgba(0,0,0,0.08); -webkit-overflow-scrolling: touch;
     }
     .mobile-toolbar::-webkit-scrollbar { display: none; }
@@ -390,7 +408,7 @@
     .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 200; }
     .bottom-sheet {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
-      background: var(--metime-white); border-top: 1px solid var(--metime-almost-black);
+      background: var(--app-bg); border-top: var(--div-border);
       border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0,0,0,0.20);
       display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
     }
@@ -410,7 +428,7 @@
   }
 
   /* Header */
-  header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: 1px solid var(--metime-almost-black); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: var(--div-border); box-shadow: none; }
   .header-left { display: flex; align-items: center; }
   .header-center { display: flex; align-items: center; justify-content: center; }
   .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
@@ -441,10 +459,10 @@
   .preset-pill .caret { display: inline-block; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-muted); margin-left: 2px; }
 
   /* Icon button (used in header + tool rail + popover triggers) */
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 2px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .icon-btn:hover { background: var(--btn-tool-hover); }
   .icon-btn:active { background: var(--btn-secondary-bg-active); }
-  .icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .icon-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
   .icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
   .icon-btn[aria-pressed="true"]:hover, .icon-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
   .icon-btn:disabled { color: var(--btn-disabled-fg); cursor: not-allowed; }
@@ -590,11 +608,13 @@
 
   /* Buttons — metime design system (Figma node 20-1371).
      Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary. */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; font-size: 12px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; border-radius: 4px; cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: 2px; cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
   .btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
   .btn:active { background: var(--btn-secondary-bg-active); }
-  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
-  .btn:disabled, .btn[disabled] { background: transparent; border-color: var(--btn-secondary-border); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
+  /* One focus treatment, matching the brand shell: a 2px ink ring set off the
+     control rather than a soft glow around it. */
+  .btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
+  .btn:disabled, .btn[disabled] { background: transparent; border-color: rgba(23, 23, 23, 0.28); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
 
   .btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
   .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
@@ -1283,10 +1303,10 @@
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
-  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
+  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 2px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .xs-tool:hover { background: var(--btn-tool-hover); }
   .xs-tool:active { background: var(--btn-secondary-bg-active); }
-  .xs-tool:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .xs-tool:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
   .xs-tool.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
   .xs-tool.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
   .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; padding: 24px; background: var(--metime-cream); min-width: 0; }
@@ -7543,12 +7563,16 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 }
 
 // ── Tweaks ────────────────────────────────────────────────────────────────
+// These are applied as inline custom properties on :root at startup, so they beat
+// the stylesheet — which makes them the real source of the app ground, the panel
+// divider and the control radius, whatever the :root block above says. They carry
+// the brand values for that reason.
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "borderColor": "#000000",
+  "borderColor": "rgba(23, 23, 23, 0.22)",
   "borderWidth": "1",
-  "appBg": "#F9FBFE",
+  "appBg": "#F8F5ED",
   "canvasBg": "#FFFFFF",
-  "radius": "4"
+  "radius": "2"
 }/*EDITMODE-END*/;
 
 function applyTweaks(t) {
