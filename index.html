@@ -3538,65 +3538,87 @@ async function downloadDesignPdf(type, design, doc) {
   URL.revokeObjectURL(url);
 }
 
-// Checkout button shared by the quilt and cross-stitch preview modals. On
-// click it (1) sends the design to the design-store API once and remembers the
-// returned id via onSaved (persisted as `apiId` on the saved entry, so a
-// design is never uploaded twice), then (2) creates a Shopify cart whose kit
-// line item carries that id as the `_design_id` attribute and redirects to the
-// hosted checkout. Local-only fields and embedded photo data are stripped via
-// apiSafeDesign so the upload stays under the API's payload cap. If Shopify
-// isn't configured yet (placeholders untouched), it falls back to save-only so
-// the app still works.
-function KitCheckoutButton({ type, design, savedId, onSaved }) {
-  const [state, setState] = useState(savedId ? { status: "done", id: savedId } : { status: "idle" });
+// The purchase sequence behind every buy button: (1) send the design to the
+// design-store API, (2) resolve the kit its finished size maps to, (3) create a
+// Shopify cart whose line item carries the design id as `_design_id`, and (4)
+// hand off to the hosted checkout. No account is needed anywhere in here — a
+// guest's design lands unowned, which is the whole reason the API allows it.
+//
+// `design` is read while rendering, to price the kit and decide whether it can
+// be sold at all. `getDesign` is called on click instead, which is what lets the
+// editor sell a canvas that was never saved: the record is built from live state
+// at the moment someone buys. Local-only fields and embedded photos are stripped
+// by apiSafeDesign so the upload stays under the API's payload cap.
+function useKitPurchase({ type, design, getDesign, savedId, onSaved }) {
+  // Always starts idle, including for a design already in the library. Seeding
+  // "done" from savedId used to leave the library's button reading "Saved for
+  // checkout ✓" with nowhere to go — an already-uploaded design still needs to
+  // be buyable, it just skips the upload.
+  const [state, setState] = useState({ status: "idle" });
   const busy = state.status === "saving" || state.status === "redirecting";
-  // Shown next to the button so the buyer sees the amount before being handed
-  // off to Shopify. Null for a size we don't sell, which is also the signal to
-  // label the button as save-only.
   const kit = useKitPrice(type, design);
   const price = formatKitPrice(kit);
   const sellable = !!kitHandle(type, design);
-  // Uploads the design if not already saved and returns its api id.
-  const ensureSaved = async () => {
+  // Remembers the last upload so buying twice doesn't park a second copy. Keyed
+  // on the payload rather than a flag, because the editor's canvas keeps moving
+  // — an edited design has to upload fresh, an untouched one shouldn't.
+  const lastUpload = useRef(null);
+
+  const ensureSaved = async (record) => {
     if (savedId) return savedId;
-    if (state.status === "done" && state.id) return state.id;
-    const data = apiSafeDesign(design);
+    const data = apiSafeDesign(record);
+    const key = JSON.stringify(data);
+    if (lastUpload.current && lastUpload.current.key === key) return lastUpload.current.id;
     const id = await saveDesignToApi(type, data);
+    lastUpload.current = { key, id };
     if (onSaved) onSaved(id);
     return id;
   };
+
   const submit = async () => {
     if (busy) return;
+    const record = getDesign ? getDesign() : design;
+    if (!record) return;
     setState({ status: "saving" });
     let designId;
     try {
-      designId = await ensureSaved();
+      designId = await ensureSaved(record);
     } catch (e) {
       console.warn("Design save failed:", e);
       setState({ status: "error", message: "Couldn't reach the kit service — try again" });
       return;
     }
-    // Either Shopify isn't wired up yet or this size has no kit product — keep
-    // the design saved and stop here.
-    if (!shopifyConfigured(type, design)) {
+    // Either Shopify isn't wired up or this size has no kit product. The design
+    // is safely stored either way, so stop quietly instead of erroring.
+    if (!shopifyConfigured(type, record)) {
       setState({ status: "done", id: designId });
       return;
     }
     setState({ status: "redirecting", id: designId });
     try {
-      // The design's size decides the product; each is single-variant, so
-      // resolving the handle gives us the exact variant to buy.
-      const { variantId } = await resolveKit(kitHandle(type, design));
+      // Each kit is a single-variant product, so resolving the handle its size
+      // maps to gives us the exact variant to buy.
+      const { variantId } = await resolveKit(kitHandle(type, record));
       const checkoutUrl = await addKitToShopifyCart({ variantId, designId });
       window.location.href = checkoutUrl;
     } catch (e) {
       console.warn("Shopify checkout failed:", e);
-      setState({ status: "error", id: designId, message: "Checkout isn't set up yet — your design is saved (Kit ID " + designId + ")" });
+      setState({ status: "error", message: "Couldn't reach checkout — your design is safe, try again in a moment" });
     }
   };
-  const label = state.status === "saving" ? "Saving…"
-    : state.status === "redirecting" ? "Opening checkout…"
-    : state.status === "done" ? "Saved for checkout ✓"
+
+  return { status: state.status, message: state.message, busy, kit, price, sellable, submit };
+}
+
+// Checkout button in the saved-design preview modals — the re-order path for
+// something already in the library. The editor header is where a design is
+// bought the first time (see BuyKitButton).
+function KitCheckoutButton({ type, design, savedId, onSaved }) {
+  const { status, message, busy, price, sellable, submit } =
+    useKitPurchase({ type, design, savedId, onSaved });
+  const label = status === "saving" ? "Saving…"
+    : status === "redirecting" ? "Opening checkout…"
+    : status === "done" ? "Saved for checkout ✓"
     : sellable ? (price ? `Add to cart — ${price}` : "Add to cart")
     : "Save for checkout";
   return (
@@ -3607,18 +3629,49 @@ function KitCheckoutButton({ type, design, savedId, onSaved }) {
         <i className="iconoir-cart" style={{ fontSize: 16 }}/>
         {label}
       </button>
-      {state.status === "done" && (
-        <div style={{ fontSize: 11, color: "var(--warm-muted)", fontVariantNumeric: "tabular-nums" }}>
-          Kit ID {state.id}
-        </div>
-      )}
-      {state.status === "idle" && !sellable && (
+      {status === "idle" && !sellable && (
         <div style={{ fontSize: 11, color: "var(--warm-muted)" }}>
           This size isn't sold as a kit yet
         </div>
       )}
-      {state.status === "error" && (
-        <div className="err-msg" style={{ fontSize: 11 }}>{state.message || "Couldn't reach the kit service — try again"}</div>
+      {status === "error" && (
+        <div className="err-msg" style={{ fontSize: 11 }}>{message || "Couldn't reach the kit service — try again"}</div>
+      )}
+    </div>
+  );
+}
+
+// The primary call to action in both studio editors: buy the kit for whatever is
+// on the canvas right now, without saving or signing in first. `getDesign` builds
+// the record on click, so there's nothing to persist beforehand.
+//
+// `blockedReason`, when set, disables the button and explains itself on hover —
+// used for a canvas with nothing stitched on it yet. A size with no kit product
+// behind it disables the same way rather than disappearing, so the header
+// doesn't reflow between sizes.
+function BuyKitButton({ type, design, getDesign, blockedReason, onSaved }) {
+  const { status, message, busy, price, sellable, submit } =
+    useKitPurchase({ type, design, getDesign, onSaved });
+  // Not being sold outranks an empty canvas: telling someone to add stitches
+  // first would imply the kit exists once they do.
+  const blocked = (!sellable ? "This size isn't sold as a kit yet" : null) || blockedReason;
+  const label = status === "saving" ? "Saving…"
+    : status === "redirecting" ? "Opening checkout…"
+    : price ? `Buy kit — ${price}`
+    : "Buy kit";
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <button className="btn btn-dark" disabled={busy || !!blocked}
+        title={blocked || "Buy the kit for this design"}
+        style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", opacity: busy || blocked ? 0.55 : 1 }}
+        onClick={submit}>
+        <i className="iconoir-cart" style={{ fontSize: 15 }}/>
+        {label}
+      </button>
+      {status === "error" && (
+        <div className="err-msg" style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, fontSize: 11, whiteSpace: "nowrap", zIndex: 5 }}>
+          {message || "Couldn't reach the kit service — try again"}
+        </div>
       )}
     </div>
   );
@@ -6494,15 +6547,22 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 onClick={()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);}}>
                 Save as…
               </button>
-              <button className="btn btn-dark" title={`Update “${currentQuilt.name}”`} onClick={updateCurrentQuilt}>
+              <button className="btn" title={`Update “${currentQuilt.name}”`} onClick={updateCurrentQuilt}>
                 {justSaved ? 'Saved ✓' : 'Save'}
               </button>
             </>
           ) : (
-            <button className="btn btn-dark" onClick={()=>{setSaveName('');setShowSave(true);}}>
+            <button className="btn" onClick={()=>{setSaveName('');setShowSave(true);}}>
               {justSaved ? 'Saved ✓' : 'Save quilt'}
             </button>
           )}
+          {/* Buying needs no account and no prior save — the record is built from
+              the canvas on click, so this is the shortest path to a kit. An empty
+              quilt top is held back; the kit would be fabric with no layout. */}
+          <BuyKitButton type="quilt" design={{ preset }}
+            blockedReason={materials.total === 0 ? 'Place some patches first' : null}
+            getDesign={()=>buildQuiltRecord(currentQuiltId ?? Date.now(), (currentQuilt && currentQuilt.name) || 'Untitled')}
+            onSaved={id=>{ if (currentQuiltId != null) setSavedQuilts(p=>p.map(x=>x.id===currentQuiltId?{...x,apiId:id}:x)); }}/>
         </div>
       </header>
 
@@ -11685,15 +11745,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
           <>
             <button className="btn" title="Save as a new copy"
               onClick={() => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); }}>Save as…</button>
-            <button className="btn btn-dark" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
+            <button className="btn" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
               {justSaved ? 'Saved ✓' : 'Save'}
             </button>
           </>
         ) : (
-          <button className="btn btn-dark" onClick={() => { setSaveName(''); setShowSave(true); }}>
+          <button className="btn" onClick={() => { setSaveName(''); setShowSave(true); }}>
             {justSaved ? 'Saved ✓' : 'Save design'}
           </button>
         )}
+        {/* Buying needs no account and no prior save. An empty board is blocked
+            because the kit would be cloth and no yarn. */}
+        <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }}
+          blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
+          getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
+          onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
       </div>
       <div className={`xs-body${panelOpen ? '' : ' rp-closed'}`}>
         {!isMobile && (

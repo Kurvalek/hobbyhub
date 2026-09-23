@@ -97,11 +97,43 @@ page.on('pageerror', e => errors.push('pageerror: ' + e.message));
 
 // Every Storefront call the page makes, so we can assert it batches.
 const storefrontCalls = [];
+// cartCreate inputs, and the bodies POSTed to /api/designs — the two sides of a
+// purchase, recorded so we can prove a guest reaches checkout without saving.
+const cartCalls = [];
+const designSaves = [];
+const SHOPIFY_HOST = 'shop.makemetime.com';
+const STUB_CHECKOUT_URL = `https://${SHOPIFY_HOST}/cart/c/check-cart-token`;
+const STUB_DESIGN_ID = '00000000-0000-4000-8000-00000000cafe';
 
 await page.setRequestInterception(true);
 page.on('request', (req) => {
   const url = req.url();
-  if (!url.includes('/api/') || !url.includes('graphql.json')) return req.continue();
+
+  // Stand in for the Vercel function, which isn't running here. Returning an id
+  // for an unauthenticated POST is what the real endpoint does — guest saves are
+  // stored with user_id null, which is what makes buying without an account work.
+  if (new URL(url).pathname === '/api/designs' && req.method() === 'POST') {
+    let body = {};
+    try { body = JSON.parse(req.postData() || '{}'); } catch {}
+    designSaves.push({ type: body.type, data: body.data, auth: !!req.headers().authorization });
+    return req.respond({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ id: STUB_DESIGN_ID }),
+    });
+  }
+
+  // Where a real purchase lands. Answered locally so the run never touches the
+  // live store, while page.url() still shows the URL the app redirected to.
+  if (url === STUB_CHECKOUT_URL) {
+    return req.respond({ status: 200, contentType: 'text/html', body: '<title>checkout</title>' });
+  }
+
+  if (!url.includes('/api/') || !url.includes('graphql.json')) {
+    // Once redirected, the stub checkout page is same-origin with the real shop,
+    // so its incidentals (favicon) would otherwise go out over the wire.
+    if (new URL(url).host === SHOPIFY_HOST) return req.respond({ status: 204 });
+    return req.continue();
+  }
   const cors = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -113,11 +145,21 @@ page.on('request', (req) => {
   let body = {};
   try { body = JSON.parse(req.postData() || '{}'); } catch {}
   const variables = body.variables || {};
+  const query = body.query || '';
+
+  if (/cartCreate/.test(query)) {
+    cartCalls.push(variables.input || {});
+    return req.respond({
+      status: 200, contentType: 'application/json', headers: cors,
+      body: JSON.stringify({ data: { cartCreate: { cart: { checkoutUrl: STUB_CHECKOUT_URL }, userErrors: [] } } }),
+    });
+  }
+
   const handles = Object.keys(variables)
     .filter(k => /^h\d+$/.test(k))
     .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
     .map(k => variables[k]);
-  storefrontCalls.push({ handles, query: body.query || '' });
+  storefrontCalls.push({ handles, query });
 
   // Mirror the aliases the app asked for: k0..kN, positionally.
   const data = {};
@@ -134,9 +176,7 @@ page.on('request', (req) => {
     };
   });
   req.respond({
-    status: 200,
-    contentType: 'application/json',
-    headers: cors,
+    status: 200, contentType: 'application/json', headers: cors,
     body: JSON.stringify({ data }),
   });
 });
@@ -275,7 +315,212 @@ for (const [craft, expected] of Object.entries(EXPECTED)) {
   }
 }
 
-// ── 3. Graceful degradation when Shopify is unreachable ────────────────────
+// ── 3. Buy kit is the primary CTA in both editors ──────────────────────────
+// The editors are reached by picking a craft, a size, then working through the
+// setup steps. `steps` names each one: 'skip' takes the blank path, 'template'
+// picks the first layout so the canvas arrives with a design on it. The crafts
+// order their steps differently — quilt is backing, palette, template; the grid
+// crafts are template, palette — so the caller spells the sequence out.
+async function walkToEditor(craft, size, steps) {
+  await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+  await page.waitForFunction(
+    () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
+    { timeout: 15000 }
+  );
+  await page.evaluate((name) => {
+    const el = [...document.querySelectorAll('.land-craft')].find(e => e.textContent.includes(name));
+    if (el) el.click();
+  }, craft);
+  await page.waitForSelector('.size-card-name', { timeout: 10000 });
+  await page.evaluate((name) => {
+    const el = [...document.querySelectorAll('.size-card')]
+      .find(e => (e.querySelector('.size-card-name') || {}).textContent?.trim() === name);
+    if (el) el.click();
+  }, size);
+  for (const step of steps) {
+    const sel = step === 'template' ? '.tmpl-card' : '.back-skip';
+    await page.waitForSelector(sel, { timeout: 10000 });
+    await page.evaluate((s) => {
+      const el = s === '.tmpl-card'
+        ? document.querySelector('.tmpl-card')
+        : [...document.querySelectorAll('.back-skip')].find(e => /Skip/i.test(e.textContent));
+      if (el) el.click();
+    }, sel);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  await page.waitForSelector('.header-right, .xs-topbar', { timeout: 10000 });
+  await new Promise(r => setTimeout(r, 700));
+}
+
+// The labelled buttons in the editor's top bar, in DOM order. Icon-only controls
+// (back, panel toggle) are .icon-btn and deliberately excluded.
+const topbarButtons = () => page.evaluate(() => {
+  const bar = document.querySelector('.header-right') || document.querySelector('.xs-topbar');
+  if (!bar) return null;
+  return [...bar.querySelectorAll('button.btn')].map(b => ({
+    text: b.textContent.trim(),
+    dark: b.classList.contains('btn-dark'),
+    disabled: b.disabled,
+    title: b.title,
+  }));
+});
+
+console.log('\n── editor CTA ──');
+// Every craft is walked twice: once down the blank path, where buying is held
+// back, and once picking a template, where the CTA is live.
+const CTA_CASES = [
+  { craft: 'Quilt', size: 'Throw Blanket', price: '$149', blank: ['skip', 'skip', 'skip'], designed: ['skip', 'skip', 'template'] },
+  { craft: 'Cross-stitch', size: 'Medium Hoop', price: '$52', blank: ['skip', 'skip'], designed: ['template', 'skip'] },
+  { craft: 'Punch Needle', size: 'Pillow', price: '$89', blank: ['skip', 'skip'], designed: ['template', 'skip'] },
+];
+
+for (const { craft, size, price, blank } of CTA_CASES) {
+  await walkToEditor(craft, size, blank);
+  const btns = await topbarButtons();
+  console.log(`\n${craft} / ${size}:`, btns);
+  if (!btns) { check(false, `${craft}: editor top bar found`); continue; }
+
+  const buy = btns.find(b => /^Buy kit/.test(b.text));
+  const dark = btns.filter(b => b.dark);
+  const saves = btns.filter(b => /^Save/.test(b.text));
+
+  check(!!buy, `${craft}: a "Buy kit" button is in the editor top bar`);
+  check(dark.length === 1 && dark[0] === buy,
+    `${craft}: Buy kit is the only primary (btn-dark)`,
+    dark.map(b => b.text).join(' | ') || 'none');
+  check(saves.length > 0 && saves.every(b => !b.dark),
+    `${craft}: Save is still present but demoted`,
+    saves.map(b => `${b.text}${b.dark ? ' (dark)' : ''}`).join(' | ') || 'no Save button');
+  check(btns[btns.length - 1] === buy, `${craft}: Buy kit is the rightmost control`);
+  if (buy) {
+    check(buy.text.includes(price), `${craft}: Buy kit carries the price ${price}`, `label "${buy.text}"`);
+    // Nothing on the canvas yet: the price is shown but the sale waits, because
+    // the kit would ship with no design to make.
+    check(buy.disabled, `${craft}: Buy kit waits for an empty canvas`,
+      `disabled=${buy.disabled}, title "${buy.title}"`);
+    check(/first/i.test(buy.title), `${craft}: the title says what's missing`, `"${buy.title}"`);
+  }
+
+  // The uuid is an internal handle — it used to be printed next to the button.
+  const kitId = await page.evaluate(() => /Kit ID/i.test(document.body.innerText));
+  check(!kitId, `${craft}: no "Kit ID" shown before checkout`);
+
+  const slug = craft.toLowerCase().replace(/[^a-z]+/g, '-');
+  await page.screenshot({ path: `tools/_shot-cta-${slug}-blank.png` });
+}
+
+// Same three crafts, now with a template applied — the CTA has to come alive.
+for (const { craft, size, price, designed } of CTA_CASES) {
+  await walkToEditor(craft, size, designed);
+  const buy = (await topbarButtons() || []).find(b => /^Buy kit/.test(b.text));
+  check(!!buy && !buy.disabled, `${craft}: Buy kit is clickable once a template is applied`,
+    buy ? `disabled=${buy.disabled}, title "${buy.title}"` : 'no button');
+  check(!!buy && buy.text.includes(price), `${craft}: still priced ${price} in the editor`, buy?.text);
+  const slug = craft.toLowerCase().replace(/[^a-z]+/g, '-');
+  await page.screenshot({ path: `tools/_shot-cta-${slug}.png` });
+}
+
+// A size with no product keeps the button in place but disabled, and says why.
+await walkToEditor('Punch Needle', 'Small Hoop', ['skip', 'skip']);
+const unsold = (await topbarButtons() || []).find(b => /^Buy kit/.test(b.text));
+check(!!unsold && unsold.disabled, 'punch needle Small Hoop: Buy kit is disabled',
+  unsold ? `disabled=${unsold.disabled}` : 'no button');
+check(!!unsold && /sold as a kit/i.test(unsold.title),
+  'punch needle Small Hoop: the title explains the size is unsold', unsold ? `"${unsold.title}"` : '');
+check(!!unsold && !/\$/.test(unsold.text), 'punch needle Small Hoop: no price on the label',
+  unsold ? `"${unsold.text}"` : '');
+
+// ── 4. A guest buys without saving or signing in first ─────────────────────
+// The point of the whole change: one click from canvas to checkout. The design
+// still gets uploaded (Shopify needs something to attach), but the shopper is
+// never asked to save or make an account.
+console.log('\n── guest purchase ──');
+designSaves.length = 0; cartCalls.length = 0; storefrontCalls.length = 0;
+await walkToEditor('Quilt', 'Baby Blanket', ['skip', 'skip', 'template']);
+// The variant the stub minted for this handle, so the assertion below doesn't
+// depend on where baby-quilt happened to sit in the batch.
+const babyIndex = (storefrontCalls.find(c => c.handles.includes('baby-quilt'))?.handles || []).indexOf('baby-quilt');
+const babyVariant = `gid://shopify/ProductVariant/${1000 + babyIndex}`;
+const signedOut = await page.evaluate(() => !/Sign out|My account/i.test(document.body.innerText));
+check(signedOut, 'starting from a signed-out session');
+
+const navigated = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+await page.evaluate(() => {
+  const bar = document.querySelector('.header-right');
+  const btn = [...bar.querySelectorAll('button.btn')].find(b => /^Buy kit/.test(b.textContent));
+  if (btn) btn.click();
+});
+await navigated;
+await new Promise(r => setTimeout(r, 600));
+
+check(designSaves.length === 1, 'the design is uploaded exactly once', `${designSaves.length} POSTs`);
+check(designSaves[0] && !designSaves[0].auth, 'uploaded with no Authorization header (guest)');
+check(designSaves[0]?.type === 'quilt', 'uploaded under the right craft type', designSaves[0]?.type);
+// The preset value is the SHOPIFY_KITS key ("Baby blanket"), not the card's
+// display name ("Baby Blanket") — that mapping is what picks the product.
+check(designSaves[0]?.data?.preset === 'Baby blanket', 'uploaded record carries the chosen size',
+  designSaves[0]?.data?.preset);
+check(cartCalls.length === 1, 'one cart was created', `${cartCalls.length}`);
+const line = cartCalls[0]?.lines?.[0];
+check(babyIndex >= 0 && line?.merchandiseId === babyVariant,
+  'the cart line is the Baby Blanket variant', `${line?.merchandiseId} (wanted ${babyVariant})`);
+check(line?.attributes?.[0]?.key === '_design_id' && line?.attributes?.[0]?.value === STUB_DESIGN_ID,
+  'the design id rides along on the cart line', JSON.stringify(line?.attributes));
+check(page.url() === STUB_CHECKOUT_URL, 'the browser is sent to the Shopify checkout URL', page.url());
+
+// The grid editors build their record differently (commitFloat, then
+// buildStitchRecord), so buy once from there too rather than trusting the quilt.
+designSaves.length = 0; cartCalls.length = 0;
+await walkToEditor('Cross-stitch', 'Bookmark', ['template', 'skip']);
+const navigated2 = page.waitForNavigation({ timeout: 15000 }).catch(() => null);
+await page.evaluate(() => {
+  const bar = document.querySelector('.xs-topbar');
+  const btn = [...bar.querySelectorAll('button.btn')].find(b => /^Buy kit/.test(b.textContent));
+  if (btn) btn.click();
+});
+await navigated2;
+await new Promise(r => setTimeout(r, 600));
+check(designSaves.length === 1 && designSaves[0].type === 'cross-stitch',
+  'a grid design uploads on buy', `${designSaves.length} POSTs, type ${designSaves[0]?.type}`);
+check(designSaves[0]?.data?.presetName === 'Bookmark', 'the grid record carries its size',
+  designSaves[0]?.data?.presetName);
+check(designSaves[0]?.data?.stitches > 0, 'the grid record has stitches in it',
+  `${designSaves[0]?.data?.stitches}`);
+check(cartCalls[0]?.lines?.[0]?.attributes?.[0]?.value === STUB_DESIGN_ID,
+  'the grid cart line carries the design id');
+check(page.url() === STUB_CHECKOUT_URL, 'the grid editor reaches checkout too', page.url());
+
+// ── 5. Re-ordering a design already in the library ─────────────────────────
+// The saved-design preview is the second way in, and it used to read "Saved for
+// checkout ✓" with nowhere to go for anything already uploaded. The library UI
+// itself sits behind the account wall, so rather than sign in, mount the button
+// on its own with savedId set — which is the state that used to go wrong.
+console.log('\n── library re-order ──');
+await page.goto(url, { waitUntil: 'load', timeout: 40000 });
+await page.waitForFunction(
+  () => document.querySelector('#root') && document.querySelector('#root').children.length > 0,
+  { timeout: 15000 }
+);
+const reorder = await page.evaluate(async () => {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  ReactDOM.createRoot(host).render(React.createElement(KitCheckoutButton, {
+    type: 'quilt',
+    design: { preset: 'Throw', shapes: [] },
+    savedId: '00000000-0000-4000-8000-0000000000aa',
+  }));
+  // Let the render settle and the price lookup resolve.
+  await new Promise(r => setTimeout(r, 1200));
+  const b = host.querySelector('button');
+  return b ? { text: b.textContent.trim(), disabled: b.disabled } : null;
+});
+check(!!reorder, 'the saved-design preview renders a kit button', reorder ? reorder.text : 'none found');
+check(!!reorder && /Add to cart/.test(reorder.text),
+  'a design already in the library can still be bought', reorder ? `label "${reorder.text}"` : '');
+check(!!reorder && /\$149/.test(reorder.text), 'the re-order button carries the price', reorder?.text);
+check(!!reorder && !reorder.disabled, 'the re-order button is enabled', `disabled=${reorder?.disabled}`);
+
+// ── 6. Graceful degradation when Shopify is unreachable ────────────────────
 // Pricing is advisory, so an outage must never stop someone from designing: the
 // cards still render, just without prices, and nothing throws.
 console.log('\n── storefront unreachable ──');
