@@ -3974,8 +3974,10 @@ function designToPng(type, record) {
 // spinning for ever.
 const MOCKUP_TIMEOUT_MS = 90000;
 
-async function generateKitMockup(type, record) {
-  const image = designToPng(type, record);
+// `image` is the raster from designToPng. Taken as an argument rather than drawn
+// here because the caller has already drawn it to work out the cache key, and the
+// two must be the same picture for that key to mean anything.
+async function generateKitMockup(type, record, image) {
   if (!image) throw new Error('nothing on the canvas to render');
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), MOCKUP_TIMEOUT_MS);
@@ -3997,28 +3999,78 @@ async function generateKitMockup(type, record) {
   return body.image;
 }
 
-// Generated previews already paid for, keyed by stored design id. An image model
-// call costs real money and takes the better part of a minute, so leaving the
-// review page and coming back — which happens on every abandoned checkout — must
-// not spend it again. sessionStorage rather than localStorage: one tab's shopping
-// trip, and a few hundred KB per design is not worth keeping for ever.
+// Generated previews already paid for. An image model call costs real money and
+// takes the better part of a minute, so coming back to a design — which happens on
+// every abandoned checkout — must not spend it again. localStorage rather than
+// sessionStorage, because the gap between abandoning a checkout and reconsidering
+// is usually longer than a tab lives.
 const MOCKUP_CACHE_PREFIX = 'metime.mockup.';
+// Roughly 150KB an image against a ~5MB budget shared with everything else the
+// origin stores. Ten is a couple of shopping trips' worth, well short of trouble.
+const MOCKUP_CACHE_MAX = 10;
 
-function cachedMockup(designId) {
-  if (!designId || typeof sessionStorage === 'undefined') return null;
+// FNV-1a. Not a security boundary — it only has to change when its input does.
+function fnv1a(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
+// Keyed on the design id plus a fingerprint of the raster that would be sent, and
+// the fingerprint is the part that matters. A design already in someone's library
+// keeps its id when they edit it — ensureSaved returns early on savedId and the save
+// PUTs to the same row — so keying on the id alone would show a picture of the
+// layout they just changed. A miss costs one generation; a stale hit misinforms a
+// purchase.
+//
+// The raster rather than the design record, because the record is not stable: Back
+// rebuilds it from its history snapshot and the result stringifies differently while
+// describing the same piece. Hashing the image we would send makes the key mean what
+// we actually want it to mean — same picture, same entry.
+function mockupCacheKey(designId, raster) {
+  if (!designId || !raster) return null;
+  return MOCKUP_CACHE_PREFIX + designId + '.' + fnv1a(raster);
+}
+
+function mockupCacheEntries() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(MOCKUP_CACHE_PREFIX)) keys.push(k);
+  }
+  return keys;
+}
+
+function cachedMockup(key) {
+  if (!key || typeof localStorage === 'undefined') return null;
   try {
-    return sessionStorage.getItem(MOCKUP_CACHE_PREFIX + designId) || null;
+    return localStorage.getItem(key) || null;
   } catch {
     return null;
   }
 }
 
-function cacheMockup(designId, image) {
-  if (!designId || typeof sessionStorage === 'undefined') return;
-  try {
-    sessionStorage.setItem(MOCKUP_CACHE_PREFIX + designId, image);
-  } catch {
-    // Over quota, or storage blocked. The preview still shows for this visit.
+function cacheMockup(key, image) {
+  if (!key || typeof localStorage === 'undefined') return;
+  // Written youngest-first with the oldest dropped, because the alternative is a
+  // full store that silently refuses every write — which would look like working
+  // software while quietly paying for the same picture on every visit.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const existing = mockupCacheEntries().filter((k) => k !== key);
+      while (existing.length >= MOCKUP_CACHE_MAX) localStorage.removeItem(existing.shift());
+      localStorage.setItem(key, image);
+      return;
+    } catch {
+      // Over quota: drop the oldest preview we hold and try once more. If there's
+      // nothing left to drop, storage is blocked outright and we stop trying.
+      const held = mockupCacheEntries().filter((k) => k !== key);
+      if (!held.length) return;
+      try { localStorage.removeItem(held[0]); } catch { return; }
+    }
   }
 }
 
@@ -12676,11 +12728,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
 // costs a real image-model call and takes tens of seconds, and the review page is
 // reachable by anyone who clicks Buy kit — spending that on every visit, including
 // the ones that never buy, is a bill with no purchase behind it. Once generated the
-// result is cached for the visit, so leaving and coming back is free.
+// result is kept on the device, so coming back to the same design is free.
 function useKitMockup(type, record, designId) {
   const [available, setAvailable] = useState(null); // null until the probe answers
-  const cached = cachedMockup(designId);
-  const [state, setState] = useState(() => (cached ? { status: 'done', image: cached } : { status: 'idle' }));
+  // Drawn once per design rather than per render. The stringified record is only a
+  // memo dependency, so its instability across a history rebuild costs at worst a
+  // redraw — the cache key comes from the raster itself.
+  const recordKey = record ? JSON.stringify(apiSafeDesign(record)) : null;
+  const raster = useMemo(
+    () => (record ? designToPng(type, record) : null),
+    [type, recordKey]
+  );
+  const key = mockupCacheKey(designId, raster);
+  const [state, setState] = useState(() => {
+    const hit = cachedMockup(key);
+    return hit ? { status: 'done', image: hit } : { status: 'idle' };
+  });
 
   useEffect(() => {
     let alive = true;
@@ -12692,18 +12755,18 @@ function useKitMockup(type, record, designId) {
   }, []);
 
   // A design swapped underneath (the library's preview, re-ordering something
-  // else) has its own preview, or none.
+  // else), or the same one edited, has its own preview or none.
   useEffect(() => {
-    const hit = cachedMockup(designId);
+    const hit = cachedMockup(key);
     setState(hit ? { status: 'done', image: hit } : { status: 'idle' });
-  }, [designId]);
+  }, [key]);
 
   const generate = async () => {
     if (state.status === 'working') return;
     setState({ status: 'working' });
     try {
-      const image = await generateKitMockup(type, record);
-      cacheMockup(designId, image);
+      const image = await generateKitMockup(type, record, raster);
+      cacheMockup(key, image);
       setState({ status: 'done', image });
     } catch (e) {
       console.warn('Mockup failed:', e);

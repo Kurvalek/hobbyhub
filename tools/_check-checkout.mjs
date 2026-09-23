@@ -791,15 +791,68 @@ check(mockupCalls.length === 1, 'returning to the review page reuses the cached 
   `${mockupCalls.length} calls`);
 check(again.img === STUB_MOCKUP, 'and shows it straight away', String(again.img).slice(0, 40));
 
+// The cache has to outlive the tab, because the gap between abandoning a checkout
+// and reconsidering usually does. sessionStorage would not survive this walk.
+await walkToEditor('Cross-stitch', 'Medium Hoop', ['template', 'skip']);
+await buyKit();
+const nextVisit = await previewTile();
+check(mockupCalls.length === 1, 'a later visit to the same design still costs nothing',
+  `${mockupCalls.length} calls`);
+check(nextVisit.img === STUB_MOCKUP, 'and the preview is already there',
+  String(nextVisit.img).slice(0, 40));
+
+// A design already in someone's library keeps its id when they edit it, so a cache
+// keyed on the id alone would hand back a picture of the layout they just changed.
+// This harness makes that the case for every save — one stub id for all of them —
+// so editing here changes the payload while the id stays put, which is exactly the
+// collision the key's fingerprint half exists to catch.
+const stitchesOf = (r) => ((r.specs || []).find(([k]) => /stitches/i.test(k)) || [])[1] || null;
+const beforeEdit = stitchesOf(await reviewPage());
+await page.goBack({ timeout: 15000 }).catch(() => null);
+await page.waitForSelector('.xs-canvas', { timeout: 15000 }).catch(() => null);
+await new Promise(r => setTimeout(r, 600));
+const box = await page.$eval('.xs-canvas', el => {
+  const r = el.getBoundingClientRect();
+  return { x: r.x, y: r.y, w: r.width, h: r.height };
+}).catch(() => null);
+check(!!box, 'the canvas is reachable again to edit it');
+if (box) {
+  // The pen has to be chosen explicitly; whatever tool the editor was left on
+  // would otherwise select or pan and change nothing.
+  await page.click('.xs-tool[title="Draw"]').catch(() => null);
+  const cell = box.w / 120;
+  const at = (cx, cy) => ({ x: box.x + (cx + 0.5) * cell, y: box.y + (cy + 0.5) * cell });
+  for (let row = 2; row < 6; row++) {
+    const a = at(2, row), b = at(20, row);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 10 });
+    await page.mouse.up();
+  }
+  await new Promise(r => setTimeout(r, 500));
+}
+await buyKit();
+const afterEditPage = await reviewPage();
+const afterEditStitches = stitchesOf(afterEditPage);
+// Without this the next two assertions would pass on a design that never changed.
+check(!!beforeEdit && afterEditStitches !== beforeEdit, 'the edit actually changed the design',
+  `${beforeEdit} -> ${afterEditStitches}`);
+const afterEdit = await previewTile();
+check(!afterEdit.img, 'an edited design does not reuse the old picture',
+  String(afterEdit.img).slice(0, 40));
+check(/See it finished/i.test(afterEdit.cta || ''), 'it offers to make a new one',
+  String(afterEdit.cta));
+check(mockupCalls.length === 1, 'and does not generate one unasked', `${mockupCalls.length} calls`);
+
 // A preview that fails says so and offers another go, and — the point of the
 // section — leaves the kit buyable. The picture is a nicety; the order isn't.
 mockupFails = 502;
 mockupCalls.length = 0;
 await walkToEditor('Quilt', 'Throw Blanket', ['skip', 'skip', 'template']);
-// Every save in this harness comes back as the same stub id, so the cached preview
-// from the section above would be handed to this design too. Real designs get their
-// own ids, so clearing it here is a harness detail, not a product one.
-await page.evaluate(() => sessionStorage.clear());
+// Every save in this harness comes back as the same stub id. The key's fingerprint
+// half means a different design misses anyway, but clearing keeps this section
+// independent of how many previews the ones above left behind.
+await page.evaluate(() => localStorage.clear());
 await buyKit();
 await page.click(previewBtn);
 await page.waitForFunction(() => !!document.querySelector('.kit-layer .kit-tile-msg.is-err'), { timeout: 15000 })
@@ -841,6 +894,29 @@ check(mockupCalls.length === 0, 'and nothing is asked of it', `${mockupCalls.len
 const stillBuyable = await page.evaluate(() => !!document.querySelector('.kit-layer .kit-buy-go'));
 check(stillBuyable, 'the kit is still buyable without a preview');
 mockupConfigured = true;
+
+// A full store must not quietly refuse every write. That would look like a working
+// cache while paying for the same picture on every visit — the exact bill this
+// cache exists to prevent, hidden behind a swallowed exception.
+const evicted = await page.evaluate((img) => {
+  const PREFIX = 'metime.mockup.';
+  localStorage.clear();
+  // Twelve saves against a cap of ten: the oldest go, the newest stay.
+  for (let i = 0; i < 12; i++) cacheMockup(`${PREFIX}design${i}.k`, `${img}#${i}`);
+  let held = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    if ((localStorage.key(i) || '').startsWith(PREFIX)) held++;
+  }
+  return {
+    held,
+    newest: !!cachedMockup(`${PREFIX}design11.k`),
+    oldest: !!cachedMockup(`${PREFIX}design0.k`),
+  };
+}, STUB_MOCKUP);
+check(evicted.held > 0 && evicted.held <= 10, 'the preview cache is bounded, not unbounded',
+  `${evicted.held} entries held`);
+check(evicted.newest, 'the most recent preview is kept');
+check(!evicted.oldest, 'and the oldest is the one dropped');
 
 // ── 5. Back out of the review page, back out of checkout ───────────────────
 // Two different Backs. From the review page the studio is still mounted, so the
