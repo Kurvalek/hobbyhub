@@ -120,6 +120,14 @@
     --btn-focus-ring: var(--ice-300);
     --btn-tool-hover: rgba(23, 23, 23, 0.08);
 
+    /* One corner for every button, on both sides of Buy kit — the studio's own
+       controls, the setup flow's, and the filters and source pickers that were
+       each carrying their own 5, 6 or 8px. Swatches, chips, panels and dialogs
+       keep their own radii: those are surfaces and colour samples, and rounding
+       them like controls would say they can be pressed. Note applyTweaks
+       overwrites this at startup, so the tweak knob is the live value. */
+    --btn-radius: 4px;
+
     /* Surfaces. The artboard stays white on purpose: it is the ground a maker
        judges fabric and thread colour against, and a cream field behind the work
        would warm every swatch sitting on it. */
@@ -452,14 +460,17 @@
   }
 
   /* Preset pill (header center) */
-  .preset-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 16px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 999px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--warm-fg); cursor: pointer; transition: all .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* The preset selector. Was a 999px lozenge, from before the brand restyle made
+     the studio square-ish and hairline — a lone round control in a row of 4px
+     ones now reads as an oversight rather than a distinction. */
+  .preset-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 16px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: var(--btn-radius); font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--warm-fg); cursor: pointer; transition: all .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .preset-pill:hover { border-color: var(--warm-muted-2); background: var(--warm-hover); }
   .preset-pill[aria-expanded="true"] { border-color: var(--metime-almost-black); }
   .preset-pill .preset-dim { color: var(--warm-muted); font-weight: 400; font-family: var(--font-mono); font-size: 12px; }
   .preset-pill .caret { display: inline-block; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-muted); margin-left: 2px; }
 
   /* Icon button (used in header + tool rail + popover triggers) */
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 2px; border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--btn-radius); border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .icon-btn:hover { background: var(--btn-tool-hover); }
   .icon-btn:active { background: var(--btn-secondary-bg-active); }
   .icon-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
@@ -520,7 +531,7 @@
   .nib-bar .size-bar-label { margin-right: 4px; }
   .nib-btn {
     width: 24px; height: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
-    background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+    background: transparent; border: 1px solid transparent; border-radius: var(--btn-radius); cursor: pointer;
     color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s;
   }
   .nib-btn:hover { background: var(--btn-tool-hover); }
@@ -574,7 +585,7 @@
   /* Floating selection toolbar (position+coords are computed in JS, FigJam-style) */
   .selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
   .selection-toolbar-divider { display: inline-block; width: 1px; height: 16px; background: var(--warm-hairline); margin: 0 2px; }
-  .selection-swatch-btn { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: 5px; font: inherit; color: inherit; cursor: pointer; transition: background .12s, border-color .12s; }
+  .selection-swatch-btn { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: transparent; border: 1px solid transparent; border-radius: var(--btn-radius); font: inherit; color: inherit; cursor: pointer; transition: background .12s, border-color .12s; }
   .selection-swatch-btn:hover { background: var(--surface-hover, rgba(0,0,0,0.05)); border-color: var(--warm-hairline); }
   .selection-swatch-preview { width: 14px; height: 14px; border: 1px solid rgba(0,0,0,0.12); border-radius: 2px; flex-shrink: 0; display: block; }
   .selection-swatch-mixed { background: conic-gradient(#E8583A 0deg 90deg, #B5BB46 90deg 180deg, #1A2E4C 180deg 270deg, #E1A92F 270deg 360deg); }
@@ -608,7 +619,7 @@
 
   /* Buttons — metime design system (Figma node 20-1371).
      Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary. */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: 2px; cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: var(--btn-radius); cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
   .btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
   .btn:active { background: var(--btn-secondary-bg-active); }
   /* One focus treatment, matching the brand shell: a 2px ink ring set off the
@@ -646,7 +657,7 @@
   .chip.selected { outline: 2pt solid var(--metime-black); outline-offset: 0; box-shadow: none; position: relative; z-index: 2; }
 
   /* Tag pills */
-  .pill { padding: 3px 8px; font-size: 11px; border-radius: 2px; cursor: pointer; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg-2); transition: all .12s; }
+  .pill { padding: 3px 8px; font-size: 11px; border-radius: var(--btn-radius); cursor: pointer; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg-2); transition: all .12s; }
   .pill.active { background: var(--action); color: var(--metime-white); border-color: var(--action); }
   .pill:not(.active):hover { background: var(--warm-hover); }
 
@@ -750,7 +761,7 @@
   .saved-chev i { font-size: 16px; }
   .saved-chev.is-open { transform: rotate(180deg); }
   .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 0; height: 28px; padding: 0 12px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
+  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 0; height: 28px; padding: 0 12px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: var(--btn-radius); font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
   .saved-filter:hover { background: var(--color-linen-300); }
   .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--metime-black); color: var(--metime-white); }
   .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--metime-black); }
@@ -1303,7 +1314,7 @@
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
-  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: 2px; cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
+  .xs-tool { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; background: transparent; border-radius: var(--btn-radius); cursor: pointer; color: var(--btn-secondary-fg); transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
   .xs-tool:hover { background: var(--btn-tool-hover); }
   .xs-tool:active { background: var(--btn-secondary-bg-active); }
   .xs-tool:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
@@ -1320,7 +1331,7 @@
   .xs-swatch { position: relative; aspect-ratio: 1; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; transition: transform .1s; }
   .xs-swatch:hover { transform: scale(1.08); }
   .xs-swatch.active { outline: 2pt solid var(--metime-black); outline-offset: 0; }
-  .xs-add { margin: 0 16px 14px; padding: 8px; border: 1px dashed var(--warm-muted); background: none; border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--warm-fg-2); display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .xs-add { margin: 0 16px 14px; padding: 8px; border: 1px dashed var(--warm-muted); background: none; border-radius: var(--btn-radius); cursor: pointer; font-size: 12px; color: var(--warm-fg-2); display: flex; align-items: center; justify-content: center; gap: 6px; }
   .xs-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
   .xs-picker { position: fixed; inset: 0; background: rgba(0,0,0,0.28); display: flex; align-items: center; justify-content: center; z-index: 60; }
   .xs-picker-card { background: #fff; border-radius: 10px; width: 460px; max-width: calc(100vw - 32px); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.2); overflow: hidden; }
@@ -1425,7 +1436,7 @@
     display: flex; align-items: flex-start; gap: 12px; width: 100%;
     padding: 12px 14px; text-align: left; cursor: pointer;
     font: inherit; color: inherit;
-    background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 6px;
+    background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: var(--btn-radius);
   }
   .pal-upload-method:hover { background: var(--color-linen-300); }
   .pal-upload-method[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
@@ -1447,7 +1458,7 @@
     height: 32px; padding: 0 24px;
     font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1;
     color: var(--metime-black); background: var(--metime-ice);
-    border: none; border-radius: 8px; cursor: pointer;
+    border: none; border-radius: var(--btn-radius); cursor: pointer;
   }
   .pal-upload-pill:hover { background: #A9BDE6; }
   .pal-upload-pill[aria-pressed="true"] { background: #A9BDE6; }
@@ -1552,7 +1563,7 @@
   }
   .pal-from-image-add:hover { background: var(--warm-hover); }
   .pal-from-image-use {
-    padding: 13px 24px; border-radius: 6px; font-size: 15px; font-weight: 500; line-height: normal;
+    padding: 13px 24px; border-radius: var(--btn-radius); font-size: 15px; font-weight: 500; line-height: normal;
   }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
@@ -1563,8 +1574,8 @@
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
   .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
-  /* Same box as .pal-skip-btn: 6px radius, 10/18 padding, Söhne Kräftig 14. */
-  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s, transform var(--press-dur) var(--ease-out); }
+  /* Same box as .pal-skip-btn: shared control radius, 10/18 padding, Söhne Kräftig 14. */
+  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--btn-radius); font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s, transform var(--press-dur) var(--ease-out); }
   .pal-btn:hover { background: var(--action-hover); }
   .pal-btn.secondary { background: var(--metime-white); border-color: var(--metime-black); color: #000000; }
   .pal-btn.secondary:hover { background: var(--color-linen-300); }
@@ -1572,7 +1583,7 @@
   /* Skip for now — Figma 2151:263; box border overridden to #707F87 */
   .pal-skip-btn {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 10px 18px; border-radius: 6px;
+    padding: 10px 18px; border-radius: var(--btn-radius);
     border: 1px solid var(--metime-black); background: var(--metime-white);
     color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
     line-height: normal; cursor: pointer;
@@ -1621,13 +1632,13 @@
   .pal-suggest-swatch:hover { transform: scale(1.06); }
   .pal-suggest-rm { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: var(--metime-black); color: var(--metime-white); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
   .pal-suggest-code { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
-  .pal-suggest-add { width: 44px; height: 44px; border-radius: 8px; border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
+  .pal-suggest-add { width: 44px; height: 44px; border-radius: var(--btn-radius); border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
   .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
 
   /* Backing-fabric picker: theme filters + dense swatch grid. Filters share the
      .pal-skip-btn box (white / #707F87 / 6px / Söhne Kräftig 14). */
   .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 6px; border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s, transform var(--press-dur) var(--ease-out); }
+  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--btn-radius); border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s, transform var(--press-dur) var(--ease-out); }
   .fabric-filter:not(.active):hover { background: var(--color-linen-300); }
   .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
   .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
@@ -2095,7 +2106,7 @@
     align-items: center;
     gap: 8px;
     color: var(--brand-ink);
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
   }
   .brand-shell .size-back-label {
     font-family: var(--brand-font);
@@ -2129,7 +2140,7 @@
     padding: 0 18px;
     background: var(--brand-paper);
     border: 1px solid var(--brand-ink);
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
     box-shadow: none;
     font-family: var(--brand-font);
     font-size: var(--brand-label);
@@ -2371,7 +2382,7 @@
     padding: 0 14px;
     background: var(--brand-paper);
     border: 1px solid var(--brand-ink);
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
     font-family: var(--brand-font);
     font-size: 13px;
     font-weight: 500;
@@ -2399,7 +2410,7 @@
   }
   .brand-shell .pal-upload-url-row button {
     height: 34px;
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
     border-color: var(--brand-ink);
     background: var(--brand-paper);
     font-family: var(--brand-font);
@@ -2916,7 +2927,7 @@
     padding: 0 14px;
     background: var(--brand-paper);
     border: 1px solid var(--brand-ink);
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
     font-family: var(--brand-font);
     font-size: 13px;
     font-weight: 500;
@@ -2948,7 +2959,7 @@
     padding: 0 12px;
     background: var(--brand-paper);
     border: 1px solid var(--brand-ink);
-    border-radius: 2px;
+    border-radius: var(--btn-radius);
     font-family: var(--brand-font);
     font-size: 13px;
     font-weight: 500;
@@ -7677,7 +7688,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "borderWidth": "1",
   "appBg": "#F8F5ED",
   "canvasBg": "#FFFFFF",
-  "radius": "2"
+  "radius": "4"
 }/*EDITMODE-END*/;
 
 function applyTweaks(t) {
@@ -7686,9 +7697,13 @@ function applyTweaks(t) {
   root.style.setProperty('--div-border', b);
   root.style.setProperty('--app-bg', t.appBg);
   root.style.setProperty('--canvas-bg', t.canvasBg);
+  // Through the token, so the knob moves every button and not only .btn — the
+  // stylesheet's other controls read the same property. Inputs and chips still
+  // need the rule below: they aren't buttons and don't use the button token.
+  root.style.setProperty('--btn-radius', `${t.radius}px`);
   let s = document.getElementById('_tweak_s');
   if (!s) { s = document.createElement('style'); s.id = '_tweak_s'; document.head.appendChild(s); }
-  s.textContent = `.btn, input[type=text], input[type=email], select, .chip { border-radius: ${t.radius}px !important; } .pill { border-radius: 2px !important; } body { background: ${t.appBg}; }`;
+  s.textContent = `input[type=text], input[type=email], select, .chip { border-radius: ${t.radius}px !important; } body { background: ${t.appBg}; }`;
 }
 
 function TweaksPanel() {
