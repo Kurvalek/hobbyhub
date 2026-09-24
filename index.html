@@ -2053,6 +2053,40 @@
     color: var(--brand-ink);
   }
 
+  /* A compact band, for a screen whose job is the content below it rather than
+     the heading itself. Everything folds onto one line — title, the craft beside
+     it, and what the design actually is pushed to the far end — which turns a
+     250px colour field into something closer to 100px. Titles here are short and
+     fixed, so there's none of the wrapping the tall band exists to allow.
+
+     The wiggle sits this one out. It's the brand's flourish and it earns its
+     space where a screen opens; on a working screen it would be 35px of
+     decoration taken from the list someone is trying to read. */
+  .brand-shell .brand-head.is-compact { padding-block: clamp(12px, 1.2vw, 18px); }
+  .brand-shell .is-compact .brand-head-top {
+    min-height: 0;
+    margin-bottom: 8px;
+  }
+  .brand-shell .is-compact .brand-head-main { display: block; }
+  .brand-shell .is-compact .brand-head-text {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+  .brand-shell .is-compact .brand-title { font-size: var(--brand-display-m); }
+  .brand-shell .is-compact .brand-eyebrow { margin: 0; }
+  .brand-shell .is-compact .brand-head-wiggle { display: none; }
+  /* Pushed to the end on a wide row, but it's the first thing to wrap, so on a
+     narrow one it drops to its own line and loses the auto margin with it. */
+  .brand-shell .is-compact .brand-head-sub {
+    margin: 0 0 0 auto;
+    max-width: none;
+  }
+  @media (max-width: 720px) {
+    .brand-shell .is-compact .brand-head-sub { margin-left: 0; }
+  }
+
   /* Back link — inherits ink on whatever colour field it lands on. */
   .brand-shell .size-back {
     position: static;
@@ -2556,7 +2590,7 @@
      two places to get stuck, and in any window too short to divide — a scroll area
      squeezed to nothing would clip the Checkout button, which is the one thing
      this layout exists to keep on screen. */
-  @media (max-width: 900px), (max-height: 620px) {
+  @media (max-width: 900px), (max-height: 480px) {
     .kit-layer { overflow-y: auto; }
     .kit-layer .kit-page { height: auto; min-height: 100%; }
     .brand-shell .kit-scroll { overflow-y: visible; }
@@ -8236,9 +8270,13 @@ function BrandEyebrow({ step, label, plain }) {
 
 // The heading band: one colour field per screen, left-aligned, wiggle beneath
 // the title. Height is content-driven so long titles wrap instead of spilling.
-function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actions, cycles = 5, wide }) {
+//
+// `compact` folds the whole thing onto one line, for a screen where the heading
+// is orientation rather than the point and every pixel it takes is a pixel off
+// the content below.
+function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actions, cycles = 5, wide, compact }) {
   return (
-    <section className={`brand-head brand-bleed tone-${tone}`}>
+    <section className={`brand-head brand-bleed tone-${tone}${compact ? ' is-compact' : ''}`}>
       {(back || actions) && (
         <div className="brand-head-top">
           {back}
@@ -8247,9 +8285,13 @@ function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actio
       )}
       <div className="brand-head-main">
         <div className={`brand-head-text${wide ? ' is-wide' : ''}`}>
-          {eyebrow}
+          {!compact && eyebrow}
           <h1 className={`size-title brand-title${xl ? ' is-xl' : ''}`}>{title}</h1>
-          <BrandWiggle cycles={cycles} className={`brand-head-wiggle${xl ? ' is-lg' : ''}`}/>
+          {/* On one line the craft reads as an aside after the title rather than
+              a label above it, so it moves in the markup too — the eye and the
+              screen reader get the same order. */}
+          {compact && eyebrow}
+          {!compact && <BrandWiggle cycles={cycles} className={`brand-head-wiggle${xl ? ' is-lg' : ''}`}/>}
           {sub && <p className="brand-head-sub">{sub}</p>}
         </div>
         {aside && <div className="brand-head-aside">{aside}</div>}
@@ -12950,6 +12992,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
       <BrandHead
         tone="butter"
         wide
+        compact
         back={<BrandBack onBack={onBack}/>}
         eyebrow={<BrandEyebrow plain label={BRAND_CRAFT_LABEL[type] || "Kit"}/>}
         title="Review your kit"
@@ -13052,7 +13095,9 @@ function KitReviewLoading() {
   return (
     <div className="kit-page brand-shell">
       <BrandNav/>
-      <BrandHead tone="butter" wide
+      {/* Compact to match the page it turns into, so the band doesn't change
+          height under the reader the moment the design arrives. */}
+      <BrandHead tone="butter" wide compact
         eyebrow={<BrandEyebrow plain label="Your kit"/>}
         title="Fetching your design…"/>
       <BrandFooter/>

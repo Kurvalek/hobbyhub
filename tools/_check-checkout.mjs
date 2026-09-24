@@ -657,9 +657,16 @@ const scrollModel = await page.evaluate(async () => {
     return r.top >= 0 && r.bottom <= window.innerHeight + 1;
   };
   const before = onScreen();
+  // The heading band is orientation, not the point of this screen, so it has to
+  // stay out of the way of the two lists it sits above.
+  const head = layer.querySelector('.brand-head').getBoundingClientRect();
+  const t = layer.querySelector('.brand-title').getBoundingClientRect();
+  const s = layer.querySelector('.brand-head-sub').getBoundingClientRect();
   right.scrollTop = right.scrollHeight;
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   return {
+    headHeight: Math.round(head.height),
+    headOneLine: s.top < t.bottom && s.bottom > t.top,
     ports: ports.length,
     layerScrolls: layer.scrollHeight > layer.clientHeight + 1,
     rightOverflows: right.scrollHeight > right.clientHeight + 1,
@@ -671,6 +678,9 @@ const scrollModel = await page.evaluate(async () => {
   };
 });
 console.log(JSON.stringify(scrollModel));
+check(scrollModel.headHeight <= 120, 'the heading band stays out of the way of the lists',
+  `${scrollModel.headHeight}px tall`);
+check(scrollModel.headOneLine, 'the title, the craft and what the design is share one line');
 check(scrollModel.ports === 2, 'the review page has one scrollport per column', `${scrollModel.ports}`);
 check(!scrollModel.layerScrolls, 'the page itself does not scroll — its columns do');
 check(scrollModel.rightOverflows, 'the supply column has more in it than fits, so the rest of this means something');
@@ -685,7 +695,7 @@ check(scrollModel.goBefore && scrollModel.goAfter,
 // Past a certain shortness there's no room left to divide, and a scroll area
 // squeezed to nothing would clip the button — so the layout gives up on its own
 // terms and hands the page back to the document scroller.
-await page.setViewport({ width: 1440, height: 520 });
+await page.setViewport({ width: 1440, height: 440 });
 await new Promise(r => setTimeout(r, 400));
 const shortWindow = await page.evaluate(() => {
   const layer = document.querySelector('.kit-layer');
