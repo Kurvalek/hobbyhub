@@ -127,6 +127,39 @@ Order documents are only reachable through the admin credential. The public
 `/api/render` is narrowed to design documents, because the order ones carry a
 shipping address and an internal pick list.
 
+## Where the dashboard lives
+
+The dashboard is served at `https://admin.makemetime.com`. It is the same Vercel
+project and the same deployment as the storefront — one more domain pointed at
+it, not a second app — so `/api/*` resolves without CORS and there is only ever
+one thing to deploy.
+
+Making a subdomain's root serve `admin.html` is the one fiddly part, because
+Vercel checks the filesystem *before* applying `rewrites`, and `/` already
+resolves to `index.html`. A rewrite from `/` would silently never fire. What
+runs *ahead* of the filesystem is `routes`, so that is what `vercel.json` uses:
+
+```json
+"routes": [
+  { "src": "/", "has": [{ "type": "host", "value": "admin.makemetime.com" }], "dest": "/admin.html" }
+]
+```
+
+The `has` condition scopes it to that one hostname, so every other domain falls
+through untouched and keeps serving the storefront. Two consequences worth
+knowing. `has` **is ignored by `vercel dev`**, so locally the dashboard stays at
+`http://localhost:3000/admin.html` and nothing about local work changes. And
+`admin.html` is still reachable at `www.makemetime.com/admin.html`; that is left
+deliberately, as a way in if the subdomain's DNS ever breaks. It is the same
+password either way.
+
+The session token lives in `localStorage`, which is per-origin, so moving to the
+new hostname means signing in once more. The old session on `www` is untouched.
+
+DNS for `makemetime.com` is at Namecheap, not Vercel — the nameservers are
+`dns1/dns2.registrar-servers.com`. Subdomains are therefore added as CNAME
+records there, pointing at the same target `www` and `studio` already use.
+
 ## Signing in to the dashboard
 
 The dashboard takes a password. Set it in `ADMIN_PASSWORD`, in `.env` for local

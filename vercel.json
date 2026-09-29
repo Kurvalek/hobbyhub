@@ -4,5 +4,12 @@
     "api/mockup.js": {
       "maxDuration": 120
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/",
+      "has": [{ "type": "host", "value": "admin.makemetime.com" }],
+      "dest": "/admin.html"
+    }
+  ]
 }
