@@ -138,6 +138,28 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 
+// The endpoints name their failure in a JSON `error` field. A bare status code
+// sends you looking in the wrong place — a 503 here is the server missing its
+// credentials, which is a deploy problem and nothing to do with the order on
+// screen.
+const API_ERRORS = {
+  supabase_not_configured:
+    "The server has no Supabase credentials. Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY where this is deployed, then redeploy.",
+  admin_not_configured:
+    "The server has no admin credential set. Set ADMIN_PASSWORD_HASH where this is deployed, then redeploy.",
+  nothing_to_render: "There's nothing to render for that document.",
+  design_not_found: "That design is no longer in the database.",
+  order_not_found: "That order is no longer in the database.",
+};
+
+// `fallback` names the operation, because an unrecognised code is all the
+// caller has left to go on.
+async function errorMessage(res, fallback) {
+  let code = "";
+  try { code = (await res.json()).error || ""; } catch {}
+  return API_ERRORS[code] || fallback + " (" + res.status + (code ? ": " + code : "") + ")";
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -148,7 +170,7 @@ async function api(path, opts = {}) {
     },
   });
   if (res.status === 401) { logout(); throw new Error("Unauthorized"); }
-  if (!res.ok) throw new Error("Request failed (" + res.status + ")");
+  if (!res.ok) throw new Error(await errorMessage(res, "Request failed"));
   return res.json();
 }
 
@@ -201,12 +223,7 @@ async function openPdf(btn, query) {
       "/api/admin/render?" + new URLSearchParams(query).toString(),
       { headers: { Authorization: "Bearer " + state.token } }
     );
-    if (!res.ok) {
-      // The endpoint reports why in a JSON body; surfacing it beats a bare code.
-      let detail = "";
-      try { detail = (await res.json()).error || ""; } catch {}
-      throw new Error("Render failed (" + res.status + (detail ? ": " + detail : "") + ")");
-    }
+    if (!res.ok) throw new Error(await errorMessage(res, "Render failed"));
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
