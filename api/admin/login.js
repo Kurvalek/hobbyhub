@@ -2,7 +2,7 @@ import {
   SESSION_TTL_MS,
   issueSession,
   passwordConfigured,
-  verifyPassword,
+  verifyAdminPassword,
 } from "../_lib/adminAuth.js";
 
 // POST /api/admin/login — trade the admin password for a session token.
@@ -13,10 +13,15 @@ import {
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 8;
 
-// Per-instance, in-memory throttle. Vercel may run several instances, so a
-// determined attacker gets somewhat more than MAX_ATTEMPTS tries per window —
-// but scrypt already makes each guess cost ~100ms of CPU, and this removes the
-// cheap high-volume case without needing a database or a Redis dependency.
+// Per-instance, in-memory throttle. The password is compared directly rather
+// than through a slow hash, so a guess costs an attacker almost nothing and
+// this is the only thing standing between a plain password and an offline-speed
+// online attack — treat MAX_ATTEMPTS as load-bearing, not as polish.
+//
+// Vercel may run several instances and each keeps its own counter, so the real
+// ceiling is some multiple of MAX_ATTEMPTS per window. That still removes the
+// high-volume case, which is the one that matters, without taking on a database
+// or a Redis dependency for a single-admin dashboard.
 const attempts = new Map();
 
 function clientKey(req) {
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "password_required" });
   }
 
-  if (!verifyPassword(password, process.env.ADMIN_PASSWORD_HASH)) {
+  if (!verifyAdminPassword(password)) {
     recordFailure(key);
     return res.status(401).json({ error: "invalid_password" });
   }

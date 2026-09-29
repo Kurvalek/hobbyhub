@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 // Gate for the admin endpoints. Two kinds of credential are accepted on
 // `Authorization: Bearer <value>`:
@@ -8,72 +8,39 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 //   2. The raw ADMIN_TOKEN, when set — a long random string for curl and the
 //      scripts in tools/, which have no session to carry.
 //
-// The password is never stored or sent after sign-in: the environment holds
-// only a scrypt hash of it, and the browser holds only a session token. That
-// way a leaked env dump or a leaked browser session doesn't hand over the
-// password itself.
+// There is one admin, so the password lives in ADMIN_PASSWORD as-is rather
+// than as a hash. The tradeoff is explicit: anyone who can read the
+// environment can read the password, so it must not be one used anywhere
+// else. Online guessing is handled by the rate limit in admin/login.js.
 //
-// If neither ADMIN_PASSWORD_HASH nor ADMIN_TOKEN is set the endpoints stay
-// locked (fail closed) so a misconfigured deploy never exposes orders.
-
-// scrypt is deliberately slow, which is the point: it's what makes guessing a
-// human-chosen password expensive rather than instant. 128 * N * r = 16 MB of
-// memory per attempt, ~50-100ms of CPU.
-const SCRYPT = { N: 16384, r: 8, p: 1 };
-const KEY_LEN = 32;
+// If neither ADMIN_PASSWORD nor ADMIN_TOKEN is set the endpoints stay locked
+// (fail closed) so a misconfigured deploy never exposes orders.
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-// base64url throughout so the hash is safe to paste into a .env file or a
-// Vercel env var without quoting.
-export function hashPassword(password) {
-  const salt = randomBytes(16);
-  const key = scryptSync(normalize(password), salt, KEY_LEN, SCRYPT);
-  return [
-    "scrypt",
-    SCRYPT.N,
-    SCRYPT.r,
-    SCRYPT.p,
-    salt.toString("base64url"),
-    key.toString("base64url"),
-  ].join("$");
+// timingSafeEqual throws unless both buffers are the same length, and feeding
+// it the raw strings would leak the password's length through that throw.
+// Comparing fixed-width digests instead keeps the comparison constant-time and
+// length-blind: any two inputs, whatever their size, produce 32 bytes.
+function constantTimeEqual(a, b) {
+  const ha = createHash("sha256").update(String(a ?? ""), "utf8").digest();
+  const hb = createHash("sha256").update(String(b ?? ""), "utf8").digest();
+  return timingSafeEqual(ha, hb);
 }
 
-export function verifyPassword(password, stored) {
-  const parts = String(stored || "").split("$");
-  if (parts.length !== 6 || parts[0] !== "scrypt") return false;
-
-  const [, n, r, p, saltB64, keyB64] = parts;
-  const salt = Buffer.from(saltB64, "base64url");
-  const expected = Buffer.from(keyB64, "base64url");
-  if (!salt.length || !expected.length) return false;
-
-  let actual;
-  try {
-    actual = scryptSync(normalize(password), salt, expected.length, {
-      N: Number(n),
-      r: Number(r),
-      p: Number(p),
-    });
-  } catch {
-    return false;
-  }
-  return equal(actual, expected);
+export function verifyAdminPassword(password) {
+  const expected = process.env.ADMIN_PASSWORD;
+  if (!expected) return false;
+  return constantTimeEqual(password, expected);
 }
 
-// Unicode normalization so a password typed with a composed vs. decomposed
-// accent still matches the one that was hashed.
-function normalize(password) {
-  return String(password ?? "").normalize("NFKC");
-}
-
-// The signing key is derived from the stored password hash rather than being
-// its own env var. Two benefits: nothing extra to configure, and changing the
-// password automatically invalidates every session that was already issued.
+// The signing key is derived from the password rather than being its own env
+// var. Two benefits: nothing extra to configure, and changing the password
+// automatically invalidates every session that was already issued.
 function sessionSecret() {
-  const hash = process.env.ADMIN_PASSWORD_HASH || "";
-  if (!hash) return null;
-  return createHmac("sha256", "studio-admin-session-v1").update(hash).digest();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) return null;
+  return createHmac("sha256", "studio-admin-session-v1").update(password).digest();
 }
 
 // A session token is just an expiry stamped and signed by the server — there
@@ -102,28 +69,21 @@ function validSession(token) {
   const expected = createHmac("sha256", secret)
     .update(`v1.${parts[1]}`)
     .digest("base64url");
-  return equal(Buffer.from(parts[2]), Buffer.from(expected));
+  return constantTimeEqual(parts[2], expected);
 }
 
 function matchesMachineToken(token) {
   const expected = process.env.ADMIN_TOKEN;
   if (!expected) return false;
-  return equal(Buffer.from(token), Buffer.from(expected));
-}
-
-// timingSafeEqual throws on a length mismatch, and the length check itself has
-// to happen before it — comparing lengths leaks nothing a response time
-// wouldn't already.
-function equal(a, b) {
-  return a.length === b.length && timingSafeEqual(a, b);
+  return constantTimeEqual(token, expected);
 }
 
 export function passwordConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD_HASH);
+  return Boolean(process.env.ADMIN_PASSWORD);
 }
 
 export function adminConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_TOKEN);
+  return Boolean(process.env.ADMIN_PASSWORD || process.env.ADMIN_TOKEN);
 }
 
 export function requireAdmin(req, res) {
