@@ -3214,11 +3214,24 @@ const SHOPIFY_KITS = {
     "Medium Hoop":  "cross-stitch-wall-art-medium",
   },
   "punch-needle": {
-    "Coaster":      "punch-needle-coaster-set",
-    "Wall Hanging": "punch-needle-wall-art",
-    "Pillow":       "punch-needle-pillow",
+    "Coaster":    "punch-needle-coaster-set",
+    "Large Hoop": "punch-needle-wall-art",
+    "Pillow":     "punch-needle-pillow",
   },
 };
+
+// "Large Hoop" was called "Wall Hanging" until the size was renamed. Designs
+// saved before that still carry the old name — in Supabase, in localStorage and
+// in any cart already in flight — so it is translated on read rather than
+// rewritten. The stored record stays exactly as the customer left it and their
+// kit stays buyable. Keyed by craft because quilt has its own "Wall hanging"
+// that is a different size of a different product and must not be touched.
+const LEGACY_PRESET_NAMES = {
+  "punch-needle": { "Wall Hanging": "Large Hoop" },
+};
+function canonicalPresetName(type, name) {
+  return (LEGACY_PRESET_NAMES[type] || {})[name] || name;
+}
 // Line-item property carried into the Shopify order; the fulfillment backend
 // keys off this exact name to trace a kit back to its design.
 const DESIGN_ID_ATTRIBUTE = "_design_id";
@@ -3266,9 +3279,9 @@ const KIT_INFO = {
       "Printed step-by-step instructions",
     ],
     extras: {
-      "Wall Hanging": ["Wooden hoop to finish and hang it in"],
-      "Pillow":       ["Backing fabric and a pillow insert"],
-      "Coaster":      ["Felt backing for all four coasters"],
+      "Large Hoop": ["Wooden hoop to finish and hang it in"],
+      "Pillow":     ["Backing fabric and a pillow insert"],
+      "Coaster":    ["Felt backing for all four coasters"],
     },
     yourOwn: [
       "Gripper frame or stretcher bars to hold the cloth taut",
@@ -3291,7 +3304,7 @@ function kitIncludes(type, design) {
 // `presetName`. Callers shouldn't have to know which, so both go through here.
 function kitPresetName(type, design) {
   if (!design) return null;
-  return type === "quilt" ? design.preset : design.presetName;
+  return canonicalPresetName(type, type === "quilt" ? design.preset : design.presetName);
 }
 
 // The Shopify product handle for a design's size, or null when that size isn't
@@ -5074,17 +5087,24 @@ const AIDA_FABRICS = [
 const PUNCH_PRESETS = [
   { name:"Coaster", w:20, h:20, desc:"A quick first punch" },
   { name:"Small Hoop", w:30, h:30, desc:"Fits a 6\" round hoop" },
-  { name:"Wall Hanging", w:40, h:50, desc:"Room for a real scene" },
+  { name:"Large Hoop", w:40, h:50, desc:"Room for a real scene" },
   { name:"Pillow", w:70, h:70, desc:"A full cushion front" },
 ];
 const PUNCH_THEMES = {
   "Coaster":      { c1:"#E8583A", c2:"#F5D89A", desc:"A quick first punch" },
   "Small Hoop":   { c1:"#707F87", c2:"#CCD6EB", desc:"Fits a 6\" round hoop" },
-  "Wall Hanging": { c1:"#B5BB46", c2:"#D8E498", desc:"Room for a real scene" },
+  "Large Hoop":   { c1:"#B5BB46", c2:"#D8E498", desc:"Room for a real scene" },
   "Pillow":       { c1:"#FBBB3F", c2:"#E7D6C1", desc:"A full cushion front" },
 };
+// A photograph of the finished thing for every size, so the choice is made on
+// what you end up holding rather than on a rectangle scaled to the loop count.
+// With all four present the drawn GridSizeThumb fallback no longer renders for
+// punch needle; it still covers cross-stitch and any size added later.
 const PUNCH_IMAGES = {
-  "Wall Hanging": "assets/products/punch-needle-wall-hanging.jpg",
+  "Coaster":    "assets/landing/craft-punch-needle-coasters.png",
+  "Small Hoop": "assets/landing/craft-punch-needle-small.png",
+  "Large Hoop": "assets/landing/craft-punch-needle-wall.png",
+  "Pillow":     "assets/landing/craft-punch-needle-pillow.png",
 };
 // Monk's cloth is the standard punch needle ground — a loose, even-weave
 // cotton. Unlike Aida it mostly comes undyed, so the range is natural tones
@@ -7858,7 +7878,7 @@ const CRAFTS = [
     image: "assets/landing/craft-quilt.png", imgW: 208, imgH: 260 },
   { id: "punch-needle", name: "Punch Needle", ready: true,
     desc: "Build bold, tactile forms with yarn quantities made to match.",
-    image: "assets/landing/craft-punch-needle.jpg", imgW: 215, imgH: 269 },
+    image: "assets/landing/craft-punch-needle-wall.png", imgW: 246, imgH: 269 },
 ];
 
 function AccountMenu() {
@@ -12366,7 +12386,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
     // redraw effects (both keyed on W/H), so the board resizes to match the
     // grid instead of the grid being squeezed into the active canvas size.
     if (typeof d.w === 'number' && typeof d.h === 'number') {
-      setDims({ w: d.w, h: d.h, name: d.presetName || 'Custom' });
+      setDims({ w: d.w, h: d.h, name: canonicalPresetName(craft, d.presetName) || 'Custom' });
     }
     const len = (d.w || W) * (d.h || H);
     if (isCoasterSize(d.presetName || dims.name)) {
@@ -12791,7 +12811,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 2 }}>{d.name}</div>
-                      <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.w} × {d.h} {CFG.unitPlural} · {d.presetName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.w} × {d.h} {CFG.unitPlural} · {canonicalPresetName(craft, d.presetName)}</div>
                       <div style={{ fontSize: 12, color: 'var(--warm-muted)' }}>{d.colorsUsed} color{d.colorsUsed !== 1 ? 's' : ''} · {d.stitches} {CFG.unitPlural}</div>
                     </div>
                     {confirmDeleteId === d.id ? (
@@ -12968,7 +12988,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
   const name = record.name || "Untitled";
   const sub = isQuilt
     ? `${name} · ${record.fw}" × ${record.fh}" · ${record.preset}`
-    : `${name} · ${record.w} × ${record.h} ${cfg.unitPlural} · ${record.presetName}`;
+    : `${name} · ${record.w} × ${record.h} ${cfg.unitPlural} · ${canonicalPresetName(type, record.presetName)}`;
   const specs = isQuilt
     ? [
         { k: "Finished size", v: record.fw && record.fh ? `${record.fw}" × ${record.fh}"` : null },
@@ -13412,7 +13432,7 @@ function Root() {
       return (
         <CrossStitchApp
           craft={openSaved.type === 'punch' ? 'punch-needle' : 'cross-stitch'}
-          preset={{ name: openSaved.item.presetName || 'Custom', w: openSaved.item.w, h: openSaved.item.h }}
+          preset={{ name: canonicalPresetName(openSaved.type === 'punch' ? 'punch-needle' : 'cross-stitch', openSaved.item.presetName) || 'Custom', w: openSaved.item.w, h: openSaved.item.h }}
           palette={openSaved.item.palette}
           initialDesign={openSaved.item} onBack={resetAll} onReview={openCart}/>
       );

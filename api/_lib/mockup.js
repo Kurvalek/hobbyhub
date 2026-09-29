@@ -59,7 +59,7 @@ const PRESET_OBJECT = {
   },
   "punch-needle": {
     "Coaster": "a set of four punched coasters, backed with felt, stacked on a table",
-    "Wall Hanging": "mounted in a round wooden hoop, hung on a plain pale wall",
+    "Large Hoop": "mounted in a large round wooden hoop, hung on a plain pale wall",
     "Pillow": "made up into a square cushion with a fabric back, resting on a chair",
   },
 };

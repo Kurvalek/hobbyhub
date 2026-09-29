@@ -228,20 +228,18 @@ the bundle still contains both page orientations.
 
 ## Going live
 
-Products are already live in Shopify and the webhook code is verified working.
-What remains:
+Products are already live in Shopify, the webhook code is verified working, and
+`supabase/migrations/0002_order_statuses.sql` has been applied — all seven
+statuses write successfully. What remains:
 
-1. Run `supabase/migrations/0002_order_statuses.sql` in the Supabase SQL editor.
-   Until you do, the last three status buttons return a 409 and the dashboard
-   tells you so.
-2. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
+1. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
    when you create the webhook. **Not** the local placeholder — a mismatch
    rejects every order with a 401.
-3. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
+2. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
    `orders/create`, format JSON, URL
-   `https://YOUR-DOMAIN/api/webhooks/order`.
-4. Redeploy. Vercel only applies environment changes to new deployments.
-5. Place a real test order and confirm it appears in `admin.html`.
+   `https://www.makemetime.com/api/webhooks/order`.
+3. Redeploy. Vercel only applies environment changes to new deployments.
+4. Place a real test order and confirm it appears on the dashboard.
 
 If a real order doesn't show up, suspect a secret mismatch between Shopify and
 Vercel before suspecting the code.

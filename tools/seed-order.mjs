@@ -220,7 +220,7 @@ function samplePunchNeedle() {
   return {
     name: "Sunburst",
     craft: "punch-needle",
-    presetName: "Wall Hanging",
+    presetName: "Large Hoop",
     ...g,
     palette: g.colors,
     colorsUsed: g.colors.length,
@@ -232,7 +232,7 @@ function samplePunchNeedle() {
 const SAMPLES = {
   quilt: { build: sampleQuilt, title: "Custom Quilt Kit", variant: "Baby · 24\" × 24\"", sku: "KIT-QUILT-BABY" },
   "cross-stitch": { build: sampleCrossStitch, title: "Custom Cross-Stitch Kit", variant: "Small Hoop", sku: "KIT-XS-SM" },
-  "punch-needle": { build: samplePunchNeedle, title: "Custom Punch Needle Kit", variant: "Wall Hanging", sku: "KIT-PN-WALL" },
+  "punch-needle": { build: samplePunchNeedle, title: "Custom Punch Needle Kit", variant: "Large Hoop", sku: "KIT-PN-WALL" },
 };
 
 // ── http ────────────────────────────────────────────────────────────────────

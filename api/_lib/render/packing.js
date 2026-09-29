@@ -44,6 +44,10 @@ const KIT_INFO = {
       "Printed step-by-step instructions",
     ],
     extras: {
+      "Large Hoop": ["Wooden hoop to finish and hang it in"],
+      // The same size was sold as "Wall Hanging" until it was renamed. Orders
+      // are historical records, so the old title stays matchable — a slip
+      // reprinted for last month's order still lists its hoop.
       "Wall Hanging": ["Wooden hoop to finish and hang it in"],
       Pillow: ["Backing fabric and a pillow insert"],
       Coaster: ["Felt backing for all four coasters"],
@@ -56,7 +60,7 @@ const KIT_INFO = {
   },
 };
 
-// Shopify's variant title carries the size the customer picked ("Wall Hanging",
+// Shopify's variant title carries the size the customer picked ("Large Hoop",
 // "Medium Hoop"), which is what selects the finishing extras. It often has the
 // dimensions appended, so match on containment rather than equality.
 //

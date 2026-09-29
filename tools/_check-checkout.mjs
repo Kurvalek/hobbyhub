@@ -45,7 +45,7 @@ const STUB_PRICES = {
 const EXPECTED = {
   'Cross-stitch': { 'Coaster Set': '$38', 'Bookmark': '$26', 'Small Hoop': '$34', 'Medium Hoop': '$52' },
   'Quilt': { 'Coasters': '$38', 'Wall Hanging': '$69', 'Baby Blanket': '$89', 'Throw Blanket': '$149' },
-  'Punch Needle': { 'Coaster': '$46', 'Small Hoop': null, 'Wall Hanging': '$56', 'Pillow': '$89' },
+  'Punch Needle': { 'Coaster': '$46', 'Small Hoop': null, 'Large Hoop': '$56', 'Pillow': '$89' },
 };
 
 const MIME = {

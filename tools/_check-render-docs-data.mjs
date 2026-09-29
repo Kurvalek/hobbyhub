@@ -81,7 +81,7 @@ export const RECORDS = {
   },
   "punch-needle": {
     id: "33333333-3333-4333-8333-333333333333", type: "punch-needle",
-    data: { name: "Sunburst", craft: "punch-needle", presetName: "Wall Hanging", ...pnGrid, palette: pnGrid.colors, colorsUsed: 2, fabric: { name: "Natural Monk's Cloth", hex: "#E6DCC6" } },
+    data: { name: "Sunburst", craft: "punch-needle", presetName: "Large Hoop", ...pnGrid, palette: pnGrid.colors, colorsUsed: 2, fabric: { name: "Natural Monk's Cloth", hex: "#E6DCC6" } },
   },
 };
 
@@ -94,7 +94,7 @@ export const ORDER = {
   items: [
     { lineItemId: "1", title: "Custom Quilt Kit", variantTitle: 'Baby · 24" × 24"', quantity: 1, sku: "KIT-QUILT-BABY", designId: RECORDS.quilt.id, designFound: true, type: "quilt", bom: designToBom(RECORDS.quilt) },
     { lineItemId: "2", title: "Custom Cross-Stitch Kit", variantTitle: "Small Hoop", quantity: 1, sku: "KIT-XS-SM", designId: RECORDS["cross-stitch"].id, designFound: true, type: "cross-stitch", bom: designToBom(RECORDS["cross-stitch"]) },
-    { lineItemId: "3", title: "Custom Punch Needle Kit", variantTitle: "Wall Hanging", quantity: 2, sku: "KIT-PN-WALL", designId: RECORDS["punch-needle"].id, designFound: true, type: "punch-needle", bom: designToBom(RECORDS["punch-needle"]) },
+    { lineItemId: "3", title: "Custom Punch Needle Kit", variantTitle: "Large Hoop", quantity: 2, sku: "KIT-PN-WALL", designId: RECORDS["punch-needle"].id, designFound: true, type: "punch-needle", bom: designToBom(RECORDS["punch-needle"]) },
     { lineItemId: "4", title: "Custom Quilt Kit", variantTitle: "Throw", quantity: 1, sku: "KIT-QUILT-THROW", designId: "44444444-4444-4444-8444-444444444444", designFound: false, type: "unknown", bom: null },
   ],
 };

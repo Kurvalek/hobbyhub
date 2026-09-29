@@ -214,7 +214,7 @@ function drawBigBloom(cv) {
 }
 
 const SQUARE = ['Coaster', 'Small Hoop', 'Pillow'];
-const PORTRAIT = ['Wall Hanging'];
+const PORTRAIT = ['Large Hoop'];
 const DESIGNS = [
   { id: 'pn-sunburst', name: 'Sunburst', desc: 'Radiating rays around a bold centre.',
     presets: SQUARE, w: 40, h: 40, colors: 6, draw: drawSunburst },
