@@ -196,3 +196,20 @@ export async function updateOrderStatus(orderId, { status, checklist } = {}) {
   if (!data) return null;
   return await getOrder(orderId);
 }
+
+// Removes an order and, by the cascade on `order_items.order_id`, its line
+// items. Returns false if there was nothing to remove.
+//
+// This only clears our copy. Shopify still holds the order, so a webhook
+// redelivery will recreate the row — as a `new` order with an empty checklist,
+// because the fulfillment progress lived here and nowhere else.
+export async function deleteOrder(orderId) {
+  const { data, error } = await adminSupabase()
+    .from("orders")
+    .delete()
+    .eq("shopify_order_id", String(orderId))
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}

@@ -51,16 +51,19 @@
     border: 1px solid var(--hairline); background: var(--paper); color: var(--ink);
     transition: background .12s, border-color .12s; white-space: nowrap;
   }
-  .btn:hover { background: var(--hover); border-color: var(--ink); }
+  /* Every hover rule excludes :disabled. A blanket "reset the background on
+     disabled hover" looks like it works until an accent button is disabled
+     under the cursor: the fill goes but the white text stays, and the button
+     disappears. Disabled buttons keep their own colours, just dimmed. */
+  .btn:hover:not(:disabled) { background: var(--hover); border-color: var(--ink); }
   .btn.dark { background: var(--ink); color: var(--cream); border-color: var(--ink); }
-  .btn.dark:hover { background: #000; }
+  .btn.dark:hover:not(:disabled) { background: #000; }
   .btn.accent { background: var(--tomato); color: #fff; border-color: var(--tomato); }
-  .btn.accent:hover { background: #D64A2D; border-color: #D64A2D; }
+  .btn.accent:hover:not(:disabled) { background: #D64A2D; border-color: #D64A2D; }
   .btn.sm { padding: 5px 10px; font-size: 12px; }
   .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
-  .btn.ghost:hover { background: var(--hover); color: var(--ink); border-color: transparent; }
+  .btn.ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink); border-color: transparent; }
   .btn:disabled { opacity: .45; cursor: default; }
-  .btn:disabled:hover { background: var(--paper); border-color: var(--hairline); }
 
   input[type=password], input[type=text], input[type=search] {
     width: 100%; padding: 9px 12px; border: 1px solid var(--hairline);
@@ -154,6 +157,36 @@
   .badge.packed          { background: #F5F4E3; border-color: #D8D79E; color: #6E6C22; }
   .badge.shipped         { background: #ECF6EF; border-color: #B4DCC3; color: #35714F; }
   .badge.on_hold         { background: #FCEDEA; border-color: #F2C0B4; color: #B23F26; }
+
+  /* ---- Selection bar --------------------------------------------------- */
+  /* Fixed to the bottom of the viewport rather than the end of the list, so
+     the actions stay put however far down the table you've scrolled. */
+  .selbar {
+    position: fixed; left: 228px; right: 0; bottom: 0; z-index: 30;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 32px; background: var(--paper); border-top: 1px solid var(--hairline);
+  }
+  .selbar .n { font-size: 13px; font-weight: 500; }
+  .selbar .spacer { flex: 1; }
+  .selbar.danger { background: #FCEDEA; border-top-color: #F2C0B4; }
+  .selbar .warnmsg { font-size: 13px; color: #8F3319; line-height: 1.4; max-width: 62ch; }
+  .btn.danger { color: #B23F26; }
+  .btn.danger:hover:not(:disabled) { background: #FBE3DD; border-color: #B23F26; }
+  .btn.danger-solid { background: #B23F26; color: #fff; border-color: #B23F26; }
+  .btn.danger-solid:hover:not(:disabled) { background: #99341F; border-color: #99341F; }
+
+  .menu { position: relative; display: inline-flex; }
+  .menu-backdrop { position: fixed; inset: 0; z-index: 49; }
+  .menu-pop {
+    position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 50; min-width: 190px;
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 10px; padding: 4px;
+  }
+  .menu-pop button {
+    display: block; width: 100%; text-align: left; padding: 7px 10px; border: none;
+    background: none; border-radius: 6px; font-size: 13px; cursor: pointer;
+  }
+  .menu-pop button:hover { background: var(--hover); }
+  .menu-pop button:disabled { color: var(--muted-2); cursor: default; background: none; }
 
   /* ---- Drawer --------------------------------------------------------- */
   .scrim { position: fixed; inset: 0; background: rgba(23, 23, 23, 0.16); z-index: 40; }
@@ -257,7 +290,9 @@
     .nav { width: auto; }
     .sidebar .foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; padding: 0; }
     .sidebar .foot .stamp { display: none; }
-    .main { padding: 20px 16px 60px; }
+    /* Room for the selection bar, which wraps to two rows at this width and
+       would otherwise sit on top of the last order in the list. */
+    .main { padding: 20px 16px 130px; }
     .page-head { flex-wrap: wrap; }
     .page-head .search { width: 100%; margin-left: 0; }
     /* Kits and the advance button go, but never the customer — an order number
@@ -274,6 +309,8 @@
        edge. Let them wrap instead of pushing each other out of view. */
     .drawer-foot { flex-wrap: wrap; }
     .drawer-foot .spacer { display: none; }
+    .selbar { left: 0; padding: 10px 16px; }
+    .selbar .spacer { display: none; }
   }
 </style>
 </head>
@@ -340,6 +377,8 @@ let state = {
   // still need pulling rather than to everything.
   matStatuses: new Set(["new", "supplies_pulled"]),
   selected: new Set(),
+  menuOpen: false,
+  confirmDelete: false,
   openId: null,
   error: "",
   loading: false,
@@ -525,6 +564,52 @@ function patchOrder(id, body) {
   return run;
 }
 
+// ---- Bulk actions ---------------------------------------------------------
+// Only ever the rows currently on screen: ordersView() prunes the selection to
+// what it renders, so a tab switch can't leave something selected out of sight.
+const selectedOrders = () => state.orders.filter(o => state.selected.has(o.orderId));
+
+// `target` is a status id, or "next" to advance each order one step along its
+// own position in the pipeline — a mixed selection moves each order from where
+// it actually is. Orders already there, and orders with nowhere to go (shipped,
+// or held outside the sequence), are skipped rather than erroring.
+function bulkStatus(target) {
+  state.menuOpen = false;
+  const jobs = [];
+  for (const o of selectedOrders()) {
+    const to = target === "next" ? (nextStatus(o.status) || {}).id : target;
+    if (to && to !== o.status) jobs.push(patchOrder(o.orderId, { status: to }));
+  }
+  if (!jobs.length) {
+    state.error = "Nothing to move — those orders are already there.";
+    render();
+  }
+  return Promise.all(jobs);
+}
+
+async function bulkDelete() {
+  state.confirmDelete = false;
+  for (const o of selectedOrders()) {
+    try {
+      await api("/api/admin/orders/" + encodeURIComponent(o.orderId), { method: "DELETE" });
+      state.orders = state.orders.filter(x => x.orderId !== o.orderId);
+      state.selected.delete(o.orderId);
+      if (state.openId === o.orderId) state.openId = null;
+    } catch (e) {
+      state.error = e.message;
+      break;
+    }
+  }
+  render();
+}
+
+function clearSelection() {
+  state.selected.clear();
+  state.menuOpen = false;
+  state.confirmDelete = false;
+  render();
+}
+
 function fmtDay(iso) {
   const d = new Date(iso);
   return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -628,7 +713,13 @@ function sidebar() {
   const open = state.orders.filter(o => o.status !== "shipped" && o.status !== "on_hold").length;
   const navBtn = (id, label, count) => h("button", {
     class: "nav" + (state.view === id ? " active" : ""),
-    onclick: () => { state.view = id; state.openId = null; render(); },
+    onclick: () => {
+      state.view = id;
+      state.openId = null;
+      state.menuOpen = false;
+      state.confirmDelete = false;
+      render();
+    },
   }, label, count != null ? h("span", { class: "count" }, count) : null);
 
   return h("aside", { class: "sidebar" },
@@ -698,12 +789,77 @@ function orderRow(order) {
   );
 }
 
+function selectionBar() {
+  const picked = selectedOrders();
+  if (!picked.length) return null;
+  const n = picked.length + (picked.length === 1 ? " order" : " orders");
+
+  if (state.confirmDelete) {
+    return h("div", { class: "selbar danger" },
+      h("span", { class: "warnmsg" },
+        "Delete " + n + "? Shopify keeps its own record, but the statuses and " +
+        "everything ticked off here are only stored here and will be lost."),
+      h("div", { class: "spacer" }),
+      h("button", { class: "btn", onclick: () => { state.confirmDelete = false; render(); } }, "Cancel"),
+      h("button", { class: "btn danger-solid", onclick: bulkDelete }, "Delete " + n),
+    );
+  }
+
+  // When every selected order is at the same step, name the step it's moving
+  // to. A mixed selection can't be named, so it says what it does instead.
+  const movable = picked.filter(o => nextStatus(o.status));
+  const targets = new Set(movable.map(o => nextStatus(o.status).id));
+  const primary = targets.size === 1 && movable.length === picked.length
+    ? "→ " + labelFor([...targets][0])
+    : "Move to next step";
+
+  const menu = h("div", { class: "menu" },
+    h("button", {
+      class: "btn",
+      onclick: () => { state.menuOpen = !state.menuOpen; render(); },
+    }, "Move to… ▾"),
+    state.menuOpen ? h("div", { class: "menu-backdrop", onclick: () => { state.menuOpen = false; render(); } }) : null,
+    state.menuOpen
+      ? h("div", { class: "menu-pop" }, ...ALL_STATUSES.map(s => h("button", {
+          disabled: picked.every(o => o.status === s.id),
+          onclick: () => bulkStatus(s.id),
+        }, s.label)))
+      : null,
+  );
+
+  return h("div", { class: "selbar" },
+    h("span", { class: "n" }, picked.length + " selected"),
+    h("button", { class: "btn ghost sm", onclick: clearSelection }, "Clear"),
+    h("div", { class: "spacer" }),
+    h("button", {
+      class: "btn accent", disabled: !movable.length,
+      title: movable.length ? "" : "Nothing selected has a next step",
+      onclick: () => bulkStatus("next"),
+    }, primary),
+    menu,
+    h("button", {
+      class: "btn danger",
+      onclick: () => { state.menuOpen = false; state.confirmDelete = true; render(); },
+    }, "Delete"),
+  );
+}
+
 function ordersView() {
   const q = state.query.trim().toLowerCase();
   const found = state.orders.filter(o => matchesQuery(o, q));
   const counts = {};
   for (const o of found) counts[o.status] = (counts[o.status] || 0) + 1;
   const shown = state.tab === "all" ? found : found.filter(o => o.status === state.tab);
+
+  // Drop anything the current tab and search don't show. Selecting three
+  // orders, switching tab and pressing Delete must not reach rows that are no
+  // longer on screen — and advancing an order often moves it out of the tab
+  // you advanced it from, so this runs on every render rather than on change.
+  if (state.selected.size) {
+    const visible = new Set(shown.map(o => o.orderId));
+    for (const id of [...state.selected]) if (!visible.has(id)) state.selected.delete(id);
+    if (!state.selected.size) { state.menuOpen = false; state.confirmDelete = false; }
+  }
 
   const search = h("input", {
     type: "search", class: "search", placeholder: "Search order # or customer",
@@ -723,10 +879,25 @@ function ordersView() {
     }, s.label, h("span", { class: "n" }, String(s.id === "all" ? found.length : (counts[s.id] || 0))))),
   );
 
+  const allPicked = shown.every(o => state.selected.has(o.orderId));
+  const selectAll = h("input", {
+    type: "checkbox", checked: shown.length > 0 && allPicked, "aria-label": "Select all",
+    onchange: (e) => {
+      for (const o of shown) {
+        if (e.target.checked) state.selected.add(o.orderId);
+        else state.selected.delete(o.orderId);
+      }
+      render();
+    },
+  });
+  // A property, not an attribute — h() can't set it.
+  selectAll.indeterminate = !allPicked && shown.some(o => state.selected.has(o.orderId));
+
   const body = shown.length
     ? h("div", { class: "table" },
         h("div", { class: "tr head" },
-          h("div", {}), h("div", {}, "Order"), h("div", { class: "col-cust" }, "Customer"),
+          h("div", { class: "pick" }, selectAll),
+          h("div", {}, "Order"), h("div", { class: "col-cust" }, "Customer"),
           h("div", { class: "col-kits" }, "Kits"), h("div", { class: "col-status" }, "Status"), h("div", {}),
         ),
         ...shown.map(orderRow),
@@ -738,7 +909,7 @@ function ordersView() {
     h("div", { class: "page-head" }, h("div", {}, h("h1", {}, "Orders")), search),
     state.error ? h("div", { class: "banner" }, state.error) : null,
     tabs,
-    h("div", { id: "orders-body" }, body),
+    h("div", { id: "orders-body" }, body, selectionBar()),
   ];
 }
 
@@ -1012,8 +1183,13 @@ function render() {
   if (db) db.scrollTop = keepDrawer;
 }
 
+// Escape backs out of one thing at a time, innermost first.
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && state.openId) { state.openId = null; render(); }
+  if (e.key !== "Escape") return;
+  if (state.menuOpen) { state.menuOpen = false; render(); }
+  else if (state.confirmDelete) { state.confirmDelete = false; render(); }
+  else if (state.openId) { state.openId = null; render(); }
+  else if (state.selected.size) clearSelection();
 });
 
 if (state.token) loadOrders(); else render();

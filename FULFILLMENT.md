@@ -67,6 +67,22 @@ and instructions. Every supply has a checkbox, and the panel counts them off
 ("4 of 22 packed"). Those ticks are stored in `orders.checklist`, keyed
 `<lineItemId>|<supplyKey>`, so they survive a reload and a webhook redelivery.
 
+Ticking the checkbox on one or more rows raises an action bar along the bottom.
+Its primary button advances every selected order one step from wherever each
+one already is — a mixed selection moves each order from its own position, and
+when they all share a step the button names the step they're going to.
+**Move to…** sets an explicit state instead, including `on_hold`, and **Delete**
+asks once before removing our copy of the orders.
+
+Deleting only clears this database. Shopify still holds the order, so a webhook
+redelivery recreates it — as a `new` order with an empty checklist, because the
+statuses and the ticks live here and nowhere else. That's what the confirmation
+is warning about.
+
+The selection is pruned to the rows the current tab and search actually show,
+so selecting a few orders, switching tab and pressing Delete can't reach
+something that's no longer on screen.
+
 **Materials** merges the supplies across whichever states you tick into a single
 pull list, with a per-row count of how many orders want each thing. It defaults
 to `new` and `supplies_pulled` — the orders that still need pulling.

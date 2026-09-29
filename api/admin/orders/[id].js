@@ -2,12 +2,14 @@ import { requireAdmin } from "../../_lib/adminAuth.js";
 import {
   getOrder,
   updateOrderStatus,
+  deleteOrder,
   ORDER_STATUSES,
 } from "../../_lib/orders.js";
 import { supabaseConfigured } from "../../_lib/supabase.js";
 
-// GET   /api/admin/orders/:id  — full fulfillment job (items, BOM, checklist).
-// PATCH /api/admin/orders/:id  — update status and/or the pick-list checklist.
+// GET    /api/admin/orders/:id  — full fulfillment job (items, BOM, checklist).
+// PATCH  /api/admin/orders/:id  — update status and/or the pick-list checklist.
+// DELETE /api/admin/orders/:id  — drop our copy of the order and its items.
 // `:id` is the Shopify order id, which is what the dashboard has in hand.
 export default async function handler(req, res) {
   if (!requireAdmin(req, res)) return;
@@ -40,7 +42,13 @@ export default async function handler(req, res) {
       return res.status(200).json(updated);
     }
 
-    res.setHeader("Allow", "GET, PATCH");
+    if (req.method === "DELETE") {
+      const removed = await deleteOrder(id);
+      if (!removed) return res.status(404).json({ error: "not_found" });
+      return res.status(200).json({ deleted: true });
+    }
+
+    res.setHeader("Allow", "GET, PATCH, DELETE");
     return res.status(405).json({ error: "method_not_allowed" });
   } catch (err) {
     // A status this code accepts but the database's check constraint rejects
