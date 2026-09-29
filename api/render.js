@@ -1,6 +1,6 @@
 import { applyCors } from "./_lib/cors.js";
 import { validateDesignPayload } from "./_lib/validate.js";
-import { documentPdf, documentFilename, DOC_TYPES } from "./_lib/render/index.js";
+import { documentPdf, documentFilename, DESIGN_DOC_TYPES } from "./_lib/render/index.js";
 
 // POST /api/render  { type, data, doc }
 // Renders a design straight from the request body to a PDF and streams it back —
@@ -18,8 +18,10 @@ export default async function handler(req, res) {
 
   const { type, data, doc = "chart" } = req.body || {};
 
-  if (!DOC_TYPES.includes(doc)) {
-    return res.status(400).json({ error: "invalid_doc", allowed: DOC_TYPES });
+  // Design documents only. The order documents carry shipping addresses and the
+  // internal pick list, so they stay behind the admin endpoint.
+  if (!DESIGN_DOC_TYPES.includes(doc)) {
+    return res.status(400).json({ error: "invalid_doc", allowed: DESIGN_DOC_TYPES });
   }
 
   const error = validateDesignPayload({ type, data });

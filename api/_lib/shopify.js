@@ -13,15 +13,26 @@ export function verifyShopifyWebhook(rawBody, hmacHeader, secret) {
   return timingSafeEqual(a, b);
 }
 
-// Collects the raw request body as a Buffer. HMAC verification must run against
-// the exact bytes Shopify signed, so we read the stream ourselves rather than
-// letting the platform JSON-parse it first.
-export async function readRawBody(req) {
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-  }
-  return Buffer.concat(chunks);
+// Collects the raw request body as a Buffer, because HMAC verification has to
+// run against the exact bytes Shopify signed.
+//
+// This must use event listeners, not `for await (const chunk of req)`. Vercel's
+// Node runtime always drains the request stream to populate `req.body` — the
+// `config.api.bodyParser` flag is a Next.js convention that this runtime
+// ignores — and then pushes the consumed bytes back through a PassThrough that
+// it patches onto `req.on('data')`. Async iteration goes through the stream's
+// own internals rather than that patched `on`, so it sees a stream that has
+// already ended and yields nothing. An empty body still hashes fine, so the
+// failure is silent: every signature check just returns 401.
+export function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) =>
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk)
+    );
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
 }
 
 // The line-item property (and cart attribute) name that carries our design id.

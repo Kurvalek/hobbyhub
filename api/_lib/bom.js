@@ -26,7 +26,7 @@ const MONKS_CLOTH_MARGIN_IN = Number(process.env.MONKS_CLOTH_MARGIN_IN) || 4;
 const DEFAULT_PUNCH_GAUGE = 5;
 
 // Renders eighths-of-a-yard as a tidy fraction (ported from the studio's fmtY).
-function fmtYards(y) {
+export function fmtYards(y) {
   if (!y) return "0 yd";
   const w = Math.floor(y);
   const e = Math.round((y - w) * 8);

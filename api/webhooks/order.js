@@ -9,9 +9,10 @@ import { designToBom } from "../_lib/bom.js";
 import { putOrder } from "../_lib/orders.js";
 import { supabaseConfigured } from "../_lib/supabase.js";
 
-// We verify Shopify's HMAC against the exact bytes it signed, so the platform
-// must not JSON-parse the body first. Reading the raw stream ourselves keeps
-// those bytes intact.
+// Declares the intent that the body must not be parsed before we've hashed it.
+// Note this is a Next.js convention and Vercel's plain Node runtime ignores it:
+// it parses the body regardless, which is why readRawBody() reads the restored
+// stream by event rather than by async iteration. See api/_lib/shopify.js.
 export const config = { api: { bodyParser: false } };
 
 // Receives Shopify `orders/create` webhooks. On a verified order we resolve each

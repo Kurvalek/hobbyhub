@@ -1,13 +1,13 @@
-import {
-  esc,
-  deserializeGrid,
-  assignSymbols,
-  readableText,
-  htmlDoc,
-} from "./helpers.js";
+import { esc, deserializeGrid, assignSymbols, readableText } from "./helpers.js";
 
 const AIDA_COUNT = 14;
 const STITCHES_PER_SKEIN = Number(process.env.STITCHES_PER_SKEIN) || 1500;
+
+// Punch needle is worked on monk's cloth at a far coarser gauge than Aida, and
+// a loop eats much more yarn than a cross stitch does thread. Both mirror the
+// constants in api/_lib/bom.js so the chart's skein counts match the kit's.
+const PUNCH_GAUGE = 5;
+const LOOPS_PER_SKEIN = Number(process.env.LOOPS_PER_SKEIN) || 350;
 
 // Usable area (px @96dpi) for the chart grid on page 1, after reserving room
 // for the header. An SVG is a non-breakable element, so if it's taller than
@@ -17,14 +17,48 @@ const PAGE = {
   landscape: { w: 960, h: 520 },
 };
 
-// Builds a printable cross-stitch chart: a symbol/color grid plus a floss
-// legend. Returns a full HTML document string sized to one page.
-export function crossStitchChartHtml(record) {
+// Cross-stitch and punch needle store the identical `{ w, h, grid, colors }`
+// shape; only the units, the thread, and the gauge differ. Everything below is
+// driven by one of these two configs.
+const CHART_CONFIGS = {
+  "cross-stitch": {
+    kicker: "Cross-stitch chart",
+    fallbackName: "Cross-stitch pattern",
+    unit: "stitches",
+    gauge: AIDA_COUNT,
+    gaugeLabel: `@ ${AIDA_COUNT}ct`,
+    unitsPerSkein: STITCHES_PER_SKEIN,
+    legendTitle: "Floss legend — DMC",
+    codeHeader: "DMC",
+    countHeader: "Stitches",
+    // Aida squares are small, so a dense chart is normal and expected.
+    maxCell: 28,
+  },
+  "punch-needle": {
+    kicker: "Punch needle chart",
+    fallbackName: "Punch needle pattern",
+    unit: "loops",
+    gauge: PUNCH_GAUGE,
+    gaugeLabel: `@ ${PUNCH_GAUGE}/in`,
+    unitsPerSkein: LOOPS_PER_SKEIN,
+    legendTitle: "Wool legend — tapestry",
+    codeHeader: "Wool",
+    countHeader: "Loops",
+    // Punch designs are coarse (a 12×12 is a whole wall hanging), so cells are
+    // allowed to grow larger before the sheet looks empty.
+    maxCell: 44,
+  },
+};
+
+// Builds a printable grid chart: a symbol/color grid plus a thread legend.
+// Returns { title, pageCss, body } so the caller can render it standalone or
+// concatenate it into an order packet.
+function gridChartParts(record, cfg) {
   const d = record.data || {};
   const W = d.w || 0;
   const H = d.h || 0;
   const colors = d.colors || [];
-  const name = d.name || record.id || "Cross-stitch pattern";
+  const name = d.name || record.id || cfg.fallbackName;
   const cells = deserializeGrid(d.grid, W * H);
   const symbols = assignSymbols(colors);
 
@@ -33,13 +67,13 @@ export function crossStitchChartHtml(record) {
   const area = landscape ? PAGE.landscape : PAGE.portrait;
   const cell = Math.max(
     5,
-    Math.min(28, Math.floor(Math.min(area.w / (W || 1), area.h / (H || 1))))
+    Math.min(cfg.maxCell, Math.floor(Math.min(area.w / (W || 1), area.h / (H || 1))))
   );
   const gw = W * cell;
   const gh = H * cell;
   const font = Math.max(4, Math.round(cell * 0.62));
 
-  // Cells first (filled = floss color + symbol), then gridlines on top.
+  // Cells first (filled = thread color + symbol), then gridlines on top.
   let rects = "";
   let glyphs = "";
   for (let i = 0; i < cells.length; i++) {
@@ -74,7 +108,7 @@ export function crossStitchChartHtml(record) {
 
   const legendRows = colors
     .map((c) => {
-      const skeins = Math.max(1, Math.ceil((c.count || 0) / STITCHES_PER_SKEIN));
+      const skeins = Math.max(1, Math.ceil((c.count || 0) / cfg.unitsPerSkein));
       return `<tr>
         <td class="sym">${esc(symbols.get(c.hex) || "")}</td>
         <td><span class="swatch" style="background:${esc(c.hex)}"></span></td>
@@ -86,33 +120,41 @@ export function crossStitchChartHtml(record) {
     })
     .join("");
 
-  const finW = W ? (W / AIDA_COUNT).toFixed(1) : "—";
-  const finH = H ? (H / AIDA_COUNT).toFixed(1) : "—";
+  const finW = W ? (W / cfg.gauge).toFixed(1) : "—";
+  const finH = H ? (H / cfg.gauge).toFixed(1) : "—";
   const total = d.stitches || colors.reduce((s, c) => s + (c.count || 0), 0);
 
   const body = `
     <div class="doc-head">
       <div>
-        <p class="doc-kicker">Cross-stitch chart</p>
+        <p class="doc-kicker">${esc(cfg.kicker)}</p>
         <h1 class="doc-title">${esc(name)}</h1>
       </div>
       <div class="doc-meta">
-        <div><b>${W} × ${H}</b> stitches</div>
-        <div>${finW}" × ${finH}" @ ${AIDA_COUNT}ct</div>
-        <div><b>${total}</b> stitches · ${colors.length} colors</div>
+        <div><b>${W} × ${H}</b> ${esc(cfg.unit)}</div>
+        <div>${finW}" × ${finH}" ${esc(cfg.gaugeLabel)}</div>
+        <div><b>${total}</b> ${esc(cfg.unit)} · ${colors.length} colors</div>
         <div class="brand">metime</div>
       </div>
     </div>
     <div style="text-align:center; margin: 4px 0 8px;">${svg}</div>
-    <h2 class="sec">Floss legend — DMC</h2>
+    <h2 class="sec">${esc(cfg.legendTitle)}</h2>
     <table class="legend">
-      <thead><tr><th>Sym</th><th>Color</th><th>DMC</th><th>Name</th><th>Stitches</th><th>Skeins</th></tr></thead>
+      <thead><tr><th>Sym</th><th>Color</th><th>${esc(cfg.codeHeader)}</th><th>Name</th><th>${esc(cfg.countHeader)}</th><th>Skeins</th></tr></thead>
       <tbody>${legendRows}</tbody>
     </table>`;
 
-  return htmlDoc({
+  return {
     title: `${name} — chart`,
     pageCss: `size: letter ${landscape ? "landscape" : "portrait"}; margin: 0.5in;`,
     body,
-  });
+  };
+}
+
+export function crossStitchChartParts(record) {
+  return gridChartParts(record, CHART_CONFIGS["cross-stitch"]);
+}
+
+export function punchNeedleChartParts(record) {
+  return gridChartParts(record, CHART_CONFIGS["punch-needle"]);
 }

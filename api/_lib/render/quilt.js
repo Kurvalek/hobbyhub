@@ -1,4 +1,4 @@
-import { esc, htmlDoc } from "./helpers.js";
+import { esc } from "./helpers.js";
 import { quiltCutList, fmtInches } from "../cutlist.js";
 
 // "X"" for squares, "X" × Y"" for rectangles.
@@ -34,7 +34,9 @@ function triPoints(s) {
 
 // Builds a printable quilt template: a block-placement diagram plus a cutting
 // list (per-fabric strips/cut size/yardage) and backing/binding/batting.
-export function quiltTemplateHtml(record) {
+// Returns { title, pageCss, body } so the caller can render it standalone or
+// concatenate it into an order packet.
+export function quiltTemplateParts(record) {
   const d = record.data || {};
   const cols = d.cols || 1;
   const rows = d.rows || 1;
@@ -145,9 +147,9 @@ export function quiltTemplateHtml(record) {
     ${extrasTable}
     <div class="tip">All cut measurements include a ¼" seam allowance and assume 40" width-of-fabric. Add 10–15% for shrinkage. Backing is cut 4" larger than the top on every side.</div>`;
 
-  return htmlDoc({
+  return {
     title: `${name} — template`,
     pageCss: `size: letter portrait; margin: 0.5in;`,
     body,
-  });
+  };
 }

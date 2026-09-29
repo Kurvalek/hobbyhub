@@ -83,6 +83,7 @@
 
   .ship { font-size: 13px; line-height: 1.5; }
   .ship .name { font-weight: 500; }
+  .print-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .status-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
   .empty { text-align: center; color: var(--muted); padding: 60px 0; font-size: 14px; }
   .err { color: var(--accent); font-size: 13px; margin-top: 8px; }
@@ -93,15 +94,28 @@
 <div id="app"></div>
 
 <script>
-const TOKEN_KEY = "studio_admin_token";
+const TOKEN_KEY = "studio_admin_session";
 const STATUSES = [
   { id: "new", label: "New" },
   { id: "supplies_pulled", label: "Supplies pulled" },
   { id: "printed", label: "Printed" },
   { id: "shipped", label: "Shipped" },
 ];
+
+// The password is exchanged for a session token once, at sign-in; only the
+// token is persisted. localStorage rather than sessionStorage so the session
+// outlives the tab for its full 30 days.
+function loadSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TOKEN_KEY) || "null");
+    if (saved && saved.token && saved.expiresAt > Date.now()) return saved.token;
+  } catch {}
+  localStorage.removeItem(TOKEN_KEY);
+  return "";
+}
+
 let state = {
-  token: sessionStorage.getItem(TOKEN_KEY) || "",
+  token: loadSession(),
   orders: [],
   filter: "open",
   openId: null,
@@ -139,23 +153,60 @@ async function api(path, opts = {}) {
 }
 
 function logout() {
-  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
   state.token = "";
   render();
+}
+
+// Trades the password for a session token. Resolves to an error string, or ""
+// on success.
+async function signIn(password) {
+  let res;
+  try {
+    res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+  } catch {
+    return "Couldn't reach the server.";
+  }
+
+  if (res.status === 401) return "That password didn't match.";
+  if (res.status === 429) {
+    const mins = Math.ceil(((await res.json().catch(() => ({}))).retryAfter || 900) / 60);
+    return "Too many attempts. Try again in " + mins + " min.";
+  }
+  if (res.status === 503) return "No admin password is set on the server yet.";
+  if (!res.ok) return "Sign-in failed (" + res.status + ").";
+
+  const session = await res.json();
+  localStorage.setItem(TOKEN_KEY, JSON.stringify(session));
+  state.token = session.token;
+  return "";
 }
 
 // Fetches a rendered PDF with the admin token, then opens it in a new tab for
 // preview / print / save. A plain <a href> can't send the auth header, so we
 // pull the bytes ourselves and hand off an object URL.
-async function openPdf(btn, designId, doc) {
+//
+// `query` is either { designId, doc } for a single design's chart/instructions
+// or { orderId, doc } for the order-level pick sheet, packing slip, or the
+// combined packet.
+async function openPdf(btn, query) {
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = "Rendering…";
   try {
     const res = await fetch(
-      "/api/admin/render?designId=" + encodeURIComponent(designId) + "&doc=" + doc,
+      "/api/admin/render?" + new URLSearchParams(query).toString(),
       { headers: { Authorization: "Bearer " + state.token } }
     );
-    if (!res.ok) throw new Error("Render failed (" + res.status + ")");
+    if (!res.ok) {
+      // The endpoint reports why in a JSON body; surfacing it beats a bare code.
+      let detail = "";
+      try { detail = (await res.json()).error || ""; } catch {}
+      throw new Error("Render failed (" + res.status + (detail ? ": " + detail : "") + ")");
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
@@ -249,8 +300,8 @@ function itemView(order, item, idx) {
   const chartLabel = item.type === "quilt" ? "Template PDF" : "Chart PDF";
   const assets = item.designFound && item.designId
     ? h("div", { class: "row", style: "margin-top:12px; gap:8px;" },
-        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, item.designId, "chart") }, chartLabel),
-        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, item.designId, "instructions") }, "Instructions PDF"),
+        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, { designId: item.designId, doc: "chart" }) }, chartLabel),
+        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, { designId: item.designId, doc: "instructions" }) }, "Instructions PDF"),
       )
     : null;
 
@@ -293,6 +344,23 @@ function orderCard(order) {
     }, s.label)),
   );
 
+  // One trip to the printer: the packet is the pick sheet, every kit's chart
+  // and instructions, and the packing slip, combined into a single PDF.
+  const printActions = h("div", { class: "print-actions" },
+    h("button", {
+      class: "btn sm dark",
+      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "bundle" }),
+    }, "Print everything"),
+    h("button", {
+      class: "btn sm",
+      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "pick-sheet" }),
+    }, "Pick sheet"),
+    h("button", {
+      class: "btn sm",
+      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "packing-slip" }),
+    }, "Packing slip"),
+  );
+
   const body = h("div", { class: "card-body" },
     h("div", { class: "grid2" },
       h("div", {},
@@ -302,6 +370,8 @@ function orderCard(order) {
       h("div", {},
         h("h3", { class: "sec" }, "Ship to"),
         shipEl,
+        h("h3", { class: "sec", style: "margin-top:18px" }, "Print"),
+        printActions,
         statusActions,
       ),
     ),
@@ -380,22 +450,37 @@ function render() {
 
   if (!state.token) {
     let val = "";
-    const input = h("input", { type: "password", placeholder: "Admin token", oninput: (e) => (val = e.target.value),
+    const input = h("input", { type: "password", placeholder: "Password", autofocus: "",
+      oninput: (e) => (val = e.target.value),
       onkeydown: (e) => { if (e.key === "Enter") submit(); } });
     const errEl = h("div", { class: "err" }, state.error || "");
-    const submit = () => {
-      if (!val) return;
-      state.token = val; sessionStorage.setItem(TOKEN_KEY, val); state.error = "";
+    const btn = h("button", { class: "btn dark", style: "width:100%" }, "Sign in");
+
+    const submit = async () => {
+      if (!val || btn.disabled) return;
+      btn.disabled = true; btn.textContent = "Signing in…";
+      errEl.textContent = "";
+      const err = await signIn(val);
+      if (err) {
+        btn.disabled = false; btn.textContent = "Sign in";
+        errEl.textContent = err;
+        input.value = ""; val = ""; input.focus();
+        return;
+      }
+      state.error = "";
       loadOrders();
     };
+    btn.addEventListener("click", submit);
+
     app.appendChild(h("div", { class: "gate" },
       h("h2", {}, "Studio fulfillment"),
-      h("p", {}, "Enter your admin token to view incoming orders."),
+      h("p", {}, "Enter your password to view incoming orders."),
       input,
       h("div", { style: "height:12px" }),
-      h("button", { class: "btn dark", style: "width:100%", onclick: submit }, "Unlock"),
+      btn,
       errEl,
     ));
+    input.focus();
     return;
   }
 

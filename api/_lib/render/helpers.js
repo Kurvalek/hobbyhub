@@ -97,3 +97,32 @@ export function htmlDoc({ title, pageCss, body }) {
 @page { ${pageCss} }
 </style></head><body><div class="doc">${body}</div></body></html>`;
 }
+
+// Concatenates several documents into one printable file — the whole packet for
+// an order in a single PDF.
+//
+// Each sheet keeps its own page size because a landscape chart and a portrait
+// instruction sheet have to coexist. That needs CSS *named pages*: `@page name`
+// declares the geometry and the `page:` property assigns a block to it. A plain
+// `@page` block can't vary within one document.
+//
+// Sheets are separated with `break-before` rather than `break-after` so no
+// trailing blank page is emitted after the last one.
+export function htmlMultiDoc({ title, sheets }) {
+  const pageRules = sheets
+    .map((s, i) => `@page sheet${i} { ${s.pageCss} }`)
+    .join("\n");
+  const sheetRules = sheets
+    .map((_, i) => `.sheet-${i} { page: sheet${i}; }`)
+    .join("\n");
+  const bodies = sheets
+    .map((s, i) => `<div class="doc sheet sheet-${i}">${s.body}</div>`)
+    .join("");
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>${baseStyles()}
+${pageRules}
+${sheetRules}
+.sheet + .sheet { break-before: page; }
+</style></head><body>${bodies}</body></html>`;
+}

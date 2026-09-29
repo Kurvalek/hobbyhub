@@ -1,4 +1,4 @@
-import { esc, htmlDoc } from "./helpers.js";
+import { esc } from "./helpers.js";
 import { designToBom } from "../bom.js";
 import { quiltCutList, fmtInches } from "../cutlist.js";
 
@@ -52,7 +52,49 @@ function crossStitchInstructions(record, bom) {
     ${stepsList(steps)}
     <div class="tip"><b>New to cross-stitch?</b> Start in a corner of a large single-color area to get a rhythm before tackling detailed sections. Keep even tension — snug, not tight.</div>`;
 
-  return htmlDoc({ title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body });
+  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
+}
+
+function punchNeedleInstructions(record, bom) {
+  const d = record.data || {};
+  const name = d.name || record.id || "Your design";
+  const rows = [];
+  if (bom?.monksCloth)
+    rows.push({ label: `Monk's cloth${bom.monksCloth.color ? ` (${bom.monksCloth.color})` : ""}`, qty: `${bom.monksCloth.w}" × ${bom.monksCloth.h}"` });
+  if (bom?.needle) rows.push({ label: bom.needle, qty: "1" });
+  for (const y of bom?.yarn || [])
+    rows.push({ swatch: y.hex, label: `${y.code} — ${y.name}`, qty: `${y.skeins} skein${y.skeins === 1 ? "" : "s"}` });
+
+  const steps = [
+    "<b>Mount the cloth.</b> Stretch the monk's cloth in your gripper frame or stretcher bars until it is drum-tight — you should be able to tap it and hear it. Slack cloth is the single most common cause of loops pulling straight back out.",
+    "<b>Transfer the design.</b> Find the center of the cloth by folding it in half both ways, then trace the chart onto the <b>back</b> of the cloth with a fabric pen, counting squares against the heavy gridlines. Remember the chart is worked from the back, so the finished front is a mirror image — trace it reversed if the design has lettering or a clear direction.",
+    "<b>Thread the needle.</b> Pass the yarn down through the needle's shaft from the handle end, then out through the eye near the tip. Leave a 3\" tail. The yarn must run freely — give it a tug to check it doesn't snag, or your loops will be uneven.",
+    "<b>Set your loop depth.</b> The needle's depth setting controls loop height. Start at a medium setting and punch a test patch in a spare corner. Taller loops give a plusher pile; shorter loops read crisper and hold detail better.",
+    "<b>Punch.</b> Hold the needle upright with the open side of the tip facing the direction you're travelling. Push it all the way down until the handle touches the cloth, then lift <i>only</i> until the tip clears the surface and drag it along to the next hole. Lifting too high pulls the last loop out.",
+    "<b>Outline, then fill.</b> Punch the outline of each color area first, then fill it in with rows that follow the shape. Space your punches about one cloth thread apart — too close distorts the cloth, too far and the backing shows through.",
+    "<b>Work color by color.</b> Finish one color before switching. Snip the yarn flush with the cloth at the start and end of each area; the surrounding loops hold the tails in place, so no knots are needed.",
+    "<b>Finish the back.</b> Turn the piece over to check the front for gaps and fill any you find. Once you're happy, seal the reverse with a thin coat of fabric glue so nothing works loose, and let it dry fully before trimming or mounting.",
+  ];
+
+  const body = `
+    <div class="doc-head">
+      <div>
+        <p class="doc-kicker">Punch needle instructions</p>
+        <h1 class="doc-title">${esc(name)}</h1>
+      </div>
+      <div class="doc-meta">
+        ${bom?.finishedInches ? `<div><b>${bom.finishedInches.w}" × ${bom.finishedInches.h}"</b> finished</div>` : ""}
+        ${bom?.finishedLoops ? `<div>${bom.finishedLoops.w} × ${bom.finishedLoops.h} loops</div>` : ""}
+        <div class="brand">metime</div>
+      </div>
+    </div>
+    <h2 class="sec">In your kit</h2>
+    ${suppliesList(rows)}
+    <h2 class="sec">How to punch it</h2>
+    ${stepsList(steps)}
+    <div class="tip"><b>If a loop pulls out</b> as you move to the next stitch, you're lifting the needle too high between punches — keep the tip dragging along the cloth. If the cloth puckers, your punches are too close together.</div>`;
+
+  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
 }
 
 function quiltInstructions(record, bom) {
@@ -127,15 +169,17 @@ function quiltInstructions(record, bom) {
     ${stepsList(steps)}
     <div class="tip"><b>Seam tip:</b> A consistent ¼" seam is everything in quilting. Test on scraps and adjust your needle position until two 2.5" strips sewn together measure exactly 4.5" across.</div>`;
 
-  return htmlDoc({ title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body });
+  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
 }
 
-// Builds the instruction sheet for a design record, or null if the type is
-// unknown. Design-specific values (sizes, floss, yardage) are merged in via
-// the shared BOM so the sheet always matches what's in the kit.
-export function instructionsHtml(record) {
+// Builds the instruction sheet for a design record as { title, pageCss, body },
+// or null if the type is unknown. Design-specific values (sizes, floss,
+// yardage) are merged in via the shared BOM so the sheet always matches what's
+// in the kit.
+export function instructionsParts(record) {
   const bom = designToBom(record);
   if (record.type === "cross-stitch") return crossStitchInstructions(record, bom);
   if (record.type === "quilt") return quiltInstructions(record, bom);
+  if (record.type === "punch-needle") return punchNeedleInstructions(record, bom);
   return null;
 }
