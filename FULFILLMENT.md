@@ -11,8 +11,10 @@ order Shopify ever sent.
 password-protected, and the whole chain can be exercised locally with no
 Shopify account and no tunnel.
 
-**Still to do:** set `SHOPIFY_WEBHOOK_SECRET` in Vercel and register the
-`orders/create` webhook. See [Going live](#going-live).
+**Still to do:** run `supabase/migrations/0002_order_statuses.sql` in the
+Supabase SQL editor (see [Order states](#order-states)), then set
+`SHOPIFY_WEBHOOK_SECRET` in Vercel and register the `orders/create` webhook.
+See [Going live](#going-live).
 
 ---
 
@@ -33,7 +35,48 @@ The bill of materials is **frozen onto `order_items` at purchase** rather than
 recomputed from the live design. Someone editing their design after buying it
 cannot change what ships, and a reprint two weeks later matches what was pulled.
 
-Orders move through `new` → `supplies_pulled` → `printed` → `shipped`.
+## Order states
+
+Six steps, in order:
+
+`new` → `supplies_pulled` → `printed` → `ready_to_pack` → `packed` → `shipped`
+
+Plus `on_hold`, which sits outside that sequence. An order can be held from any
+step — waiting on a restock, or on a reply about an address — and returns to
+`new` when released.
+
+These live in `ORDER_PIPELINE` / `ORDER_STATUSES` in `api/_lib/orders.js` and in
+a check constraint on `orders.status`. **Both have to agree.** If the dashboard
+reports *"The database doesn't know that status yet"*, run
+`supabase/migrations/0002_order_statuses.sql` in the Supabase SQL editor — that
+migration widens the constraint from the original four states to these seven,
+and it's safe to run more than once.
+
+## The dashboard
+
+`admin.html` is a standalone page: no build step, no framework, no imports. It
+has two views.
+
+**Orders** is a table with a status tab per state and a live count on each, a
+search over order number and customer, and an advance button on every row that
+moves the order one step along. Clicking a row opens a detail panel: the
+shipping address, a six-step progress bar that doubles as the status control,
+and the order's supplies grouped by where they live in the studio — fabric,
+embroidery floss, wool thread, batting and backing, needles, kit extras, charts
+and instructions. Every supply has a checkbox, and the panel counts them off
+("4 of 22 packed"). Those ticks are stored in `orders.checklist`, keyed
+`<lineItemId>|<supplyKey>`, so they survive a reload and a webhook redelivery.
+
+**Materials** merges the supplies across whichever states you tick into a single
+pull list, with a per-row count of how many orders want each thing. It defaults
+to `new` and `supplies_pulled` — the orders that still need pulling.
+
+Two things worth knowing about how it's built. `supplyRows()` mirrors
+`bomSupplyRows()` in `api/_lib/render/packing.js`; the page cannot import it, so
+if you change how a BOM flattens, change both or the screen and the pick sheet
+will disagree. And patches are queued per order and only the last reply in is
+allowed to overwrite local state — without that, ticking a pick list faster than
+the round trip silently drops ticks.
 
 ## The documents
 
@@ -139,14 +182,17 @@ the bundle still contains both page orientations.
 Products are already live in Shopify and the webhook code is verified working.
 What remains:
 
-1. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
+1. Run `supabase/migrations/0002_order_statuses.sql` in the Supabase SQL editor.
+   Until you do, the last three status buttons return a 409 and the dashboard
+   tells you so.
+2. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
    when you create the webhook. **Not** the local placeholder — a mismatch
    rejects every order with a 401.
-2. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
+3. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
    `orders/create`, format JSON, URL
    `https://YOUR-DOMAIN/api/webhooks/order`.
-3. Redeploy. Vercel only applies environment changes to new deployments.
-4. Place a real test order and confirm it appears in `admin.html`.
+4. Redeploy. Vercel only applies environment changes to new deployments.
+5. Place a real test order and confirm it appears in `admin.html`.
 
 If a real order doesn't show up, suspect a secret mismatch between Shopify and
 Vercel before suspecting the code.
@@ -183,6 +229,7 @@ reading raw responses:
 | `password_not_configured` | `ADMIN_PASSWORD` is unset |
 | `invalid_password` | the password is wrong |
 | `too_many_attempts` | throttled; wait, or restart the dev server to clear it |
+| `status_not_migrated` | `0002_order_statuses.sql` hasn't been run on this database |
 
 ---
 

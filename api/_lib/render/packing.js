@@ -59,7 +59,11 @@ const KIT_INFO = {
 // Shopify's variant title carries the size the customer picked ("Wall Hanging",
 // "Medium Hoop"), which is what selects the finishing extras. It often has the
 // dimensions appended, so match on containment rather than equality.
-function extrasFor(type, variantTitle) {
+//
+// Exported because the dashboard needs the same list: these are physical things
+// that go in the box (a hoop, a pillow insert, felt backing) and so have to
+// appear on the pull checklist, not just on the printed slip.
+export function extrasFor(type, variantTitle) {
   const info = KIT_INFO[type];
   if (!info) return [];
   const table = info.extras || {};

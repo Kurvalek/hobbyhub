@@ -8,86 +8,273 @@
 <link rel="apple-touch-icon" href="assets/metime-icon.png" />
 <title>Studio — Fulfillment</title>
 <style>
+  /* Söhne Mono is the one brand face this page needs: every readout here is a
+     column of figures that has to line up. The brand's sans is Helvetica Neue
+     (see --font-sans in index.html), which needs no loading. */
+  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/SohneMono-Regular.woff2') format('woff2'); }
+  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/SohneMono-Medium.woff2') format('woff2'); }
+
   :root {
-    --bg: #ffffff; --warm-bg: #FBFAF8; --fg: #2E2925; --muted: #8A8177;
-    --hairline: #E4DED5; --divider: #EDE8E0; --black: #1A1613;
-    --accent: #E8583A; --ok: #3B7A57; --font-sans: 'DM Sans', system-ui, sans-serif;
-    --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    /* metime base palette, read straight from index.html so the studio and the
+       fulfillment desk sit in the same room. */
+    --ink: #171717;
+    --cream: #F8F5ED;
+    --paper: #FFFFFF;
+    --tomato: #E8583A;
+
+    /* Hierarchy is ink at decreasing strength rather than a separate grey ramp
+       — a cool grey turns slightly blue against the warm ground. */
+    --fg-2: rgba(23, 23, 23, 0.78);
+    --muted: rgba(23, 23, 23, 0.66);
+    --muted-2: rgba(23, 23, 23, 0.38);
+    --hairline: rgba(23, 23, 23, 0.16);
+    --divider: rgba(23, 23, 23, 0.08);
+    --hover: #F2EAD9;
+
+    --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: 'Söhne Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --radius: 10px;
   }
+
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: var(--font-sans); color: var(--fg); background: var(--warm-bg); }
-  a { color: inherit; }
-  header {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-    padding: 18px 24px; border-bottom: 1px solid var(--black); background: var(--bg);
-    position: sticky; top: 0; z-index: 10;
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: var(--font-sans); font-size: 14px; color: var(--ink);
+    background: var(--cream); -webkit-font-smoothing: antialiased;
   }
-  header h1 { font-size: 18px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
-  header .sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 24px 80px; }
+  button { font: inherit; color: inherit; }
+  input { font: inherit; color: inherit; }
 
-  /* Auth gate */
-  .gate { max-width: 380px; margin: 80px auto; background: var(--bg); border: 1px solid var(--black); border-radius: 12px; padding: 28px; }
-  .gate h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
-  .gate p { margin: 0 0 18px; font-size: 13px; color: var(--muted); }
-  input[type=password], input[type=text] {
-    width: 100%; padding: 11px 12px; border: 1px solid var(--hairline); border-radius: 8px;
-    font: inherit; background: var(--warm-bg); color: var(--fg);
+  /* ---- Buttons -------------------------------------------------------- */
+  .btn {
+    font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--hairline); background: var(--paper); color: var(--ink);
+    transition: background .12s, border-color .12s; white-space: nowrap;
   }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-
-  .btn { font: inherit; font-size: 13px; padding: 9px 16px; border-radius: 8px; cursor: pointer; border: 1px solid var(--black); background: var(--bg); color: var(--fg); transition: background .12s; }
-  .btn:hover { background: #f3efe8; }
-  .btn.dark { background: var(--black); color: #fff; border-color: var(--black); }
-  .btn.dark:hover { background: #333; }
+  .btn:hover { background: var(--hover); border-color: var(--ink); }
+  .btn.dark { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .btn.dark:hover { background: #000; }
+  .btn.accent { background: var(--tomato); color: #fff; border-color: var(--tomato); }
+  .btn.accent:hover { background: #D64A2D; border-color: #D64A2D; }
   .btn.sm { padding: 5px 10px; font-size: 12px; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  .row { display: flex; gap: 8px; align-items: center; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: var(--hover); color: var(--ink); border-color: transparent; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:disabled:hover { background: var(--paper); border-color: var(--hairline); }
 
-  /* Toolbar */
-  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-  .pill { font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--bg); cursor: pointer; }
-  .pill.active { background: var(--black); color: #fff; border-color: var(--black); }
-  .spacer { flex: 1; }
+  input[type=password], input[type=text], input[type=search] {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--hairline);
+    border-radius: 8px; background: var(--paper); color: var(--ink);
+  }
+  input::placeholder { color: rgba(23, 23, 23, 0.44); }
+  input:focus { outline: 2px solid var(--tomato); outline-offset: -1px; }
 
-  /* Order cards */
-  .card { background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-  .card-head { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; }
-  .card-head:hover { background: var(--warm-bg); }
-  .order-name { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
-  .order-meta { font-size: 12px; color: var(--muted); }
-  .badge { font-size: 11px; font-family: var(--font-mono); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--hairline); white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
-  .badge.new { background: #FFF3E9; border-color: #F3C9A8; color: #B25B1E; }
-  .badge.supplies_pulled { background: #EFF5FF; border-color: #B9D2F5; color: #2C5F9E; }
-  .badge.printed { background: #F1ECFB; border-color: #CFC0EE; color: #6A45B0; }
-  .badge.shipped { background: #ECF6EF; border-color: #B4DCC3; color: var(--ok); }
+  /* ---- Auth gate ------------------------------------------------------ */
+  .gate {
+    max-width: 360px; margin: 14vh auto; background: var(--paper);
+    border: 1px solid var(--ink); border-radius: 14px; padding: 30px;
+  }
+  .gate h2 { margin: 0 0 6px; font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .gate p { margin: 0 0 20px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-  .card-body { border-top: 1px solid var(--divider); padding: 16px 18px; display: none; }
-  .card.open .card-body { display: block; }
+  /* ---- Shell ---------------------------------------------------------- */
+  .shell { display: grid; grid-template-columns: 228px 1fr; height: 100vh; }
+  .sidebar {
+    border-right: 1px solid var(--hairline); display: flex; flex-direction: column;
+    padding: 16px 12px; gap: 4px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 6px 10px 18px; }
+  .brand img { width: 24px; height: 24px; border-radius: 6px; display: block; }
+  .brand span { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+  .nav {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid transparent;
+    background: transparent; cursor: pointer; font-size: 14px; color: var(--fg-2);
+  }
+  .nav:hover { background: var(--hover); }
+  .nav.active { background: rgba(23, 23, 23, 0.06); color: var(--ink); font-weight: 500; }
+  .nav .count { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .sidebar .foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .sidebar .foot .stamp { font-size: 11px; color: var(--muted-2); font-family: var(--font-mono); }
 
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } .wrap { padding: 16px; } }
+  .main { overflow-y: auto; padding: 28px 32px 80px; }
+  .main h1 { font-size: 26px; margin: 0; font-weight: 500; letter-spacing: -0.02em; }
+  .main .lede { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+  .page-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+  .page-head .search { margin-left: auto; width: 240px; flex-shrink: 0; }
 
-  h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
-  .item { border: 1px solid var(--hairline); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
-  .item-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
-  .item-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-bottom: 10px; }
-  .warn { font-size: 12px; color: var(--accent); }
+  /* ---- Status tabs ---------------------------------------------------- */
+  .tabs {
+    display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--hairline);
+    margin-bottom: 18px;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 7px; padding: 9px 12px; cursor: pointer;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; font-size: 13px; color: var(--muted);
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--ink); font-weight: 500; border-bottom-color: var(--tomato); }
+  .tab .n {
+    font-size: 11px; font-family: var(--font-mono); padding: 1px 6px; border-radius: 999px;
+    background: rgba(23, 23, 23, 0.07); color: var(--muted);
+  }
+  .tab.active .n { background: rgba(232, 88, 58, 0.14); color: #B23F26; }
 
+  /* ---- Orders table --------------------------------------------------- */
+  .table { background: var(--paper); border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
+  .tr { display: grid; grid-template-columns: 38px 108px minmax(150px, 1fr) minmax(180px, 2fr) 116px 148px; align-items: center; }
+  .tr.head {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+    border-bottom: 1px solid var(--hairline); padding: 9px 0;
+  }
+  .tr.row { border-bottom: 1px solid var(--divider); cursor: pointer; transition: background .1s; }
+  .tr.row:last-child { border-bottom: none; }
+  .tr.row:hover { background: var(--cream); }
+  .tr.row.selected { background: var(--hover); }
+  .tr.row.open { background: var(--hover); }
+  .tr > * { padding: 12px 10px; min-width: 0; }
+  .tr.head > * { padding-top: 0; padding-bottom: 0; }
+  .tr .pick { display: flex; align-items: center; justify-content: center; }
+  .tr .pick input { width: 15px; height: 15px; accent-color: var(--ink); cursor: pointer; }
+  .cell-1 { font-size: 13px; }
+  .cell-2 { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ordno { font-family: var(--font-mono); font-weight: 500; }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tr .act { display: flex; justify-content: flex-end; }
+
+  .badge {
+    display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .badge.new             { background: #FFF1E4; border-color: #F0C6A2; color: #A9531B; }
+  .badge.supplies_pulled { background: #EDF2FC; border-color: #CCD6EB; color: #3D4E70; }
+  .badge.printed         { background: #F2ECFB; border-color: #D3C4EE; color: #64419F; }
+  .badge.ready_to_pack   { background: #E9F4F1; border-color: #B4D8CE; color: #2F6B5C; }
+  .badge.packed          { background: #F5F4E3; border-color: #D8D79E; color: #6E6C22; }
+  .badge.shipped         { background: #ECF6EF; border-color: #B4DCC3; color: #35714F; }
+  .badge.on_hold         { background: #FCEDEA; border-color: #F2C0B4; color: #B23F26; }
+
+  /* ---- Drawer --------------------------------------------------------- */
+  .scrim { position: fixed; inset: 0; background: rgba(23, 23, 23, 0.16); z-index: 40; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%);
+    background: var(--paper); border-left: 1px solid var(--hairline); z-index: 41;
+    display: flex; flex-direction: column;
+  }
+  .drawer-head { padding: 20px 24px 0; flex-shrink: 0; position: relative; }
+  .drawer-head .eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .drawer-head h2 { margin: 4px 0 6px; font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
+  .drawer-head .addr { font-size: 13px; color: var(--fg-2); line-height: 1.45; }
+  .drawer-head .close {
+    position: absolute; top: 18px; right: 20px; width: 28px; height: 28px; padding: 0;
+    border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; line-height: 1;
+  }
+
+  /* Six clickable segments; the bar above each is filled up to the current
+     step, which is the whole status control — there is no separate row of
+     status buttons. */
+  .stepper {
+    display: flex; gap: 4px; padding: 18px 24px 14px; flex-shrink: 0;
+    border-bottom: 1px solid var(--divider);
+  }
+  .step { flex: 1; background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+  .step .bar { display: block; height: 3px; border-radius: 2px; background: rgba(23, 23, 23, 0.12); transition: background .15s; }
+  .step .lbl { display: block; font-size: 11px; color: var(--muted-2); margin-top: 6px; line-height: 1.25; }
+  .step.done .bar { background: var(--tomato); }
+  .step.done .lbl { color: var(--fg-2); }
+  .step.current .lbl { color: var(--ink); font-weight: 500; }
+  .step:hover .lbl { color: var(--ink); }
+  .stepper.held .step .bar { background: rgba(23, 23, 23, 0.12); }
+
+  .drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+  .drawer-foot {
+    flex-shrink: 0; display: flex; gap: 8px; align-items: center;
+    padding: 14px 24px; border-top: 1px solid var(--hairline); background: var(--paper);
+  }
+  .drawer-foot .spacer { flex: 1; }
+
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .sec-head h3 { margin: 0; font-size: 15px; font-weight: 500; }
+  .sec-head .tally { margin-left: auto; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .progress { height: 3px; border-radius: 2px; background: rgba(23, 23, 23, 0.1); overflow: hidden; margin-bottom: 18px; }
+  .progress > i { display: block; height: 100%; background: #2F6B5C; transition: width .18s; }
+
+  .kit { border: 1px solid var(--hairline); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .kit-head { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--cream); border-bottom: 1px solid var(--divider); }
+  .kit-head .t { font-size: 13px; font-weight: 500; }
+  .kit-head .s { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-top: 3px; }
+  .kit-head .btn { margin-left: auto; flex-shrink: 0; }
+  .kit-body { padding: 4px 14px 10px; }
+
+  .grp { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted-2); margin: 12px 0 2px; }
   .supply { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
-  .supply input { width: 15px; height: 15px; accent-color: var(--black); }
-  .supply.checked span.name { text-decoration: line-through; color: var(--muted); }
-  .swatch { width: 15px; height: 15px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); flex-shrink: 0; }
-  .qty { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--fg); }
-  .code { font-family: var(--font-mono); color: var(--muted); font-size: 11px; }
+  .supply input { width: 15px; height: 15px; accent-color: var(--ink); flex-shrink: 0; cursor: pointer; }
+  .supply .name { min-width: 0; }
+  .supply.checked .name, .supply.checked .spec { color: var(--muted-2); }
+  .swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(23, 23, 23, 0.14); flex-shrink: 0; }
+  .swatch.blank { background: rgba(23, 23, 23, 0.06); }
+  .spec { font-family: var(--font-mono); font-size: 11px; color: var(--muted-2); }
+  .qty { margin-left: auto; font-size: 12px; font-weight: 500; white-space: nowrap; padding-left: 10px; }
+  .warn { font-size: 12px; color: var(--tomato); padding: 8px 0; }
 
-  .ship { font-size: 13px; line-height: 1.5; }
-  .ship .name { font-weight: 500; }
-  .print-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .status-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
-  .empty { text-align: center; color: var(--muted); padding: 60px 0; font-size: 14px; }
-  .err { color: var(--accent); font-size: 13px; margin-top: 8px; }
-  .agg-box { background: var(--bg); border: 1px solid var(--hairline); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  /* ---- Materials ------------------------------------------------------ */
+  .chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .chips .lead { font-size: 13px; color: var(--muted); margin-right: 2px; }
+  .chip {
+    font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--hairline); background: var(--paper); color: var(--fg-2);
+  }
+  .chip:hover { border-color: var(--ink); }
+  .chip.on { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .cols { column-count: 2; column-gap: 16px; }
+  @media (max-width: 1080px) { .cols { column-count: 1; } }
+  .cat {
+    break-inside: avoid; background: var(--paper); border: 1px solid var(--hairline);
+    border-radius: var(--radius); margin: 0 0 16px; overflow: hidden;
+  }
+  .cat > header { display: flex; align-items: baseline; padding: 12px 14px; border-bottom: 1px solid var(--divider); }
+  .cat > header h3 { margin: 0; font-size: 14px; font-weight: 500; }
+  .cat > header .n { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .cat .supply { padding: 8px 14px; border-bottom: 1px solid var(--divider); }
+  .cat .supply:last-child { border-bottom: none; }
+  .cat .supply .from { font-size: 11px; color: var(--muted-2); font-family: var(--font-mono); margin-left: auto; }
+  .cat .supply .qty { margin-left: 14px; }
+
+  /* ---- Misc ----------------------------------------------------------- */
+  .empty { text-align: center; color: var(--muted); padding: 64px 0; font-size: 14px; }
+  .err { color: var(--tomato); font-size: 13px; margin-top: 10px; }
+  .banner {
+    background: #FCEDEA; border: 1px solid #F2C0B4; color: #8F3319; font-size: 13px;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; line-height: 1.45;
+  }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; height: auto; }
+    .sidebar { flex-direction: row; align-items: center; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--hairline); padding: 10px 14px; }
+    .brand { padding: 0 12px 0 4px; }
+    .nav { width: auto; }
+    .sidebar .foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; padding: 0; }
+    .sidebar .foot .stamp { display: none; }
+    .main { padding: 20px 16px 60px; }
+    .page-head { flex-wrap: wrap; }
+    .page-head .search { width: 100%; margin-left: 0; }
+    /* Kits and the advance button go, but never the customer — an order number
+       on its own isn't enough to know which order you're looking at. The name
+       moves onto a second line instead. */
+    .tr { grid-template-columns: 34px 1fr auto; }
+    .tr.head { display: none; }
+    .tr .col-kits, .tr .act { display: none; }
+    .tr.row > .pick { grid-row: 1 / span 2; }
+    .tr.row > :nth-child(2) { grid-row: 1; padding-bottom: 2px; }
+    .tr.row > .col-cust { grid-row: 2; padding-top: 0; }
+    .tr.row > .col-status { grid-row: 1 / span 2; align-self: center; justify-self: end; }
+    /* Six buttons don't fit on a phone, and the last one was running off the
+       edge. Let them wrap instead of pushing each other out of view. */
+    .drawer-foot { flex-wrap: wrap; }
+    .drawer-foot .spacer { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -95,11 +282,40 @@
 
 <script>
 const TOKEN_KEY = "studio_admin_session";
-const STATUSES = [
-  { id: "new", label: "New" },
+
+// The six-step pipeline, in order. `next` is derived from position, so the
+// dashboard never hardcodes "what comes after printed". Mirrors ORDER_PIPELINE
+// in api/_lib/orders.js.
+const PIPELINE = [
+  { id: "new",             label: "New" },
   { id: "supplies_pulled", label: "Supplies pulled" },
-  { id: "printed", label: "Printed" },
-  { id: "shipped", label: "Shipped" },
+  { id: "printed",         label: "Printed" },
+  { id: "ready_to_pack",   label: "Ready to pack" },
+  { id: "packed",          label: "Packed" },
+  { id: "shipped",         label: "Shipped" },
+];
+// `on_hold` is reachable from any step and returns to `new`, so it sits outside
+// the sequence but still needs a tab and a badge.
+const HOLD = { id: "on_hold", label: "On hold" };
+const ALL_STATUSES = [...PIPELINE, HOLD];
+
+const labelFor = (id) => (ALL_STATUSES.find(s => s.id === id) || {}).label || id;
+const nextStatus = (id) => {
+  const i = PIPELINE.findIndex(s => s.id === id);
+  return i >= 0 && i < PIPELINE.length - 1 ? PIPELINE[i + 1] : null;
+};
+
+// Supply groups, in the order they're shown. These are shelf groupings rather
+// than BOM fields: binding sits with the other yardage you cut from the fabric
+// shelf, while backing sits with batting because that's a different shelf.
+const GROUPS = [
+  "Fabric",
+  "Embroidery floss",
+  "Wool thread",
+  "Batting & backing",
+  "Needles",
+  "Kit extras",
+  "Charts & instructions",
 ];
 
 // The password is exchanged for a session token once, at sign-in; only the
@@ -116,11 +332,18 @@ function loadSession() {
 
 let state = {
   token: loadSession(),
+  view: "orders",                 // "orders" | "materials"
   orders: [],
-  filter: "open",
+  tab: "all",                     // an ALL_STATUSES id, or "all"
+  query: "",
+  // Materials answers "what do I pull next", so it defaults to the states that
+  // still need pulling rather than to everything.
+  matStatuses: new Set(["new", "supplies_pulled"]),
+  selected: new Set(),
   openId: null,
   error: "",
   loading: false,
+  loadedAt: 0,
 };
 
 function h(tag, attrs, ...kids) {
@@ -129,7 +352,7 @@ function h(tag, attrs, ...kids) {
     if (k === "class") el.className = attrs[k];
     else if (k === "html") el.innerHTML = attrs[k];
     else if (k.startsWith("on")) el.addEventListener(k.slice(2), attrs[k]);
-    else if (attrs[k] != null) el.setAttribute(k, attrs[k]);
+    else if (attrs[k] != null && attrs[k] !== false) el.setAttribute(k, attrs[k]);
   }
   for (const kid of kids.flat()) {
     if (kid == null || kid === false) continue;
@@ -147,6 +370,8 @@ const API_ERRORS = {
     "The server has no Supabase credentials. Set SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY where this is deployed, then redeploy.",
   admin_not_configured:
     "The server has no admin credential set. Set ADMIN_PASSWORD where this is deployed, then redeploy.",
+  status_not_migrated:
+    "The database doesn't know that status yet. Run supabase/migrations/0002_order_statuses.sql in the Supabase SQL editor, then try again.",
   nothing_to_render: "There's nothing to render for that document.",
   design_not_found: "That design is no longer in the database.",
   order_not_found: "That order is no longer in the database.",
@@ -177,6 +402,8 @@ async function api(path, opts = {}) {
 function logout() {
   localStorage.removeItem(TOKEN_KEY);
   state.token = "";
+  state.orders = [];
+  state.openId = null;
   render();
 }
 
@@ -240,6 +467,7 @@ async function loadOrders() {
   try {
     const { orders } = await api("/api/admin/orders");
     state.orders = orders || [];
+    state.loadedAt = Date.now();
   } catch (e) {
     state.error = e.message;
   } finally {
@@ -247,290 +475,546 @@ async function loadOrders() {
   }
 }
 
-async function patchOrder(id, body) {
-  const updated = await api("/api/admin/orders/" + encodeURIComponent(id), {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-  const i = state.orders.findIndex(o => String(o.orderId) === String(id));
-  if (i >= 0) state.orders[i] = updated;
+// Patches in flight, and the queue that keeps them in order, both keyed by
+// order id. Ticking down a pick list fires several PATCHes a second, and
+// without these two an order can silently lose a tick.
+const pending = new Map();
+const queued = new Map();
+
+const indexOf = (id) => state.orders.findIndex(o => String(o.orderId) === String(id));
+
+// Applied locally first: ticking a supply is the highest-frequency action on
+// this page, and a round trip between the click and the tick appearing makes it
+// feel broken.
+//
+// The two guards below are what make that safe. Requests for one order are
+// chained so they can't reach the database out of order, and the server's copy
+// is only adopted once it's the last one outstanding — an earlier reply carries
+// a snapshot from before the later clicks and would quietly undo them.
+function patchOrder(id, body) {
+  const key = String(id);
+  const i = indexOf(key);
+  const before = i >= 0 ? state.orders[i] : null;
+  if (!before) return Promise.resolve();
+  state.orders[i] = { ...before, ...body };
   render();
+
+  pending.set(key, (pending.get(key) || 0) + 1);
+  const run = (queued.get(key) || Promise.resolve()).then(async () => {
+    try {
+      const updated = await api("/api/admin/orders/" + encodeURIComponent(key), {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      if (pending.get(key) === 1) {
+        const j = indexOf(key);
+        if (j >= 0) state.orders[j] = updated;
+      }
+    } catch (e) {
+      state.error = e.message;
+      if (pending.get(key) === 1) {
+        const j = indexOf(key);
+        if (j >= 0) state.orders[j] = before;
+      }
+    } finally {
+      pending.set(key, pending.get(key) - 1);
+      render();
+    }
+  });
+  queued.set(key, run);
+  return run;
 }
 
-function fmtDate(iso) {
+function fmtDay(iso) {
   const d = new Date(iso);
-  return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
-    " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-// ---- Supply rendering -----------------------------------------------------
+function fmtAgo(ts) {
+  if (!ts) return "";
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return "Updated just now";
+  if (mins < 60) return "Updated " + mins + " min ago";
+  const hrs = Math.floor(mins / 60);
+  return "Updated " + hrs + (hrs === 1 ? " hr ago" : " hrs ago");
+}
+
+// ---- Supplies -------------------------------------------------------------
+// Rounds to the eighth of a yard the studio actually cuts to, then drops the
+// trailing zeros so a clean half reads "0.5 yd" and not "0.500 yd".
+function fmtAmount(n, unit) {
+  if (unit === "yd") return (Math.round(n * 8) / 8) + " yd";
+  if (unit === "skein") return n + (n === 1 ? " skein" : " skeins");
+  if (unit === "print") return n + (n === 1 ? " print" : " prints");
+  return n + " pc";
+}
+
+const dims = (o) => o.w + "×" + o.h + " in";
+
+// Flattens one line item's BOM into checklist rows. The BOM is per kit, so
+// every countable amount is multiplied by the line quantity here — the pick
+// sheet does the same, and the two have to agree or you pull short.
+//
+// Mirrors bomSupplyRows() in api/_lib/render/packing.js, which this page cannot
+// import: it is a dependency-free standalone file with no module loader.
+//
+// `key` is the checklist key and must stay stable — changing one silently
+// unticks a supply somebody already pulled.
 function supplyRows(item) {
   const rows = [];
   const bom = item.bom;
-  if (!bom) return rows;
-  if (bom.type === "cross-stitch") {
-    if (bom.aida) rows.push({ key: "aida", label: `Aida ${bom.aida.count}ct${bom.aida.color ? " · " + bom.aida.color : ""}`, qty: `${bom.aida.w}" × ${bom.aida.h}"` });
-    if (bom.needle) rows.push({ key: "needle", label: bom.needle, qty: "1" });
-    for (const f of bom.floss) rows.push({ key: "floss:" + f.code, label: f.name, code: f.code, hex: f.hex, qty: f.skeins + (f.skeins === 1 ? " skein" : " skeins") });
-  } else if (bom.type === "punch-needle") {
-    if (bom.monksCloth) rows.push({ key: "cloth", label: `Monk's cloth${bom.monksCloth.color ? " · " + bom.monksCloth.color : ""}`, qty: `${bom.monksCloth.w}" × ${bom.monksCloth.h}"` });
-    if (bom.needle) rows.push({ key: "needle", label: bom.needle, qty: "1" });
-    for (const y of bom.yarn) rows.push({ key: "yarn:" + y.code, label: y.name, code: y.code, hex: y.hex, qty: y.skeins + (y.skeins === 1 ? " skein" : " skeins") });
-  } else if (bom.type === "quilt") {
-    for (const fab of bom.fabrics) rows.push({ key: "fab:" + (fab.code || fab.name), label: fab.name, code: fab.code, hex: fab.hex, qty: fab.yardsLabel });
-    if (bom.batting) rows.push({ key: "batting", label: "Batting", qty: `${bom.batting.w}" × ${bom.batting.h}"` });
-    if (bom.backing) rows.push({ key: "backing", label: "Backing fabric", qty: bom.backing.yardsLabel });
-    if (bom.binding) rows.push({ key: "binding", label: "Binding fabric", qty: bom.binding.yardsLabel });
+  const q = item.quantity || 1;
+  const add = (r) => rows.push({ spec: "", hex: "", ...r });
+
+  if (bom && bom.type === "cross-stitch") {
+    if (bom.aida) add({ key: "aida", group: "Fabric", label: "Aida " + bom.aida.count + "ct" + (bom.aida.color ? " · " + bom.aida.color : ""), spec: dims(bom.aida), n: q, unit: "pc" });
+    if (bom.needle) add({ key: "needle", group: "Needles", label: bom.needle, n: q, unit: "pc" });
+    for (const f of (bom.floss || [])) {
+      add({ key: "floss:" + f.code, group: "Embroidery floss", label: f.name, spec: "DMC " + f.code, hex: f.hex, n: f.skeins * q, unit: "skein" });
+    }
+  } else if (bom && bom.type === "punch-needle") {
+    if (bom.monksCloth) add({ key: "cloth", group: "Fabric", label: "Monk's cloth" + (bom.monksCloth.color ? " · " + bom.monksCloth.color : ""), spec: dims(bom.monksCloth), n: q, unit: "pc" });
+    if (bom.needle) add({ key: "needle", group: "Needles", label: bom.needle, n: q, unit: "pc" });
+    for (const y of (bom.yarn || [])) {
+      add({ key: "yarn:" + y.code, group: "Wool thread", label: y.name, spec: "wool " + y.code, hex: y.hex, n: y.skeins * q, unit: "skein" });
+    }
+  } else if (bom && bom.type === "quilt") {
+    for (const fab of (bom.fabrics || [])) {
+      add({ key: "fab:" + (fab.code || fab.name), group: "Fabric", label: fab.name, hex: fab.hex, n: (fab.yards || 0) * q, unit: "yd" });
+    }
+    if (bom.binding) add({ key: "binding", group: "Fabric", label: "Binding fabric", n: (bom.binding.yards || 0) * q, unit: "yd" });
+    if (bom.batting) add({ key: "batting", group: "Batting & backing", label: "Cotton batting", spec: dims(bom.batting), n: q, unit: "pc" });
+    if (bom.backing) add({ key: "backing", group: "Batting & backing", label: "Backing fabric", n: (bom.backing.yards || 0) * q, unit: "yd" });
+  }
+
+  // Finishing extras come from the variant the customer bought, not the design,
+  // so the server resolves them (see extrasFor in api/_lib/render/packing.js).
+  (item.extras || []).forEach((text, i) => {
+    add({ key: "extra:" + i, group: "Kit extras", label: text, n: q, unit: "pc" });
+  });
+
+  // One printed set per kit. For quilts the "chart" renders the cutting
+  // template, which is why the label differs.
+  if (item.designFound && item.designId) {
+    const chart = item.type === "quilt" ? "Template" : "Chart";
+    add({ key: "print:chart", group: "Charts & instructions", label: (item.title || "Kit") + " · " + chart, n: q, unit: "print" });
+    add({ key: "print:instructions", group: "Charts & instructions", label: (item.title || "Kit") + " · Instructions", n: q, unit: "print" });
   }
   return rows;
 }
 
-function itemView(order, item, idx) {
-  const checklist = order.checklist || {};
-  const scope = (item.lineItemId || idx) + "|";
-  const rows = supplyRows(item);
+const scopeOf = (item, idx) => (item.lineItemId || idx) + "|";
 
-  const supplyEls = rows.map(r => {
-    const ckey = scope + r.key;
-    const done = !!checklist[ckey];
-    return h("label", { class: "supply" + (done ? " checked" : "") },
-      h("input", { type: "checkbox", ...(done ? { checked: "checked" } : {}), onchange: async (e) => {
-        const next = { ...(order.checklist || {}) };
-        if (e.target.checked) next[ckey] = true; else delete next[ckey];
-        await patchOrder(order.orderId, { checklist: next });
-      }}),
-      r.hex ? h("span", { class: "swatch", style: "background:" + r.hex }) : null,
-      h("span", { class: "name" }, r.label),
-      r.code ? h("span", { class: "code" }, " DMC " + r.code) : null,
-      h("span", { class: "qty" }, r.qty),
-    );
+function supplyCount(order) {
+  let total = 0, done = 0;
+  const checklist = order.checklist || {};
+  (order.items || []).forEach((item, i) => {
+    for (const r of supplyRows(item)) {
+      total++;
+      if (checklist[scopeOf(item, i) + r.key]) done++;
+    }
+  });
+  return { total, done };
+}
+
+function swatchEl(hex) {
+  return hex
+    ? h("span", { class: "swatch", style: "background:" + hex })
+    : h("span", { class: "swatch blank" });
+}
+
+// ---- Sidebar --------------------------------------------------------------
+function sidebar() {
+  const open = state.orders.filter(o => o.status !== "shipped" && o.status !== "on_hold").length;
+  const navBtn = (id, label, count) => h("button", {
+    class: "nav" + (state.view === id ? " active" : ""),
+    onclick: () => { state.view = id; state.openId = null; render(); },
+  }, label, count != null ? h("span", { class: "count" }, count) : null);
+
+  return h("aside", { class: "sidebar" },
+    h("div", { class: "brand" },
+      h("img", { src: "assets/metime-icon.png", alt: "" }),
+      h("span", {}, "Fulfillment"),
+    ),
+    navBtn("orders", "Orders", open ? open + " open" : null),
+    navBtn("materials", "Materials"),
+    h("div", { class: "foot" },
+      h("button", { class: "btn", onclick: loadOrders }, state.loading ? "Refreshing…" : "Refresh"),
+      h("div", { class: "stamp" }, state.loading ? "Loading…" : fmtAgo(state.loadedAt)),
+      h("button", { class: "btn ghost sm", onclick: logout }, "Lock"),
+    ),
+  );
+}
+
+// ---- Orders ---------------------------------------------------------------
+function matchesQuery(order, q) {
+  if (!q) return true;
+  const hay = [
+    order.orderName, order.orderId, order.customer?.name, order.customer?.email,
+    order.shipping?.name, order.shipping?.city,
+  ].filter(Boolean).join(" ").toLowerCase();
+  return hay.includes(q);
+}
+
+function orderRow(order) {
+  const ship = order.shipping || {};
+  const where = [ship.city, ship.province, ship.zip].filter(Boolean).join(", ");
+  const kits = (order.items || [])
+    .map(it => (it.quantity || 1) + " × " + (it.title || "Kit"))
+    .join(", ");
+  const next = nextStatus(order.status);
+  const picked = state.selected.has(order.orderId);
+
+  return h("div", {
+      class: "tr row" + (state.openId === order.orderId ? " open" : "") + (picked ? " selected" : ""),
+      onclick: () => { state.openId = order.orderId; render(); },
+    },
+    h("div", { class: "pick", onclick: (e) => e.stopPropagation() },
+      h("input", {
+        type: "checkbox", checked: picked, "aria-label": "Select " + (order.orderName || order.orderId),
+        onchange: (e) => {
+          if (e.target.checked) state.selected.add(order.orderId);
+          else state.selected.delete(order.orderId);
+          render();
+        },
+      }),
+    ),
+    h("div", {},
+      h("div", { class: "cell-1 ordno" }, order.orderName || ("#" + order.orderId)),
+      h("div", { class: "cell-2" }, fmtDay(order.createdAt || order.receivedAt)),
+    ),
+    h("div", { class: "col-cust" },
+      h("div", { class: "cell-1 truncate" }, order.customer?.name || ship.name || "—"),
+      where ? h("div", { class: "cell-2 truncate" }, where) : null,
+    ),
+    h("div", { class: "col-kits" }, h("div", { class: "cell-1 truncate" }, kits || "—")),
+    h("div", { class: "col-status" }, h("span", { class: "badge " + order.status }, labelFor(order.status))),
+    h("div", { class: "act" },
+      next ? h("button", {
+        class: "btn sm",
+        onclick: (e) => { e.stopPropagation(); patchOrder(order.orderId, { status: next.id }); },
+      }, "→ " + next.label) : null,
+    ),
+  );
+}
+
+function ordersView() {
+  const q = state.query.trim().toLowerCase();
+  const found = state.orders.filter(o => matchesQuery(o, q));
+  const counts = {};
+  for (const o of found) counts[o.status] = (counts[o.status] || 0) + 1;
+  const shown = state.tab === "all" ? found : found.filter(o => o.status === state.tab);
+
+  const search = h("input", {
+    type: "search", class: "search", placeholder: "Search order # or customer",
+    value: state.query,
+    oninput: (e) => {
+      state.query = e.target.value;
+      // Re-rendering from scratch would drop focus mid-word, so the list is
+      // repainted around the field the user is still typing into.
+      repaintOrders();
+    },
   });
 
-  const meta = [];
-  if (item.bom?.finishedStitches) meta.push(`${item.bom.finishedStitches.w}×${item.bom.finishedStitches.h} st`);
-  if (item.bom?.finishedLoops) meta.push(`${item.bom.finishedLoops.w}×${item.bom.finishedLoops.h} loops`);
-  if (item.bom?.finishedInches && item.bom.type === "cross-stitch") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}" @14ct`);
-  if (item.bom?.finishedInches && item.bom.type === "punch-needle") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}" @${item.bom.gauge || 5}/in`);
-  if (item.bom?.finishedInches && item.bom.type === "quilt") meta.push(`${item.bom.finishedInches.w}"×${item.bom.finishedInches.h}"`);
-  if (item.designId) meta.push("design " + item.designId);
+  const tabs = h("div", { class: "tabs" },
+    ...[{ id: "all", label: "All" }, ...ALL_STATUSES].map(s => h("button", {
+      class: "tab" + (state.tab === s.id ? " active" : ""),
+      onclick: () => { state.tab = s.id; render(); },
+    }, s.label, h("span", { class: "n" }, String(s.id === "all" ? found.length : (counts[s.id] || 0))))),
+  );
 
-  const chartLabel = item.type === "quilt" ? "Template PDF" : "Chart PDF";
-  const assets = item.designFound && item.designId
-    ? h("div", { class: "row", style: "margin-top:12px; gap:8px;" },
-        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, { designId: item.designId, doc: "chart" }) }, chartLabel),
-        h("button", { class: "btn sm", onclick: (e) => openPdf(e.currentTarget, { designId: item.designId, doc: "instructions" }) }, "Instructions PDF"),
+  const body = shown.length
+    ? h("div", { class: "table" },
+        h("div", { class: "tr head" },
+          h("div", {}), h("div", {}, "Order"), h("div", { class: "col-cust" }, "Customer"),
+          h("div", { class: "col-kits" }, "Kits"), h("div", { class: "col-status" }, "Status"), h("div", {}),
+        ),
+        ...shown.map(orderRow),
       )
-    : null;
+    : h("div", { class: "empty" },
+        state.loading ? "Loading orders…" : q ? "No orders match “" + state.query + "”." : "No orders here yet.");
 
-  return h("div", { class: "item" },
-    h("div", { class: "item-title" }, `${item.quantity}× ${item.title}`),
-    h("div", { class: "item-sub" }, [item.type, ...meta].filter(Boolean).join("  ·  ")),
-    !item.designFound
-      ? h("div", { class: "warn" }, item.designId ? "⚠ Design not found for id " + item.designId : "⚠ No design id on this line item")
-      : (supplyEls.length ? h("div", {}, ...supplyEls) : h("div", { class: "item-sub" }, "No supplies computed")),
-    assets,
+  return [
+    h("div", { class: "page-head" }, h("div", {}, h("h1", {}, "Orders")), search),
+    state.error ? h("div", { class: "banner" }, state.error) : null,
+    tabs,
+    h("div", { id: "orders-body" }, body),
+  ];
+}
+
+// Typing in the search field must not blow away the field itself. Only the
+// rows and the tab counts depend on the query, so only those are rebuilt.
+function repaintOrders() {
+  const host = document.getElementById("orders-body");
+  const tabs = document.querySelector(".tabs");
+  if (!host || !tabs) { render(); return; }
+  const parts = ordersView();
+  tabs.replaceWith(parts[2]);
+  host.replaceWith(parts[3]);
+}
+
+// ---- Drawer ---------------------------------------------------------------
+function kitCard(order, item, idx) {
+  const checklist = order.checklist || {};
+  const scope = scopeOf(item, idx);
+  const rows = supplyRows(item);
+
+  const body = [];
+  for (const group of GROUPS) {
+    const inGroup = rows.filter(r => r.group === group);
+    if (!inGroup.length) continue;
+    body.push(h("div", { class: "grp" }, group));
+    for (const r of inGroup) {
+      const ckey = scope + r.key;
+      const done = !!checklist[ckey];
+      body.push(h("label", { class: "supply" + (done ? " checked" : "") },
+        h("input", {
+          type: "checkbox", checked: done,
+          onchange: (e) => {
+            const next = { ...(order.checklist || {}) };
+            if (e.target.checked) next[ckey] = true; else delete next[ckey];
+            patchOrder(order.orderId, { checklist: next });
+          },
+        }),
+        swatchEl(r.hex),
+        h("span", { class: "name" }, r.label),
+        r.spec ? h("span", { class: "spec" }, r.spec) : null,
+        h("span", { class: "qty" }, fmtAmount(r.n, r.unit)),
+      ));
+    }
+  }
+
+  // A full design UUID wraps to two lines and pushes the supplies down. The
+  // leading block is enough to match a kit against a PDF by eye; the whole id
+  // stays on the title attribute for when it needs copying.
+  const shortId = item.designId ? String(item.designId).slice(0, 8) : "";
+  const sub = [item.sku, shortId ? "design " + shortId : null].filter(Boolean).join(" · ");
+  const chartLabel = item.type === "quilt" ? "Print template + instructions" : "Print chart + instructions";
+
+  return h("div", { class: "kit" },
+    h("div", { class: "kit-head" },
+      h("div", {},
+        h("div", { class: "t" }, (item.quantity || 1) + " × " + (item.title || "Kit")),
+        sub ? h("div", { class: "s", title: item.designId || "" }, sub) : null,
+      ),
+      item.designFound && item.designId
+        ? h("button", {
+            class: "btn sm",
+            onclick: async (e) => {
+              const btn = e.currentTarget;
+              await openPdf(btn, { designId: item.designId, doc: "chart" });
+              await openPdf(btn, { designId: item.designId, doc: "instructions" });
+            },
+          }, chartLabel)
+        : null,
+    ),
+    h("div", { class: "kit-body" },
+      !item.designFound
+        ? h("div", { class: "warn" }, item.designId
+            ? "⚠ Design not found for id " + item.designId
+            : "⚠ No design id on this line item")
+        : (body.length ? h("div", {}, ...body) : h("div", { class: "warn" }, "No supplies computed for this kit.")),
+    ),
   );
 }
 
-function orderCard(order) {
-  const open = state.openId === order.orderId;
-  const head = h("div", { class: "card-head", onclick: () => { state.openId = open ? null : order.orderId; render(); } },
-    h("div", {},
-      h("div", { class: "order-name" }, order.orderName || ("#" + order.orderId)),
-      h("div", { class: "order-meta" }, [order.customer?.name, fmtDate(order.receivedAt || order.createdAt)].filter(Boolean).join(" · ")),
-    ),
-    h("div", { class: "spacer" }),
-    h("span", { class: "order-meta" }, order.items?.length ? order.items.length + (order.items.length === 1 ? " item" : " items") : ""),
-    h("span", { class: "badge " + order.status }, (STATUSES.find(s => s.id === order.status)?.label) || order.status),
-  );
-
+function drawer(order) {
   const ship = order.shipping || {};
-  const shipEl = h("div", { class: "ship" },
-    h("div", { class: "name" }, ship.name || order.customer?.name || "—"),
-    ship.address1 ? h("div", {}, ship.address1) : null,
-    ship.address2 ? h("div", {}, ship.address2) : null,
-    (ship.city || ship.province || ship.zip) ? h("div", {}, [ship.city, ship.province, ship.zip].filter(Boolean).join(", ")) : null,
-    ship.country ? h("div", {}, ship.country) : null,
-    order.customer?.email ? h("div", { class: "code" }, order.customer.email) : null,
-  );
+  const held = order.status === "on_hold";
+  const { total, done } = supplyCount(order);
+  const reached = PIPELINE.findIndex(s => s.id === order.status);
+  const next = nextStatus(order.status);
 
-  const statusActions = h("div", { class: "status-actions" },
-    ...STATUSES.map(s => h("button", {
-      class: "btn sm" + (order.status === s.id ? " dark" : ""),
+  const stepper = h("div", { class: "stepper" + (held ? " held" : "") },
+    ...PIPELINE.map((s, i) => h("button", {
+      class: "step" + (!held && i <= reached ? " done" : "") + (!held && i === reached ? " current" : ""),
+      title: "Mark as " + s.label.toLowerCase(),
       onclick: () => patchOrder(order.orderId, { status: s.id }),
-    }, s.label)),
+    }, h("span", { class: "bar" }), h("span", { class: "lbl" }, s.label))),
   );
 
-  // One trip to the printer: the packet is the pick sheet, every kit's chart
-  // and instructions, and the packing slip, combined into a single PDF.
-  const printActions = h("div", { class: "print-actions" },
-    h("button", {
-      class: "btn sm dark",
-      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "bundle" }),
-    }, "Print everything"),
-    h("button", {
-      class: "btn sm",
-      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "pick-sheet" }),
-    }, "Pick sheet"),
-    h("button", {
-      class: "btn sm",
-      onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "packing-slip" }),
-    }, "Packing slip"),
-  );
-
-  const body = h("div", { class: "card-body" },
-    h("div", { class: "grid2" },
-      h("div", {},
-        h("h3", { class: "sec" }, "Supplies to pull"),
-        ...(order.items || []).map((it, i) => itemView(order, it, i)),
-      ),
-      h("div", {},
-        h("h3", { class: "sec" }, "Ship to"),
-        shipEl,
-        h("h3", { class: "sec", style: "margin-top:18px" }, "Print"),
-        printActions,
-        statusActions,
-      ),
+  const head = h("div", { class: "drawer-head" },
+    h("button", { class: "btn close", title: "Close", onclick: () => { state.openId = null; render(); } }, "✕"),
+    h("div", { class: "eyebrow" },
+      (order.orderName || "#" + order.orderId) + " · " + fmtDay(order.createdAt || order.receivedAt)),
+    h("h2", {}, order.customer?.name || ship.name || "Customer"),
+    h("div", { class: "addr" },
+      ship.address1 ? h("div", {}, ship.address1) : null,
+      ship.address2 ? h("div", {}, ship.address2) : null,
+      [ship.city, ship.province, ship.zip].filter(Boolean).length
+        ? h("div", {}, [ship.city, ship.province, ship.zip].filter(Boolean).join(", ")) : null,
+      ship.country ? h("div", {}, ship.country) : null,
+      order.customer?.email ? h("div", { class: "spec" }, order.customer.email) : null,
     ),
+    held ? h("div", { style: "margin-top:10px" }, h("span", { class: "badge on_hold" }, "On hold")) : null,
   );
 
-  return h("div", { class: "card" + (open ? " open" : "") }, head, body);
+  const body = h("div", { class: "drawer-body" },
+    h("div", { class: "sec-head" },
+      h("h3", {}, "Supplies for this order"),
+      h("span", { class: "tally" }, done + " of " + total + " packed"),
+    ),
+    h("div", { class: "progress" },
+      h("i", { style: "width:" + (total ? Math.round((done / total) * 100) : 0) + "%" })),
+    ...(order.items || []).map((it, i) => kitCard(order, it, i)),
+  );
+
+  const foot = h("div", { class: "drawer-foot" },
+    held
+      ? h("button", { class: "btn dark", onclick: () => patchOrder(order.orderId, { status: "new" }) }, "Take off hold")
+      : (next
+          ? h("button", { class: "btn accent", onclick: () => patchOrder(order.orderId, { status: next.id }) }, "→ " + next.label)
+          : h("span", { class: "badge shipped" }, "Shipped")),
+    // One trip to the printer: the packet is the pick sheet, every kit's chart
+    // and instructions, and the packing slip, combined into a single PDF.
+    h("button", { class: "btn", onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "bundle" }) }, "Print all"),
+    h("div", { class: "spacer" }),
+    h("button", { class: "btn ghost sm", onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "pick-sheet" }) }, "Pick sheet"),
+    h("button", { class: "btn ghost sm", onclick: (e) => openPdf(e.currentTarget, { orderId: order.orderId, doc: "packing-slip" }) }, "Slip"),
+    held ? null : h("button", { class: "btn ghost sm", onclick: () => patchOrder(order.orderId, { status: "on_hold" }) }, "Hold"),
+  );
+
+  return [
+    h("div", { class: "scrim", onclick: () => { state.openId = null; render(); } }),
+    h("div", { class: "drawer", role: "dialog", "aria-label": "Order details" }, head, stepper, body, foot),
+  ];
 }
 
-// Aggregate every supply across the currently filtered orders into one buy/pull
-// list — the "go to the shelf" summary.
-function aggregateView(orders) {
-  const floss = new Map();   // code -> { name, hex, skeins }
-  const yarn = new Map();    // code -> { name, hex, skeins }
-  const fabric = new Map();  // name -> { code, hex, yards }
-  let aidaCount = 0, needles = 0, battingCount = 0;
-  let clothCount = 0, punchNeedles = 0;
-  for (const o of orders) {
-    for (const it of (o.items || [])) {
-      const bom = it.bom; if (!bom) continue;
-      const q = it.quantity || 1;
-      if (bom.type === "cross-stitch") {
-        if (bom.aida) aidaCount += q;
-        needles += q;
-        for (const f of bom.floss) {
-          const e = floss.get(f.code) || { name: f.name, hex: f.hex, skeins: 0 };
-          e.skeins += f.skeins * q; floss.set(f.code, e);
-        }
-      } else if (bom.type === "punch-needle") {
-        if (bom.monksCloth) clothCount += q;
-        punchNeedles += q;
-        for (const y of bom.yarn) {
-          const e = yarn.get(y.code) || { name: y.name, hex: y.hex, skeins: 0 };
-          e.skeins += y.skeins * q; yarn.set(y.code, e);
-        }
-      } else if (bom.type === "quilt") {
-        if (bom.batting) battingCount += q;
-        for (const fab of bom.fabrics) {
-          const e = fabric.get(fab.name) || { code: fab.code, hex: fab.hex, yards: 0 };
-          e.yards += (fab.yards || 0) * q; fabric.set(fab.name, e);
-        }
+// ---- Materials ------------------------------------------------------------
+// Every supply across the chosen orders, merged into one pull list. Rows merge
+// on label + spec rather than on the checklist key, so two Aida pieces cut to
+// different sizes stay separate lines — they're different cuts off the bolt.
+function materialsView() {
+  const chosen = state.orders.filter(o => state.matStatuses.has(o.status));
+  const merged = new Map();
+  for (const o of chosen) {
+    for (const item of (o.items || [])) {
+      for (const r of supplyRows(item)) {
+        const key = r.group + "|" + r.label + "|" + r.spec + "|" + r.unit;
+        const e = merged.get(key) || { ...r, n: 0, orders: new Set() };
+        e.n += r.n;
+        e.orders.add(o.orderId);
+        merged.set(key, e);
       }
     }
   }
-  const rows = [];
-  if (aidaCount) rows.push({ label: "Aida cloth pieces", qty: aidaCount });
-  if (needles) rows.push({ label: "Tapestry needles", qty: needles });
-  if (clothCount) rows.push({ label: "Monk's cloth pieces", qty: clothCount });
-  if (punchNeedles) rows.push({ label: "Punch needles", qty: punchNeedles });
-  if (battingCount) rows.push({ label: "Batting pieces", qty: battingCount });
-  const flossRows = [...floss.entries()].sort((a,b)=>b[1].skeins-a[1].skeins);
-  const yarnRows = [...yarn.entries()].sort((a,b)=>b[1].skeins-a[1].skeins);
-  const fabricRows = [...fabric.entries()].sort((a,b)=>b[1].yards-a[1].yards);
-  if (!rows.length && !flossRows.length && !yarnRows.length && !fabricRows.length) return null;
 
-  return h("div", { class: "agg-box" },
-    h("h3", { class: "sec" }, "Aggregate supplies · " + orders.length + " orders"),
-    ...rows.map(r => h("div", { class: "supply" }, h("span", { class: "name" }, r.label), h("span", { class: "qty" }, String(r.qty)))),
-    ...flossRows.map(([code, e]) => h("div", { class: "supply" },
-      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
-      h("span", { class: "name" }, e.name), h("span", { class: "code" }, " DMC " + code),
-      h("span", { class: "qty" }, e.skeins + " skeins"))),
-    ...yarnRows.map(([code, e]) => h("div", { class: "supply" },
-      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
-      h("span", { class: "name" }, e.name), h("span", { class: "code" }, " wool " + code),
-      h("span", { class: "qty" }, e.skeins + " skeins"))),
-    ...fabricRows.map(([name, e]) => h("div", { class: "supply" },
-      e.hex ? h("span", { class: "swatch", style: "background:" + e.hex }) : null,
-      h("span", { class: "name" }, name),
-      h("span", { class: "qty" }, (Math.round(e.yards * 8) / 8) + " yd"))),
+  const chips = h("div", { class: "chips" },
+    h("span", { class: "lead" }, "Include orders that are"),
+    ...ALL_STATUSES.map(s => {
+      const n = state.orders.filter(o => o.status === s.id).length;
+      return h("button", {
+        class: "chip" + (state.matStatuses.has(s.id) ? " on" : ""),
+        onclick: () => {
+          if (state.matStatuses.has(s.id)) state.matStatuses.delete(s.id);
+          else state.matStatuses.add(s.id);
+          render();
+        },
+      }, s.label + " · " + n);
+    }),
   );
+
+  const cards = [];
+  for (const group of GROUPS) {
+    const rows = [...merged.values()]
+      .filter(r => r.group === group)
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (!rows.length) continue;
+    cards.push(h("section", { class: "cat" },
+      h("header", {},
+        h("h3", {}, group),
+        h("span", { class: "n" }, rows.length + (rows.length === 1 ? " item" : " items")),
+      ),
+      ...rows.map(r => h("div", { class: "supply" },
+        swatchEl(r.hex),
+        h("span", { class: "name" }, r.label),
+        r.spec ? h("span", { class: "spec" }, r.spec) : null,
+        h("span", { class: "from" }, r.orders.size + (r.orders.size === 1 ? " order" : " orders")),
+        h("span", { class: "qty" }, fmtAmount(r.n, r.unit)),
+      )),
+    ));
+  }
+
+  return [
+    h("div", { class: "page-head" }, h("div", {},
+      h("h1", {}, "Materials"),
+      h("p", { class: "lede" },
+        chosen.length
+          ? "Everything needed for " + chosen.length + (chosen.length === 1 ? " order" : " orders") + ", grouped by type."
+          : "Pick which orders to include."),
+    )),
+    state.error ? h("div", { class: "banner" }, state.error) : null,
+    chips,
+    cards.length
+      ? h("div", { class: "cols" }, ...cards)
+      : h("div", { class: "empty" }, state.loading ? "Loading orders…" : "Nothing to pull for those statuses."),
+  ];
 }
 
+// ---- Gate -----------------------------------------------------------------
+function gate(app) {
+  let val = "";
+  const input = h("input", { type: "password", placeholder: "Password", autofocus: "",
+    oninput: (e) => (val = e.target.value),
+    onkeydown: (e) => { if (e.key === "Enter") submit(); } });
+  const errEl = h("div", { class: "err" }, state.error || "");
+  const btn = h("button", { class: "btn dark", style: "width:100%" }, "Sign in");
+
+  const submit = async () => {
+    if (!val || btn.disabled) return;
+    btn.disabled = true; btn.textContent = "Signing in…";
+    errEl.textContent = "";
+    const err = await signIn(val);
+    if (err) {
+      btn.disabled = false; btn.textContent = "Sign in";
+      errEl.textContent = err;
+      input.value = ""; val = ""; input.focus();
+      return;
+    }
+    state.error = "";
+    loadOrders();
+  };
+  btn.addEventListener("click", submit);
+
+  app.appendChild(h("div", { class: "gate" },
+    h("h2", {}, "Studio fulfillment"),
+    h("p", {}, "Enter your password to view incoming orders."),
+    input,
+    h("div", { style: "height:12px" }),
+    btn,
+    errEl,
+  ));
+  input.focus();
+}
+
+// ---- Render ---------------------------------------------------------------
 function render() {
   const app = document.getElementById("app");
+  // Ticking a supply re-renders the page under the cursor. Without this the
+  // drawer would jump back to the top on every click.
+  const keepMain = document.querySelector(".main")?.scrollTop || 0;
+  const keepDrawer = document.querySelector(".drawer-body")?.scrollTop || 0;
   app.innerHTML = "";
 
-  if (!state.token) {
-    let val = "";
-    const input = h("input", { type: "password", placeholder: "Password", autofocus: "",
-      oninput: (e) => (val = e.target.value),
-      onkeydown: (e) => { if (e.key === "Enter") submit(); } });
-    const errEl = h("div", { class: "err" }, state.error || "");
-    const btn = h("button", { class: "btn dark", style: "width:100%" }, "Sign in");
+  if (!state.token) { gate(app); return; }
 
-    const submit = async () => {
-      if (!val || btn.disabled) return;
-      btn.disabled = true; btn.textContent = "Signing in…";
-      errEl.textContent = "";
-      const err = await signIn(val);
-      if (err) {
-        btn.disabled = false; btn.textContent = "Sign in";
-        errEl.textContent = err;
-        input.value = ""; val = ""; input.focus();
-        return;
-      }
-      state.error = "";
-      loadOrders();
-    };
-    btn.addEventListener("click", submit);
+  const main = h("main", { class: "main" },
+    ...(state.view === "materials" ? materialsView() : ordersView()));
+  app.appendChild(h("div", { class: "shell" }, sidebar(), main));
 
-    app.appendChild(h("div", { class: "gate" },
-      h("h2", {}, "Studio fulfillment"),
-      h("p", {}, "Enter your password to view incoming orders."),
-      input,
-      h("div", { style: "height:12px" }),
-      btn,
-      errEl,
-    ));
-    input.focus();
-    return;
-  }
+  const order = state.view === "orders" && state.openId
+    ? state.orders.find(o => o.orderId === state.openId)
+    : null;
+  if (order) drawer(order).forEach(el => app.appendChild(el));
 
-  const filtered = state.orders.filter(o =>
-    state.filter === "all" ? true :
-    state.filter === "shipped" ? o.status === "shipped" :
-    o.status !== "shipped"
-  );
-
-  app.appendChild(h("header", {},
-    h("div", {}, h("h1", {}, "Fulfillment queue"), h("div", { class: "sub" }, state.orders.length + " orders total")),
-    h("button", { class: "btn sm", onclick: logout }, "Lock"),
-  ));
-
-  const wrap = h("div", { class: "wrap" });
-  wrap.appendChild(h("div", { class: "toolbar" },
-    ...[["open","To fulfill"],["shipped","Shipped"],["all","All"]].map(([id,label]) =>
-      h("button", { class: "pill" + (state.filter === id ? " active" : ""), onclick: () => { state.filter = id; render(); } }, label)),
-    h("div", { class: "spacer" }),
-    h("button", { class: "btn sm", onclick: loadOrders }, state.loading ? "Refreshing…" : "Refresh"),
-  ));
-
-  if (state.error) wrap.appendChild(h("div", { class: "err" }, state.error));
-
-  if (!state.loading && filtered.length === 0) {
-    wrap.appendChild(h("div", { class: "empty" }, "No orders here yet."));
-  } else {
-    const agg = aggregateView(filtered.filter(o => o.status !== "shipped"));
-    if (agg && state.filter !== "shipped") wrap.appendChild(agg);
-    filtered.forEach(o => wrap.appendChild(orderCard(o)));
-  }
-  app.appendChild(wrap);
+  main.scrollTop = keepMain;
+  const db = document.querySelector(".drawer-body");
+  if (db) db.scrollTop = keepDrawer;
 }
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.openId) { state.openId = null; render(); }
+});
 
 if (state.token) loadOrders(); else render();
 </script>

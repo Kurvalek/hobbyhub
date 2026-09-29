@@ -1,4 +1,5 @@
 import { adminSupabase } from "./supabase.js";
+import { extrasFor } from "./render/packing.js";
 
 // Fulfillment jobs — one per Shopify order, in `public.orders` +
 // `public.order_items`. The record is the single source of truth the admin
@@ -13,13 +14,22 @@ import { adminSupabase } from "./supabase.js";
 // (order.customer.name, order.shipping.zip, order.items[].designFound, …), so we
 // flatten on write and re-nest on read rather than changing admin.html.
 
-// Valid fulfillment states, in the order they typically progress.
-export const ORDER_STATUSES = [
+// The six-step pipeline, in the order an order moves through it. The dashboard
+// derives "what's the next button" straight from this array, so the order here
+// is load-bearing, not just documentation.
+export const ORDER_PIPELINE = [
   "new",
   "supplies_pulled",
   "printed",
+  "ready_to_pack",
+  "packed",
   "shipped",
 ];
+
+// `on_hold` is reachable from any step and isn't part of the sequence, so it
+// lives outside ORDER_PIPELINE but is still a valid column value. Keep this in
+// sync with the check constraint in supabase/migrations/0002_order_statuses.sql.
+export const ORDER_STATUSES = [...ORDER_PIPELINE, "on_hold"];
 
 const ORDER_COLUMNS = `
   id, shopify_order_id, order_name, customer_name, customer_email,
@@ -43,6 +53,10 @@ function toItem(row) {
     designFound: row.design_found,
     type: row.type,
     bom: row.bom,
+    // Finishing extras follow from the variant the customer bought rather than
+    // from the design, so they aren't in the BOM. Resolved here so the browser
+    // doesn't have to carry a copy of the variant table.
+    extras: extrasFor(row.type, row.variant_title),
   };
 }
 

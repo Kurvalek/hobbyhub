@@ -71,8 +71,13 @@ create table if not exists public.orders (
   ship_province     text,
   ship_zip          text,
   ship_country      text,
+  -- `on_hold` sits outside the six-step pipeline: an order can be held from any
+  -- step and returns to 'new' when released. See 0002_order_statuses.sql, which
+  -- applies this same list to databases created before these states existed.
   status            text not null default 'new'
-                      check (status in ('new', 'supplies_pulled', 'printed', 'shipped')),
+                      check (status in ('new', 'supplies_pulled', 'printed',
+                                        'ready_to_pack', 'packed', 'shipped',
+                                        'on_hold')),
   -- Per-supply "pulled" ticks, keyed "<lineItemId>|<supplyKey>" by admin.html.
   checklist         jsonb not null default '{}'::jsonb,
   -- Shopify's own order timestamp; the queue sorts on this.

@@ -43,6 +43,14 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET, PATCH");
     return res.status(405).json({ error: "method_not_allowed" });
   } catch (err) {
+    // A status this code accepts but the database's check constraint rejects
+    // means 0002_order_statuses.sql hasn't been run yet. That's a one-line fix
+    // in the Supabase SQL editor, so say so rather than reporting a generic
+    // server error and sending someone into the logs.
+    if (err?.code === "23514") {
+      console.error("orders.status check constraint rejected a value — run supabase/migrations/0002_order_statuses.sql");
+      return res.status(409).json({ error: "status_not_migrated" });
+    }
     console.error("admin order endpoint failed:", err);
     return res.status(500).json({ error: "internal_error" });
   }
