@@ -137,6 +137,31 @@ function Canvas(W, H) {
   return cv;
 }
 
+// Pixel-art stamp: one character per loop, mapped through `key` to a color.
+// A character missing from the key (by convention '.') leaves the cell alone, so
+// stamps layer. The shape helpers above are the wrong tool for a 20-loop coaster
+// — a cat's eye is three cells wide there, and an ellipse that small lands
+// wherever the rounding falls — so the coaster sets place those loops by hand.
+function stamp(cv, rows, key, ox = 0, oy = 0) {
+  rows.forEach((line, y) => {
+    for (let x = 0; x < line.length; x++) {
+      const hex = key[line[x]];
+      if (hex) cv.put(ox + x, oy + y, hex);
+    }
+  });
+}
+
+// Repaint whatever already holds `from` and passes `test` — a way to texture the
+// inside of a shape that's been laid down without spilling past its edge.
+function shadeWithin(cv, from, to, test) {
+  for (let y = 0; y < cv.H; y++) {
+    for (let x = 0; x < cv.W; x++) {
+      const i = y * cv.W + x;
+      if (cv.cells[i] === from && test(x, y)) cv.cells[i] = to;
+    }
+  }
+}
+
 // metime brand tokens, same set the cross-stitch charts draw from. Each snaps
 // to its nearest tapestry wool during quantization, so the studio palette and
 // yarn list still come out as real, orderable colors.
@@ -213,8 +238,339 @@ function drawBigBloom(cv) {
   cv.ellipse(cx, cy, R * 0.18, R * 0.18, BRAND.ink);
 }
 
+// ── Coaster sets ───────────────────────────────────────────────────────────
+// A coaster order is always four pieces, and the studio keeps them on separate
+// pages. A `set` design is authored as a 2×2 mosaic of 20×20 panels — one per
+// coaster — so the picker can show the whole set on one card the way the
+// shop photographs them, and the studio can split the mosaic back into pages.
+//
+// 20×20 is the finished loop count, so panels are drawn at their true size: no
+// resampling, and every loop is placed deliberately.
+
+// Four colorways of one cat head, which is how the sets are actually sold — the
+// silhouette is the expensive part to get right at 20 loops, and repeating it
+// makes the four read as a family rather than four unrelated charts.
+const CAT_BODY = [
+  '...BB..........BB...',
+  '..BBBB........BBBB..',
+  '..BBBBB......BBBBB..',
+  '..BBBBBBBBBBBBBBBB..',
+  '.BBBBBBBBBBBBBBBBBB.',
+  '.BBBBBBBBBBBBBBBBBB.',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBB',
+  '.BBBBBBBBBBBBBBBBBB.',
+  '..BBBBBBBBBBBBBBBB..',
+  '...BBBBBBBBBBBBBB...',
+  '.....BBBBBBBBBB.....',
+];
+const CAT_EARS = ['...EE..........EE...', '...EEE........EEE...', '....EE........EE....'];
+const CAT_MUZZLE = [
+  '.......FFFFFF.......',
+  '......FFFFFFFF......',
+  '......FFFFFFFF......',
+  '.......FFFFFF.......',
+  '........FFFF........',
+];
+const CAT_FACE = [
+  '.....Y........Y.....',
+  '....YYY......YYY....',
+  '....YYY......YYY....',
+  '.....Y........Y.....',
+  '....................',
+  '..WW.....NN.....WW..',
+  '........W..W........',
+  '...WW....WW....WW...',
+];
+// Markings go on between the body and the face, so a tabby stripe reads across
+// the head but never crosses an eye.
+const CAT_CALICO = [
+  '...PP..........QQ...',
+  '..PPPP........QQQQ..',
+  '..PPPPP......QQQQQ..',
+  '..PPPPPP.....QQQQQ..',
+  '.PPPPPP.......QQQQQ.',
+  '.PPPPP.........QQQQ.',
+  'PPPP.............QQQ',
+  'PPP.................',
+  'PP..................',
+];
+const CAT_CALICO_LOW = ['.PPPP...............', '..PPP...............', '...PP...............'];
+// Yellow spectacles, then a white bib — the tuxedo is otherwise a silhouette.
+const CAT_TUXEDO = [
+  '.....Q........Q.....',
+  '....Q.Q......Q.Q....',
+  '...Q...Q....Q...Q...',
+  '...Q...Q....Q...Q...',
+  '....Q.Q......Q.Q....',
+  '.....Q........Q.....',
+];
+const CAT_TUXEDO_BIB = ['.......PPPPPP.......', '......PPPPPPPP......', '.......PPPPPP.......'];
+const CAT_GREY_STRIPES = [
+  '....P....PP....P....',
+  '....P....PP....P....',
+  '....P....PP....P....',
+  '.....P...PP...P.....',
+];
+const CAT_TABBY = [
+  '......PP.PP.PP......',
+  '......PP.PP.PP......',
+  '......PP.PP.PP......',
+  '.....PP..PP..PP.....',
+];
+const CAT_TABBY_CHEEKS = ['..PP............PP..', '...PP..........PP...'];
+
+// Unlike the charts above, the sets name their colors as the exact tapestry wool
+// they'll be stitched in rather than brand tokens. With only eight to spend on
+// four cats, a token that quantizes to the nearest khaki is one cat lost, so
+// these are chosen from the library and pass through untouched.
+const CATS = {
+  ground: '#A2B5C6',   // 7593 Antique Blue Light — every colorway reads on it
+  cream:  '#FCFBF8',   // BLANC
+  ink:    '#1E1108',   // 7535 Black Brown
+  grey:   '#ABABAB',   // 7620 Steel Gray Light
+  ginger: '#B35F2B',   // 7445 Mahogany Medium
+  amber:  '#6F2F00',   // 7449 Mahogany Very Dark
+  pink:   '#EBB7AF',   // 7213 Shell Pink Very Light
+  yellow: '#FDED54',   // 7433 Lemon
+};
+// `line` carries the whiskers and mouth, so it has to contrast with the body
+// rather than the muzzle: on the tuxedo that means cream, everywhere else ink.
+function catPanel({ body, muzzle, eye, line, marks = [] }) {
+  return (cv) => {
+    stamp(cv, CAT_BODY, { B: body });
+    for (const m of marks) stamp(cv, m.rows, m.key, 0, m.oy);
+    stamp(cv, CAT_EARS, { E: CATS.pink }, 0, 1);
+    stamp(cv, CAT_MUZZLE, { F: muzzle }, 0, 12);
+    stamp(cv, CAT_FACE, { Y: eye, N: CATS.pink, W: line }, 0, 8);
+  };
+}
+const CAT_PANELS = [
+  catPanel({ body: CATS.cream, muzzle: CATS.cream, eye: CATS.ink, line: CATS.ink, marks: [
+    { rows: CAT_CALICO, key: { P: CATS.ginger, Q: CATS.amber }, oy: 0 },
+    { rows: CAT_CALICO_LOW, key: { P: CATS.ginger }, oy: 16 },
+  ] }),
+  catPanel({ body: CATS.ink, muzzle: CATS.cream, eye: CATS.ink, line: CATS.cream, marks: [
+    { rows: CAT_TUXEDO, key: { Q: CATS.yellow }, oy: 7 },
+    { rows: CAT_TUXEDO_BIB, key: { P: CATS.cream }, oy: 17 },
+  ] }),
+  catPanel({ body: CATS.grey, muzzle: CATS.cream, eye: CATS.yellow, line: CATS.ink, marks: [
+    { rows: CAT_GREY_STRIPES, key: { P: CATS.ink }, oy: 4 },
+  ] }),
+  catPanel({ body: CATS.ginger, muzzle: CATS.cream, eye: CATS.ink, line: CATS.ink, marks: [
+    { rows: CAT_TABBY, key: { P: CATS.amber }, oy: 3 },
+    { rows: CAT_TABBY_CHEEKS, key: { P: CATS.amber }, oy: 11 },
+  ] }),
+];
+
+// Four fruits, and here the silhouette is the whole point, so each panel is its
+// own drawing rather than a recolor.
+const FRUIT = {
+  ground: '#BDDDED',   // 7828 Blue Very Light
+  red:    '#E04848',   // 7606 Coral Medium
+  ink:    '#1E1108',   // 7535 Black Brown
+  olive:  '#94AB4F',   // 7769 Avocado Green Light
+  rind:   '#4C5826',   // 7936 Avocado Green Very Dark
+  golden: '#FDED54',   // 7433 Lemon
+  pale:   '#F2E3CE',   // 7451 Beige Brown Ultra Very Light
+  plum:   '#835B8B',   // 7245 Lavender Very Dark
+};
+const STRAWBERRY = [
+  '........LLL.........',
+  '.....LLLLILLLL......',
+  '....LLLLLLLLLLL.....',
+  '...RRRRRRRRRRRRR....',
+  '..RRPRRRRRPRRRRRR...',
+  '..RRRRRPRRRRRPRRR...',
+  '.RRRRRRRRRRRRRRRR...',
+  '.RRPRRRRPRRRRRPRR...',
+  '.RRRRRRRRRRRRRRRR...',
+  '..RRRRPRRRRPRRRRR...',
+  '..RRRRRRRRRRRRRR....',
+  '...RRRPRRRRPRRRR....',
+  '...RRRRRRRRRRRR.....',
+  '....RRRRPRRRRR......',
+  '.....RRRRRRRR.......',
+  '......RRRRRR........',
+  '.......RRRR.........',
+  '........RR..........',
+];
+// The lemon is wider than it is tall and tapers to a nub at each tip, which is
+// the only thing separating it from the plum at this size.
+const LEMON = [
+  '..........LLLL......',
+  '.........LLLLLL.....',
+  '.........SLLLL......',
+  '.......GGGGGG.......',
+  '.....GGGGGGGGGG.....',
+  '...GGGGGGGGGGGGGG...',
+  '..GGGGGGGGGGGGGGGG..',
+  '.GGGGGGGGGGGGGGGGGG.',
+  'GGGGGGGGGGGGGGGGGGGG',
+  'GGGGGGGGGGGGGGGGGGGG',
+  '.GGGGGGGGGGGGGGGGGG.',
+  '..GGGGGGGGGGGGGGGG..',
+  '....GGGGGGGGGGGG....',
+  '......GGGGGGGG......',
+];
+const LEMON_SHINE = ['.....PP.............', '....PPP.............', '.....PP.............'];
+// A slice, flat edge up: the straight top is what keeps it from reading as
+// another berry.
+const WATERMELON = [
+  '..RRRRRRRRRRRRRRRR..',
+  '..RRRRRRRRRRRRRRRR..',
+  '..RRRRKRRRRRRKRRRR..',
+  '..RRRRRRRRRRRRRRRR..',
+  '..RRRKRRRRRRRRKRRR..',
+  '...RRRRRRRRRRRRRR...',
+  '...RRRRRKRRKRRRRR...',
+  '...RRRRRRRRRRRRR....',
+  '....RRRRRRRRRRR.....',
+  '....RRRRKRRRRRR.....',
+  '.....RRRRRRRRR......',
+  '.....PPPPPPPPP......',
+  '......VVVVVVV.......',
+  '.......VVVVV........',
+];
+const PLUM = [
+  '.............LL.....',
+  '..........LLLL......',
+  '.........SS.........',
+  '.......UUUSUUU......',
+  '.....UUUUUSUUUUU....',
+  '....UUUUUUSUUUUUU...',
+  '...UUUUUUUSUUUUUUU..',
+  '...UUUUUUUSUUUUUUU..',
+  '..UUUUUUUUSUUUUUUUU.',
+  '..UUUUUUUUSUUUUUUUU.',
+  '..UUUUUUUUSUUUUUUUU.',
+  '...UUUUUUUSUUUUUUU..',
+  '...UUUUUUUSUUUUUUU..',
+  '....UUUUUUSUUUUUU...',
+  '.....UUUUUSUUUUU....',
+  '.......UUUUUUU......',
+];
+const FRUIT_PANELS = [
+  (cv) => stamp(cv, STRAWBERRY, { R: FRUIT.red, P: FRUIT.pale, L: FRUIT.olive, I: FRUIT.rind }, 0, 1),
+  (cv) => {
+    stamp(cv, LEMON, { G: FRUIT.golden, L: FRUIT.olive, S: FRUIT.rind }, 0, 1);
+    stamp(cv, LEMON_SHINE, { P: FRUIT.pale }, 0, 8);
+  },
+  (cv) => stamp(cv, WATERMELON, { R: FRUIT.red, K: FRUIT.ink, P: FRUIT.pale, V: FRUIT.rind }, 0, 3),
+  (cv) => stamp(cv, PLUM, { U: FRUIT.plum, S: FRUIT.ink, L: FRUIT.olive }, 0, 2),
+];
+
+// The four shapes in the shop's coaster photograph: farfalle, ravioli, fusilli,
+// macaroni. Three tones of semolina plus a dark edge.
+const PASTA = {
+  ground: '#396987',   // 7318 Blue Very Dark — semolina on anything pale vanishes
+  pale:   '#F2E3CE',   // 7451 Beige Brown Ultra Very Light
+  golden: '#C8AB6C',   // 7677 Golden Olive Light
+  amber:  '#AE7720',   // 7781 Topaz Dark
+  deep:   '#653919',   // 7467 Coffee Brown Dark
+};
+const FARFALLE = [
+  '..DD..........DD....',
+  '.DPPD........DPPD...',
+  'DPPPPD......DPPPPD..',
+  'DPGPPPD....DPPPGPD..',
+  'DPPGPPPD..DPPPGPPD..',
+  'DPPPGPPPDDPPPGPPPD..',
+  'DPPPPGPPDAAPPGPPPPD.',
+  'DPPPPGPPDAAPPGPPPPD.',
+  'DPPPGPPPDDPPPGPPPD..',
+  'DPPGPPPD..DPPPGPPD..',
+  'DPGPPPD....DPPPGPD..',
+  'DPPPPD......DPPPPD..',
+  '.DPPD........DPPD...',
+  '..DD..........DD....',
+];
+const RAVIOLI = [
+  '..D.D.D.D.D.D.D.D...',
+  '.DAAAAAAAAAAAAAAAD..',
+  'DAAAAAAAAAAAAAAAAAD.',
+  '.AAPPPPPPPPPPPPPAA..',
+  'DAAPPPPPPPPPPPPPAAD.',
+  '.AAPPGGGGGGGGGPPAA..',
+  'DAAPPGPPPPPPPGPPAAD.',
+  '.AAPPGPPPPPPPGPPAA..',
+  'DAAPPGPPPPPPPGPPAAD.',
+  '.AAPPGPPPPPPPGPPAA..',
+  'DAAPPGGGGGGGGGPPAAD.',
+  '.AAPPPPPPPPPPPPPAA..',
+  'DAAPPPPPPPPPPPPPAAD.',
+  'DAAAAAAAAAAAAAAAAAD.',
+  '.DAAAAAAAAAAAAAAAD..',
+  '..D.D.D.D.D.D.D.D...',
+];
+const MACARONI = [
+  '.....DDDDDD.........',
+  '...DDAAAAAADD.......',
+  '..DAAPPPPPPAAD......',
+  '.DAAPPPPPPPPAAD.....',
+  '.DAPPPPAAAPPPAD.....',
+  'DAAPPPAD.DPPPAAD....',
+  'DAAPPAD...DPPAAD....',
+  'DAAPPAD...DDAAD.....',
+  'DAAPPAD....DDD......',
+  'DAAPPAD.............',
+  'DAAPPPAD............',
+  '.DAAPPPAD...........',
+  '.DAAAPPPAD..........',
+  '..DDAAPPPAD.........',
+  '....DDAAAAD.........',
+  '......DDDDD.........',
+];
+const PASTA_PANELS = [
+  (cv) => stamp(cv, FARFALLE, { P: PASTA.pale, G: PASTA.golden, A: PASTA.amber, D: PASTA.deep }, 1, 3),
+  (cv) => stamp(cv, RAVIOLI, { P: PASTA.pale, G: PASTA.golden, A: PASTA.amber, D: PASTA.deep }, 1, 2),
+  // Fusilli is the one piece with no outline worth hand-placing: it's a rod with
+  // a twist, and the twist is a repeating slant, so it's cheaper to shade the
+  // rod after laying it down than to spell out sixteen rows of ridges.
+  (cv) => {
+    cv.capsule(9.5, 4.5, 9.5, 15.5, 5.4, 5.4, PASTA.deep);
+    cv.capsule(9.5, 4.5, 9.5, 15.5, 4.4, 4.4, PASTA.pale);
+    shadeWithin(cv, PASTA.pale, PASTA.amber, (x, y) => (x * 2 + y * 3) % 12 < 5);
+    shadeWithin(cv, PASTA.pale, PASTA.golden, (x, y) => (x * 2 + y * 3) % 12 === 5);
+  },
+  (cv) => stamp(cv, MACARONI, { P: PASTA.pale, A: PASTA.amber, D: PASTA.deep }, 3, 2),
+];
+
+// Four daisies, one colorway each. Radially symmetric, so unlike the cats these
+// can come off the shape helpers cleanly.
+const DAISY = {
+  ground: '#E7D6C1',   // 7470 Yellow Beige Light
+  centre: '#FDED54',   // 7433 Lemon
+  lilac:  '#A37BA7',   // 7708 Lavender Dark
+  pink:   '#FF798C',   // 7104 Carnation Medium
+  orange: '#EB6307',   // 7946 Burnt Orange Medium
+  blue:   '#6B9EBF',   // 7314 Blue Medium
+};
+function daisyPanel(petal) {
+  return (cv) => {
+    const c = (cv.W - 1) / 2;
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 72) * Math.PI / 180;
+      cv.ellipse(c + Math.sin(a) * 5.2, c - Math.cos(a) * 5.2, 3.6, 3.6, petal);
+    }
+    cv.ellipse(c, c, 3.2, 3.2, DAISY.centre);
+  };
+}
+const DAISY_PANELS = [daisyPanel(DAISY.lilac), daisyPanel(DAISY.pink),
+  daisyPanel(DAISY.orange), daisyPanel(DAISY.blue)];
+
 const SQUARE = ['Coaster', 'Small Hoop', 'Pillow'];
 const PORTRAIT = ['Large Hoop'];
+const COASTER = ['Coaster'];
+const SET = { presets: COASTER, w: 40, h: 40, unit: { w: 20, h: 20 }, cols: 2, rows: 2 };
 const DESIGNS = [
   { id: 'pn-sunburst', name: 'Sunburst', desc: 'Radiating rays around a bold centre.',
     presets: SQUARE, w: 40, h: 40, colors: 6, draw: drawSunburst },
@@ -224,6 +580,14 @@ const DESIGNS = [
     presets: PORTRAIT, w: 40, h: 50, colors: 6, draw: drawRollingHills },
   { id: 'pn-bloom', name: 'Big Bloom', desc: 'One oversized flower, stem and leaves.',
     presets: PORTRAIT, w: 40, h: 50, colors: 6, draw: drawBigBloom },
+  { ...SET, id: 'pn-cats', name: 'Four Cats', desc: 'A calico, a tuxedo, a grey and a ginger.',
+    colors: 8, ground: CATS.ground, panels: CAT_PANELS },
+  { ...SET, id: 'pn-fruit', name: 'Fruit Stand', desc: 'Strawberry, lemon, watermelon, plum.',
+    colors: 8, ground: FRUIT.ground, panels: FRUIT_PANELS },
+  { ...SET, id: 'pn-pasta', name: 'Pasta Night', desc: 'Farfalle, ravioli, fusilli, macaroni.',
+    colors: 6, ground: PASTA.ground, panels: PASTA_PANELS },
+  { ...SET, id: 'pn-daisies', name: 'Four Daisies', desc: 'One simple daisy, in four colors.',
+    colors: 6, ground: DAISY.ground, panels: DAISY_PANELS },
 ];
 
 // ── Quantize + encode (mirrors the cross-stitch generator) ─────────────────
@@ -275,7 +639,20 @@ function writePreview(id, colors, idx, W, H) {
 
 function drawnGrid(d) {
   const cv = Canvas(d.w, d.h);
-  d.draw(cv);
+  if (d.panels) {
+    // Each panel gets its own canvas so its drawing can't spill into a
+    // neighbour, then lands in place on the mosaic.
+    d.panels.forEach((draw, i) => {
+      const sub = Canvas(d.unit.w, d.unit.h);
+      if (d.ground) sub.fill(d.ground);
+      draw(sub);
+      const ox = (i % d.cols) * d.unit.w, oy = Math.floor(i / d.cols) * d.unit.h;
+      for (let y = 0; y < d.unit.h; y++)
+        for (let x = 0; x < d.unit.w; x++) cv.put(ox + x, oy + y, sub.cells[y * d.unit.w + x]);
+    });
+  } else {
+    d.draw(cv);
+  }
   return cv.cells.map(hex => hex
     ? { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
     : null);
@@ -287,8 +664,11 @@ for (const d of DESIGNS) {
   const rle = toRLE(idx);
   const fill = idx.filter(Boolean).length;
   writePreview(d.id, colors, idx, d.w, d.h);
-  out.push({ id: d.id, name: d.name, desc: d.desc, presets: d.presets, w: d.w, h: d.h, colors, rle });
-  console.log(`${d.id.padEnd(12)} ${d.w}x${d.h}  colors=${colors.length}  fill=${(100 * fill / (d.w * d.h)).toFixed(0)}%  rleBytes=${rle.length}`);
+  const entry = { id: d.id, name: d.name, desc: d.desc, presets: d.presets, w: d.w, h: d.h, colors, rle };
+  if (d.panels) entry.set = { cols: d.cols, rows: d.rows, w: d.unit.w, h: d.unit.h };
+  out.push(entry);
+  const tag = d.panels ? ` set=${d.cols}x${d.rows} of ${d.unit.w}x${d.unit.h}` : '';
+  console.log(`${d.id.padEnd(12)} ${d.w}x${d.h}  colors=${colors.length}  fill=${(100 * fill / (d.w * d.h)).toFixed(0)}%  rleBytes=${rle.length}${tag}`);
   console.log(`             ${names.map(n => `${n.code} ${n.hex}`).join('  ')}`);
 }
 
@@ -296,6 +676,7 @@ const banner = '// AUTO-GENERATED by tools/gen-punch-templates.mjs — do not ha
   + '// Regenerate: node tools/gen-punch-templates.mjs\n'
   + '// Each entry is a canonical punch needle chart: { id, name, desc, presets, w, h,\n'
   + '//   colors:[hex...], rle } where rle tokens are "<idxB36>.<runB36>" and idx 0 = empty.\n'
+  + '// A `set:{cols,rows,w,h}` entry is a mosaic of that many panels, one per coaster.\n'
   + '// Colors are DMC Laine Colbert tapestry wool (see assets/tapestry-wool.js).\n';
 fs.writeFileSync(OUT_JS, banner + 'window.PUNCH_TEMPLATE_DATA = ' + JSON.stringify(out) + ';\n');
 console.log('\nWrote', path.relative(ROOT, OUT_JS), '(' + fs.statSync(OUT_JS).size + ' bytes)');

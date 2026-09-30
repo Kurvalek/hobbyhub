@@ -4483,7 +4483,12 @@ function cloneQuiltShapes(shapes) {
 function seedCoasterUnits(shapes) {
   return Array.from({ length: COASTER_COUNT }, () => cloneQuiltShapes(shapes));
 }
-function seedCoasterPages(cells, len) {
+// Four copies of the one design — unless a set template supplied four different
+// ones, in which case each coaster opens on its own.
+function seedCoasterPages(cells, len, pages = null) {
+  if (pages && pages.length === COASTER_COUNT && pages.every(p => p && p.length === len)) {
+    return pages.map(p => p.slice());
+  }
   const src = (cells && cells.length === len) ? cells : new Array(len).fill(null);
   return Array.from({ length: COASTER_COUNT }, () => src.slice());
 }
@@ -8679,20 +8684,72 @@ function xsResampleGrid(src, sw, sh, dw, dh) {
   }
   return out;
 }
+// ── Set charts: one template, four coasters ────────────────────────────────
+// A coaster order is always four pieces on four studio pages, so a template
+// meant for one can carry four different designs — four cats, four kinds of
+// pasta. Those ship as a cols×rows mosaic of panels at their native loop count
+// (see `set` in assets/punch-templates-data.js).
+//
+// Everything downstream still works on the mosaic: the picker previews it whole,
+// the way the set is photographed, and the palette step re-dresses it in one
+// pass, which is what keeps all four coasters agreeing on which palette color
+// took which role. The mosaic is only split into pages on the way into the
+// studio.
+function xsSplitPanels(mosaic, cols, rows, w, h) {
+  const mw = cols * w, out = [];
+  for (let p = 0; p < cols * rows; p++) {
+    const ox = (p % cols) * w, oy = Math.floor(p / cols) * h;
+    const cells = new Array(w * h);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) cells[y * w + x] = mosaic[(oy + y) * mw + ox + x];
+    out.push(cells);
+  }
+  return out;
+}
+function xsTilePanels(panels, cols, rows, w, h) {
+  const mw = cols * w, out = new Array(mw * rows * h).fill(null);
+  panels.forEach((panel, p) => {
+    const ox = (p % cols) * w, oy = Math.floor(p / cols) * h;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) out[(oy + y) * mw + ox + x] = panel[y * w + x];
+  });
+  return out;
+}
+// Rebuilding a mosaic at another panel size resamples each panel on its own, so
+// one coaster's edge can't bleed into its neighbour's.
+function xsSetMosaic(entry, w, h) {
+  const s = entry.set;
+  if (w === s.w && h === s.h) return xsDecodeChart(entry).slice();
+  const panels = xsSplitPanels(xsDecodeChart(entry), s.cols, s.rows, s.w, s.h)
+    .map(p => xsResampleGrid(p, s.w, s.h, w, h));
+  return xsTilePanels(panels, s.cols, s.rows, w, h);
+}
 // There's no "Blank" card in the grid — "Skip for now" is the empty-grid route.
 // w/h are the chart's own stitch counts — the template picker uses them to
 // preview each chart at its true proportion (a 30x120 bookmark as a tall strip).
 function xsBuildTemplates(data) {
-  return (data || []).map(entry => ({
-    id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
-    w: entry.w, h: entry.h,
-    // Charts built around lettering carry the font and height their words want,
-    // and optionally the words themselves. The studio opens on the text tool
-    // with those settings so the maker can type straight into the design
-    // instead of hunting for a face that matches the chart.
-    seedText: entry.seedText || null,
-    build: ({ w, h }) => xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
-  }));
+  return (data || []).map(entry => {
+    const set = entry.set || null;
+    return {
+      id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
+      w: entry.w, h: entry.h,
+      set,
+      // Charts built around lettering carry the font and height their words want,
+      // and optionally the words themselves. The studio opens on the text tool
+      // with those settings so the maker can type straight into the design
+      // instead of hunting for a face that matches the chart.
+      seedText: entry.seedText || null,
+      // For a set, w/h are the size of ONE panel and the result is the whole
+      // mosaic — `outSize` reports what actually came back.
+      build: ({ w, h }) => set
+        ? xsSetMosaic(entry, w, h)
+        : xsResampleGrid(xsDecodeChart(entry), entry.w, entry.h, w, h),
+      outSize: ({ w, h }) => set ? { w: w * set.cols, h: h * set.rows } : { w, h },
+      splitPages: set
+        ? (mosaic, { w, h }) => xsSplitPanels(mosaic, set.cols, set.rows, w, h)
+        : null,
+    };
+  });
 }
 const CROSS_STITCH_TEMPLATES = xsBuildTemplates(window.STITCH_TEMPLATE_DATA);
 const PUNCH_TEMPLATES = xsBuildTemplates(window.PUNCH_TEMPLATE_DATA);
@@ -8755,6 +8812,20 @@ function xsRecolorGrid(grid, palette) {
     byLuma(motifs.map(r => r.hex)).forEach((hex, i) => map.set(hex, tones[i]));
   }
   return grid.map(hex => hex ? (map.get(hex) || hex) : null);
+}
+
+// What the studio should open on for a chosen template: the chart dressed in the
+// picked palette (or its own colors, when the palette step was skipped), plus —
+// for a set — one grid per coaster page. Both the template step and the palette
+// step go through here, so stepping back and picking a different palette
+// re-dresses the original chart rather than a recolored copy of it.
+function gridSeedFromTemplate(tpl, preset, palette) {
+  const chart = tpl.build(preset);
+  const dressed = palette ? xsRecolorGrid(chart, palette) : chart;
+  if (!dressed || !dressed.some(Boolean)) return { autoGrid: null, autoPages: null };
+  if (!tpl.splitPages) return { autoGrid: dressed, autoPages: null };
+  const pages = tpl.splitPages(dressed, preset);
+  return { autoGrid: pages[0], autoPages: pages };
 }
 
 // ── Fitting an uploaded photo onto a stitch canvas ─────────────────────────
@@ -9992,10 +10063,13 @@ function StitchTemplateThumb({ tpl, preset }) {
   // charts stay legible — capped so huge canvases don't render 14k+ SVG rects.
   const w = Math.min(90, preset.w), h = Math.max(4, Math.round(w * (preset.h / preset.w)));
   const grid = useMemo(() => tpl.build({ w, h }), [tpl, w, h]);
+  // A set template builds a mosaic of all four coasters, so the card is bigger
+  // than the canvas that was asked for.
+  const out = tpl.outSize ? tpl.outSize({ w, h }) : { w, h };
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
-      {grid.map((hex, i) => hex ? <rect key={i} x={i % w} y={Math.floor(i / w)} width={1} height={1} fill={hex}/> : null)}
-      <rect width={w} height={h} fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.08"/>
+    <svg viewBox={`0 0 ${out.w} ${out.h}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      {grid.map((hex, i) => hex ? <rect key={i} x={i % out.w} y={Math.floor(i / out.w)} width={1} height={1} fill={hex}/> : null)}
+      <rect width={out.w} height={out.h} fill="none" stroke="rgba(0,0,0,0.12)" strokeWidth="0.08"/>
     </svg>
   );
 }
@@ -10089,7 +10163,11 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft =
       templates={stitchTemplatesFor(preset, craft)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
       metaOf={t => [
-        { k: 'Chart', v: t.w > 0 && t.h > 0 ? `${t.w} × ${t.h} ${cfg.unitPlural}` : null },
+        // A set's w/h span the whole mosaic; what the maker stitches is one
+        // panel, four times over, so that's what the card quotes.
+        t.set
+          ? { k: 'Chart', v: `${t.set.w} × ${t.set.h} ${cfg.unitPlural} · set of ${t.set.cols * t.set.rows}` }
+          : { k: 'Chart', v: t.w > 0 && t.h > 0 ? `${t.w} × ${t.h} ${cfg.unitPlural}` : null },
       ]}
       uploadNode={uploadNode}
       onChoose={t => onChoose({ template: t, photo: null })}
@@ -11190,7 +11268,7 @@ function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFF
     style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}/>;
 }
 
-function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
+function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,
@@ -11209,14 +11287,18 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
     // Make sure every color present in an auto-generated design is selectable.
-    if (autoGrid) {
-      const have = new Set(base.map(c => c.hex));
-      for (const hex of autoGrid) {
+    // A coaster set's four pages don't share a palette — the ginger cat has
+    // colors the tuxedo doesn't — so every page gets a look in, not just the one
+    // the studio opens on.
+    const seeded = autoPages && autoPages.length ? autoPages : (autoGrid ? [autoGrid] : []);
+    const have = new Set(base.map(c => c.hex));
+    for (const page of seeded) {
+      for (const hex of page) {
         if (hex && !have.has(hex)) { const d = CFG.library.find(c => c.hex === hex); if (d) { have.add(hex); base.push(d); } }
       }
     }
     return base;
-  }, [palette, autoGrid, defaultPalette, CFG]);
+  }, [palette, autoGrid, autoPages, defaultPalette, CFG]);
 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
@@ -11344,7 +11426,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, initialDesign = nu
   if (cellsRef.current === null) {
     const seed = autoGrid ? autoGrid.slice() : new Array(W * H).fill(null);
     if (!initialDesign && isCoasterSize(preset.name)) {
-      const pages = seedCoasterPages(seed, W * H);
+      const pages = seedCoasterPages(seed, W * H, autoPages);
       pagesRef.current = pages;
       undoPagesRef.current = Array.from({ length: COASTER_COUNT }, () => []);
       cellsRef.current = pages[0];
@@ -13178,8 +13260,7 @@ function gridStepsRestorable(s) {
 function restoredGridOpts(s) {
   const t = findGridTemplate(s.craft, s.gridTemplateId);
   if (!t || !s.gridPreset) return {};
-  const chart = t.build(s.gridPreset);
-  return { bgImage: null, autoGrid: s.gridPalette ? xsRecolorGrid(chart, s.gridPalette) : chart };
+  return { bgImage: null, ...gridSeedFromTemplate(t, s.gridPreset, s.gridPalette || null) };
 }
 // The review page an entry points at, as { type, designId }. The design itself is
 // orders of magnitude too big for a history entry, so only its stored id travels
@@ -13459,10 +13540,8 @@ function Root() {
               setGridPhoto(photo || null);
               setGridRemoveBg(removeBg !== false);
               if (template) {
-                // Seed the design from the template grid; color work is next.
-                const grid = template.build(gridPreset);
-                const hasCells = grid && grid.some(Boolean);
-                setGridOpts({ bgImage: null, autoGrid: hasCells ? grid : null });
+                // Seed the design from the template chart; color work is next.
+                setGridOpts({ bgImage: null, ...gridSeedFromTemplate(template, gridPreset, null) });
               } else {
                 // Photo (or nothing yet): the design + trace are built on the palette step.
                 setGridOpts({});
@@ -13487,14 +13566,8 @@ function Root() {
               setGridOpts(o => {
                 const next = { ...o, ...(extra || null) };
                 // A chosen palette overrides the template's default brand colors.
-                // We always re-dress the template's own chart rather than whatever
-                // grid is in state, so stepping back here and picking a different
-                // palette recolors the original instead of a recolored copy.
                 // (A photo-traced design is already built from the palette.)
-                if (gridTemplate) {
-                  const chart = gridTemplate.build(gridPreset);
-                  next.autoGrid = colors ? xsRecolorGrid(chart, colors) : chart;
-                }
+                if (gridTemplate) Object.assign(next, gridSeedFromTemplate(gridTemplate, gridPreset, colors));
                 return next;
               });
               setGridDone(true);
@@ -13505,7 +13578,7 @@ function Root() {
                 const next = { ...o };
                 if (gridPhoto) next.bgImage = gridPhoto;
                 // No palette — back to the template's brand colors.
-                if (gridTemplate) next.autoGrid = gridTemplate.build(gridPreset);
+                if (gridTemplate) Object.assign(next, gridSeedFromTemplate(gridTemplate, gridPreset, null));
                 return next;
               });
               setGridDone(true);
@@ -13514,7 +13587,7 @@ function Root() {
       }
       return (
         <CrossStitchApp preset={gridPreset} palette={gridPalette} craft={craft}
-          bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid}
+          bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid} autoPages={gridOpts.autoPages}
           seedText={gridTemplate && gridTemplate.seedText} onBack={resetAll} onReview={openCart}/>
       );
     }
