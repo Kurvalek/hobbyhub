@@ -67,6 +67,9 @@ const toTemplates = async (craft, size) => {
 await toTemplates('Punch Needle', 'Coaster');
 const coasterCards = await texts(page, '.tmpl-card-name');
 for (const name of SETS) ok(coasterCards.includes(name), `Coaster offers "${name}"`);
+// The sets replaced the single-piece charts at this size rather than joining
+// them: four coasters carrying one abstract pattern wasn't a set worth offering.
+ok(coasterCards.length === SETS.length, `Coaster offers the sets and nothing else (${coasterCards.join(', ')})`);
 const specs = await texts(page, '.tmpl-card .brand-spec-v, .tmpl-card .spec-v');
 ok(specs.some(s => /20 × 20 loops · set of 4/.test(s)), 'a set card quotes one coaster, not the mosaic');
 
@@ -74,6 +77,8 @@ for (const size of ['Small Hoop', 'Large Hoop', 'Pillow']) {
   await toTemplates('Punch Needle', size);
   const cards = await texts(page, '.tmpl-card-name');
   ok(SETS.every(n => !cards.includes(n)), `${size} offers no set charts`);
+  // ...and is not left with an empty template step by that exclusion.
+  ok(cards.length > 0, `${size} still offers charts of its own (${cards.join(', ')})`);
 }
 await toTemplates('Cross-stitch', 'Coaster');
 const xsCards = await texts(page, '.tmpl-card-name');
@@ -135,13 +140,15 @@ ok(JSON.stringify(after) === JSON.stringify(before), 'restored pages match what 
 // ── The ordinary template path still works ─────────────────────────────────
 // Sets share the seeding helper with every other chart, so a plain template has
 // to keep landing as one design — four identical coasters where the size calls
-// for a set, a single canvas where it doesn't.
-await toTemplates('Punch Needle', 'Coaster');
-await clickText(page, '.tmpl-card', 'Sunburst');
+// for a set, a single canvas where it doesn't. Punch needle has no single-piece
+// chart at coaster size any more, so cross-stitch's coaster set carries this.
+await toTemplates('Cross-stitch', 'Coaster');
+const xsCoasterNames = await texts(page, '.tmpl-card-name');
+await clickText(page, '.tmpl-card', xsCoasterNames[0]);
 await clickText(page, '.back-skip', 'Skip for now');
 await new Promise(r => setTimeout(r, 500));
 const plain = await allPageSigs();
-ok(plain.length === 4, 'a plain chart on Coaster still opens four pages');
+ok(plain.length === 4, 'a plain chart on a coaster size still opens four pages');
 ok(new Set(plain).size === 1, 'a plain chart copies itself to all four');
 
 await toTemplates('Punch Needle', 'Large Hoop');
@@ -151,12 +158,11 @@ await new Promise(r => setTimeout(r, 500));
 ok((await texts(page, '.coaster-tab')).length === 0, 'Large Hoop has no coaster tabs');
 ok((await pageSig()) !== null, 'Large Hoop still seeds its chart');
 
-await toTemplates('Cross-stitch', 'Small');
-const xsNames = await texts(page, '.tmpl-card-name');
-await clickText(page, '.tmpl-card', xsNames[0]);
+await toTemplates('Punch Needle', 'Small Hoop');
+await clickText(page, '.tmpl-card', 'Sunburst');
 await clickText(page, '.back-skip', 'Skip for now');
-await new Promise(r => setTimeout(r, 700));
-ok((await pageSig()) !== null, `cross-stitch "${xsNames[0]}" still seeds its chart`);
+await new Promise(r => setTimeout(r, 500));
+ok((await pageSig()) !== null, 'Small Hoop still seeds Sunburst');
 
 const errors = t.errors.filter(e => !e.startsWith('[BABEL]'));
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.join(' | ') : ''}`);

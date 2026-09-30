@@ -177,10 +177,11 @@ const BRAND = {
   olive:  '#B5BB46',
 };
 
-// ── The four charts ────────────────────────────────────────────────────────
+// ── Single-piece charts ────────────────────────────────────────────────────
+// One design filling one hoop or pillow. The coaster sets are further down.
 
 // Square 1 — a sunburst. Rays alternate warm and cool so the wheel still reads
-// once it is resampled down to a 20-loop coaster.
+// once it is resampled down from 40 loops to a 30-loop hoop.
 function drawSunburst(cv) {
   const cx = (cv.W - 1) / 2, cy = (cv.H - 1) / 2;
   cv.fill(BRAND.ice);
@@ -567,7 +568,11 @@ function daisyPanel(petal) {
 const DAISY_PANELS = [daisyPanel(DAISY.lilac), daisyPanel(DAISY.pink),
   daisyPanel(DAISY.orange), daisyPanel(DAISY.blue)];
 
-const SQUARE = ['Coaster', 'Small Hoop', 'Pillow'];
+// Coaster is served entirely by the sets below: a set of four coasters that are
+// four copies of one abstract pattern was never much of a set, and the charts
+// here were only ever offered at that size because they tile to any of them.
+// They remain the square sizes' starting points, where one piece is the product.
+const SQUARE = ['Small Hoop', 'Pillow'];
 const PORTRAIT = ['Large Hoop'];
 const COASTER = ['Coaster'];
 const SET = { presets: COASTER, w: 40, h: 40, unit: { w: 20, h: 20 }, cols: 2, rows: 2 };
