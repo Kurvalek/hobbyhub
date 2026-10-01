@@ -151,18 +151,14 @@ const plain = await allPageSigs();
 ok(plain.length === 4, 'a plain chart on a coaster size still opens four pages');
 ok(new Set(plain).size === 1, 'a plain chart copies itself to all four');
 
-await toTemplates('Punch Needle', 'Large Hoop');
-await clickText(page, '.tmpl-card', 'Rolling Hills');
-await clickText(page, '.back-skip', 'Skip for now');
-await new Promise(r => setTimeout(r, 500));
-ok((await texts(page, '.coaster-tab')).length === 0, 'Large Hoop has no coaster tabs');
-ok((await pageSig()) !== null, 'Large Hoop still seeds its chart');
-
-await toTemplates('Punch Needle', 'Small Hoop');
-await clickText(page, '.tmpl-card', 'Sunburst');
-await clickText(page, '.back-skip', 'Skip for now');
-await new Promise(r => setTimeout(r, 500));
-ok((await pageSig()) !== null, 'Small Hoop still seeds Sunburst');
+for (const size of ['Large Hoop', 'Small Hoop']) {
+  await toTemplates('Punch Needle', size);
+  await clickText(page, '.tmpl-card', 'Soft Shapes');
+  await clickText(page, '.back-skip', 'Skip for now');
+  await new Promise(r => setTimeout(r, 500));
+  ok((await texts(page, '.coaster-tab')).length === 0, `${size} has no coaster tabs`);
+  ok((await pageSig()) !== null, `${size} still seeds its chart`);
+}
 
 const errors = t.errors.filter(e => !e.startsWith('[BABEL]'));
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.join(' | ') : ''}`);

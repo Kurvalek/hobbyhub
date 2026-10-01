@@ -112,24 +112,18 @@ function Canvas(W, H) {
       }
       return cv;
     },
-    ray(x, y, angle, len, r0, r1, hex) {
-      const a = (angle * Math.PI) / 180;
-      return cv.capsule(x, y, x + Math.sin(a) * len, y - Math.cos(a) * len, r0, r1, hex);
-    },
-    // Horizontal band whose centre line rides a sine wave — the stripes and
-    // the hill crests are both this.
-    wave(yMid, amp, period, thick, hex, phase = 0) {
-      for (let x = 0; x < W; x++) {
-        const y = yMid + Math.sin((x / period) * Math.PI * 2 + phase) * amp;
-        for (let t = -thick / 2; t <= thick / 2; t += 0.5) put(x, y + t, hex);
-      }
-      return cv;
-    },
-    // Everything below the sine crest, to the bottom edge — a solid hill.
-    hill(yMid, amp, period, hex, phase = 0) {
-      for (let x = 0; x < W; x++) {
-        const y = yMid + Math.sin((x / period) * Math.PI * 2 + phase) * amp;
-        for (let j = Math.round(y); j < H; j++) put(x, j, hex);
+    // An organic lobed shape: a circle whose radius breathes with the angle.
+    // Two harmonics is the useful amount — one reads as an egg, three starts
+    // pinching off lobes too narrow to punch.
+    blob(cx, cy, r, hex, phase = 0, wob = 0.22) {
+      const reach = Math.ceil(r * (1 + wob)) + 1;
+      for (let y = Math.round(cy) - reach; y <= Math.round(cy) + reach; y++) {
+        for (let x = Math.round(cx) - reach; x <= Math.round(cx) + reach; x++) {
+          const dx = x - cx, dy = y - cy;
+          const a = Math.atan2(dy, dx);
+          const rr = r * (1 + wob * (Math.sin(a * 3 + phase) * 0.62 + Math.sin(a * 2 - phase * 1.7) * 0.38));
+          if (Math.hypot(dx, dy) <= rr) put(x, y, hex);
+        }
       }
       return cv;
     },
@@ -162,81 +156,158 @@ function shadeWithin(cv, from, to, test) {
   }
 }
 
-// metime brand tokens, same set the cross-stitch charts draw from. Each snaps
-// to its nearest tapestry wool during quantization, so the studio palette and
-// yarn list still come out as real, orderable colors.
-const BRAND = {
-  linen:  '#D5D1BD',
-  cream:  '#F5F3EE',
-  ice:    '#CCD6EB',
-  slate:  '#707F87',
-  ink:    '#120F06',
-  tomato: '#E8583A',
-  coral:  '#FDA198',
-  golden: '#FBBB3F',
-  olive:  '#B5BB46',
+// ── Pillow designs ─────────────────────────────────────────────────────────
+// A pillow is 70 loops square, roughly 14 inches — the one punch needle size
+// with room for lettering. The coaster sets are further down.
+
+// "HOME" over "body", the sans line above the script one.
+//
+// Both words are baked here as pixel art rather than drawn by hand or
+// rasterized at build time. The studio's own text tool renders through canvas
+// in the browser, which this script has no access to, so the glyphs were
+// rendered once in headless Chrome through that very function — Söhne 600 for
+// the caps, Dancing Script 700 for the script — and pasted in
+// (tools/_rasterize-lettering.mjs). That keeps the generator pure Node and
+// still gets the real brand faces instead of letters drawn by eye.
+//
+// The sans line is exactly as Söhne drew it at 20 loops: its thinnest stroke is
+// already two loops. The script was set at 34 and then grown by one loop, because
+// Dancing Script keeps a calligraphic thick/thin contrast at every size, so its
+// hairlines land as single loops no matter how large it is set — and one loop of
+// wool reads as a gap rather than a line. The near-solid row where the script
+// sits on its baseline is not a defect: Dancing Script is a joined hand, and the
+// letters really do run together there.
+const HOME_SANS = [
+  '##.......##........###.......###........###...##########',
+  '##.......###....########.....####.......####..##########',
+  '##.......###...##########....####......#####..##########',
+  '##.......###...###....####...#####.....#####..###.......',
+  '##.......###..###......###...#####.....#####..###.......',
+  '##.......###..###.......###..#####....######..###.......',
+  '############..##........###..######...##.###..#########.',
+  '############..##........###..###.##...##.###..#########.',
+  '############..##........###..###.##..###.###..#########.',
+  '##.......###..###.......###..###.###.##..###..###.......',
+  '##.......###..###.......###..###..#####..###..###.......',
+  '##.......###..####.....###...###..#####..###..###.......',
+  '##.......###...####..#####...###..####...###..###.......',
+  '##.......###....#########....###...###...###..##########',
+  '##.......###.....######......###...###...###..##########',
+];
+const BODY_SCRIPT = [
+  '..........##................................###............',
+  '........#####..............................####............',
+  '........#####..............................####............',
+  '.......######.............................#####............',
+  '......#######.............................####.............',
+  '......#######............................#####.............',
+  '.....#######.............................####..............',
+  '....########............................#####..............',
+  '....#######.............................####...............',
+  '...########............................#####...............',
+  '...#######.............................####................',
+  '...#######............................#####................',
+  '..#######.........................########.................',
+  '..######............#####.......##########.................',
+  '.######............#######.....###########....##...........',
+  '.##########........###.###....####...####....####....###...',
+  '.###########....######.###...####...#####...#####...####...',
+  '############...#######.###..####....#####...####...#####...',
+  '####.#######..########.###.#####...#####....####...####....',
+  '####.###.###..####.######..####....#####...#####...####..##',
+  '####.#######.#####.#####..#####...######...####...#####..##',
+  '####.######.######..##########...#######..#####..#####..##.',
+  '####..############..##########..########.#############.###.',
+  '####...##################.###############################..',
+  '####..######..#######.....########.########.#####.######...',
+  '#########.....######......######....#####....##..######....',
+  '########......#####........####......##.........#####......',
+  '.######.......................................######.......',
+  '.............................................#######.......',
+  '............................................#######........',
+  '...........................................###.####........',
+  '...........................................##.####.........',
+  '...........................................######..........',
+  '...........................................#####...........',
+  '...........................................####............',
+];
+// Two colors and no more. The reference is a flat ground with the words punched
+// in one contrasting tone; a third would only muddy it.
+const HOMEBODY = {
+  ground: '#EBB7AF',   // 7213 Shell Pink Very Light
+  ink:    '#E04848',   // 7606 Coral Medium
 };
+function drawHomeBody(cv) {
+  cv.fill(HOMEBODY.ground);
+  const at = (rows, oy) => stamp(cv, rows, { '#': HOMEBODY.ink },
+    Math.round((cv.W - rows[0].length) / 2), oy);
+  at(HOME_SANS, 9);
+  at(BODY_SCRIPT, 28);
+}
 
-// ── Single-piece charts ────────────────────────────────────────────────────
-// One design filling one hoop or pillow. The coaster sets are further down.
+// Overlapping soft shapes. Nothing here is a motif, so this is the one new
+// design that survives being resampled to a 30-loop hoop or stretched to a
+// portrait one, which is why it is the chart offered at every size.
+const BLOBS = {
+  ground: '#D7CECB',   // 7715 Shell Gray Light
+  blue:   '#A2B5C6',   // 7593 Antique Blue Light
+  clay:   '#B39F8B',   // 7465 Mocha Brown Medium
+  stone:  '#BCB4AC',   // 7275 Beaver Gray Light
+  sage:   '#9CA482',   // 7424 Green Gray
+  deep:   '#877D73',   // 7622 Beaver Gray Dark
+};
+function drawBlobs(cv) {
+  const W = cv.W, H = cv.H, R = Math.min(W, H);
+  cv.fill(BLOBS.ground);
+  // Placed off-centre and at four different sizes so the ground still shows at
+  // the corners — the gaps are as much of the design as the shapes.
+  cv.blob(W * 0.30, H * 0.33, R * 0.25, BLOBS.blue, 0.4);
+  cv.blob(W * 0.70, H * 0.26, R * 0.20, BLOBS.sage, 2.1);
+  cv.blob(W * 0.63, H * 0.70, R * 0.27, BLOBS.clay, 4.0);
+  cv.blob(W * 0.24, H * 0.76, R * 0.19, BLOBS.stone, 1.2);
+  // One small dark shape last, where the others pile up, to stop the middle
+  // going flat once the lighter tones have all run together.
+  cv.blob(W * 0.46, H * 0.50, R * 0.11, BLOBS.deep, 3.3);
+}
 
-// Square 1 — a sunburst. Rays alternate warm and cool so the wheel still reads
-// once it is resampled down from 40 loops to a 30-loop hoop.
-function drawSunburst(cv) {
-  const cx = (cv.W - 1) / 2, cy = (cv.H - 1) / 2;
-  cv.fill(BRAND.ice);
-  cv.frame(2, BRAND.slate);
-  const R = Math.min(cx, cy) - 3.5;
-  for (let i = 0; i < 12; i++) {
-    const a = i * 30;
-    cv.ray(cx, cy, a, R, 3.1, 1.3, i % 2 ? BRAND.tomato : BRAND.golden);
+// A name in script, ringed with daisies. The name is deliberately *not* in the
+// chart: a pillow that says one particular name is no use to anyone else, so
+// this ships as daisies around an empty middle and a `seedText` that opens the
+// studio on the text tool with the script face already chosen, the way the
+// cross-stitch Wreath Quote does. The maker types their own.
+const NAMEDAY = {
+  ground: '#F2E3CE',   // 7451 Beige Brown Ultra Very Light
+  centre: '#FDED54',   // 7433 Lemon
+  pink:   '#FF798C',   // 7104 Carnation Medium
+  lilac:  '#A37BA7',   // 7708 Lavender Dark
+  blue:   '#6B9EBF',   // 7314 Blue Medium
+  leaf:   '#71935C',   // 7547 Yellow Green Medium
+};
+// Five petals on a short orbit plus a centre, about thirteen loops across. Kept
+// small on purpose: these frame the lettering rather than compete with it.
+function daisy(cv, cx, cy, petal) {
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 72 + 18) * Math.PI / 180;
+    cv.ellipse(cx + Math.sin(a) * 3.8, cy - Math.cos(a) * 3.8, 2.6, 2.6, petal);
   }
-  cv.ellipse(cx, cy, R * 0.42, R * 0.42, BRAND.ink);
-  cv.ellipse(cx, cy, R * 0.26, R * 0.26, BRAND.coral);
+  cv.ellipse(cx, cy, 2.2, 2.2, NAMEDAY.centre);
 }
-
-// Square 2 — undulating stripes. No motif to lose, so it survives any size and
-// gives the palette step something that shows off all six colors at once.
-function drawWavyStripes(cv) {
-  cv.fill(BRAND.linen);
-  const bands = [BRAND.tomato, BRAND.golden, BRAND.olive, BRAND.slate, BRAND.ink];
-  const step = cv.H / (bands.length + 1);
-  bands.forEach((hex, i) => {
-    cv.wave(step * (i + 1), 2.4, cv.W * 0.82, step * 0.62, hex, i * 0.9);
-  });
-}
-
-// Portrait 1 — a landscape: sun over three overlapping hills. Big flat areas
-// are exactly what punch needle is good at.
-function drawRollingHills(cv) {
-  cv.fill(BRAND.ice);
-  cv.ellipse(cv.W * 0.70, cv.H * 0.22, cv.W * 0.15, cv.W * 0.15, BRAND.golden);
-  cv.hill(cv.H * 0.52, 3.0, cv.W * 1.15, BRAND.olive, 0.4);
-  cv.hill(cv.H * 0.68, 2.6, cv.W * 0.95, BRAND.slate, 2.2);
-  cv.hill(cv.H * 0.84, 2.0, cv.W * 1.30, BRAND.ink, 4.0);
-  // Dark frame, not the cream one this started as: the picker draws every card
-  // on white, and a near-white border simply disappeared into it.
-  cv.frame(2, BRAND.ink);
-}
-
-// Portrait 2 — one oversized bloom. A single flower head is the most forgiving
-// motif at this gauge: the petals stay legible even at 30 loops wide.
-function drawBigBloom(cv) {
-  const cx = (cv.W - 1) / 2;
-  cv.fill(BRAND.slate);
-  cv.frame(2, BRAND.ink);
-  const cy = cv.H * 0.38, R = cv.W * 0.30;
-  // Stem and leaves first, so the petals overlap them.
-  cv.capsule(cx, cy, cx, cv.H - 4, 1.4, 1.4, BRAND.olive);
-  cv.ellipse(cx - R * 0.72, cv.H * 0.68, R * 0.50, R * 0.24, BRAND.olive, -32);
-  cv.ellipse(cx + R * 0.72, cv.H * 0.80, R * 0.50, R * 0.24, BRAND.olive, 32);
-  for (let i = 0; i < 8; i++) {
-    const a = (i * 45) * Math.PI / 180;
-    cv.ellipse(cx + Math.sin(a) * R * 0.82, cy - Math.cos(a) * R * 0.82,
-      R * 0.44, R * 0.30, i % 2 ? BRAND.coral : BRAND.tomato, i * 45);
+function drawNameDaisies(cv) {
+  const W = cv.W, H = cv.H;
+  cv.fill(NAMEDAY.ground);
+  // Two bands of three, top and bottom, which leaves roughly thirty loops clear
+  // across the middle — enough for a name set at the seeded height. Anything
+  // drawn through that band would have to be unpicked before typing.
+  const ring = [
+    [0.22, 0.17, NAMEDAY.pink],  [0.50, 0.11, NAMEDAY.lilac], [0.78, 0.18, NAMEDAY.blue],
+    [0.27, 0.84, NAMEDAY.blue],  [0.52, 0.90, NAMEDAY.pink],  [0.80, 0.83, NAMEDAY.lilac],
+  ];
+  // Leaves go down first, so a petal lands over them rather than beside them.
+  for (const [fx, fy] of ring) {
+    cv.ellipse(W * fx - 6, H * fy + 4, 3.2, 1.4, NAMEDAY.leaf, -28);
+    cv.ellipse(W * fx + 6, H * fy + 4, 3.2, 1.4, NAMEDAY.leaf, 28);
   }
-  cv.ellipse(cx, cy, R * 0.42, R * 0.42, BRAND.golden);
-  cv.ellipse(cx, cy, R * 0.18, R * 0.18, BRAND.ink);
+  for (const [fx, fy, petal] of ring) daisy(cv, W * fx, H * fy, petal);
 }
 
 // ── Coaster sets ───────────────────────────────────────────────────────────
@@ -568,23 +639,24 @@ function daisyPanel(petal) {
 const DAISY_PANELS = [daisyPanel(DAISY.lilac), daisyPanel(DAISY.pink),
   daisyPanel(DAISY.orange), daisyPanel(DAISY.blue)];
 
-// Coaster is served entirely by the sets below: a set of four coasters that are
-// four copies of one abstract pattern was never much of a set, and the charts
-// here were only ever offered at that size because they tile to any of them.
-// They remain the square sizes' starting points, where one piece is the product.
-const SQUARE = ['Small Hoop', 'Pillow'];
-const PORTRAIT = ['Large Hoop'];
+// Coaster is served entirely by the sets below. The two lettering designs are
+// Pillow only: letters are the one thing on this list that cannot be resampled.
+// Dropping 70 loops to a 30-loop hoop leaves the caps six loops tall, and
+// stretching a square chart onto a portrait hoop squeezes them sideways — either
+// way the words stop being words. The abstract chart has no such problem, so it
+// is what the two hoop sizes are offered.
+const PILLOW = ['Pillow'];
+const ANY_SIZE = ['Pillow', 'Large Hoop', 'Small Hoop'];
 const COASTER = ['Coaster'];
 const SET = { presets: COASTER, w: 40, h: 40, unit: { w: 20, h: 20 }, cols: 2, rows: 2 };
 const DESIGNS = [
-  { id: 'pn-sunburst', name: 'Sunburst', desc: 'Radiating rays around a bold centre.',
-    presets: SQUARE, w: 40, h: 40, colors: 6, draw: drawSunburst },
-  { id: 'pn-waves', name: 'Wavy Stripes', desc: 'Five rolling bands of color.',
-    presets: SQUARE, w: 40, h: 40, colors: 6, draw: drawWavyStripes },
-  { id: 'pn-hills', name: 'Rolling Hills', desc: 'A low sun over layered hills.',
-    presets: PORTRAIT, w: 40, h: 50, colors: 6, draw: drawRollingHills },
-  { id: 'pn-bloom', name: 'Big Bloom', desc: 'One oversized flower, stem and leaves.',
-    presets: PORTRAIT, w: 40, h: 50, colors: 6, draw: drawBigBloom },
+  { id: 'pn-homebody', name: 'Homebody', desc: 'Two lines of lettering, sans over script.',
+    presets: PILLOW, w: 70, h: 70, colors: 2, draw: drawHomeBody },
+  { id: 'pn-blobs', name: 'Soft Shapes', desc: 'Overlapping blobs in muted tones.',
+    presets: ANY_SIZE, w: 70, h: 70, colors: 6, draw: drawBlobs },
+  { id: 'pn-name-daisies', name: 'Name in Daisies', desc: 'Daisies above and below, your name between.',
+    presets: PILLOW, w: 70, h: 70, colors: 6, draw: drawNameDaisies,
+    seedText: { font: 'script', size: 22 } },
   { ...SET, id: 'pn-cats', name: 'Four Cats', desc: 'A calico, a tuxedo, a grey and a ginger.',
     colors: 8, ground: CATS.ground, panels: CAT_PANELS },
   { ...SET, id: 'pn-fruit', name: 'Fruit Stand', desc: 'Strawberry, lemon, watermelon, plum.',
@@ -671,6 +743,7 @@ for (const d of DESIGNS) {
   writePreview(d.id, colors, idx, d.w, d.h);
   const entry = { id: d.id, name: d.name, desc: d.desc, presets: d.presets, w: d.w, h: d.h, colors, rle };
   if (d.panels) entry.set = { cols: d.cols, rows: d.rows, w: d.unit.w, h: d.unit.h };
+  if (d.seedText) entry.seedText = d.seedText;
   out.push(entry);
   const tag = d.panels ? ` set=${d.cols}x${d.rows} of ${d.unit.w}x${d.unit.h}` : '';
   console.log(`${d.id.padEnd(12)} ${d.w}x${d.h}  colors=${colors.length}  fill=${(100 * fill / (d.w * d.h)).toFixed(0)}%  rleBytes=${rle.length}${tag}`);
@@ -682,6 +755,8 @@ const banner = '// AUTO-GENERATED by tools/gen-punch-templates.mjs — do not ha
   + '// Each entry is a canonical punch needle chart: { id, name, desc, presets, w, h,\n'
   + '//   colors:[hex...], rle } where rle tokens are "<idxB36>.<runB36>" and idx 0 = empty.\n'
   + '// A `set:{cols,rows,w,h}` entry is a mosaic of that many panels, one per coaster.\n'
+  + '// A `seedText:{font,size}` entry opens the studio on the text tool so the maker\n'
+  + '//   can type the words the chart leaves room for.\n'
   + '// Colors are DMC Laine Colbert tapestry wool (see assets/tapestry-wool.js).\n';
 fs.writeFileSync(OUT_JS, banner + 'window.PUNCH_TEMPLATE_DATA = ' + JSON.stringify(out) + ';\n');
 console.log('\nWrote', path.relative(ROOT, OUT_JS), '(' + fs.statSync(OUT_JS).size + ' bytes)');
