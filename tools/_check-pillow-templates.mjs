@@ -88,7 +88,7 @@ await new Promise(r => setTimeout(r, 700));
 const seeded = await page.evaluate(() => {
   const ta = document.querySelector('textarea');
   const panel = ta && ta.parentElement;
-  const faces = ['Serif', 'Sans', 'Script', 'Sampler'];
+  const faces = ['Serif', 'Sans', 'Script', 'Sampler', 'Old Style', 'Swash'];
   const chosen = panel && [...panel.querySelectorAll('button')]
     .find(b => faces.includes(b.textContent.trim()) && b.classList.contains('btn-dark'));
   const range = panel && panel.querySelector('input[type=range]');
@@ -159,7 +159,7 @@ await t.close();
   const sheet = await m.page.evaluate(() => {
     const ta = document.querySelector('textarea');
     const chosen = [...document.querySelectorAll('button.btn-sm')]
-      .find(b => b.classList.contains('btn-dark') && ['Serif', 'Sans', 'Script', 'Sampler'].includes(b.textContent.trim()));
+      .find(b => b.classList.contains('btn-dark') && ['Serif', 'Sans', 'Script', 'Sampler', 'Old Style', 'Swash'].includes(b.textContent.trim()));
     return { inStudio: !!document.querySelector('.xs-app'), open: !!ta, font: chosen && chosen.textContent.trim() };
   });
   ok(sheet.inStudio, 'mobile reaches the punch needle studio');

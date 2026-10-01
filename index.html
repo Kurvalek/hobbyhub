@@ -15,14 +15,15 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=Dancing+Script:wght@500;600;700&family=Rye&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=Cal+Sans&family=Manufacturing+Consent&family=Meow+Script&family=Oleo+Script+Swash+Caps:wght@400;700&family=Rye&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@7.9.0/css/iconoir.css" rel="stylesheet"/>
 <style>
   /* Self-hosted brand type — Söhne (sans + mono) and BC Civitas (display).
-     Trial ("TEST") cuts as supplied. Dancing Script and Rye (Google) are kept
-     only for the cross-stitch text tool — the script and sampler styles. Rye's
-     wedge serifs are the classic stitched-sampler alphabet, and they survive
-     being rasterized down to ~12 stitches, which most display faces don't. */
+     Trial ("TEST") cuts as supplied. The stitch text tool uses Google faces
+     instead (Arvo, Cal Sans, Meow Script, Manufacturing Consent, Oleo Script
+     Swash Caps, plus Rye for the sampler alphabet). Rye's wedge serifs are
+     the classic stitched-sampler letterforms, and they survive being
+     rasterized down to ~12 stitches, which most display faces don't. */
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Sohne-Light.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }
@@ -11005,10 +11006,12 @@ const CRAFT_STUDIO = {
   },
 };
 const XS_FONTS = {
-  serif:   { label: "Serif",   family: '"BC Civitas", serif',        weight: 400 },
-  sans:    { label: "Sans",    family: '"Söhne", sans-serif',        weight: 600 },
-  script:  { label: "Script",  family: '"Dancing Script", cursive',  weight: 700 },
-  sampler: { label: "Sampler", family: '"Rye", serif',               weight: 400 },
+  serif:    { label: "Serif",     family: '"Arvo", serif',                         weight: 700 },
+  sans:     { label: "Sans",      family: '"Cal Sans", sans-serif',                weight: 400 },
+  script:   { label: "Script",    family: '"Meow Script", cursive',                weight: 400 },
+  sampler:  { label: "Sampler",   family: '"Rye", serif',                          weight: 400 },
+  oldstyle: { label: "Old Style", family: '"Manufacturing Consent", serif',        weight: 400 },
+  swash:    { label: "Swash",     family: '"Oleo Script Swash Caps", cursive',     weight: 700 },
 };
 // Line pitch for multi-line text, in stitches. Tighter than a typographic
 // leading would be: at this size the gap is counted in whole stitches, and
@@ -11067,7 +11070,7 @@ function StitchTextControls({ text, setText, textFont, setTextFont, textSize, se
       <textarea rows={4} placeholder="Type text… Enter for a new line" value={text}
         onChange={e => setText(e.target.value)} autoFocus={autoFocus}
         style={{ resize: 'vertical', minHeight: 74, lineHeight: 1.35 }}/>
-      {/* Four fonts don't fit one row at a readable size, so they wrap 2x2. */}
+      {/* Six faces don't fit one row at a readable size, so they wrap 2×3. */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {Object.keys(XS_FONTS).map(id => (
           <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
