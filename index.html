@@ -8569,12 +8569,14 @@ function tplPatchCount(cols, rows) {
   return { nx: Math.max(2, Math.round(cols / unit)), ny: Math.max(2, Math.round(rows / unit)) };
 }
 const tplKona = n => konaByName(n) || KONA[0];
-// Pick the i-th color from the chosen palette, falling back to a named Kona
-// default when there's no palette or it's shorter than the template needs.
-// This lets a template "wear" the palette the user picked on the palette step
-// while still looking right (two-/three-tone) for a skipped or short palette.
-const tplColor = (palette, i, fallbackName) =>
-  (palette && palette[i]) ? palette[i] : tplKona(fallbackName);
+// The colors a layout will actually sew with: the whole chosen palette when
+// there is one, otherwise the named Kona defaults that belong to that chart.
+// Cycling the whole list — not just the first two — is what keeps a six-color
+// palette from collapsing into the same navy-and-white two-tone on every card.
+function tplSwatches(palette, fallbacks) {
+  if (palette && palette.length) return palette;
+  return fallbacks.map(tplKona);
+}
 function tplTriPoints(s) {
   const { r, c, w, h } = s;
   if (s.dir === '/') return s.half === 'a'
@@ -8592,51 +8594,79 @@ function tplTriPoints(s) {
 // There's no "Blank" card in the grid — "Skip for now" is the empty-canvas route.
 const QUILT_TEMPLATES = [
   {
-    id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating two-color squares.',
+    id: 'checkerboard', name: 'Checkerboard', desc: 'A light ground, prints in several colors.',
     build: ({ cols, rows, palette }) => {
-      const a = tplColor(palette, 0, 'Navy'), b = tplColor(palette, 1, 'White');
-      const { nx, ny } = tplPatchCount(cols, rows);
-      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
-      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
-        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: (ri + ci) % 2 ? a : b });
-      }));
-      return out;
-    }
-  },
-  {
-    id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 patchwork, tiled.',
-    build: ({ cols, rows, palette }) => {
-      const a = tplColor(palette, 0, 'Rich Red'), b = tplColor(palette, 1, 'White');
-      const { nx, ny } = tplPatchCount(cols, rows);
-      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
-      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
-        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: ((ri % 3) + (ci % 3)) % 2 === 0 ? a : b });
-      }));
-      return out;
-    }
-  },
-  {
-    id: 'railfence', name: 'Rail Fence', desc: 'Woven strips of three fabrics.',
-    build: ({ cols, rows, palette }) => {
-      const rails = [tplColor(palette, 0, 'Navy'), tplColor(palette, 1, 'Mustard'), tplColor(palette, 2, 'Natural')];
-      const { nx, ny } = tplPatchCount(cols, rows);
-      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
-      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
-        const horiz = (Math.floor(ri / 3) + Math.floor(ci / 3)) % 2 === 0;
-        const idx = (horiz ? ri : ci) % 3;
-        if (w > 0 && h > 0) out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: rails[idx] });
-      }));
-      return out;
-    }
-  },
-  {
-    id: 'hst', name: 'Half-Square Triangles', desc: 'A grid of two-tone triangle blocks.',
-    build: ({ cols, rows, palette }) => {
-      const a = tplColor(palette, 0, 'Navy'), b = tplColor(palette, 1, 'White');
+      // One fabric holds the even squares so it still reads as a checker; the
+      // odd squares walk the rest of the palette, which is how a scrappy
+      // postage-stamp quilt shows every fabric without losing the grid.
+      const colors = tplSwatches(palette, ['Bone', 'Hyacinth', 'Spice', 'Zucchini', 'Flame', 'Lilac']);
+      const ground = colors[0];
+      const prints = colors.length > 1 ? colors.slice(1) : colors;
       const { nx, ny } = tplPatchCount(cols, rows);
       const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
       sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
         if (w <= 0 || h <= 0) return;
+        const color = (ri + ci) % 2 === 0 ? ground : prints[(ri * 3 + ci) % prints.length];
+        out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 blocks, each a mix of fabrics.',
+    build: ({ cols, rows, palette }) => {
+      // Ground on the four side-centers, a different print on each corner of
+      // the 3×3, and a third on the middle — the usual nine-patch roles, but
+      // the prints keep moving so neighbouring blocks don't match.
+      const colors = tplSwatches(palette, ['Natural', 'Rich Red', 'Butterscotch', 'Hyacinth', 'Palm', 'Wine']);
+      const ground = colors[0];
+      const prints = colors.length > 1 ? colors.slice(1) : colors;
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w <= 0 || h <= 0) return;
+        const br = ri % 3, bc = ci % 3;
+        const corner = br % 2 === 0 && bc % 2 === 0;
+        const center = br === 1 && bc === 1;
+        let color = ground;
+        if (center) color = prints[0];
+        else if (corner) color = prints[1 + ((Math.floor(ri / 3) * 2 + Math.floor(ci / 3) + br + bc) % Math.max(1, prints.length - 1))];
+        out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'railfence', name: 'Rail Fence', desc: 'Woven strips walking the palette.',
+    build: ({ cols, rows, palette }) => {
+      const rails = tplSwatches(palette, ['Butterscotch', 'Dresden Blue', 'Terracotta', 'Peach', 'Hyacinth', 'Zucchini']);
+      // Weave in fours even when the palette is longer — a six-wide group on a
+      // twelve-patch thumb is one flip, and the fence stops reading as woven.
+      const group = Math.min(4, rails.length);
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w <= 0 || h <= 0) return;
+        const horiz = (Math.floor(ri / group) + Math.floor(ci / group)) % 2 === 0;
+        out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color: rails[(horiz ? ri : ci) % rails.length] });
+      }));
+      return out;
+    }
+  },
+  {
+    id: 'hst', name: 'Half-Square Triangles', desc: 'Triangle blocks that walk through the palette.',
+    build: ({ cols, rows, palette }) => {
+      // Each block is still two triangles, but neighbouring blocks pick the
+      // next pair along the palette, so the field is a run of colorways
+      // rather than one navy-and-white pair tiled forever.
+      const colors = tplSwatches(palette, ['Hyacinth', 'Ice Peach', 'Spice', 'Lemon', 'Zucchini', 'Midnight']);
+      const n = colors.length;
+      const { nx, ny } = tplPatchCount(cols, rows);
+      const sx = tplSegments(cols, nx), sy = tplSegments(rows, ny), out = [];
+      sy.forEach(([r, h], ri) => sx.forEach(([c, w], ci) => {
+        if (w <= 0 || h <= 0) return;
+        const k = (ri + ci) % n;
+        const a = colors[k], b = colors[(k + 1) % n];
         const pid = `hst-${ri}-${ci}`, flip = (ri + ci) % 2 === 0;
         out.push({ id: pid + 'a', r, c, w, h, type: 'tri', color: flip ? a : b, dir: '/', half: 'a', pairId: pid });
         out.push({ id: pid + 'b', r, c, w, h, type: 'tri', color: flip ? b : a, dir: '/', half: 'b', pairId: pid });
