@@ -668,6 +668,9 @@
   /* Row in materials list */
   .mat-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--warm-divider-soft); }
   .mat-row:last-child { border-bottom: none; }
+  .mat-row-clickable { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--warm-divider-soft); cursor: pointer; text-align: left; font: inherit; color: inherit; box-sizing: border-box; transition: background .12s; }
+  .mat-row-clickable:hover { background: var(--warm-hover); }
+  .mat-row-clickable:focus-visible { outline: 2px solid var(--selection); outline-offset: -2px; }
 
   /* Slider row */
   .slider-row { display: flex; flex-direction: column; gap: 4px; }
@@ -6550,6 +6553,33 @@ function MaterialsBlock({ materials, grandTotal, fmtY }) {
   );
 }
 
+function quiltColorKey(c) {
+  return c ? (c.name || c.hex || '') : '';
+}
+
+function QuiltColorList({ items, fmtY, onPickItem }) {
+  if (!items.length) {
+    return (
+      <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
+    );
+  }
+  return items.map(item => (
+    <button
+      key={item.name}
+      type="button"
+      className="mat-row mat-row-clickable"
+      title={`Replace all ${item.name} patches`}
+      onClick={e => onPickItem(item, e.currentTarget)}>
+      <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
+        <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
+      </div>
+      <div style={{fontSize:14,fontWeight:600,fontVariantNumeric:'tabular-nums',color:'var(--warm-fg)'}}>{fmtY(item.yards)}</div>
+    </button>
+  ));
+}
+
 // ── Canvas pinch / ctrl-wheel zoom (shared by quilt + cross-stitch) ───────
 // Zoom is applied by resizing content; pan is the scroll container. Pinch and
 // ctrl/cmd+wheel update zoom while anchoring the focal point under the fingers
@@ -7050,6 +7080,37 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
   const closePicker = useCallback(() => setPicker(null), []);
 
+  // Replace every patch of one fabric with another — used by the materials
+  // list so a color can be swapped across the whole quilt top at once.
+  const recolorAllMatching = useCallback((fromColor, toColor) => {
+    if (!fromColor || !toColor || quiltColorKey(fromColor) === quiltColorKey(toColor)) return;
+    const matches = c => c && quiltColorKey(c) === quiltColorKey(fromColor);
+    const recolor = list => list.map(s => matches(s.color) ? { ...s, color: toColor } : s);
+    setShapes(prev => recolor(prev));
+    if (coasterUnitsRef.current) {
+      let changed = false;
+      coasterUnitsRef.current = coasterUnitsRef.current.map((u, i) => {
+        if (i === activeCoaster) return u;
+        const next = recolor(u);
+        if (next.some((s, j) => s !== u[j])) changed = true;
+        return next;
+      });
+      if (changed) setCoasterRev(n => n + 1);
+    }
+    setColor(c => matches(c) ? toColor : c);
+    setPinned(p => p.find(x => x.name === toColor.name) ? p : [...p, toColor]);
+  }, [setShapes, activeCoaster]);
+
+  const openMaterialRecolor = useCallback((item, el) => {
+    if (el) libraryAnchorRef.current = el;
+    setPicker({
+      onPick: c => recolorAllMatching(item, c),
+      showMyPalette: true,
+      title: `Replace ${item.name}`,
+      fromColor: item,
+    });
+  }, [recolorAllMatching]);
+
   const handleSwapTriColors = useCallback(() => {
     const sel = shapes.filter(s => selIds.has(s.id));
     const pids = new Set();
@@ -7398,19 +7459,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           <div style={{borderTop:'1px solid var(--warm-divider-soft)',flex:1,overflowY:'auto'}}>
             <div style={{padding:'10px 16px 4px'}}>
               <div className="label">Quilt top · by color</div>
+              {materials.items.length > 0 && (
+                <div style={{fontSize:11,color:'var(--warm-muted)',marginTop:2}}>Tap a color to replace it everywhere</div>
+              )}
             </div>
-            {materials.items.length===0 ? (
-              <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
-            ) : materials.items.map(item=>(
-              <div key={item.name} className="mat-row">
-                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
-                  <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
-                </div>
-                <div style={{fontSize:14,fontWeight:600,fontVariantNumeric:'tabular-nums',color:'var(--warm-fg)'}}>{fmtY(item.yards)}</div>
-              </div>
-            ))}
+            <QuiltColorList items={materials.items} fmtY={fmtY} onPickItem={openMaterialRecolor}/>
             <div style={{padding:'12px 16px',fontSize:11,color:'var(--warm-muted)',lineHeight:1.6}}>
               Assumes 40" WOF, ¼" seam allowance. Backing adds 4" per side. Binding: 2.5" double-fold strips. Add 10–15% for shrinkage.
             </div>
@@ -7484,19 +7537,13 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         <BottomSheet onClose={()=>setSheet(null)} title="Materials">
           <MaterialsBlock materials={materials} grandTotal={grandTotal} fmtY={fmtY}/>
           <div style={{borderTop:'1px solid var(--warm-divider-soft)'}}>
-            <div style={{padding:'10px 16px 4px'}}><div className="label">Quilt top · by color</div></div>
-            {materials.items.length===0 ? (
-              <div style={{padding:'12px 16px',fontSize:12,color:'var(--warm-muted)',fontStyle:'italic'}}>Draw shapes to see your fabric list.</div>
-            ) : materials.items.map(item=>(
-              <div key={item.name} className="mat-row">
-                <div style={{width:26,height:26,background:item.hex,border:'1px solid rgba(0,0,0,0.10)',borderRadius:3,flexShrink:0}}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</div>
-                  <div style={{fontSize:11,color:'var(--warm-muted)',fontFamily:'var(--font-mono)'}}>{item.count} pcs · {item.strips} strip{item.strips!==1?'s':''}</div>
-                </div>
-                <div style={{fontSize:14,fontWeight:600,fontVariantNumeric:'tabular-nums',color:'var(--warm-fg)'}}>{fmtY(item.yards)}</div>
-              </div>
-            ))}
+            <div style={{padding:'10px 16px 4px'}}>
+              <div className="label">Quilt top · by color</div>
+              {materials.items.length > 0 && (
+                <div style={{fontSize:11,color:'var(--warm-muted)',marginTop:2}}>Tap a color to replace it everywhere</div>
+              )}
+            </div>
+            <QuiltColorList items={materials.items} fmtY={fmtY} onPickItem={openMaterialRecolor}/>
           </div>
         </BottomSheet>
       )}
@@ -7510,7 +7557,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           search={search} setSearch={setSearch}
           grp={grp} setGrp={setGrp}
           filtered={filtered}
-          color={color} setColor={setColor}
+          color={picker.fromColor || color} setColor={setColor}
           selIds={selIds} setShapes={setShapes}
           customs={customs} setCustoms={setCustoms}
           setPinned={setPinned}
