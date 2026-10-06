@@ -925,7 +925,7 @@
     justify-self: stretch; width: 100%; min-width: 0;
     display: flex; align-items: center; justify-content: center;
     height: clamp(140px, 21.6vh, 221px); overflow: hidden;
-    background: var(--metime-cream);
+    background: transparent;
   }
   .size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0 auto; object-fit: contain; }
   .size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
@@ -8076,12 +8076,11 @@ function QuiltThumb({ preset }) {
 
 function ProjectCard({ preset, onSelect, price }) {
   const art = PRESET_IMAGES[preset.name];
-  const theme = PRESET_THEMES[preset.name];
   const label = preset.label || preset.name;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
       aria-label={[label, presetDims(preset), price && `kit ${price}`].filter(Boolean).join(", ")}>
-      <span className="size-card-visual" style={theme ? { background: theme.c1 } : undefined}>
+      <span className="size-card-visual">
         {art
           ? <img src={art.src} alt="" width={art.w} height={art.h} loading="eager" decoding="async" fetchPriority="high"/>
           : <QuiltThumb preset={preset}/>}
@@ -10999,14 +10998,13 @@ function GridSizeThumb({ preset, craft }) {
 function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch', price }) {
   const cfg = CRAFT_STUDIO[craft];
   const image = (GRID_SIZE_IMAGES[craft] || {})[preset.name];
-  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name];
   const dims = isCoasterSize(preset.name)
     ? `${preset.w} × ${preset.h} ${cfg.unitPlural} · set of 4`
     : `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
       aria-label={[preset.name, dims, price && `kit ${price}`].filter(Boolean).join(", ")}>
-      <span className="size-card-visual" style={theme ? { background: theme.c1 } : undefined}>
+      <span className="size-card-visual">
         {image
           ? <img src={image} alt="" loading="eager" decoding="async" fetchPriority="high"/>
           : <GridSizeThumb preset={preset} craft={craft}/>}
