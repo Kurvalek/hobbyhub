@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>metime</title>
+<title>metime · Design quilts, cross-stitch and punch needle kits</title>
+<meta name="description" content="Design a quilt, cross-stitch or punch needle project on screen. We cut the fabric and thread and send you the kit."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="metime · Design quilts, cross-stitch and punch needle kits"/>
+<meta property="og:description" content="Design a quilt, cross-stitch or punch needle project on screen. We cut the fabric and thread and send you the kit."/>
+<meta property="og:image" content="TODO: assets/og-share.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="metime · Design quilts, cross-stitch and punch needle kits"/>
+<meta name="twitter:description" content="Design a quilt, cross-stitch or punch needle project on screen. We cut the fabric and thread and send you the kit."/>
+<meta name="twitter:image" content="TODO: assets/og-share.png"/>
 <link rel="icon" type="image/png" href="assets/metime-icon.png"/>
 <link rel="apple-touch-icon" href="assets/metime-icon.png"/>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
@@ -153,10 +162,10 @@
     --press-scale: 0.96;
     --press-scale-card: 0.985;
     --press-dur: 90ms;
-    --step-dur: 300ms;
-    --art-dur: 440ms;
-    --art-rise: 14px;
-    --art-stagger: 55ms;
+    --step-dur: 150ms;
+    --art-dur: 150ms;
+    --art-rise: 8px;
+    --art-stagger: 30ms;
 
     /* Fonts. Sans and display both run the brand grotesk so the editor's chrome
        reads as the same product as the pages around it; the display face keeps a
@@ -775,7 +784,7 @@
   .saved-card:nth-child(4n) { border-right: none; }
   .saved-card:nth-child(n+5) { border-top: 1px solid var(--metime-black); }
   .saved-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-  .saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; overflow: hidden; background: var(--metime-white); }
+  .saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; overflow: hidden; background: var(--metime-cream); }
   .saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
   .saved-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
   .saved-card-text { min-width: 0; }
@@ -916,6 +925,7 @@
     justify-self: stretch; width: 100%; min-width: 0;
     display: flex; align-items: center; justify-content: center;
     height: clamp(140px, 21.6vh, 221px); overflow: hidden;
+    background: var(--metime-cream);
   }
   .size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0 auto; object-fit: contain; }
   .size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
@@ -1186,12 +1196,12 @@
   .tmpl-page .tmpl-card-thumb {
     flex: 0 0 auto; align-self: stretch; width: 100%; min-width: 0;
     display: flex; align-items: center; justify-content: center;
-    height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: none; padding: 0;
+    height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: var(--metime-cream); padding: 0;
   }
   .tmpl-page .tmpl-card-thumb svg {
     display: block; height: 100%; width: auto; max-width: 100%;
   }
-  .tmpl-page .tmpl-card-thumb.is-ratio { height: clamp(140px, 21.6vh, 221px); background: none; }
+  .tmpl-page .tmpl-card-thumb.is-ratio { height: clamp(140px, 21.6vh, 221px); background: var(--metime-cream); }
   .tmpl-page .tmpl-card-thumb.is-ratio svg {
     width: auto; height: 100%; max-width: 100%;
     aspect-ratio: var(--tmpl-ar);
@@ -1610,7 +1620,7 @@
      card) preview at that proportion instead of inside a fixed box, so a 30x120
      bookmark chart reads as a tall strip. Height is capped at --tmpl-thumb-h and
      the strip is centered, keeping cards a sane size; no plate behind the art. */
-  .tmpl-card-thumb.is-ratio { background: none; height: auto; }
+  .tmpl-card-thumb.is-ratio { background: var(--metime-cream); height: auto; }
   .tmpl-card-thumb.is-ratio svg { width: min(100%, calc(var(--tmpl-thumb-h, 300px) * var(--tmpl-ar))); height: auto; aspect-ratio: var(--tmpl-ar); }
   .tmpl-card-body { padding: 12px 15px 15px; }
   .tmpl-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; margin-bottom: 4px; }
@@ -1647,7 +1657,7 @@
   .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
   .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
   .fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-  .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-white); font: inherit; transition: box-shadow .15s, transform .12s; }
+  .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-cream); font: inherit; transition: box-shadow .15s, transform .12s; }
   .fabric-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.13); transform: translateY(-2px); }
   .fabric-card:active { transform: translateY(0); }
   .fabric-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
@@ -1775,8 +1785,11 @@
      time, which is what read as a jump. Only what actually changes moves: the
      step title crossfades and the card artwork drifts up into place. The
      studios are a genuinely different screen, so those fade in whole. */
-  .app, .xs-app, .size-title {
+  .app, .xs-app {
     animation: step-fade var(--step-dur) var(--ease-out) both;
+  }
+  .brand-head-text {
+    animation: head-enter var(--step-dur) var(--ease-out) both;
   }
   .land-craft-visual, .size-card-visual,
   .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches {
@@ -1796,14 +1809,18 @@
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+  @keyframes head-enter {
+    from { transform: translate3d(0, 6px, 0); }
+    to   { transform: none; }
+  }
   @keyframes art-rise {
-    from { opacity: 0; transform: translate3d(0, var(--art-rise), 0); }
-    to   { opacity: 1; transform: none; }
+    from { transform: translate3d(0, var(--art-rise), 0); }
+    to   { transform: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     :root { --press-scale: 1; --press-scale-card: 1; }
-    .app, .xs-app, .size-title, .land-craft-visual, .size-card-visual,
+    .app, .xs-app, .brand-head-text, .land-craft-visual, .size-card-visual,
     .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches { animation: none; }
   }
 
@@ -2445,13 +2462,13 @@
     height: clamp(190px, 27vh, 280px);
     padding: 0;
     box-sizing: border-box;
-    background: none;
+    background: var(--brand-cream);
     border: none;
   }
   .brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
   .brand-shell .tmpl-card-thumb.is-ratio {
     height: clamp(190px, 27vh, 280px);
-    background: none;
+    background: var(--brand-cream);
   }
   .brand-shell .tmpl-page .tmpl-card-body,
   .brand-shell .tmpl-card-body {
@@ -2981,7 +2998,7 @@
   }
   .brand-shell .saved-card:hover { background: var(--brand-cream); }
   .brand-shell .saved-card:nth-child(n+5) { border-top-color: var(--brand-ink); }
-  .brand-shell .saved-thumb { background: none; border: none; }
+  .brand-shell .saved-thumb { background: var(--brand-cream); border: none; }
   .brand-shell .saved-name {
     font-family: var(--brand-font);
     font-size: var(--brand-body-s);
@@ -3150,7 +3167,7 @@ function warnSupabaseUnreachable() {
 // What the library drawer shows after a save that had to stay on this device
 // because the client never loaded (AccountsOfflineNote says it up front).
 const ACCOUNTS_OFFLINE_SAVE_MSG =
-  "Accounts couldn't load — saved to this device only. Reload to try again.";
+  "Accounts couldn't load. Saved to this device only. Reload to try again.";
 
 // Lazily created singleton. supabase-js owns the session: it persists the
 // access/refresh tokens in localStorage and refreshes them in the background,
@@ -3264,7 +3281,7 @@ const KIT_INFO = {
   },
   "cross-stitch": {
     included: [
-      "Printed chart with a full-colour symbol legend",
+      "Printed chart with a full-color symbol legend",
       "Printed step-by-step instructions",
     ],
     extras: {
@@ -3279,7 +3296,7 @@ const KIT_INFO = {
   },
   "punch-needle": {
     included: [
-      "Printed chart with a full-colour legend",
+      "Printed chart with a full-color legend",
       "Printed step-by-step instructions",
     ],
     extras: {
@@ -3992,10 +4009,10 @@ function kitInchBox(o) {
 function kitSupplyRows(type, bom) {
   if (!bom) return null;
   const rows = [];
-  const named = (code, name) => (code ? `DMC ${code} — ${name}` : name);
+  const named = (code, name) => (code ? `DMC ${code} · ${name}` : name);
   if (type === "quilt") {
     (bom.fabrics || []).forEach((f) => rows.push({
-      hex: f.hex, label: f.code ? `Kona ${f.code} — ${f.name}` : f.name, qty: f.yardsLabel,
+      hex: f.hex, label: f.code ? `Kona ${f.code} · ${f.name}` : f.name, qty: f.yardsLabel,
     }));
     if (bom.batting) rows.push({ label: "Batting", qty: kitInchBox(bom.batting) });
     if (bom.backing) rows.push({ label: "Backing fabric", qty: bom.backing.yardsLabel });
@@ -4029,7 +4046,7 @@ function kitSupplyRowsLocal(type, record) {
   if (!record) return [];
   if (type === "quilt") {
     const rows = ((record.materials && record.materials.items) || []).map((m) => ({
-      hex: m.hex, label: m.code ? `Kona ${m.code} — ${m.name}` : m.name, qty: fmtY(m.yards || 0),
+      hex: m.hex, label: m.code ? `Kona ${m.code} · ${m.name}` : m.name, qty: fmtY(m.yards || 0),
     }));
     if (record.backing && record.backCalc) rows.push({ label: "Backing fabric", qty: fmtY(record.backCalc.yards) });
     if (record.binding && record.bindCalc) rows.push({ label: "Binding fabric", qty: fmtY(record.bindCalc.yards) });
@@ -4038,7 +4055,7 @@ function kitSupplyRowsLocal(type, record) {
   const cfg = CRAFT_STUDIO[type];
   const unit = cfg ? cfg.unitPlural : "stitches";
   return (record.colors || []).map((c) => ({
-    hex: c.hex, label: c.code ? `DMC ${c.code} — ${c.name}` : c.name, qty: `${c.count} ${unit}`,
+    hex: c.hex, label: c.code ? `DMC ${c.code} · ${c.name}` : c.name, qty: `${c.count} ${unit}`,
   }));
 }
 
@@ -4289,7 +4306,7 @@ function useKitPurchase({ type, design, getDesign, savedId, onSaved, onReview })
       designId = await ensureSaved(record);
     } catch (e) {
       console.warn("Design save failed:", e);
-      setState({ status: "error", message: "Couldn't reach the kit service — try again" });
+      setState({ status: "error", message: "Couldn't reach the kit service. Try again." });
       return;
     }
     // Either Shopify isn't wired up or this size has no kit product. The design
@@ -4310,7 +4327,7 @@ function useKitPurchase({ type, design, getDesign, savedId, onSaved, onReview })
       await startKitCheckout(type, record, designId);
     } catch (e) {
       console.warn("Shopify checkout failed:", e);
-      setState({ status: "error", message: "Couldn't reach checkout — your design is safe, try again in a moment" });
+      setState({ status: "error", message: "Couldn't reach checkout. Your design is safe. Try again in a moment." });
     }
   };
 
@@ -4326,7 +4343,7 @@ function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
   const label = status === "saving" ? "Saving…"
     : status === "redirecting" ? "Opening checkout…"
     : status === "done" ? "Saved for checkout ✓"
-    : sellable ? (price ? `Review kit — ${price}` : "Review kit")
+    : sellable ? (price ? `Review kit · ${price}` : "Review kit")
     : "Save for checkout";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
@@ -4342,7 +4359,7 @@ function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
         </div>
       )}
       {status === "error" && (
-        <div className="err-msg" style={{ fontSize: 11 }}>{message || "Couldn't reach the kit service — try again"}</div>
+        <div className="err-msg" style={{ fontSize: 11 }}>{message || "Couldn't reach the kit service. Try again."}</div>
       )}
     </div>
   );
@@ -4364,7 +4381,7 @@ function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onRevie
   const blocked = (!sellable ? "This size isn't sold as a kit yet" : null) || blockedReason;
   const label = status === "saving" ? "Saving…"
     : status === "redirecting" ? "Opening checkout…"
-    : price ? `Buy kit — ${price}`
+    : price ? `Buy kit · ${price}`
     : "Buy kit";
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -4377,7 +4394,7 @@ function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onRevie
       </button>
       {status === "error" && (
         <div className="err-msg" style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, fontSize: 11, whiteSpace: "nowrap", zIndex: 5 }}>
-          {message || "Couldn't reach the kit service — try again"}
+          {message || "Couldn't reach the kit service. Try again."}
         </div>
       )}
     </div>
@@ -4397,7 +4414,7 @@ function QuiltPdfButtons({ design }) {
       await downloadDesignPdf("quilt", design, doc);
     } catch (e) {
       console.warn("PDF download failed:", e);
-      setError("Couldn't generate the PDF — please try again in a moment.");
+      setError("Couldn't generate the PDF. Please try again in a moment.");
     } finally {
       setBusy(null);
     }
@@ -4483,6 +4500,129 @@ function cloneQuiltShapes(shapes) {
     pairId: s.pairId != null ? pairFor(s.pairId) : undefined,
     color: s.color && typeof s.color === 'object' ? { ...s.color } : s.color,
   }));
+}
+
+// Two HST halves that share a block are one unit, not a stack.
+function isComplementaryHst(a, b) {
+  return !!(a && b && a.type === 'tri' && b.type === 'tri'
+    && a.r === b.r && a.c === b.c && a.h === b.h && a.w === b.w
+    && a.dir === b.dir && a.half !== b.half);
+}
+function quiltBboxHasCell(s, r, c) {
+  return r >= s.r && r < s.r + s.h && c >= s.c && c < s.c + s.w;
+}
+function quiltTriHitsCell(s, r, c) {
+  if (!s || s.type !== 'tri' || !s.h || !s.w) return false;
+  const x0 = (c - s.c) / s.w, y0 = (r - s.r) / s.h;
+  const x1 = x0 + 1 / s.w, y1 = y0 + 1 / s.h;
+  const inside = (fx, fy) => s.dir === '/'
+    ? (s.half === 'a' ? fx + fy <= 1 + 1e-9 : fx + fy >= 1 - 1e-9)
+    : (s.half === 'a' ? fy <= fx + 1e-9 : fy >= fx - 1e-9);
+  return inside(x0, y0) || inside(x1, y0) || inside(x0, y1) || inside(x1, y1)
+    || inside((x0 + x1) / 2, (y0 + y1) / 2);
+}
+function quiltCoversCell(s, r, c) {
+  if (!quiltBboxHasCell(s, r, c)) return false;
+  return s.type === 'tri' ? quiltTriHitsCell(s, r, c) : true;
+}
+function quiltFullyCoversCell(s, r, c) {
+  if (!quiltBboxHasCell(s, r, c)) return false;
+  if (s.type !== 'tri') return true;
+  if (!s.h || !s.w) return false;
+  const x0 = (c - s.c) / s.w, y0 = (r - s.r) / s.h;
+  const x1 = x0 + 1 / s.w, y1 = y0 + 1 / s.h;
+  const inside = (fx, fy) => s.dir === '/'
+    ? (s.half === 'a' ? fx + fy <= 1 + 1e-9 : fx + fy >= 1 - 1e-9)
+    : (s.half === 'a' ? fy <= fx + 1e-9 : fy >= fx - 1e-9);
+  return inside(x0, y0) && inside(x1, y0) && inside(x0, y1) && inside(x1, y1);
+}
+function quiltCellBuriedBy(lower, upper, r, c) {
+  if (!quiltCoversCell(upper, r, c) || isComplementaryHst(lower, upper)) return false;
+  if (lower.type !== 'tri') return quiltFullyCoversCell(upper, r, c);
+  return quiltFullyCoversCell(upper, r, c) || quiltCoversCell(upper, r, c);
+}
+// A piece that sits entirely under later shapes is not on the quilt top — keep
+// it out of yardage and the cut list so a stack does not buy two fabrics.
+function quiltVisibleShapes(shapes) {
+  const list = Array.isArray(shapes) ? shapes : [];
+  return list.filter((s, idx) => {
+    const above = list.slice(idx + 1);
+    if (!above.length) return true;
+    let hits = 0;
+    for (let r = s.r; r < s.r + s.h; r++) {
+      for (let c = s.c; c < s.c + s.w; c++) {
+        if (!quiltCoversCell(s, r, c)) continue;
+        hits++;
+        if (!above.some(a => quiltCellBuriedBy(s, a, r, c))) return true;
+      }
+    }
+    return hits === 0;
+  });
+}
+function quiltAddVisibleArea(shapes, add) {
+  const cells = new Set();
+  for (const s of shapes) {
+    if (!s) continue;
+    for (let r = s.r; r < s.r + s.h; r++) {
+      for (let c = s.c; c < s.c + s.w; c++) cells.add(r + ',' + c);
+    }
+  }
+  for (const k of cells) {
+    const [r, c] = k.split(',').map(Number);
+    let claimedA = false, claimedB = false;
+    for (let i = shapes.length - 1; i >= 0; i--) {
+      const s = shapes[i];
+      if (!quiltCoversCell(s, r, c)) continue;
+      if (s.type !== 'tri') {
+        const amt = (claimedA ? 0 : 0.5) + (claimedB ? 0 : 0.5);
+        if (amt) add(s.color, amt);
+        break;
+      }
+      const half = s.half === 'b' ? 'b' : 'a';
+      if (half === 'a' && !claimedA) { add(s.color, 0.5); claimedA = true; }
+      if (half === 'b' && !claimedB) { add(s.color, 0.5); claimedB = true; }
+      if (claimedA && claimedB) break;
+    }
+  }
+}
+function quiltOverlapCells(shapes) {
+  const list = Array.isArray(shapes) ? shapes : [];
+  const byCell = new Map();
+  for (const s of list) {
+    for (let r = s.r; r < s.r + s.h; r++) {
+      for (let c = s.c; c < s.c + s.w; c++) {
+        if (!quiltCoversCell(s, r, c)) continue;
+        const k = r + ',' + c;
+        if (!byCell.has(k)) byCell.set(k, []);
+        byCell.get(k).push(s);
+      }
+    }
+  }
+  const out = [];
+  for (const [k, occ] of byCell) {
+    if (occ.length < 2) continue;
+    if (occ.length === 2 && isComplementaryHst(occ[0], occ[1])) continue;
+    const [r, c] = k.split(',').map(Number);
+    out.push({ r, c });
+  }
+  return out;
+}
+// Keep a duplicated group together and on the board. Prefer one cell down-right
+// so the copy is visible; if that walks off an edge, slide along it or reverse.
+function quiltDuplicateOffset(shapes, rows, cols) {
+  if (!shapes || !shapes.length) return null;
+  let minR = Infinity, minC = Infinity, maxR = -Infinity, maxC = -Infinity;
+  for (const s of shapes) {
+    minR = Math.min(minR, s.r);
+    minC = Math.min(minC, s.c);
+    maxR = Math.max(maxR, s.r + s.h);
+    maxC = Math.max(maxC, s.c + s.w);
+  }
+  const fits = (dr, dc) => minR + dr >= 0 && minC + dc >= 0
+    && maxR + dr <= rows && maxC + dc <= cols && (dr !== 0 || dc !== 0);
+  const tries = [[1, 1], [1, 0], [0, 1], [-1, -1], [-1, 0], [0, -1], [-1, 1], [1, -1]];
+  for (const [dr, dc] of tries) if (fits(dr, dc)) return { dr, dc };
+  return null;
 }
 function seedCoasterUnits(shapes) {
   return Array.from({ length: COASTER_COUNT }, () => cloneQuiltShapes(shapes));
@@ -5011,16 +5151,16 @@ function nearestInList({ r, g, b }, list) {
 // Cross-stitch sizes are measured in stitches (grid count). Finished inches
 // depend on Aida fabric count; we show finished size at 14-count (most common).
 const STITCH_PRESETS = [
-  { name:"Coaster Set", w:40, h:40, desc:"Quick starter motif" },
-  { name:"Bookmark", w:30, h:120, desc:"Tall and skinny" },
-  { name:"Small Hoop", w:70, h:70, desc:"Fits a 5\" hoop" },
-  { name:"Medium Hoop", w:120, h:120, desc:"Fits an 8\" hoop" },
+  { name:"Coaster Set", w:40, h:40, desc:"40 × 40 stitches · set of 4" },
+  { name:"Bookmark", w:30, h:120, desc:"30 × 120 stitches" },
+  { name:"Small Hoop", w:70, h:70, desc:"70 × 70 stitches · fits a 5\" hoop" },
+  { name:"Medium Hoop", w:120, h:120, desc:"120 × 120 stitches · fits an 8\" hoop" },
 ];
 const STITCH_THEMES = {
-  "Coaster Set":  { c1:"#C83A2C", c2:"#F5D89A", desc:"Quick starter motif" },
-  "Bookmark":     { c1:"#2C5080", c2:"#97B5D4", desc:"Tall and skinny" },
-  "Small Hoop":   { c1:"#E8A0B0", c2:"#B8D4E0", desc:"Fits a 5\" hoop" },
-  "Medium Hoop":  { c1:"#2C4A30", c2:"#7AAA80", desc:"Fits an 8\" hoop" },
+  "Coaster Set":  { c1:"#C83A2C", c2:"#F5D89A", desc:"40 × 40 stitches · set of 4" },
+  "Bookmark":     { c1:"#2C5080", c2:"#97B5D4", desc:"30 × 120 stitches" },
+  "Small Hoop":   { c1:"#E8A0B0", c2:"#B8D4E0", desc:"70 × 70 stitches · fits a 5\" hoop" },
+  "Medium Hoop":  { c1:"#2C4A30", c2:"#7AAA80", desc:"120 × 120 stitches · fits an 8\" hoop" },
 };
 // Product photos shown on the cross-stitch "What size?" cards, keyed by preset
 // name. Missing entries fall back to the plain colored thumb so nothing breaks.
@@ -5034,12 +5174,12 @@ const STITCH_IMAGES = {
 // earthy vibe — soft blues, terracotta, peach, sage, and warm neutrals —
 // matching the sample moodboards used for cross-stitch starters.
 const DMC_PALETTES = [
-  { name: "Vintage Blue", codes: ["797", "794", "945", "301", "3776", "3865"] },
-  { name: "Cottage Floral",   codes: ["210", "3821", "3866", "402", "3051", "932"] },
-  { name: "Warm Retro",       codes: ["977", "799", "921", "3341", "3827", "3865"] },
-  { name: "Meadow Mist",      codes: ["Ecru", "523", "503", "834", "520", "642"] },
-  { name: "Guava Lagoon",     codes: ["733", "367", "3771", "351", "993", "931"] },
-  { name: "Sunflower Toast",  codes: ["832", "422", "3033", "3857", "3863", "794"] },
+  { name: "Blue & Cream",     codes: ["797", "794", "945", "301", "3776", "3865"] },
+  { name: "Lilac & Sage",     codes: ["210", "3821", "3866", "402", "3051", "932"] },
+  { name: "Rust & Mustard",   codes: ["977", "799", "921", "3341", "3827", "3865"] },
+  { name: "Sage & Cream",     codes: ["Ecru", "523", "503", "834", "520", "642"] },
+  { name: "Coral & Olive",    codes: ["733", "367", "3771", "351", "993", "931"] },
+  { name: "Gold & Brown",     codes: ["832", "422", "3033", "3857", "3863", "794"] },
 ];
 function dmcByCode(code) { return DMC.find(c => c.code === code); }
 function resolveDmcPalette(pal) { return pal.codes.map(dmcByCode).filter(Boolean); }
@@ -5094,16 +5234,16 @@ const AIDA_FABRICS = [
 // monk's cloth lays down roughly 5 loops per inch, so a whole design is tens
 // of loops across rather than hundreds of stitches. Sizes are in loops.
 const PUNCH_PRESETS = [
-  { name:"Coaster", w:20, h:20, desc:"A quick first punch" },
-  { name:"Small Hoop", w:30, h:30, desc:"Fits a 6\" round hoop" },
-  { name:"Large Hoop", w:40, h:50, desc:"Room for a real scene" },
-  { name:"Pillow", w:70, h:70, desc:"A full cushion front" },
+  { name:"Coaster", w:20, h:20, desc:"20 × 20 loops · set of 4" },
+  { name:"Small Hoop", w:30, h:30, desc:"30 × 30 loops · fits a 6\" hoop" },
+  { name:"Large Hoop", w:40, h:50, desc:"40 × 50 loops · fits an 8\" hoop" },
+  { name:"Pillow", w:70, h:70, desc:"70 × 70 loops · cushion front" },
 ];
 const PUNCH_THEMES = {
-  "Coaster":      { c1:"#E8583A", c2:"#F5D89A", desc:"A quick first punch" },
-  "Small Hoop":   { c1:"#707F87", c2:"#CCD6EB", desc:"Fits a 6\" round hoop" },
-  "Large Hoop":   { c1:"#B5BB46", c2:"#D8E498", desc:"Room for a real scene" },
-  "Pillow":       { c1:"#FBBB3F", c2:"#E7D6C1", desc:"A full cushion front" },
+  "Coaster":      { c1:"#E8583A", c2:"#F5D89A", desc:"20 × 20 loops · set of 4" },
+  "Small Hoop":   { c1:"#707F87", c2:"#CCD6EB", desc:"30 × 30 loops · fits a 6\" hoop" },
+  "Large Hoop":   { c1:"#B5BB46", c2:"#D8E498", desc:"40 × 50 loops · fits an 8\" hoop" },
+  "Pillow":       { c1:"#FBBB3F", c2:"#E7D6C1", desc:"70 × 70 loops · cushion front" },
 };
 // A photograph of the finished thing for every size, so the choice is made on
 // what you end up holding rather than on a rectangle scaled to the loop count.
@@ -5132,12 +5272,12 @@ const PUNCH_CLOTHS = [
 // Curated wool starter palettes, in the same metime brand register as the
 // cross-stitch samples — earthy grounds, one or two brights, a dark anchor.
 const WOOL_PALETTES = [
-  { name: "Wool Meadow",  codes: ["7772", "7362", "7386", "7451", "7676", "7535"] },
-  { name: "Hearth",       codes: ["7606", "7946", "7677", "7451", "7432", "7535"] },
-  { name: "Coastal",      codes: ["7800", "7313", "7316", "7307", "7451", "7597"] },
-  { name: "Dusk",         codes: ["7709", "7708", "7245", "7266", "7715", "7535"] },
-  { name: "Clay & Sage",  codes: ["7840", "7195", "7424", "7426", "7470", "7622"] },
-  { name: "Bold Bloom",   codes: ["7666", "7104", "7433", "7996", "7954", "BLANC"] },
+  { name: "Sage & Cream",   codes: ["7772", "7362", "7386", "7451", "7676", "7535"] },
+  { name: "Rust & Gold",    codes: ["7606", "7946", "7677", "7451", "7432", "7535"] },
+  { name: "Blue & Navy",    codes: ["7800", "7313", "7316", "7307", "7451", "7597"] },
+  { name: "Violet & Cream", codes: ["7709", "7708", "7245", "7266", "7715", "7535"] },
+  { name: "Clay & Sage",    codes: ["7840", "7195", "7424", "7426", "7470", "7622"] },
+  { name: "Pink & Cream",   codes: ["7666", "7104", "7433", "7996", "7954", "BLANC"] },
 ];
 // Wool covers far more ground per loop than floss does per stitch, so a punch
 // needle design reads best with fewer, bolder colors than a cross-stitch one.
@@ -5153,7 +5293,7 @@ const PRESETS = [
   { name:"Baby blanket", label:"Baby Blanket", w:30, h:36 },
   { name:"Throw", label:"Throw Blanket", w:52, h:65 },
 ];
-const presetDims = p => `${p.w}” x ${p.h}”` + (p.note ? ` - ${p.note}` : "");
+const presetDims = p => `${p.w}" × ${p.h}"` + (p.note ? ` · ${p.note}` : "");
 const QUILT_PATTERNS = [
   { id:"none", label:"None" },
   { id:"ditch", label:"Stitch in the Ditch" },
@@ -5173,18 +5313,18 @@ const NIB_SIZES = [1, 2, 3, 5];
 // Suggested Kona starter palettes. Tuned to the same muted, earthy vibe as the
 // cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm neutrals.
 const SUGGESTED_PALETTES = [
-  { name: "Vintage Blue",        colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
-  { name: "Cottage Floral",      colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Palm", "Iron"] },
-  { name: "Warm Retro",          colors: ["Butterscotch", "Dresden Blue", "Terracotta", "Peach", "Bone"] },
-  { name: "Meadow Mist",         colors: ["Oyster", "Stone", "Overcast", "Straw", "Ivy", "Bone"] },
-  { name: "Guava Lagoon",        colors: ["Lemon", "Dill", "Peach", "Nectarine", "Fog", "Regatta"] },
-  { name: "Sunflower Toast",     colors: ["Artichoke", "Straw", "Lingerie", "Brick", "Biscuit", "Blue Bell"] },
-  { name: "Mediterranean Clay",  colors: ["Spice", "Nectarine", "Ivory", "Blue Bell", "Summer Pear", "Evergreen"] },
-  { name: "Muted Earth",         colors: ["Lingerie", "Foxglove", "Caramel", "Steel", "Biscuit", "Espresso"] },
-  { name: "Antique Fiber",       colors: ["Natural", "Doeskin", "Ash", "Chestnut", "Mustard", "Espresso"] },
-  { name: "Storybook",           colors: ["Flame", "Ballet Slipper", "Midnight", "Zucchini", "Wine", "Baby Blue"] },
-  { name: "Coastal Sage",        colors: ["Oyster", "Overcast", "Fog", "Dresden Blue", "Straw", "Bone"] },
-  { name: "Desert Clay",         colors: ["Ice Peach", "Terracotta", "Spice", "Biscuit", "Lingerie", "Brick"] },
+  { name: "Blue & Cream",        colors: ["Hyacinth", "Ice Peach", "Spice", "Natural", "Dresden Blue"] },
+  { name: "Lilac & Sage",        colors: ["Lilac", "Zucchini", "Natural", "Caramel", "Palm", "Iron"] },
+  { name: "Rust & Mustard",      colors: ["Butterscotch", "Dresden Blue", "Terracotta", "Peach", "Bone"] },
+  { name: "Sage & Stone",        colors: ["Oyster", "Stone", "Overcast", "Straw", "Ivy", "Bone"] },
+  { name: "Peach & Sage",        colors: ["Lemon", "Dill", "Peach", "Nectarine", "Fog", "Regatta"] },
+  { name: "Brick & Straw",       colors: ["Artichoke", "Straw", "Lingerie", "Brick", "Biscuit", "Blue Bell"] },
+  { name: "Spice & Ivory",       colors: ["Spice", "Nectarine", "Ivory", "Blue Bell", "Summer Pear", "Evergreen"] },
+  { name: "Caramel & Steel",     colors: ["Lingerie", "Foxglove", "Caramel", "Steel", "Biscuit", "Espresso"] },
+  { name: "Mustard & Ash",       colors: ["Natural", "Doeskin", "Ash", "Chestnut", "Mustard", "Espresso"] },
+  { name: "Flame & Midnight",    colors: ["Flame", "Ballet Slipper", "Midnight", "Zucchini", "Wine", "Baby Blue"] },
+  { name: "Blue & Fog",          colors: ["Oyster", "Overcast", "Fog", "Dresden Blue", "Straw", "Bone"] },
+  { name: "Terracotta & Peach",  colors: ["Ice Peach", "Terracotta", "Spice", "Biscuit", "Lingerie", "Brick"] },
 ];
 
 // ── Palette helpers ─────────────────────────────────────────────────────────
@@ -5250,10 +5390,10 @@ function extractColors(imageData, count) {
 // c1 / c2 are the two patch colors of the generated QuiltThumb, pulled from the
 // metime accent palette so a thumb reads as a sibling of the photographed quilts.
 const PRESET_THEMES = {
-  "Coaster":        { c1:"#FBBB3F", c2:"#F9FBFE", desc:"A set of 4 — start from one design, then customize each." },
-  "Wall hanging":   { c1:"#FDA198", c2:"#F9FBFE", desc:"An accent piece for any wall" },
-  "Baby blanket":   { c1:"#E8A0C8", c2:"#F9FBFE", desc:"Cozy for little ones" },
-  "Throw":          { c1:"#B9B74B", c2:"#F9FBFE", desc:"The weekend favorite" },
+  "Coaster":        { c1:"#FBBB3F", c2:"#F9FBFE", desc:"A set of 4. Start from one design, then edit each." },
+  "Wall hanging":   { c1:"#FDA198", c2:"#F9FBFE", desc:"24\" × 36\"" },
+  "Baby blanket":   { c1:"#E8A0C8", c2:"#F9FBFE", desc:"30\" × 36\"" },
+  "Throw":          { c1:"#B9B74B", c2:"#F9FBFE", desc:"52\" × 65\"" },
 };
 
 // Cut-out product shots for the quilt "What size?" cards, keyed by preset name.
@@ -5634,15 +5774,19 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const handleDuplicate = () => {
     const dupIds=expandPairs(selIds,shapes);
     const toDup=shapes.filter(s=>dupIds.has(s.id));
+    const off=quiltDuplicateOffset(toDup,rows,cols);
+    if(!off) return;
     const pairMap=new Map();
     const toAdd=toDup.map(s=>{
       let np=s.pairId;
-      if(np){if(!pairMap.has(np))pairMap.set(np,Date.now()+Math.random());np=pairMap.get(np);}
-      return {...s,id:Date.now()+Math.random(),pairId:np||undefined,r:Math.min(rows-s.h,s.r+1),c:Math.min(cols-s.w,s.c+1)};
+      if(np){if(!pairMap.has(np))pairMap.set(np,nextShapeId());np=pairMap.get(np);}
+      return {...s,id:nextShapeId(),pairId:np||undefined,r:s.r+off.dr,c:s.c+off.dc};
     });
     setShapes(p=>[...p,...toAdd]);
     setSelIds(new Set(toAdd.map(s=>s.id)));
   };
+  const canDuplicate = !!quiltDuplicateOffset(expandedSelShapes, rows, cols);
+  const overlapCells = useMemo(() => quiltOverlapCells(shapes), [shapes]);
   const handleDelete = () => {
     const del=expandPairs(selIds,shapes);
     setShapes(p=>p.filter(s=>!del.has(s.id)));
@@ -5828,6 +5972,20 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
               );
             })}
 
+            {/* Stacked cells — a hatch so a buried patch is visible as a stack,
+                not as a single piece sitting flush on the one underneath. */}
+            {overlapCells.map(({r,c})=>(
+              <div key={`ov-${r}-${c}`}
+                title="Overlapping patches"
+                style={{
+                  position:'absolute',
+                  left:`${c*cw}%`,top:`${r*ch}%`,
+                  width:`${cw}%`,height:`${ch}%`,
+                  boxSizing:'border-box',pointerEvents:'none',
+                  background:'repeating-linear-gradient(-45deg, rgba(26,26,26,0.28) 0 2px, transparent 2px 5px)',
+                }}/>
+            ))}
+
             {/* Ghost */}
             {ghost && (
               <div style={{
@@ -5941,7 +6099,7 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
             <button className="btn btn-sm" onClick={handleSwapTriColors} title="Swap triangle colors">⇄</button>
             <button className="btn btn-sm" onClick={handleFlipTri} title="Flip diagonal (F)">⟋</button>
           </>}
-          <button className="btn btn-sm" onClick={handleDuplicate} title="Duplicate"><IcCopy/></button>
+          <button className="btn btn-sm" onClick={handleDuplicate} title={canDuplicate ? 'Duplicate' : 'No room to duplicate'} disabled={!canDuplicate}><IcCopy/></button>
           <button className="btn btn-sm" onClick={handleDelete} title="Delete"><IcTrash/></button>
         </div>
       )}
@@ -6453,7 +6611,7 @@ const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, o
   const canEnlarge = typeof onSwatchClick === 'function' && !!(fabric && (fabric.image || swatchSrc));
   return (
     <button ref={ref} type="button" className="fabric-row" onClick={onClick}
-      title={fabric ? `${label} · ${fabric.name} — tap to change` : `Choose ${label.toLowerCase()} fabric`}>
+      title={fabric ? `${label} · ${fabric.name}. Tap to change` : `Choose ${label.toLowerCase()} fabric`}>
       <div
         className={`fabric-row-swatch${fabric ? '' : ' empty'}${canEnlarge ? ' can-enlarge' : ''}`}
         style={fabric ? (swatchSrc
@@ -6515,7 +6673,7 @@ function QuiltPatternBlock({ qPattern, setQPattern, qSpacing, setQSpacing, qColo
             className="fabric-row"
             style={{ borderBottom:'none', padding:'8px 0', marginLeft:-2, marginRight:-2 }}
             onClick={() => onPickColor && onPickColor(threadRef, setQColor, null, 'Thread color')}
-            title={qColor ? `Thread · ${qColor.name} — tap to change` : 'Choose thread color'}>
+            title={qColor ? `Thread · ${qColor.name}. Tap to change` : 'Choose thread color'}>
             <div className={`fabric-row-swatch${qColor ? '' : ' empty'}`} style={qColor ? { background: qColor.hex, width:24, height:24 } : { width:24, height:24 }}/>
             <div className="fabric-row-main">
               <div className="fabric-row-title">
@@ -6820,15 +6978,32 @@ function SizeBar({ bs, minBs = 2, maxBs, onBsChange, fw, fh, cols, rows, onUndo,
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
+function quiltGridForPreset(p, preferredBs = 3) {
+  const minBs = p.name === 'Coaster' ? 1 : 2;
+  const maxBs = Math.max(minBs, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
+  let bs = Math.max(minBs, Math.min(maxBs, preferredBs));
+  const finishedW = Math.min(MAX, Math.max(2, Math.round(p.w / bs))) * bs;
+  const finishedH = Math.min(MAX, Math.max(2, Math.round(p.h / bs))) * bs;
+  // Coasters are 5" square. A 2" block cannot hit that size (3 × 2" = 6"),
+  // so pick a block size that keeps the finished quilt at the advertised inches.
+  if (finishedW !== p.w || finishedH !== p.h) {
+    for (let v = minBs; v <= maxBs; v++) {
+      if (p.w % v === 0 && p.h % v === 0) { bs = v; break; }
+    }
+  }
+  return {
+    bs,
+    cols: Math.min(MAX, Math.max(2, Math.round(p.w / bs))),
+    rows: Math.min(MAX, Math.max(2, Math.round(p.h / bs))),
+  };
+}
+
 function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack, onReview = null }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
-  // Clamp the starting block size to what this preset allows (Coaster tops out
-  // at 2" and can go to 1"), so the size control opens in a coherent range.
-  const _initMinBs = initialPreset === 'Coaster' ? 1 : 2;
-  const _initMaxBs = Math.max(_initMinBs, Math.min(12, Math.floor(Math.min(_initP.w, _initP.h) / 2)));
-  const _initBs = Math.max(_initMinBs, Math.min(_initMaxBs, 3));
-  const _initCols = Math.min(MAX, Math.max(2, Math.round(_initP.w / _initBs)));
-  const _initRows = Math.min(MAX, Math.max(2, Math.round(_initP.h / _initBs)));
+  const _initGrid = quiltGridForPreset(_initP, 3);
+  const _initBs = _initGrid.bs;
+  const _initCols = _initGrid.cols;
+  const _initRows = _initGrid.rows;
   const [cols, setCols] = useState(_initCols);
   const [rows, setRows] = useState(_initRows);
   const [bs, setBs] = useState(_initBs);
@@ -6906,7 +7081,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   useEffect(() => {
     if (!libraryOn || !quiltCacheReady.current) return;
     const ok = persistSavedQuilts(savedQuilts);
-    setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
+    setSaveError(ok ? "" : "Couldn't save. This device's storage may be full.");
   }, [savedQuilts, libraryOn]);
   useEffect(() => {
     if (!libraryOn) { quiltCacheReady.current = false; setSavedQuilts([]); return; }
@@ -6972,7 +7147,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       setSaveError("");
     } catch (e) {
       console.warn("Quilt cloud save failed:", e);
-      setSaveError("Couldn't save to your account — check your connection and try again.");
+      setSaveError("Couldn't save to your account. Check your connection and try again.");
     }
   };
   const saveNewQuilt = () => {
@@ -7222,19 +7397,17 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const materials = useMemo(()=>{
     const map=new Map();
     const add=(col,amt)=>{if(!col)return;if(!map.has(col.name))map.set(col.name,{...col,count:0});map.get(col.name).count+=amt;};
-    const all = (isCoasterKit && coasterUnitsRef.current)
-      ? coasterUnitsRef.current.flatMap((u, i) => i === activeCoaster ? shapes : u)
-      : shapes;
-    for(const s of all){
-      const area=s.h*s.w;
-      if(s.type==='tri') add(s.color,area*0.5);
-      else add(s.color,area);
-    }
+    const units = (isCoasterKit && coasterUnitsRef.current)
+      ? coasterUnitsRef.current.map((u, i) => i === activeCoaster ? shapes : u)
+      : [shapes];
+    // Only the quilt top counts — stacked area is taken from the piece you see.
+    for (const u of units) quiltAddVisibleArea(u, add);
     const patchQty = isCoasterKit ? 1 : kitQty;
     const items=Array.from(map.values()).map(c=>({...c,...calcYardage(c.count,bs,patchQty)})).sort((a,b)=>b.count-a.count);
-    const total=all.reduce((sum,s)=>sum+(s.type==='tri'?s.h*s.w*0.5:s.h*s.w),0);
+    const total=items.reduce((s,x)=>s+x.count,0);
     const possible = rows*cols*(isCoasterKit ? COASTER_COUNT : 1);
-    return{items,total,possible,yards:items.reduce((s,x)=>s+x.yards,0)};
+    const stacked = units.reduce((n, u) => n + quiltOverlapCells(u).length, 0);
+    return{items,total,possible,yards:items.reduce((s,x)=>s+x.yards,0),stacked};
   },[shapes,bs,rows,cols,kitQty,isCoasterKit,activeCoaster,coasterRev]);
 
   const fw=cols*bs, fh=rows*bs;
@@ -7270,12 +7443,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     }
     setPreset(name);
     if (!p) return;
-    const presetMinBs = minBsFor(name);
-    const presetMaxBs = Math.max(presetMinBs, Math.min(12, Math.floor(Math.min(p.w, p.h) / 2)));
-    const v = Math.max(presetMinBs, Math.min(presetMaxBs, bs));
-    if (v !== bs) setBs(v);
-    setCols(Math.min(MAX, Math.max(2, Math.round(p.w / v))));
-    setRows(Math.min(MAX, Math.max(2, Math.round(p.h / v))));
+    const grid = quiltGridForPreset(p, bs);
+    if (grid.bs !== bs) setBs(grid.bs);
+    setCols(grid.cols);
+    setRows(grid.rows);
   };
 
   const handleBsChange = newBs => {
@@ -7298,7 +7469,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
               <i className="iconoir-arrow-left" style={{fontSize:18}}/>
             </button>
           )}
-          <a className="brand" href="/" aria-label="metime — home">
+          <a className="brand" href="/" aria-label="metime home">
             <MetimeLogo/>
           </a>
         </div>
@@ -7465,7 +7636,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             </div>
             <QuiltColorList items={materials.items} fmtY={fmtY} onPickItem={openMaterialRecolor}/>
             <div style={{padding:'12px 16px',fontSize:11,color:'var(--warm-muted)',lineHeight:1.6}}>
-              Assumes 40" WOF, ¼" seam allowance. Backing adds 4" per side. Binding: 2.5" double-fold strips. Add 10–15% for shrinkage.
+              {materials.stacked > 0 && (
+                <div style={{marginBottom:8}}>Stacked patches are hatched on the canvas and left out of the cut list.</div>
+              )}
+              Assumes 40" WOF, ¼" seam allowance. Backing adds 4" per side. Binding: 2.5" double-fold strips. Add 10 to 15% for shrinkage.
             </div>
           </div>
         </div>
@@ -7544,6 +7718,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
               )}
             </div>
             <QuiltColorList items={materials.items} fmtY={fmtY} onPickItem={openMaterialRecolor}/>
+            {materials.stacked > 0 && (
+              <div style={{padding:'12px 16px',fontSize:11,color:'var(--warm-muted)',lineHeight:1.6}}>Stacked patches are hatched on the canvas and left out of the cut list.</div>
+            )}
           </div>
         </BottomSheet>
       )}
@@ -7899,13 +8076,14 @@ function QuiltThumb({ preset }) {
 
 function ProjectCard({ preset, onSelect, price }) {
   const art = PRESET_IMAGES[preset.name];
+  const theme = PRESET_THEMES[preset.name];
   const label = preset.label || preset.name;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
       aria-label={[label, presetDims(preset), price && `kit ${price}`].filter(Boolean).join(", ")}>
-      <span className="size-card-visual">
+      <span className="size-card-visual" style={theme ? { background: theme.c1 } : undefined}>
         {art
-          ? <img src={art.src} alt="" width={art.w} height={art.h}/>
+          ? <img src={art.src} alt="" width={art.w} height={art.h} loading="eager" decoding="async" fetchPriority="high"/>
           : <QuiltThumb preset={preset}/>}
       </span>
       <span className="size-card-copy">
@@ -7924,13 +8102,13 @@ function ProjectCard({ preset, onSelect, price }) {
 
 const CRAFTS = [
   { id: "cross-stitch", name: "Cross-stitch", ready: true,
-    desc: "Turn an image into a stitchable grid, with thread counts worked out.",
+    desc: "Turn an image into a stitchable grid, with thread counts included.",
     image: "assets/landing/craft-cross-stitch.png", imgW: 256, imgH: 256 },
   { id: "quilt", name: "Quilt", ready: true,
     desc: "Compose with squares and half-square triangles, then get the yardage.",
     image: "assets/landing/craft-quilt.png", imgW: 208, imgH: 260 },
   { id: "punch-needle", name: "Punch Needle", ready: true,
-    desc: "Build bold, tactile forms with yarn quantities made to match.",
+    desc: "Punch a design in loops, with yarn quantities listed for the kit.",
     image: "assets/landing/craft-punch-needle-wall.png", imgW: 246, imgH: 269 },
 ];
 
@@ -7991,19 +8169,19 @@ const RESEND_COOLDOWN_SEC = 60;
 // verifying ("too many codes sent" / "too many tries").
 const AUTH_ERROR_COPY = {
   send: {
-    rate_limited: "Too many codes requested — wait a minute and try again.",
+    rate_limited: "Too many codes requested. Wait a minute and try again.",
     signups_disabled: "New accounts are turned off for this studio right now.",
-    email_send_failed: "We couldn't send the email — the studio's email delivery isn't set up yet. Your design stays on this device.",
-    network: "Couldn't reach the network — check your connection and try again.",
-    not_configured: "Accounts aren't set up yet — your design stays on this device.",
-    unknown: "Couldn't send a code — try again.",
+    email_send_failed: "We couldn't send the email. The studio's email delivery isn't set up yet. Your design stays on this device.",
+    network: "Couldn't reach the network. Check your connection and try again.",
+    not_configured: "Accounts aren't set up yet. Your design stays on this device.",
+    unknown: "Couldn't send a code. Try again.",
   },
   verify: {
     invalid_code: "That code didn't match. Check the digits and try again.",
-    expired: "That code has expired — send a fresh one.",
-    rate_limited: "Too many tries — wait a minute and try again.",
-    network: "Couldn't reach the network — check your connection and try again.",
-    not_configured: "Accounts aren't set up yet — your design stays on this device.",
+    expired: "That code has expired. Send a fresh one.",
+    rate_limited: "Too many tries. Wait a minute and try again.",
+    network: "Couldn't reach the network. Check your connection and try again.",
+    not_configured: "Accounts aren't set up yet. Your design stays on this device.",
     unknown: "That code didn't work. Try again.",
   },
 };
@@ -8085,7 +8263,7 @@ function AuthOverlay() {
         <div style={{ fontSize: 13, color: "#3D4E70", marginBottom: 16, lineHeight: 1.5 }}>
           {step === "email"
             ? "We'll email a 6-digit code so you can reopen this design on any device. No password."
-            : `We sent a code to ${email}. Check your inbox — it expires shortly.`}
+            : `We sent a code to ${email}. Check your inbox. It expires shortly.`}
         </div>
         {step === "email" ? (
           <input type="email" placeholder="you@email.com" value={email} autoFocus
@@ -8294,8 +8472,6 @@ const BRAND_NOTE = 'Craft design, made material';
 // so the two grid crafts and the quilt count differently.
 const BRAND_STEPS = { 'cross-stitch': 3, 'punch-needle': 3, quilt: 4 };
 const BRAND_CRAFT_LABEL = { 'cross-stitch': 'Cross-stitch', 'punch-needle': 'Punch needle', quilt: 'Quilting' };
-const brandNum = n => String(n).padStart(2, '0');
-
 // metime's wiggle: the thread mark carried under the wordmark. Built from
 // alternating quadratic arcs rather than shipped as a fixed file so one
 // component covers any width — pass the cycle count and let CSS set the height.
@@ -8335,7 +8511,7 @@ function BrandXRule({ count = 3, size = 11 }) {
 function BrandNav() {
   return (
     <header className="brand-nav brand-bleed">
-      <a className="brand-nav-logo" href="/" aria-label="metime — home">
+      <a className="brand-nav-logo" href="/" aria-label="metime home">
         <img src="assets/metime-logo.svg" alt="metime" width="104" height="35"/>
       </a>
       <div className="brand-nav-right">
@@ -8345,12 +8521,11 @@ function BrandNav() {
   );
 }
 
-// "02  CROSS-STITCH" — the small step + craft label that sits above each
-// heading. The number is the quiet half so the craft stays readable.
+// "QUILTING · STEP 2 OF 4" — the small craft + step label above each heading.
+// The numeric prefix (01/02) was dropped; the label already includes the step.
 function BrandEyebrow({ step, label, plain }) {
   return (
     <p className={`brand-eyebrow${plain ? ' is-plain' : ''}`}>
-      {step != null && <span className="brand-eyebrow-num">{brandNum(step)}</span>}
       <span>{label}</span>
     </p>
   );
@@ -8465,9 +8640,9 @@ const SAVED_FILTERS = [
 ];
 const SAVED_META = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
 function savedMetaLine(it) {
-  if (it._type === 'quilt') return `Quilt - ${it.fw}" × ${it.fh}"`;
+  if (it._type === 'quilt') return `Quilt · ${it.fw}" × ${it.fh}"`;
   const n = it.colorsUsed;
-  return `${SAVED_META[it._type]} - ${n} color${n !== 1 ? 's' : ''}`;
+  return `${SAVED_META[it._type]} · ${n} color${n !== 1 ? 's' : ''}`;
 }
 function SavedDesigns({ onOpen }) {
   const auth = useAuth();
@@ -8541,7 +8716,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         xl
         wide
         cycles={6}
-        eyebrow={<BrandEyebrow plain label="Make something as unique as you."/>}
+        eyebrow={<BrandEyebrow plain label="Design a kit. We cut and pack it."/>}
         title="What are you making?"
         sub="Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making."/>
       <div className="land-main">
@@ -8554,7 +8729,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
               onClick={() => c.ready && onSelect(c.id)}
               onKeyDown={e => e.key === "Enter" && c.ready && onSelect(c.id)}>
               <div className="land-craft-visual">
-                <img src={c.image} alt="" width={c.imgW} height={c.imgH}/>
+                <img src={c.image} alt="" width={c.imgW} height={c.imgH} loading="eager" decoding="async" fetchPriority="high"/>
               </div>
               <div className="land-craft-copy">
                 <div className="land-craft-name">{c.name}</div>
@@ -8586,16 +8761,16 @@ function ProjectSelector({ onSelect, onBack }) {
       <BrandHead
         tone="butter"
         back={<BrandBack onBack={onBack}/>}
-        eyebrow={<BrandEyebrow step={1} label={`Quilting · step 1 of ${BRAND_STEPS.quilt}`}/>}
+        eyebrow={<BrandEyebrow step={1} label={`Quilting · Step 1 of ${BRAND_STEPS.quilt}`}/>}
         title="What size?"
-        sub="Every size is a real finished quilt, so the piecing and yardage are worked out from here on."/>
+        sub="Every size is a real finished quilt, so we calculate the piecing and yardage from here."/>
       <div className="size-row">
         {PRESETS.map((p) => (
           <ProjectCard key={p.name} preset={p} onSelect={onSelect}
             price={formatKitPrice(prices[p.name])}/>
         ))}
       </div>
-      <BrandFooter note="Quilting — choose a finished size"/>
+      <BrandFooter note="Quilting · choose a finished size"/>
     </div>
   );
 }
@@ -8641,7 +8816,7 @@ function tplTriPoints(s) {
 // There's no "Blank" card in the grid — "Skip for now" is the empty-canvas route.
 const QUILT_TEMPLATES = [
   {
-    id: 'checkerboard', name: 'Checkerboard', desc: 'A light ground, prints in several colors.',
+    id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating squares in two or more fabrics.',
     build: ({ cols, rows, palette }) => {
       // One fabric holds the even squares so it still reads as a checker; the
       // odd squares walk the rest of the palette, which is how a scrappy
@@ -8660,7 +8835,7 @@ const QUILT_TEMPLATES = [
     }
   },
   {
-    id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 blocks, each a mix of fabrics.',
+    id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 blocks in mixed fabrics.',
     build: ({ cols, rows, palette }) => {
       // Ground on the four side-centers, a different print on each corner of
       // the 3×3, and a third on the middle — the usual nine-patch roles, but
@@ -8684,7 +8859,7 @@ const QUILT_TEMPLATES = [
     }
   },
   {
-    id: 'railfence', name: 'Rail Fence', desc: 'Woven strips walking the palette.',
+    id: 'railfence', name: 'Rail Fence', desc: 'Strips that alternate direction by block.',
     build: ({ cols, rows, palette }) => {
       const rails = tplSwatches(palette, ['Butterscotch', 'Dresden Blue', 'Terracotta', 'Peach', 'Hyacinth', 'Zucchini']);
       // Weave in fours even when the palette is longer — a six-wide group on a
@@ -8701,7 +8876,7 @@ const QUILT_TEMPLATES = [
     }
   },
   {
-    id: 'hst', name: 'Half-Square Triangles', desc: 'Triangle blocks that walk through the palette.',
+    id: 'hst', name: 'Half-Square Triangles', desc: 'Triangle blocks in paired colors.',
     build: ({ cols, rows, palette }) => {
       // Each block is still two triangles, but neighbouring blocks pick the
       // next pair along the palette, so the field is a run of colorways
@@ -9067,7 +9242,7 @@ const XS_SIMPLIFY = [
   { id: 'simple',   label: 'Simple',   blur: 2, smooth: 2, speck: 8,
     note: 'Broad blocks of color. Easiest to follow.' },
   { id: 'flat',     label: 'Flat',     blur: 3, smooth: 3, speck: 20,
-    note: 'Poster-like — shapes only, almost no shading.' },
+    note: 'Poster-like. Shapes only, almost no shading.' },
 ];
 const XS_SIMPLIFY_DEFAULT = 'simple';
 const xsSimplifySpec = id => XS_SIMPLIFY.find(s => s.id === id) || XS_SIMPLIFY.find(s => s.id === XS_SIMPLIFY_DEFAULT);
@@ -9366,7 +9541,7 @@ function confirmImageSrc(src) {
   });
 }
 
-const REMOTE_IMAGE_ERR = "Couldn't load that image. Check the URL, or the site may block it — try saving the file and dropping it instead.";
+const REMOTE_IMAGE_ERR = "Couldn't load that image. Check the URL, or the site may block it. Try saving the file and dropping it instead.";
 const REMOTE_CORS_ERR = "Couldn't read that image (the site blocks it). Try saving the file and dropping it instead.";
 
 function loadImageViaElement(url) {
@@ -9893,7 +10068,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
       {!extracted && (
         <PhotoIntakeZone
           title="Drop an image here or click to browse"
-          subtitle="JPG, PNG, or WebP — or paste an image"
+          subtitle="JPG, PNG, or WebP, or paste an image"
           onSrc={ingestSrc}
           working={busy}
           workingLabel="Reading colors…"/>
@@ -9902,7 +10077,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
         <div className="pal-result">
           <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
           <div className="pal-result-main">
-            <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found — check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
+            <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found. Check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
             <div className="pal-result-swatches">
               {extracted.map(c => {
                 const isLocked = locked.has(idOf(c));
@@ -10012,7 +10187,7 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
           <PhotoIntakeZone
             variant="tmpl"
             title="Drop an image in this area, or"
-            subtitle={hint || 'JPG, PNG, or WebP — or paste an image'}
+            subtitle={hint || 'JPG, PNG, or WebP, or paste an image'}
             onSrc={ingestSrc}/>
         ) : (
           <div className="tmpl-upload-result">
@@ -10022,7 +10197,7 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
               <div className="tmpl-upload-file-meta">
                 <div>
                   <div className="tmpl-upload-file-name">{fileName}</div>
-                  <div className="tmpl-upload-file-dims">{fileDims ? `${fileDims.w}px x ${fileDims.h}px` : '—'}</div>
+                  <div className="tmpl-upload-file-dims">{fileDims ? `${fileDims.w}px × ${fileDims.h}px` : ''}</div>
                 </div>
                 <Switch checked={removeBg} onChange={setRemoveBg} label="Remove background"/>
               </div>
@@ -10045,7 +10220,7 @@ function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, la
       {!imgSrc ? (
         <PhotoIntakeZone
           title="Drop a photo here or click to browse"
-          subtitle="JPG, PNG, or WebP — or paste an image"
+          subtitle="JPG, PNG, or WebP, or paste an image"
           onSrc={ingestSrc}/>
       ) : (
         <div className="pal-result">
@@ -10208,9 +10383,9 @@ function TemplateSelector({ preset, palette, onChoose, onSkip, onBack }) {
   return (
     <TemplateStep
       title="Choose a starting point"
-      eyebrow={<BrandEyebrow step={4} label={`Quilting · step 4 of ${BRAND_STEPS.quilt}`}/>}
+        eyebrow={<BrandEyebrow step={4} label={`Quilting · Step 4 of ${BRAND_STEPS.quilt}`}/>}
       sub="A layout to build on, or a blank canvas. Either way you can change every block once you're in the studio."
-      footNote={`Quilting — ${p.label || p.name}`}
+      footNote={`Quilting · ${p.label || p.name}`}
       onBack={onBack}
       templates={QUILT_TEMPLATES}
       renderThumb={t => <QuiltTemplateThumb tpl={t} preset={p} palette={palette}/>}
@@ -10234,9 +10409,9 @@ function CrossStitchTemplateSelector({ preset, onChoose, onSkip, onBack, craft =
   return (
     <TemplateStep
       title="Choose a starting point"
-      eyebrow={<BrandEyebrow step={2} label={`${craftLabel} · step 2 of ${BRAND_STEPS[craft] || 3}`}/>}
+      eyebrow={<BrandEyebrow step={2} label={`${craftLabel} · Step 2 of ${BRAND_STEPS[craft] || 3}`}/>}
       sub={`A chart to build on, your own image, or a blank canvas. Every ${cfg.unit} stays editable in the studio.`}
-      footNote={`${craftLabel} — ${preset.name}`}
+      footNote={`${craftLabel} · ${preset.name}`}
       onBack={onBack}
       templates={stitchTemplatesFor(preset, craft)}
       renderThumb={t => <StitchTemplateThumb tpl={t} preset={preset}/>}
@@ -10423,12 +10598,13 @@ function FabricEnlargeOverlay({ fabric, fabrics, onClose, onUse, useLabel = 'Use
 // A single fabric swatch card. Compact (image-only, name in tooltip) so the grid
 // can stay dense. Hides itself if its image can't load so a broken/missing asset
 // never leaves an empty broken-image box on the page.
-function FabricCard({ fab, onChoose, selected }) {
+function FabricCard({ fab, onChoose, selected, eager }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
   return (
     <button className={`fabric-card${selected ? ' selected' : ''}`} onClick={() => onChoose(fab)} title={`Use "${fab.name}"`}>
-      <img className="fabric-thumb" src={fab.thumb || fab.image} alt={fab.name} loading="lazy"
+      <img className="fabric-thumb" src={fab.thumb || fab.image} alt={fab.name}
+        loading={eager ? "eager" : "lazy"} decoding="async" fetchPriority={eager ? "high" : "low"}
         onError={e => {
           // Prefer thumb; if it's missing, fall back to the full image once.
           if (fab.thumb && e.currentTarget.src.indexOf('fabrics-thumbs') !== -1) {
@@ -10473,6 +10649,7 @@ function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, upl
           <FabricCard
             key={`${f.image}-${i}`}
             fab={f}
+            eager={i < 8}
             selected={!!(current && current.image === f.image)}
             onChoose={fab => onPickFab(fab, shown)}/>
         ))}
@@ -10502,16 +10679,16 @@ function QuiltBackingSelector({ preset, onChoose, onSkip, onBack }) {
         tone="cream"
         back={<BrandBack onBack={onBack}/>}
         actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
-        eyebrow={<BrandEyebrow step={2} label={`Quilting · step 2 of ${BRAND_STEPS.quilt}`}/>}
+        eyebrow={<BrandEyebrow step={2} label={`Quilting · Step 2 of ${BRAND_STEPS.quilt}`}/>}
         title="Pick a backing fabric"
         wide
-        sub="It also seeds the palette we suggest on the next step, so pick something you like the colours of."/>
+        sub="It also seeds the palette we suggest on the next step, so pick something you like the colors of."/>
       <BackingFabricPicker
         layout="page"
         showUpload={false}
         onPickFab={(fab, list) => setInspect({ fabric: fab, fabrics: list })}
         onPickUpload={imgSrc => apply('Your fabric', imgSrc)}/>
-      <BrandFooter note="Quilting — backing fabric"/>
+      <BrandFooter note="Quilting · backing fabric"/>
       {inspect && (
         <FabricEnlargeOverlay
           fabric={inspect.fabric}
@@ -10551,7 +10728,7 @@ function BackingPickerOverlay({ current, onChoose, onClear, onClose }) {
             {current && currentSrc && (
               <button type="button" className="backing-current" onClick={() => setInspect({ fabric: { ...current, viewOnly: true } })} title="View fabric large">
                 <img className="backing-current-img" src={current.image || currentSrc} alt={current.name}/>
-                <div className="backing-current-caption">{current.name} — tap to view large</div>
+                <div className="backing-current-caption">{current.name}. Tap to view large</div>
               </button>
             )}
             <BackingFabricPicker
@@ -10718,13 +10895,13 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
         wide
         back={<BrandBack onBack={onBack}/>}
         actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
-        eyebrow={<BrandEyebrow step={3} label={`Quilting · step 3 of ${BRAND_STEPS.quilt}`}/>}
+        eyebrow={<BrandEyebrow step={3} label={`Quilting · Step 3 of ${BRAND_STEPS.quilt}`}/>}
         title="Find your palette."
-        sub="Colour is where it starts to look like yours. Every swatch here is a real Kona cotton we can cut for you."/>
+        sub="Every swatch here is a real Kona cotton we can cut for you."/>
       {photo && (
         <BrandSection
           title="Your backing"
-          note="Lifted from the fabric you picked. Tap a colour to drop it.">
+          note="Lifted from the fabric you picked. Tap a color to drop it.">
           {!ready ? (
             <div className="pal-busy">Reading colors from your fabric…</div>
           ) : (
@@ -10769,7 +10946,7 @@ function PaletteSelector({ presetName, backing, onChoose, onSkip, onBack }) {
           </button>
         ))}
       </div>
-      <BrandFooter note="Quilting — palette"/>
+      <BrandFooter note="Quilting · palette"/>
       {swapIdx !== null && (
         <KonaPicker anchorRef={swapAnchor} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
@@ -10822,15 +10999,16 @@ function GridSizeThumb({ preset, craft }) {
 function StitchSizeCard({ preset, onSelect, craft = 'cross-stitch', price }) {
   const cfg = CRAFT_STUDIO[craft];
   const image = (GRID_SIZE_IMAGES[craft] || {})[preset.name];
+  const theme = (GRID_SIZE_THEMES[craft] || {})[preset.name];
   const dims = isCoasterSize(preset.name)
     ? `${preset.w} × ${preset.h} ${cfg.unitPlural} · set of 4`
     : `${preset.w} × ${preset.h} ${cfg.unitPlural}`;
   return (
     <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
       aria-label={[preset.name, dims, price && `kit ${price}`].filter(Boolean).join(", ")}>
-      <span className="size-card-visual">
+      <span className="size-card-visual" style={theme ? { background: theme.c1 } : undefined}>
         {image
-          ? <img src={image} alt=""/>
+          ? <img src={image} alt="" loading="eager" decoding="async" fetchPriority="high"/>
           : <GridSizeThumb preset={preset} craft={craft}/>}
       </span>
       <span className="size-card-copy">
@@ -10856,16 +11034,16 @@ function CrossStitchSizeSelector({ onSelect, onBack, craft = 'cross-stitch' }) {
       <BrandHead
         tone="butter"
         back={<BrandBack onBack={onBack}/>}
-        eyebrow={<BrandEyebrow step={1} label={`${BRAND_CRAFT_LABEL[craft] || cfg.label} · step 1 of ${BRAND_STEPS[craft] || 3}`}/>}
+        eyebrow={<BrandEyebrow step={1} label={`${BRAND_CRAFT_LABEL[craft] || cfg.label} · Step 1 of ${BRAND_STEPS[craft] || 3}`}/>}
         title="What size?"
-        sub={`Every size is a real finished piece, so the ${cfg.unitPlural} and materials are worked out from here on.`}/>
+        sub={`Every size is a real finished piece, so we calculate the ${cfg.unitPlural} and materials from here.`}/>
       <div className="size-row">
         {cfg.presets.map(p => (
           <StitchSizeCard key={p.name} preset={p} craft={craft} onSelect={onSelect}
             price={formatKitPrice(prices[p.name])}/>
         ))}
       </div>
-      <BrandFooter note={`${BRAND_CRAFT_LABEL[craft] || cfg.label} — choose a finished size`}/>
+      <BrandFooter note={`${BRAND_CRAFT_LABEL[craft] || cfg.label} · choose a finished size`}/>
     </div>
   );
 }
@@ -10943,16 +11121,16 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
         wide
         back={<BrandBack onBack={onBack}/>}
         actions={<button type="button" className="back-skip" onClick={onSkip}>Skip for now</button>}
-        eyebrow={<BrandEyebrow step={3} label={`${craftLabel} · step 3 of ${BRAND_STEPS[craft] || 3}`}/>}
+        eyebrow={<BrandEyebrow step={3} label={`${craftLabel} · Step 3 of ${BRAND_STEPS[craft] || 3}`}/>}
         title="Find your palette."
-        sub={`Colour is where it starts to look like yours. Every ${cfg.threadLabel.toLowerCase()} here is a real ${cfg.codePrefix} shade we can send you.`}/>
+        sub={`Every ${cfg.threadLabel.toLowerCase()} here is a real ${cfg.codePrefix} shade we can send you.`}/>
       {/* Primary focus: what it will actually stitch out as, beside the colours
           it will use. The live chart lives here rather than next to the detail
           controls so the project — not the setting — is the thing on show. */}
       {photo && (
         <BrandSection
           title="Your project"
-          note={`${preset.w} × ${preset.h} ${cfg.unitPlural} · ${cfg.gaugeLabel}. Tap a colour to drop it.`}>
+          note={`${preset.w} × ${preset.h} ${cfg.unitPlural} · ${cfg.gaugeLabel}. Tap a color to drop it.`}>
           {!ready ? (
             <div className="pal-busy">Reading colors from your photo…</div>
           ) : (
@@ -10986,7 +11164,7 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
         <BrandSection
           quiet
           title="How much detail?"
-          note={`A photo holds more shading than ${cfg.unitPlural} can show. Flattening trades that detail for broad blocks of colour — fewer stray ${cfg.unitPlural}, and a chart you can follow.`}>
+          note={`A photo holds more shading than ${cfg.unitPlural} can show. Flattening trades that detail for broad blocks of color, fewer stray ${cfg.unitPlural}, and a chart you can follow.`}>
           <section className="xs-flatten">
             <div className="xs-flatten-main">
               <div className="xs-flatten-row" role="group" aria-label="Detail level">
@@ -11037,7 +11215,7 @@ function CrossStitchPaletteSelector({ preset, photo, template, onChoose, onSkip,
           </button>
         ))}
       </div>
-      <BrandFooter note={`${craftLabel} — ${preset.name}`}/>
+      <BrandFooter note={`${craftLabel} · ${preset.name}`}/>
       {swapIdx !== null && (
         <DmcPicker anchorRef={swapAnchor} craft={craft} onClose={() => setSwapIdx(null)} onPick={pickSwap}/>
       )}
@@ -11478,7 +11656,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   useEffect(() => {
     if (!libraryOn || !stitchCacheReady.current) return;
     const ok = CFG.persist(savedStitches);
-    setSaveError(ok ? "" : "Couldn't save — this device's storage may be full.");
+    setSaveError(ok ? "" : "Couldn't save. This device's storage may be full.");
   }, [savedStitches, libraryOn]);
   useEffect(() => {
     if (!libraryOn) { stitchCacheReady.current = false; setSavedStitches([]); return; }
@@ -12506,7 +12684,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       setSaveError("");
     } catch (e) {
       console.warn("Design cloud save failed:", e);
-      setSaveError("Couldn't save to your account — check your connection and try again.");
+      setSaveError("Couldn't save to your account. Check your connection and try again.");
     }
   };
   const saveNewDesign = () => {
@@ -13108,7 +13286,7 @@ function useKitMockup(type, record, designId) {
         status: 'error',
         message: e.message === 'blocked'
           ? "That design couldn't be rendered — it's still fine to order"
-          : "Couldn't make the preview just now — your kit is unaffected",
+          : "Couldn't make the preview just now. Your kit is unaffected",
       });
     }
   };
@@ -13160,7 +13338,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
     : [
         { k: "Finished size", v: bom && bom.finishedInches ? kitInchBox(bom.finishedInches) : null },
         { k: cfg.unitTitle, v: record.stitches != null ? String(record.stitches) : null },
-        { k: "Colours", v: String((record.colors || []).length) },
+        { k: "Colors", v: String((record.colors || []).length) },
         { k: "Skeins", v: bom ? String(bom.totalSkeins) : null },
       ];
 
@@ -13171,7 +13349,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
       await startKitCheckout(type, record, designId);
     } catch (e) {
       console.warn("Shopify checkout failed:", e);
-      setState({ status: "error", message: "Couldn't reach checkout — your design is safe, try again in a moment" });
+      setState({ status: "error", message: "Couldn't reach checkout. Your design is safe. Try again in a moment." });
     }
   };
 
@@ -13218,7 +13396,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
                       : (
                         <div className="kit-tile-blank">
                           {mockup.status === 'working'
-                            ? <p className="kit-tile-msg">Making a picture of it finished — this takes up to a minute.</p>
+                            ? <p className="kit-tile-msg">Making a picture of it finished. This takes up to a minute.</p>
                             : (
                               <>
                                 <button type="button" className="brand-btn" onClick={mockup.generate}>
@@ -13250,7 +13428,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
                 {included.map((label, i) => row({ label }, `inc${i}`))}
               </ul>
               {!bom && (
-                <p className="kit-note">Working out exact quantities — the colours are final.</p>
+                <p className="kit-note">Calculating exact quantities. The colors are final.</p>
               )}
             </section>
             {yourOwn.length > 0 && (
@@ -13268,7 +13446,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
             <div className="kit-buy">
               <div>
                 <span className="kit-buy-k">Kit price</span>
-                <span className="kit-buy-v">{price || "—"}</span>
+                <span className="kit-buy-v">{price || ""}</span>
               </div>
               <button type="button" className="brand-btn is-primary kit-buy-go"
                 disabled={state.status === "redirecting"} onClick={go}>
@@ -13277,7 +13455,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
             </div>
             {state.status === "error"
               ? <p className="kit-err">{state.message}</p>
-              : <p className="kit-note">Shipping and tax are worked out on the next screen. Made to order — your kit is cut and packed for this design.</p>}
+              : <p className="kit-note">Shipping and tax are calculated on the next screen. Made to order. Your kit is cut and packed for this design.</p>}
           </div>
         </div>
       </div>

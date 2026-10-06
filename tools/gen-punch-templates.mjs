@@ -650,20 +650,20 @@ const ANY_SIZE = ['Pillow', 'Large Hoop', 'Small Hoop'];
 const COASTER = ['Coaster'];
 const SET = { presets: COASTER, w: 40, h: 40, unit: { w: 20, h: 20 }, cols: 2, rows: 2 };
 const DESIGNS = [
-  { id: 'pn-homebody', name: 'Homebody', desc: 'Two lines of lettering, sans over script.',
+  { id: 'pn-homebody', name: 'Homebody', desc: '2 colors · add your own words',
     presets: PILLOW, w: 70, h: 70, colors: 2, draw: drawHomeBody },
-  { id: 'pn-blobs', name: 'Soft Shapes', desc: 'Overlapping blobs in muted tones.',
+  { id: 'pn-blobs', name: 'Soft Shapes', desc: '6 colors',
     presets: ANY_SIZE, w: 70, h: 70, colors: 6, draw: drawBlobs },
-  { id: 'pn-name-daisies', name: 'Name in Daisies', desc: 'Daisies above and below, your name between.',
+  { id: 'pn-name-daisies', name: 'Name in Daisies', desc: '6 colors · add your name',
     presets: PILLOW, w: 70, h: 70, colors: 6, draw: drawNameDaisies,
     seedText: { font: 'script', size: 22 } },
-  { ...SET, id: 'pn-cats', name: 'Four Cats', desc: 'A calico, a tuxedo, a grey and a ginger.',
+  { ...SET, id: 'pn-cats', name: 'Four Cats', desc: '8 colors · set of 4',
     colors: 8, ground: CATS.ground, panels: CAT_PANELS },
-  { ...SET, id: 'pn-fruit', name: 'Fruit Stand', desc: 'Strawberry, lemon, watermelon, plum.',
+  { ...SET, id: 'pn-fruit', name: 'Fruit Stand', desc: '8 colors · set of 4',
     colors: 8, ground: FRUIT.ground, panels: FRUIT_PANELS },
-  { ...SET, id: 'pn-pasta', name: 'Pasta Night', desc: 'Farfalle, ravioli, fusilli, macaroni.',
+  { ...SET, id: 'pn-pasta', name: 'Pasta Night', desc: '5 colors · set of 4',
     colors: 6, ground: PASTA.ground, panels: PASTA_PANELS },
-  { ...SET, id: 'pn-daisies', name: 'Four Daisies', desc: 'One simple daisy, in four colors.',
+  { ...SET, id: 'pn-daisies', name: 'Four Daisies', desc: '6 colors · set of 4',
     colors: 6, ground: DAISY.ground, panels: DAISY_PANELS },
 ];
 

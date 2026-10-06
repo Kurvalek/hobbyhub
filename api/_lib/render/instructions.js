@@ -22,14 +22,14 @@ function crossStitchInstructions(record, bom) {
     rows.push({ label: `Aida cloth, ${bom.aida.count}-count${bom.aida.color ? ` (${bom.aida.color})` : ""}`, qty: `${bom.aida.w}" × ${bom.aida.h}"` });
   if (bom?.needle) rows.push({ label: bom.needle + " needle", qty: "1" });
   for (const f of bom?.floss || [])
-    rows.push({ swatch: f.hex, label: `DMC ${f.code} — ${f.name}`, qty: `${f.skeins} skein${f.skeins === 1 ? "" : "s"}` });
+    rows.push({ swatch: f.hex, label: `DMC ${f.code} · ${f.name}`, qty: `${f.skeins} skein${f.skeins === 1 ? "" : "s"}` });
 
   const steps = [
-    "<b>Prep your cloth.</b> Find the center of the Aida by folding it in half both ways; the creases cross at the middle. The chart's center is marked by the heavy gridlines — starting from the center keeps your design centered on the fabric.",
-    "<b>Separate your floss.</b> DMC floss has 6 strands. For 14-count Aida, stitch with <b>2 strands</b>. Cut a length about 18\" long — longer tangles and frays.",
-    "<b>Read the chart.</b> Each square is one stitch. The symbol tells you which floss color to use — match it to the legend on your chart sheet. Each square on the Aida is one stitch too.",
+    "<b>Prep your cloth.</b> Find the center of the Aida by folding it in half both ways; the creases cross at the middle. The chart's center is marked by the heavy gridlines. Starting from the center keeps your design centered on the fabric.",
+    "<b>Separate your floss.</b> DMC floss has 6 strands. For 14-count Aida, stitch with <b>2 strands</b>. Cut a length about 18\" long. Longer tangles and frays.",
+    "<b>Read the chart.</b> Each square is one stitch. The symbol tells you which floss color to use: match it to the legend on your chart sheet. Each square on the Aida is one stitch too.",
     "<b>Make a cross-stitch.</b> Bring the needle up at the bottom-left of a square, down at the top-right (that's a half stitch, /), then up at the bottom-right and down at the top-left to complete the X. Keep the top diagonal facing the same way for every stitch.",
-    "<b>Work color by color.</b> Stitch all of one color in an area before switching. Don't carry floss more than a few squares behind unstitched fabric — it shows through.",
+    "<b>Work color by color.</b> Stitch all of one color in an area before switching. Don't carry floss more than a few squares behind unstitched fabric. It shows through.",
     "<b>Finish off.</b> Weave the tail under a few stitches on the back; no knots. Trim close.",
     "<b>Press & mount.</b> Press face-down on a towel. For a bookmark, trim to size leaving a small border and finish the edges as you like.",
   ];
@@ -50,9 +50,9 @@ function crossStitchInstructions(record, bom) {
     ${suppliesList(rows)}
     <h2 class="sec">How to stitch it</h2>
     ${stepsList(steps)}
-    <div class="tip"><b>New to cross-stitch?</b> Start in a corner of a large single-color area to get a rhythm before tackling detailed sections. Keep even tension — snug, not tight.</div>`;
+    <div class="tip"><b>New to cross-stitch?</b> Start in a corner of a large single-color area to get a rhythm before tackling detailed sections. Keep even tension: snug, not tight.</div>`;
 
-  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
+  return { title: `${name} · instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
 }
 
 function punchNeedleInstructions(record, bom) {
@@ -63,15 +63,15 @@ function punchNeedleInstructions(record, bom) {
     rows.push({ label: `Monk's cloth${bom.monksCloth.color ? ` (${bom.monksCloth.color})` : ""}`, qty: `${bom.monksCloth.w}" × ${bom.monksCloth.h}"` });
   if (bom?.needle) rows.push({ label: bom.needle, qty: "1" });
   for (const y of bom?.yarn || [])
-    rows.push({ swatch: y.hex, label: `${y.code} — ${y.name}`, qty: `${y.skeins} skein${y.skeins === 1 ? "" : "s"}` });
+    rows.push({ swatch: y.hex, label: `${y.code} · ${y.name}`, qty: `${y.skeins} skein${y.skeins === 1 ? "" : "s"}` });
 
   const steps = [
-    "<b>Mount the cloth.</b> Stretch the monk's cloth in your gripper frame or stretcher bars until it is drum-tight — you should be able to tap it and hear it. Slack cloth is the single most common cause of loops pulling straight back out.",
-    "<b>Transfer the design.</b> Find the center of the cloth by folding it in half both ways, then trace the chart onto the <b>back</b> of the cloth with a fabric pen, counting squares against the heavy gridlines. Remember the chart is worked from the back, so the finished front is a mirror image — trace it reversed if the design has lettering or a clear direction.",
-    "<b>Thread the needle.</b> Pass the yarn down through the needle's shaft from the handle end, then out through the eye near the tip. Leave a 3\" tail. The yarn must run freely — give it a tug to check it doesn't snag, or your loops will be uneven.",
+    "<b>Mount the cloth.</b> Stretch the monk's cloth in your gripper frame or stretcher bars until it is drum-tight. You should be able to tap it and hear it. Slack cloth is the single most common cause of loops pulling straight back out.",
+    "<b>Transfer the design.</b> Find the center of the cloth by folding it in half both ways, then trace the chart onto the <b>back</b> of the cloth with a fabric pen, counting squares against the heavy gridlines. Remember the chart is worked from the back, so the finished front is a mirror image. Trace it reversed if the design has lettering or a clear direction.",
+    "<b>Thread the needle.</b> Pass the yarn down through the needle's shaft from the handle end, then out through the eye near the tip. Leave a 3\" tail. The yarn must run freely. Give it a tug to check it doesn't snag, or your loops will be uneven.",
     "<b>Set your loop depth.</b> The needle's depth setting controls loop height. Start at a medium setting and punch a test patch in a spare corner. Taller loops give a plusher pile; shorter loops read crisper and hold detail better.",
-    "<b>Punch.</b> Hold the needle upright with the open side of the tip facing the direction you're travelling. Push it all the way down until the handle touches the cloth, then lift <i>only</i> until the tip clears the surface and drag it along to the next hole. Lifting too high pulls the last loop out.",
-    "<b>Outline, then fill.</b> Punch the outline of each color area first, then fill it in with rows that follow the shape. Space your punches about one cloth thread apart — too close distorts the cloth, too far and the backing shows through.",
+    "<b>Punch.</b> Hold the needle upright with the open side of the tip facing the direction you're traveling. Push it all the way down until the handle touches the cloth, then lift <i>only</i> until the tip clears the surface and drag it along to the next hole. Lifting too high pulls the last loop out.",
+    "<b>Outline, then fill.</b> Punch the outline of each color area first, then fill it in with rows that follow the shape. Space your punches about one cloth thread apart. Too close distorts the cloth; too far and the backing shows through.",
     "<b>Work color by color.</b> Finish one color before switching. Snip the yarn flush with the cloth at the start and end of each area; the surrounding loops hold the tails in place, so no knots are needed.",
     "<b>Finish the back.</b> Turn the piece over to check the front for gaps and fill any you find. Once you're happy, seal the reverse with a thin coat of fabric glue so nothing works loose, and let it dry fully before trimming or mounting.",
   ];
@@ -92,9 +92,9 @@ function punchNeedleInstructions(record, bom) {
     ${suppliesList(rows)}
     <h2 class="sec">How to punch it</h2>
     ${stepsList(steps)}
-    <div class="tip"><b>If a loop pulls out</b> as you move to the next stitch, you're lifting the needle too high between punches — keep the tip dragging along the cloth. If the cloth puckers, your punches are too close together.</div>`;
+    <div class="tip"><b>If a loop pulls out</b> as you move to the next stitch, you're lifting the needle too high between punches. Keep the tip dragging along the cloth. If the cloth puckers, your punches are too close together.</div>`;
 
-  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
+  return { title: `${name} · instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
 }
 
 function quiltInstructions(record, bom) {
@@ -107,7 +107,7 @@ function quiltInstructions(record, bom) {
 
   const rows = [];
   for (const fab of bom?.fabrics || [])
-    rows.push({ swatch: fab.hex, label: `Kona ${fab.code ? fab.code + " — " : ""}${fab.name}`, qty: fab.yardsLabel });
+    rows.push({ swatch: fab.hex, label: `Kona ${fab.code ? fab.code + " · " : ""}${fab.name}`, qty: fab.yardsLabel });
   if (bom?.batting) rows.push({ label: "Batting", qty: `${bom.batting.w}" × ${bom.batting.h}"` });
   if (bom?.backing) rows.push({ label: "Backing fabric", qty: bom.backing.yardsLabel });
   if (bom?.binding) rows.push({ label: "Binding fabric", qty: bom.binding.yardsLabel });
@@ -127,7 +127,7 @@ function quiltInstructions(record, bom) {
   );
   if (cut.hasHst) {
     steps.push(
-      `<b>Make the half-square triangles.</b> For each color pair, layer one square of each color right sides together, draw a diagonal line corner to corner, and sew ¼" from each side of the line. Cut along the line and press open — each pair makes two units. Trim every unit square before piecing.`
+      `<b>Make the half-square triangles.</b> For each color pair, layer one square of each color right sides together, draw a diagonal line corner to corner, and sew ¼" from each side of the line. Cut along the line and press open. Each pair makes two units. Trim every unit square before piecing.`
     );
   }
   steps.push(
@@ -137,13 +137,13 @@ function quiltInstructions(record, bom) {
     `<b>Piece each row.</b> Sew the pieces in each horizontal row together with a scant ¼" seam. Press the seams of adjoining rows in opposite directions so they nest when you join them.`
   );
   steps.push(
-    `<b>Join the rows.</b> Sew the ${rowsCount ? `${rowsCount} rows` : "rows"} together in order, matching seams as you go. Press — your quilt top is complete${bom?.finishedInches ? ` at ${bom.finishedInches.w}" × ${bom.finishedInches.h}"` : ""}.`
+    `<b>Join the rows.</b> Sew the ${rowsCount ? `${rowsCount} rows` : "rows"} together in order, matching seams as you go. Press. Your quilt top is complete${bom?.finishedInches ? ` at ${bom.finishedInches.w}" × ${bom.finishedInches.h}"` : ""}.`
   );
   steps.push(
     `<b>Baste the layers.</b> Layer the backing (right side down), batting, then the quilt top (right side up). Smooth flat and pin or spray baste.`
   );
   steps.push(
-    `<b>Quilt it.</b> Quilt as desired — straight lines, following the seams, or free-motion. Work from the center outward.`
+    `<b>Quilt it.</b> Quilt as desired: straight lines, following the seams, or free-motion. Work from the center outward.`
   );
   if (bom?.binding) {
     steps.push(
@@ -169,7 +169,7 @@ function quiltInstructions(record, bom) {
     ${stepsList(steps)}
     <div class="tip"><b>Seam tip:</b> A consistent ¼" seam is everything in quilting. Test on scraps and adjust your needle position until two 2.5" strips sewn together measure exactly 4.5" across.</div>`;
 
-  return { title: `${name} — instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
+  return { title: `${name} · instructions`, pageCss: `size: letter portrait; margin: 0.6in;`, body };
 }
 
 // Builds the instruction sheet for a design record as { title, pageCss, body },

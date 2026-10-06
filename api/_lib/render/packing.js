@@ -25,7 +25,7 @@ const KIT_INFO = {
   },
   "cross-stitch": {
     included: [
-      "Printed chart with a full-colour symbol legend",
+      "Printed chart with a full-color symbol legend",
       "Printed step-by-step instructions",
     ],
     extras: {
@@ -40,7 +40,7 @@ const KIT_INFO = {
   },
   "punch-needle": {
     included: [
-      "Printed chart with a full-colour legend",
+      "Printed chart with a full-color legend",
       "Printed step-by-step instructions",
     ],
     extras: {
@@ -182,7 +182,7 @@ function addressHtml(order) {
   const s = order.shipping || {};
   const cityLine = [s.city, s.province, s.zip].filter(Boolean).join(", ");
   return [
-    `<div><b>${esc(s.name || order.customer?.name || "—")}</b></div>`,
+    `<div><b>${esc(s.name || order.customer?.name || "")}</b></div>`,
     s.address1 ? `<div>${esc(s.address1)}</div>` : "",
     s.address2 ? `<div>${esc(s.address2)}</div>` : "",
     cityLine ? `<div>${esc(cityLine)}</div>` : "",
@@ -260,7 +260,7 @@ export function pickSheetParts(order) {
     <style>${PICK_STYLES}</style>
     <div class="doc-head">
       <div>
-        <p class="doc-kicker">Pick sheet — internal</p>
+        <p class="doc-kicker">Pick sheet — internal${order.isTest ? " · test order, do not pull" : ""}</p>
         <h1 class="doc-title">${esc(name)}</h1>
       </div>
       <div class="doc-meta">
@@ -307,31 +307,31 @@ function slipItemHtml(item) {
   const threads = [];
   if (bom?.type === "cross-stitch") {
     for (const f of bom.floss || [])
-      threads.push({ hex: f.hex, label: `DMC ${f.code} — ${f.name}`, qty: skeinLabel(f.skeins * q) });
+      threads.push({ hex: f.hex, label: `DMC ${f.code} · ${f.name}`, qty: skeinLabel(f.skeins * q) });
   } else if (bom?.type === "punch-needle") {
     for (const y of bom.yarn || [])
-      threads.push({ hex: y.hex, label: `Wool ${y.code} — ${y.name}`, qty: skeinLabel(y.skeins * q) });
+      threads.push({ hex: y.hex, label: `Wool ${y.code} · ${y.name}`, qty: skeinLabel(y.skeins * q) });
   } else if (bom?.type === "quilt") {
     for (const fab of bom.fabrics || [])
-      threads.push({ hex: fab.hex, label: `Kona ${fab.code ? `${fab.code} — ` : ""}${fab.name}`, qty: fmtYards((fab.yards || 0) * q) });
+      threads.push({ hex: fab.hex, label: `Kona ${fab.code ? `${fab.code} · ` : ""}${fab.name}`, qty: fmtYards((fab.yards || 0) * q) });
   }
 
   const ground = [];
-  if (bom?.aida) ground.push(`Aida cloth, ${bom.aida.count}-count${bom.aida.color ? ` in ${bom.aida.color}` : ""} — ${piecesLabel(q, `${bom.aida.w}" × ${bom.aida.h}"`)}`);
-  if (bom?.monksCloth) ground.push(`Monk's cloth${bom.monksCloth.color ? ` in ${bom.monksCloth.color}` : ""} — ${piecesLabel(q, `${bom.monksCloth.w}" × ${bom.monksCloth.h}"`)}`);
+  if (bom?.aida) ground.push(`Aida cloth, ${bom.aida.count}-count${bom.aida.color ? ` in ${bom.aida.color}` : ""} · ${piecesLabel(q, `${bom.aida.w}" × ${bom.aida.h}"`)}`);
+  if (bom?.monksCloth) ground.push(`Monk's cloth${bom.monksCloth.color ? ` in ${bom.monksCloth.color}` : ""} · ${piecesLabel(q, `${bom.monksCloth.w}" × ${bom.monksCloth.h}"`)}`);
   // bom.needle is a bare description for cross-stitch ("Size 24 tapestry") but
   // already names itself for punch needle.
   if (bom?.needle) ground.push(`${bom.needle}${/needle/i.test(bom.needle) ? "" : " needle"}${q > 1 ? ` × ${q}` : ""}`);
-  if (bom?.backing) ground.push(`Backing fabric — ${fmtYards((bom.backing.yards || 0) * q)}`);
-  if (bom?.binding) ground.push(`Binding fabric — ${fmtYards((bom.binding.yards || 0) * q)}`);
-  if (bom?.batting) ground.push(`Batting — ${piecesLabel(q, `${bom.batting.w}" × ${bom.batting.h}"`)}`);
+  if (bom?.backing) ground.push(`Backing fabric · ${fmtYards((bom.backing.yards || 0) * q)}`);
+  if (bom?.binding) ground.push(`Binding fabric · ${fmtYards((bom.binding.yards || 0) * q)}`);
+  if (bom?.batting) ground.push(`Batting · ${piecesLabel(q, `${bom.batting.w}" × ${bom.batting.h}"`)}`);
 
   const extras = bom
     ? [...extrasFor(item.type, item.variantTitle), ...(KIT_INFO[item.type]?.included || [])]
     : [];
 
   return `<div class="ps-item">
-    <div class="ps-item-title">${item.quantity}× ${esc(item.title || "Kit")}${item.variantTitle ? ` — ${esc(item.variantTitle)}` : ""}</div>
+    <div class="ps-item-title">${item.quantity}× ${esc(item.title || "Kit")}${item.variantTitle ? ` · ${esc(item.variantTitle)}` : ""}</div>
     ${sub ? `<div class="ps-item-sub">${esc(sub)}</div>` : ""}
     ${threads.length ? `<div>${threads.map((t) => `<div class="ps-thread">
         <span class="swatch" style="background:${esc(t.hex || "#fff")}"></span>
@@ -382,13 +382,13 @@ export function packingSlipParts(order) {
     <ul class="ps-list">${yourOwn.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
 
     <div class="ps-foot">
-      Everything in this box was cut and counted for the design you made — the
+      Everything in this box was cut and counted for the design you made. The
       chart and instructions enclosed match it exactly. If anything is missing or
       short, reply to your order confirmation and we'll put it right.
     </div>`;
 
   return {
-    title: `${name} — packing slip`,
+    title: `${name} · packing slip`,
     pageCss: `size: letter portrait; margin: 0.6in;`,
     body,
   };

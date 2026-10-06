@@ -265,26 +265,26 @@ function drawCoralWave(cv) {
 // after quantization; emitted in descending stitch-count order, which is the
 // role order the app's palette override maps onto. ──
 const DESIGNS = [
-  { file: 'alien.png',        id: 'alien',        name: 'Little Alien',      desc: 'A friendly space visitor.',        presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
-  { file: 'ufo.png',          id: 'ufo',          name: 'Flying Saucer',     desc: 'A beaming little UFO.',            presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
+  { file: 'alien.png',        id: 'alien',        name: 'Little Alien',      desc: '8 colors',        presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
+  { file: 'ufo.png',          id: 'ufo',          name: 'Flying Saucer',     desc: '8 colors',            presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
   // Medium Hoop is served entirely by the two stitched designs at the bottom of
   // this list, so the traced charts only cover the smaller sizes now.
-  { file: 'moth.png',         id: 'moth',         name: 'Celestial Moth',    desc: 'A moon-phase moth motif.',         presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 46, colors: 14 },
-  { file: 'heart.png',        id: 'heart',        name: 'Floral Heart',      desc: 'Wildflowers in a heart.',          presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 40, colors: 16 },
-  { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: 'A vase of summer blooms.',         presets: ['Small Hoop'],                             w: 104, h: 104, bgTol: 52, colors: 14 },
-  { draw: drawLeafStack,      id: 'leaf-stack',   name: 'Cutout Leaves',     desc: 'Five paper-cut leaves in a frame.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
-  { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: 'One blocky fish on still water.',  presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
-  { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: 'Petals tossed across a slate field.', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
-  { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: 'A bold coral ribbon on ink.',      presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
+  { file: 'moth.png',         id: 'moth',         name: 'Celestial Moth',    desc: '14 colors',         presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 46, colors: 14 },
+  { file: 'heart.png',        id: 'heart',        name: 'Floral Heart',      desc: '16 colors',          presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 40, colors: 16 },
+  { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: '14 colors',         presets: ['Small Hoop'],                             w: 104, h: 104, bgTol: 52, colors: 14 },
+  { draw: drawLeafStack,      id: 'leaf-stack',   name: 'Cutout Leaves',     desc: '6 colors', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
+  { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: '6 colors',  presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
+  { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: '6 colors', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
+  { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: '4 colors',      presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
   // ── Medium Hoop: designs stitched in the studio and saved, taken in as-is ──
   // The lettering is already stitched into these charts, so `seedText` carries
   // no words — it opens the studio on the text tool with the font and height the
   // chart's own lettering was stitched at, ready for the maker's words. Both
   // were measured off the charts (tools/_id-saved-font.mjs), which is why the
   // matchbox is Sans and the wreath is Sampler.
-  { saved: 'perfect-match.json', id: 'perfect-match', name: 'Perfect Match', desc: 'An open matchbox with your initials.', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
+  { saved: 'perfect-match.json', id: 'perfect-match', name: 'Perfect Match', desc: '8 colors · add your initials', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
     clear: clearPerfectMatch, seedText: { font: 'sans', size: 12 } },
-  { saved: 'wreath-quote.json',  id: 'wreath-quote',  name: 'Wreath Quote',  desc: 'A floral ring around your own words.', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
+  { saved: 'wreath-quote.json',  id: 'wreath-quote',  name: 'Wreath Quote',  desc: '6 colors · add your own words', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
     clear: clearWreathQuote, seedText: { font: 'sampler', size: 11 } },
 ];
 

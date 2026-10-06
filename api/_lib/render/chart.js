@@ -28,7 +28,7 @@ const CHART_CONFIGS = {
     gauge: AIDA_COUNT,
     gaugeLabel: `@ ${AIDA_COUNT}ct`,
     unitsPerSkein: STITCHES_PER_SKEIN,
-    legendTitle: "Floss legend — DMC",
+    legendTitle: "Floss legend · DMC",
     codeHeader: "DMC",
     countHeader: "Stitches",
     // Aida squares are small, so a dense chart is normal and expected.
@@ -41,7 +41,7 @@ const CHART_CONFIGS = {
     gauge: PUNCH_GAUGE,
     gaugeLabel: `@ ${PUNCH_GAUGE}/in`,
     unitsPerSkein: LOOPS_PER_SKEIN,
-    legendTitle: "Wool legend — tapestry",
+    legendTitle: "Wool legend · tapestry",
     codeHeader: "Wool",
     countHeader: "Loops",
     // Punch designs are coarse (a 12×12 is a whole wall hanging), so cells are
@@ -120,8 +120,8 @@ function gridChartParts(record, cfg) {
     })
     .join("");
 
-  const finW = W ? (W / cfg.gauge).toFixed(1) : "—";
-  const finH = H ? (H / cfg.gauge).toFixed(1) : "—";
+  const finW = W ? (W / cfg.gauge).toFixed(1) : "-";
+  const finH = H ? (H / cfg.gauge).toFixed(1) : "-";
   const total = d.stitches || colors.reduce((s, c) => s + (c.count || 0), 0);
 
   const body = `
@@ -145,7 +145,7 @@ function gridChartParts(record, cfg) {
     </table>`;
 
   return {
-    title: `${name} — chart`,
+    title: `${name} · chart`,
     pageCss: `size: letter ${landscape ? "landscape" : "portrait"}; margin: 0.5in;`,
     body,
   };

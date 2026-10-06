@@ -81,7 +81,7 @@ export function quiltTemplateParts(record) {
     )
     .join("");
   const squareTable = cut.squares.length
-    ? `<h2 class="sec">Cut these squares — Kona Cotton</h2>
+    ? `<h2 class="sec">Cut these squares · Kona Cotton</h2>
     <table class="legend">
       <thead><tr><th>Color</th><th>Kona</th><th>Name</th><th>Cut size</th><th>Pieces</th></tr></thead>
       <tbody>${squareRows}</tbody>
@@ -109,7 +109,7 @@ export function quiltTemplateParts(record) {
       <thead><tr><th>Colors</th><th>Kona</th><th>Finished</th><th>Cut squares</th><th>Squares</th><th>Units</th></tr></thead>
       <tbody>${hstRows}</tbody>
     </table>
-    <div class="tip"><b>Making HSTs (2-at-a-time):</b> Cut the squares above (the listed number of each color). Pair one of each color right sides together, draw a diagonal line corner to corner, sew ¼" from each side of the line, then cut along the line and press open — each pair yields two units. Trim each unit square before piecing.</div>`
+    <div class="tip"><b>Making HSTs (2-at-a-time):</b> Cut the squares above (the listed number of each color). Pair one of each color right sides together, draw a diagonal line corner to corner, sew ¼" from each side of the line, then cut along the line and press open. Each pair yields two units. Trim each unit square before piecing.</div>`
     : "";
 
   const backing = d.backing && d.backCalc ? fmtY(d.backCalc.yards) : null;
@@ -145,10 +145,10 @@ export function quiltTemplateParts(record) {
     ${squareTable}
     ${hstTable}
     ${extrasTable}
-    <div class="tip">All cut measurements include a ¼" seam allowance and assume 40" width-of-fabric. Add 10–15% for shrinkage. Backing is cut 4" larger than the top on every side.</div>`;
+    <div class="tip">All cut measurements include a ¼" seam allowance and assume 40" width-of-fabric. Add 10 to 15% for shrinkage. Backing is cut 4" larger than the top on every side.</div>`;
 
   return {
-    title: `${name} — template`,
+    title: `${name} · template`,
     pageCss: `size: letter portrait; margin: 0.5in;`,
     body,
   };
