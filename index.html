@@ -8906,6 +8906,39 @@ function tplTriPoints(s) {
     : `${c},${r} ${c},${r + h} ${c + w},${r + h}`;
 }
 
+// Lily's Quilt, a 10×12 baby-blanket plaid: ground bands ('g') crossed by
+// vertical ('v') and horizontal ('h') stripes, each crossing its own fabric.
+// Sizes are in blocks. The repeat (all but the closing ground band) tiles about
+// once per Lily-sized span, so a throw gets more plaid rather than bigger
+// patches. Every band keeps at least one block and only the wide bands stretch
+// or shrink to fit, because a band rounded away merges its neighbours into one
+// stripe. → [[start, size, role], …]
+const LILY_COLS = [[1, 'g'], [1, 'v'], [1, 'g'], [3, 'v'], [1, 'g'], [2, 'v'], [1, 'g']];
+const LILY_ROWS = [[1, 'g'], [2, 'h'], [1, 'g'], [2, 'h'], [1, 'g'], [2, 'h'], [1, 'g'], [1, 'h'], [1, 'g']];
+function lilyBands(bands, total, native) {
+  const repeats = Math.max(1, Math.round(total / native));
+  const seq = [];
+  for (let i = 0; i < repeats; i++) seq.push(...bands.slice(0, -1));
+  seq.push(bands[bands.length - 1]);
+  // Too small for the full band set (coasters): one-block windowpane.
+  if (total < seq.length) {
+    const stripe = bands.find(([, role]) => role !== 'g')[1];
+    return Array.from({ length: total }, (_, i) => [i, 1, i % 2 ? stripe : 'g']);
+  }
+  const extra = total - seq.length;
+  const wide = seq.reduce((s, [n]) => s + n - 1, 0) || 1;
+  const out = [];
+  let start = 0, acc = 0;
+  for (const [n, role] of seq) {
+    const before = Math.round(extra * acc / wide);
+    acc += n - 1;
+    const size = 1 + Math.round(extra * acc / wide) - before;
+    out.push([start, size, role]);
+    start += size;
+  }
+  return out;
+}
+
 // Size-adaptive quilt starter layouts. build({cols,rows,palette}) → shapes[]
 // (same shape objects the editor paints), so they tile/scale to any chosen
 // preset. When `palette` (the colors picked on the palette step) is supplied,
@@ -8990,6 +9023,36 @@ const QUILT_TEMPLATES = [
         out.push({ id: pid + 'a', r, c, w, h, type: 'tri', color: flip ? a : b, dir: '/', half: 'a', pairId: pid });
         out.push({ id: pid + 'b', r, c, w, h, type: 'tri', color: flip ? b : a, dir: '/', half: 'b', pairId: pid });
       }));
+      return out;
+    }
+  },
+  {
+    id: 'lily-plaid', name: 'Lily Plaid', desc: 'Wide and narrow stripes that cross like a woven plaid.',
+    build: ({ cols, rows, palette }) => {
+      // Ground, one vertical stripe, then (stripe, crossing) pairs for the
+      // horizontal bands. Extra palette colors become extra pairs, so a longer
+      // palette varies the rows instead of being dropped; a short one lets the
+      // crossings fall back to the vertical stripe so it still reads as plaid.
+      // The lightest color takes the ground: palettes aren't ordered light to
+      // dark, and the plaid only reads when the stripes sit on something pale.
+      const swatches = tplSwatches(palette, ['Natural', 'Mustard', 'Creamsicle', 'Terracotta', 'Dusty Blue', 'Tarragon']);
+      const lum = c => { const n = parseInt(c.hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+      const ground = swatches.reduce((a, b) => (lum(b) > lum(a) ? b : a));
+      const colors = [ground, ...swatches.filter(c => c !== ground)];
+      const vert = colors[1] || ground;
+      const pairs = [];
+      for (let i = 2; i < colors.length; i += 2) pairs.push([colors[i], colors[i + 1] || vert]);
+      if (!pairs.length) pairs.push([vert, vert]);
+      const xs = lilyBands(LILY_COLS, cols, 10), ys = lilyBands(LILY_ROWS, rows, 12), out = [];
+      let stripe = -1;
+      ys.forEach(([r, h, rowRole], ri) => {
+        if (rowRole === 'h') stripe++;
+        const [band, cross] = pairs[Math.max(0, stripe) % pairs.length];
+        xs.forEach(([c, w, colRole], ci) => {
+          const color = rowRole === 'h' ? (colRole === 'v' ? cross : band) : (colRole === 'v' ? vert : ground);
+          out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color });
+        });
+      });
       return out;
     }
   },
