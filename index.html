@@ -8988,6 +8988,36 @@ const QUILT_TEMPLATES = [
     }
   },
   {
+    id: 'plaid', name: 'Plaid', desc: 'Wide and narrow stripes that cross like a woven plaid.',
+    build: ({ cols, rows, palette }) => {
+      // Ground, one vertical stripe, then (stripe, crossing) pairs for the
+      // horizontal bands. Extra palette colors become extra pairs, so a longer
+      // palette varies the rows instead of being dropped; a short one lets the
+      // crossings fall back to the vertical stripe so it still reads as plaid.
+      // The lightest color takes the ground: palettes aren't ordered light to
+      // dark, and the plaid only reads when the stripes sit on something pale.
+      const swatches = tplSwatches(palette, ['Natural', 'Mustard', 'Creamsicle', 'Terracotta', 'Dusty Blue', 'Tarragon']);
+      const lum = c => { const n = parseInt(c.hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+      const ground = swatches.reduce((a, b) => (lum(b) > lum(a) ? b : a));
+      const colors = [ground, ...swatches.filter(c => c !== ground)];
+      const vert = colors[1] || ground;
+      const pairs = [];
+      for (let i = 2; i < colors.length; i += 2) pairs.push([colors[i], colors[i + 1] || vert]);
+      if (!pairs.length) pairs.push([vert, vert]);
+      const xs = lilyBands(LILY_COLS, cols, 10), ys = lilyBands(LILY_ROWS, rows, 12), out = [];
+      let stripe = -1;
+      ys.forEach(([r, h, rowRole], ri) => {
+        if (rowRole === 'h') stripe++;
+        const [band, cross] = pairs[Math.max(0, stripe) % pairs.length];
+        xs.forEach(([c, w, colRole], ci) => {
+          const color = rowRole === 'h' ? (colRole === 'v' ? cross : band) : (colRole === 'v' ? vert : ground);
+          out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color });
+        });
+      });
+      return out;
+    }
+  },
+  {
     id: 'ninepatch', name: 'Nine-Patch', desc: 'Classic 3×3 blocks in mixed fabrics.',
     build: ({ cols, rows, palette }) => {
       // Ground on the four side-centers, a different print on each corner of
@@ -9046,36 +9076,6 @@ const QUILT_TEMPLATES = [
         out.push({ id: pid + 'a', r, c, w, h, type: 'tri', color: flip ? a : b, dir: '/', half: 'a', pairId: pid });
         out.push({ id: pid + 'b', r, c, w, h, type: 'tri', color: flip ? b : a, dir: '/', half: 'b', pairId: pid });
       }));
-      return out;
-    }
-  },
-  {
-    id: 'plaid', name: 'Plaid', desc: 'Wide and narrow stripes that cross like a woven plaid.',
-    build: ({ cols, rows, palette }) => {
-      // Ground, one vertical stripe, then (stripe, crossing) pairs for the
-      // horizontal bands. Extra palette colors become extra pairs, so a longer
-      // palette varies the rows instead of being dropped; a short one lets the
-      // crossings fall back to the vertical stripe so it still reads as plaid.
-      // The lightest color takes the ground: palettes aren't ordered light to
-      // dark, and the plaid only reads when the stripes sit on something pale.
-      const swatches = tplSwatches(palette, ['Natural', 'Mustard', 'Creamsicle', 'Terracotta', 'Dusty Blue', 'Tarragon']);
-      const lum = c => { const n = parseInt(c.hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
-      const ground = swatches.reduce((a, b) => (lum(b) > lum(a) ? b : a));
-      const colors = [ground, ...swatches.filter(c => c !== ground)];
-      const vert = colors[1] || ground;
-      const pairs = [];
-      for (let i = 2; i < colors.length; i += 2) pairs.push([colors[i], colors[i + 1] || vert]);
-      if (!pairs.length) pairs.push([vert, vert]);
-      const xs = lilyBands(LILY_COLS, cols, 10), ys = lilyBands(LILY_ROWS, rows, 12), out = [];
-      let stripe = -1;
-      ys.forEach(([r, h, rowRole], ri) => {
-        if (rowRole === 'h') stripe++;
-        const [band, cross] = pairs[Math.max(0, stripe) % pairs.length];
-        xs.forEach(([c, w, colRole], ci) => {
-          const color = rowRole === 'h' ? (colRole === 'v' ? cross : band) : (colRole === 'v' ? vert : ground);
-          out.push({ id: `tpl-${ri}-${ci}`, r, c, w, h, type: 'square', color });
-        });
-      });
       return out;
     }
   },
