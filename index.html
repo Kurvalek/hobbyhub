@@ -334,10 +334,8 @@
        Higher specificity than .icon-btn so it wins regardless of source order. */
     .icon-btn.rp-toggle-header { display: none; }
 
-    /* Tighten chrome so the canvas keeps as much room as possible */
-    header { padding: 12px 14px; gap: 10px; }
-    .xs-topbar { flex-wrap: wrap; row-gap: 8px; padding: 10px 14px; }
-    .xs-topbar-spacer { flex-basis: 100%; height: 0; }
+    /* Tighten chrome so the canvas keeps as much room as possible
+       (studio header/top bar rules live after their base styles, below) */
     .preset-pill { max-width: 200px; }
     .canvas-scroll { padding: 12px; }
     .xs-canvas-wrap { padding: 12px; }
@@ -346,8 +344,6 @@
   }
 
   @media (max-width: 560px) {
-    header { grid-template-columns: auto 1fr auto; padding: 10px 12px; gap: 8px; }
-    .header-center { display: none; }
     .btn { padding: 6px 12px; font-size: 11px; }
     .header-right { gap: 6px; }
     .size-bar-meta { display: none; }
@@ -1325,6 +1321,44 @@
   .xs-sub { font-size: 12px; color: var(--warm-muted); font-family: var(--font-mono); }
   .xs-topbar-spacer { flex: 1; }
   .xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
+  .xs-titleblock { min-width: 0; }
+
+  /* Mobile studio chrome: one row — back, brand/title, size, Buy kit, menu.
+     Must follow the base header/.xs-topbar rules to win at equal specificity. */
+  @media (max-width: 900px) {
+    .app > header { grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 12px; gap: 8px; }
+    .app > header .header-center { min-width: 0; }
+    .app > header .preset-pill { max-width: 100%; }
+    .app > header .header-right { gap: 6px; }
+    .xs-topbar { gap: 8px; padding: 10px 12px; }
+    .xs-topbar-spacer { flex: 1 1 0; min-width: 0; }
+    .xs-title, .xs-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app > header .btn-dark, .xs-topbar .btn-dark { padding-left: 12px; padding-right: 12px; }
+  }
+  @media (max-width: 420px) {
+    .app > header .preset-pill { padding-left: 12px; padding-right: 10px; }
+    .app > header .preset-pill .preset-dim { display: none; }
+    .buy-kit-price { display: none; }
+  }
+
+  /* Mobile studio menu (StudioMenu) */
+  .studio-menu-btn { width: 40px; height: 40px; flex-shrink: 0; }
+  .studio-menu-btn i { font-size: 22px; }
+  .studio-menu-btn[aria-expanded="true"] { background: var(--btn-tool-hover); }
+  .studio-menu { padding: 6px 0; }
+  .studio-menu-controls { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px 12px; border-bottom: 1px solid var(--warm-divider-soft); margin-bottom: 6px; }
+  .studio-menu-controls .switch { font-size: 14px; color: var(--warm-fg); }
+  .studio-menu-range { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--warm-muted); }
+  .studio-menu-range input { flex: 1; min-width: 0; }
+  .studio-menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 16px; background: none; border: none; font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--warm-fg); text-align: left; cursor: pointer; box-sizing: border-box; }
+  .studio-menu-item:hover { background: var(--warm-hover); }
+  .studio-menu-item:focus-visible { outline: 2px solid var(--metime-black); outline-offset: -2px; }
+  .studio-menu-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--warm-fg-2); }
+  .studio-menu-icon i { font-size: 18px; }
+  .studio-menu-label { flex: 1; min-width: 0; }
+  .studio-menu-meta { font-family: var(--font-mono); font-size: 12px; color: var(--warm-muted); }
+  .studio-menu-sep { height: 1px; background: var(--warm-divider-soft); margin: 6px 0; }
+  .studio-menu-email { padding: 8px 16px 2px; font-size: 12px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
   .xs-rail { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-right: 1px solid var(--metime-almost-black); background: var(--metime-cream); flex-shrink: 0; }
   /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
@@ -4381,7 +4415,7 @@ function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onRevie
   const blocked = (!sellable ? "This size isn't sold as a kit yet" : null) || blockedReason;
   const label = status === "saving" ? "Saving…"
     : status === "redirecting" ? "Opening checkout…"
-    : price ? `Buy kit · ${price}`
+    : price ? <>Buy kit<span className="buy-kit-price"> · {price}</span></>
     : "Buy kit";
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -6239,6 +6273,7 @@ function Popover({ anchorRef, onClose, placement = 'right-bottom', children, wid
       else if (placement === 'right-top') { top = a.bottom - 1; left = a.right + 8; }
       else if (placement === 'bottom-start') { top = a.bottom + 6; left = a.left; }
       else if (placement === 'bottom-center') { top = a.bottom + 6; left = a.left + a.width/2 - width/2; }
+      else if (placement === 'bottom-end') { top = a.bottom + 6; left = a.right - width; }
       else if (placement === 'left-anchored') { top = a.top; left = a.left - width - 8; }
       else { top = a.bottom + 6; left = a.left; }
       // Flip upward if popover would overflow bottom of viewport
@@ -7480,18 +7515,18 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             onApply={applyPreset}/>
         </div>
         <div className="header-right">
-          <AccountChip/>
+          {!isMobile && <AccountChip/>}
           <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="quilt-detail-panel"
             title={panelOpen ? 'Hide details panel' : 'Show details panel'}
             onClick={()=>setPanelOpen(v=>!v)}>
             <IcPanel/>
           </button>
-          {savedQuilts.length>0 && (
+          {!isMobile && savedQuilts.length>0 && (
             <button className="btn" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
               <IcBook/> My quilts ({savedQuilts.length})
             </button>
           )}
-          {currentQuilt ? (
+          {!isMobile && (currentQuilt ? (
             <>
               <button className="btn" title="Save as a new copy"
                 onClick={()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);}}>
@@ -7505,7 +7540,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             <button className="btn" onClick={()=>{setSaveName('');setShowSave(true);}}>
               {justSaved ? 'Saved ✓' : 'Save quilt'}
             </button>
-          )}
+          ))}
           {/* Buying needs no account and no prior save — the record is built from
               the canvas on click, so this is the shortest path to a kit. An empty
               quilt top is held back; the kit would be fabric with no layout. */}
@@ -7513,6 +7548,21 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             blockedReason={materials.total === 0 ? 'Place some patches first' : null}
             getDesign={()=>buildQuiltRecord(currentQuiltId ?? Date.now(), (currentQuilt && currentQuilt.name) || 'Untitled')}
             onSaved={id=>{ if (currentQuiltId != null) setSavedQuilts(p=>p.map(x=>x.id===currentQuiltId?{...x,apiId:id}:x)); }}/>
+          {isMobile && (
+            <StudioMenu saved={justSaved} items={[
+              ...(currentQuilt ? [
+                { id:'save', label:'Save', icon:<i className="iconoir-floppy-disk"/>, onClick:updateCurrentQuilt },
+                { id:'save-as', label:'Save as…', icon:<i className="iconoir-copy"/>,
+                  onClick:()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);} },
+              ] : [
+                { id:'save', label:'Save quilt', icon:<i className="iconoir-floppy-disk"/>,
+                  onClick:()=>{setSaveName('');setShowSave(true);} },
+              ]),
+              ...(savedQuilts.length>0 ? [
+                { id:'mine', label:'My quilts', icon:<IcBook size={18}/>, meta:savedQuilts.length, onClick:()=>setShowMyQuilts(true) },
+              ] : []),
+            ]}/>
+          )}
         </div>
       </header>
 
@@ -8150,6 +8200,54 @@ function AccountMenu() {
 
 function AccountChip() {
   return <AccountMenu/>;
+}
+
+// Mobile studio header: the secondary actions collapse behind one button so
+// Buy kit keeps its room. `items` are { id, label, icon, meta, onClick };
+// `children` render above them for controls that shouldn't close the menu.
+// Signed-in account details sit at the bottom, replacing the separate chip.
+function StudioMenu({ items, saved = false, children }) {
+  const auth = useAuth();
+  const btnRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  const user = auth && auth.user;
+  return (
+    <>
+      <button ref={btnRef} type="button" className="icon-btn studio-menu-btn"
+        aria-haspopup="menu" aria-expanded={open}
+        aria-label={saved ? 'Saved. More actions' : 'More actions'} title="More actions"
+        onClick={() => setOpen(o => !o)}>
+        <i className={saved ? 'iconoir-check' : 'iconoir-menu'} aria-hidden="true"/>
+      </button>
+      {open && (
+        <Popover anchorRef={btnRef} onClose={close} placement="bottom-end" width={260}>
+          <div className="studio-menu" role="menu">
+            {children && <div className="studio-menu-controls">{children}</div>}
+            {items.map(it => (
+              <button key={it.id} type="button" className="studio-menu-item" role="menuitem"
+                onClick={() => { close(); it.onClick(); }}>
+                <span className="studio-menu-icon" aria-hidden="true">{it.icon}</span>
+                <span className="studio-menu-label">{it.label}</span>
+                {it.meta != null && <span className="studio-menu-meta">{it.meta}</span>}
+              </button>
+            ))}
+            {user && (
+              <>
+                <div className="studio-menu-sep" role="separator"/>
+                <div className="studio-menu-email" title={user.email}>{user.email}</div>
+                <button type="button" className="studio-menu-item" role="menuitem"
+                  onClick={() => { close(); auth.signOut(); }}>
+                  <span className="studio-menu-icon" aria-hidden="true"><i className="iconoir-log-out"/></span>
+                  <span className="studio-menu-label">Sign out</span>
+                </button>
+              </>
+            )}
+          </div>
+        </Popover>
+      )}
+    </>
+  );
 }
 
 function LandingAuth() {
@@ -12781,34 +12879,34 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     <div className="xs-app">
       <div className="xs-topbar">
         <button className="icon-btn" onClick={onBack} title="Back to projects" style={{ marginRight: 2 }}><i className="iconoir-nav-arrow-left" style={{ fontSize: 18 }}/></button>
-        <div>
+        <div className="xs-titleblock">
           <div className="xs-title">{CFG.label}</div>
           <div className="xs-sub">{W} × {H} {CFG.unitPlural}{isCoasterKit ? ' · set of 4' : ''} · ≈ {(W/CFG.gauge).toFixed(1)}" × {(H/CFG.gauge).toFixed(1)}" {CFG.gaugeShort}</div>
         </div>
         <div className="xs-topbar-spacer"/>
-        <AccountChip/>
+        {!isMobile && <AccountChip/>}
         <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
           title={panelOpen ? 'Hide colors panel' : 'Show colors panel'}
           onClick={()=>setPanelOpen(v=>!v)}>
           <IcPanel/>
         </button>
-        {bg && (
+        {!isMobile && bg && (
           <label className="xs-ctrl" title="Toggle the tracing image">
             <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
             <IcImage/> Trace image
           </label>
         )}
-        {bg && showBg && (
+        {!isMobile && bg && showBg && (
           <div className="xs-ctrl">
             <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)} style={{ width: 90 }}/>
           </div>
         )}
-        {savedStitches.length > 0 && (
+        {!isMobile && savedStitches.length > 0 && (
           <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
             <IcBook/> My designs ({savedStitches.length})
           </button>
         )}
-        {currentStitch ? (
+        {!isMobile && (currentStitch ? (
           <>
             <button className="btn" title="Save as a new copy"
               onClick={() => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); }}>Save as…</button>
@@ -12820,13 +12918,40 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
           <button className="btn" onClick={() => { setSaveName(''); setShowSave(true); }}>
             {justSaved ? 'Saved ✓' : 'Save design'}
           </button>
-        )}
+        ))}
         {/* Buying needs no account and no prior save. An empty board is blocked
             because the kit would be cloth and no yarn. */}
         <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }} onReview={onReview}
           blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
           getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
           onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
+        {isMobile && (
+          <StudioMenu saved={justSaved} items={[
+            ...(currentStitch ? [
+              { id: 'save', label: 'Save', icon: <i className="iconoir-floppy-disk"/>, onClick: updateCurrentDesign },
+              { id: 'save-as', label: 'Save as…', icon: <i className="iconoir-copy"/>,
+                onClick: () => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); } },
+            ] : [
+              { id: 'save', label: 'Save design', icon: <i className="iconoir-floppy-disk"/>,
+                onClick: () => { setSaveName(''); setShowSave(true); } },
+            ]),
+            ...(savedStitches.length > 0 ? [
+              { id: 'mine', label: 'My designs', icon: <IcBook size={18}/>, meta: savedStitches.length, onClick: () => setShowMyStitches(true) },
+            ] : []),
+          ]}>
+            {bg && (
+              <>
+                <Switch checked={showBg} onChange={setShowBg} label="Trace image" title="Toggle the tracing image"/>
+                {showBg && (
+                  <label className="studio-menu-range">
+                    <span>Opacity</span>
+                    <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)}/>
+                  </label>
+                )}
+              </>
+            )}
+          </StudioMenu>
+        )}
       </div>
       <div className={`xs-body${panelOpen ? '' : ' rp-closed'}`}>
         {!isMobile && (
