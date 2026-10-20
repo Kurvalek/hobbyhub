@@ -3582,7 +3582,7 @@ function loadSavedQuilts() {
     const raw = localStorage.getItem(QUILTS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(refreshQuiltColors) : [];
   } catch (e) {
     console.warn("Could not read saved quilts:", e);
     return [];
@@ -5367,6 +5367,27 @@ const SUGGESTED_PALETTES = [
 const konaByName = name => KONA.find(c => c.name === name);
 function resolvePalette(pal) {
   return pal.colors.map(konaByName).filter(Boolean);
+}
+// A saved quilt keeps a copy of each fabric (name, code, swatch) from the day
+// it was saved, and the Kona list has since been corrected — old codes now
+// belong to other fabrics, which reaches the cut list. Fabrics are matched by
+// name, the thing the quilter chose, so an old save shows today's swatch and
+// orders today's code. Custom colors and retired names stay as stored.
+function refreshKona(color) {
+  if (!color || typeof color.code !== 'string') return color;
+  const k = konaByName(color.name);
+  return k && (k.code !== color.code || k.hex !== color.hex) ? { ...color, ...k } : color;
+}
+function refreshQuiltColors(q) {
+  if (!q || typeof q !== 'object') return q;
+  const shapes = list => list.map(s => (s && s.color ? { ...s, color: refreshKona(s.color) } : s));
+  const out = { ...q };
+  if (Array.isArray(q.shapes)) out.shapes = shapes(q.shapes);
+  if (Array.isArray(q.units)) out.units = q.units.map(u => (u && Array.isArray(u.shapes) ? { ...u, shapes: shapes(u.shapes) } : u));
+  if (Array.isArray(q.pinned)) out.pinned = q.pinned.map(refreshKona);
+  if (q.binding) out.binding = refreshKona(q.binding);
+  if (q.materials && Array.isArray(q.materials.items)) out.materials = { ...q.materials, items: q.materials.items.map(refreshKona) };
+  return out;
 }
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
