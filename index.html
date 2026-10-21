@@ -107,35 +107,61 @@
     --color-linen-300: var(--ice-100);
     --color-linen-100: var(--ice-50);
 
-    /* Primary (filled) button — ink fill, deepening rather than shifting hue on
-       hover, which is how the brand's primary behaves. */
-    --btn-primary-bg: var(--metime-black);
-    --btn-primary-bg-hover: #000000;
-    --btn-primary-bg-active: #000000;
-    --btn-primary-bg-disabled: rgba(23, 23, 23, 0.12);
-    --btn-primary-fg: #F8F5ED;
-    --btn-primary-fg-active: #F8F5ED;
-    --btn-stroke: var(--metime-black);
+    /* metime design system V1 — 04 Buttons and Pills (Figma 19:78). Buttons
+       stay black and neutral so the five brand accents are left for filter
+       pills, where each filter row takes one accent for all of its pills. */
+    --ds-black: #1F1E1D;
+    --ds-near-black: #2C2928;
+    --ds-gray-600: #5C5955;
+    --ds-gray-400: #A8A49C;
+    --ds-gray-300: #D1CEC7;
+    --ds-gray-200: #E5E2DB;
+    --ds-gray-100: #F0EDE7;
+    --ds-cream: #F5F3EE;
+    --ds-white: #FFFFFF;
+    --color-tomato: #E8583A;
+    --color-tomato-dark: #3D1007;
+    --color-avocado: #B9B74B;
+    --color-avocado-dark: #46451B;
+    --color-grapefruit: #FDA198;
+    --color-grapefruit-dark: #7C3029;
+    --color-ice: #CCD6EB;
+    --color-ice-dark: #3A599A;
+    --color-golden: #FBBB3F;
+    --color-golden-dark: #6E4A02;
+    --pill-radius: 999px;
+    --btn-stroke-w: 1.5px;
+    --btn-focus-shadow: 0 0 0 2px var(--ds-cream), 0 0 0 4px var(--color-tomato);
 
-    /* Secondary (outline) button — paper face, cream on hover. Matches .brand-btn
-       so a button means the same thing on both sides of Buy kit. */
-    --btn-secondary-bg: #F8F5ED;
-    --btn-secondary-bg-hover: #F2EAD9;
-    --btn-secondary-bg-active: #EADFC7;
-    --btn-secondary-border: var(--metime-black);
-    --btn-secondary-fg: var(--metime-black);
+    /* Primary (filled) button — black fill, cream label. */
+    --btn-primary-bg: var(--ds-black);
+    --btn-primary-bg-hover: var(--ds-near-black);
+    --btn-primary-bg-active: var(--ds-gray-600);
+    --btn-primary-bg-disabled: var(--ds-gray-200);
+    --btn-primary-fg: var(--ds-cream);
+    --btn-primary-fg-active: var(--ds-cream);
+    --btn-stroke: var(--ds-black);
+
+    /* Secondary (outline) button — white face, black outline. Shared with
+       .brand-btn so a button means the same thing on both sides of Buy kit. */
+    --btn-secondary-bg: var(--ds-white);
+    --btn-secondary-bg-hover: var(--ds-gray-100);
+    --btn-secondary-bg-active: var(--ds-gray-200);
+    --btn-secondary-border: var(--ds-black);
+    --btn-secondary-fg: var(--ds-black);
 
     /* Shared button states */
-    --btn-disabled-fg: rgba(23, 23, 23, 0.34);
+    --btn-disabled-fg: var(--ds-gray-400);
+    --btn-disabled-border: var(--ds-gray-300);
     --btn-focus-ring: var(--ice-300);
     --btn-tool-hover: rgba(23, 23, 23, 0.08);
 
-    /* One corner for every button, on both sides of Buy kit — the studio's own
-       controls, the setup flow's, and the filters and source pickers that were
-       each carrying their own 5, 6 or 8px. Swatches, chips, panels and dialogs
-       keep their own radii: those are surfaces and colour samples, and rounding
-       them like controls would say they can be pressed. Note applyTweaks
-       overwrites this at startup, so the tweak knob is the live value. */
+    /* Corner for the square tool controls — icon buttons, the tool rail, nib
+       and swatch pickers, upload method cards. Labelled buttons and filter
+       pills are fully rounded instead (--pill-radius). Swatches, chips, panels
+       and dialogs keep their own radii: those are surfaces and colour samples,
+       and rounding them like controls would say they can be pressed. Note
+       applyTweaks overwrites this at startup, so the tweak knob is the live value. */
     --btn-radius: 4px;
 
     /* Surfaces. The artboard stays white on purpose: it is the ground a maker
@@ -465,13 +491,12 @@
     .xs-app .brand-icon { height: 26px; width: 26px; }
   }
 
-  /* Preset pill (header center) */
-  /* The preset selector. Was a 999px lozenge, from before the brand restyle made
-     the studio square-ish and hairline — a lone round control in a row of 4px
-     ones now reads as an oversight rather than a distinction. */
-  .preset-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 16px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: var(--btn-radius); font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--warm-fg); cursor: pointer; transition: all .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .preset-pill:hover { border-color: var(--warm-muted-2); background: var(--warm-hover); }
-  .preset-pill[aria-expanded="true"] { border-color: var(--metime-almost-black); }
+  /* Preset pill (header center) — the preset selector, a Secondary button
+     (Small) with a caret. */
+  .preset-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 0 14px 0 16px; background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius); font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--btn-secondary-fg); cursor: pointer; transition: all .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .preset-pill:hover { background: var(--btn-secondary-bg-hover); }
+  .preset-pill[aria-expanded="true"] { background: var(--btn-secondary-bg-active); }
+  .preset-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   .preset-pill .preset-dim { color: var(--warm-muted); font-weight: 400; font-family: var(--font-mono); font-size: 12px; }
   .preset-pill .caret { display: inline-block; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--warm-muted); margin-left: 2px; }
 
@@ -623,28 +648,33 @@
   input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
   input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--warm-hairline); background: none; border-radius: 4px; cursor: pointer; }
 
-  /* Buttons — metime design system (Figma node 20-1371).
-     Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary. */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: var(--btn-radius); cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: 1px solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+  /* Buttons — metime design system V1 (Figma 2095:232).
+     Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary.
+     .btn is the Small size (30px) the dense studio chrome runs at; .btn-md,
+     .btn-lg and .btn-cta are Medium (36px), Large (44px) and CTA (52px).
+     .btn-sm and .btn-xs are tighter still for inline rows inside panels and popovers. */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; min-height: 30px; padding: 0 14px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: var(--pill-radius); cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: var(--btn-stroke-w) solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
   .btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
   .btn:active { background: var(--btn-secondary-bg-active); }
-  /* One focus treatment, matching the brand shell: a 2px ink ring set off the
-     control rather than a soft glow around it. */
-  .btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
-  .btn:disabled, .btn[disabled] { background: transparent; border-color: rgba(23, 23, 23, 0.28); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
+  .btn:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+  .btn:disabled, .btn[disabled] { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
 
   .btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
-  .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
-  .btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-stroke); color: var(--btn-primary-fg-active); }
-  .btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-stroke); color: var(--btn-disabled-fg); }
+  .btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); color: var(--btn-primary-fg-active); }
+  .btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); }
 
-  .btn-tertiary { background: transparent; border: none; border-bottom: 1px solid var(--color-taupe-900); border-radius: 0; padding: 0 0 1px; color: var(--color-taupe-900); }
-  .btn-tertiary:hover { background: transparent; border-bottom-color: var(--color-taupe-600); color: var(--color-taupe-600); }
-  .btn-tertiary:active { background: transparent; border-bottom-color: var(--color-taupe-700); color: var(--color-taupe-700); }
-  .btn-tertiary:disabled, .btn-tertiary[disabled] { border-bottom-color: var(--btn-disabled-fg); color: var(--btn-disabled-fg); }
+  .btn-md { min-height: 36px; padding: 0 18px; font-size: 14px; gap: 6px; }
+  .btn-lg { min-height: 44px; padding: 0 22px; font-size: 16px; gap: 8px; }
+  .btn-cta { min-height: 52px; padding: 0 28px; font-size: 18px; gap: 10px; }
 
-  .btn-sm { padding: 4px 10px; font-size: 11px; }
-  .btn-xs { padding: 3px 8px; font-size: 11px; }
+  .btn-tertiary { min-height: 0; background: transparent; border: none; border-radius: 6px; padding: 0; color: var(--ds-black); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .btn-tertiary:hover { background: transparent; color: var(--ds-gray-600); }
+  .btn-tertiary:active { background: transparent; color: var(--ds-gray-600); }
+  .btn-tertiary:disabled, .btn-tertiary[disabled] { background: transparent; color: var(--btn-disabled-fg); }
+
+  .btn-sm { min-height: 26px; padding: 0 12px; font-size: 12px; }
+  .btn-xs { min-height: 22px; padding: 0 10px; font-size: 11px; }
 
   /* Fabric row (clickable color field) */
   .fabric-row { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: transparent; border: none; border-bottom: var(--div-border); width: 100%; cursor: pointer; text-align: left; font: inherit; color: inherit; transition: background .12s, transform var(--press-dur) var(--ease-out); box-sizing: border-box; }
@@ -662,10 +692,33 @@
   .chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
   .chip.selected { outline: 2pt solid var(--metime-black); outline-offset: 0; box-shadow: none; position: relative; z-index: 2; }
 
-  /* Tag pills */
-  .pill { padding: 3px 8px; font-size: 11px; border-radius: var(--btn-radius); cursor: pointer; border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg-2); transition: all .12s; }
-  .pill.active { background: var(--action); color: var(--metime-white); border-color: var(--action); }
-  .pill:not(.active):hover { background: var(--warm-hover); }
+  /* Filter pills — metime design system V1 (Figma 2190:1646). Each filter row
+     takes one brand accent, set on the row with a .pills-<accent> class so all
+     of its pills always match. Default: accent outline, dark-shade label.
+     Hover: accent fill. Selected: accent fill with a dark-shade outline. The
+     outline sits inside the 9/18 padding, as Figma's inside stroke does, and
+     thins from 2px to 1.5px when selected without changing the pill's size. */
+  .pills-tomato     { --pill: var(--color-tomato);     --pill-dark: var(--color-tomato-dark); }
+  .pills-avocado    { --pill: var(--color-avocado);    --pill-dark: var(--color-avocado-dark); }
+  .pills-grapefruit { --pill: var(--color-grapefruit); --pill-dark: var(--color-grapefruit-dark); }
+  .pills-ice        { --pill: var(--color-ice);        --pill-dark: var(--color-ice-dark); }
+  .pills-golden     { --pill: var(--color-golden);     --pill-dark: var(--color-golden-dark); }
+  .filter-pill {
+    --pill-bw: 2px; --pill-py: 9px; --pill-px: 18px;
+    display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+    padding: calc(var(--pill-py) - var(--pill-bw)) calc(var(--pill-px) - var(--pill-bw));
+    border: var(--pill-bw) solid var(--pill, var(--color-tomato)); border-radius: var(--pill-radius);
+    background: transparent; color: var(--pill-dark, var(--color-tomato-dark));
+    font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap;
+    cursor: pointer; transition: background .12s, border-color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out);
+  }
+  .filter-pill:hover { background: var(--pill, var(--color-tomato)); }
+  .filter-pill:is([aria-selected="true"], [aria-pressed="true"]) {
+    --pill-bw: 1.5px;
+    background: var(--pill, var(--color-tomato)); border-color: var(--pill-dark, var(--color-tomato-dark));
+  }
+  .filter-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+  .filter-pill.is-compact { --pill-py: 5px; --pill-px: 12px; }
 
   /* Grid canvas */
   .grid-wrap { position: relative; }
@@ -769,12 +822,7 @@
   .saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--metime-black); transition: transform 0.15s; }
   .saved-chev i { font-size: 16px; }
   .saved-chev.is-open { transform: rotate(180deg); }
-  .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-  .saved-filter { display: inline-flex; align-items: center; justify-content: center; min-width: 0; height: 28px; padding: 0 12px; background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: var(--btn-radius); font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1; color: var(--metime-black); cursor: pointer; }
-  .saved-filter:hover { background: var(--color-linen-300); }
-  .saved-filter.is-on { background: var(--color-taupe-900); border-color: var(--metime-black); color: var(--metime-white); }
-  .saved-filter.is-on:hover { background: var(--color-taupe-600); border-color: var(--metime-black); }
-  .saved-filter:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
   .saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
   .saved-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 28px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
   .saved-card:nth-child(4n) { border-right: none; }
@@ -992,26 +1040,17 @@
   .back-skip {
     position: absolute; right: 41px; top: 50%; transform: translateY(-50%);
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 128px; height: 40px; padding: 0 16px;
-    background: #EDF2FC; border: 1px solid var(--metime-black); border-radius: 4px;
+    box-sizing: border-box; min-width: 0; height: 36px; padding: 0 18px;
+    background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
     font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
-    color: var(--metime-black); cursor: pointer;
+    color: var(--btn-secondary-fg); cursor: pointer;
   }
-  .back-skip:hover { background: var(--metime-ice); }
-  .back-skip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .back-skip:hover { background: var(--btn-secondary-bg-hover); }
+  .back-skip:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   .back-filters {
     display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-    gap: 8px; flex: 0 0 auto; min-height: 130px; padding: 24px 40px;
+    gap: 10px; flex: 0 0 auto; min-height: 130px; padding: 24px 40px;
     background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
-  }
-  .back-filters .fabric-filter {
-    min-width: 128px; height: 40px; padding: 0 16px; border-radius: 4px;
-    border: 1px solid var(--metime-black); background: #EDF2FC;
-    font-size: 16px; font-weight: 400; line-height: 1; color: var(--metime-black);
-  }
-  .back-filters .fabric-filter:not(.active):hover { background: var(--metime-ice); }
-  .back-filters .fabric-filter.active {
-    background: var(--ice-500); border-color: var(--metime-black); color: var(--metime-white); font-weight: 500;
   }
   .back-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; flex: 0 0 auto; }
   .back-grid .fabric-card {
@@ -1031,7 +1070,6 @@
     .size-hero.has-skip { padding: 0 20px; }
     .back-skip { right: 20px; min-width: 0; height: 36px; padding: 0 12px; font-size: 13px; }
     .back-filters { min-height: 0; padding: 16px 20px; }
-    .back-filters .fabric-filter { min-width: 0; height: 36px; padding: 0 12px; font-size: 14px; }
   }
   @media (max-width: 600px) {
     .back-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1071,14 +1109,15 @@
   }
   .pal-page .pal-from-image-add:hover { background: var(--metime-cream); }
   .pal-page .pal-from-image-use {
-    flex: 0 0 auto; width: 160px; height: 40px; padding: 0 16px; margin-left: auto;
-    border-radius: 4px; border: 1px solid var(--metime-black);
-    background: var(--btn-primary-bg); color: var(--metime-white);
-    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    flex: 0 0 auto; min-width: 160px; height: 44px; padding: 0 22px; margin-left: auto;
+    border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
+    background: var(--btn-primary-bg); color: var(--btn-primary-fg);
+    font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
     cursor: pointer;
   }
-  .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); }
-  .pal-page .pal-from-image-use:disabled { opacity: 0.4; cursor: default; }
+  .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+  .pal-page .pal-from-image-use:disabled { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default; }
   /* Photo → chart flattening. Sits under the palette bar because it shapes the
      same generated design, and carries a live chart preview: the setting means
      nothing until you can see what it does to your own photo. */
@@ -1275,22 +1314,24 @@
   .tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .tmpl-upload-use {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 128px; height: 40px; padding: 0 12px;
-    border-radius: 4px; border: 1px solid var(--metime-black);
-    background: #52658D; color: var(--metime-white);
-    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
+    border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
+    background: var(--btn-primary-bg); color: var(--btn-primary-fg);
+    font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
     cursor: pointer;
   }
-  .tmpl-upload-use:hover { background: #445578; }
+  .tmpl-upload-use:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .tmpl-upload-use:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
   .tmpl-upload-another {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 128px; height: 40px; padding: 0 12px;
-    background: #EDF2FC; border: 1px solid var(--metime-black); border-radius: 4px;
-    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
-    color: var(--metime-black); cursor: pointer;
+    box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
+    background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
+    font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
+    color: var(--btn-secondary-fg); cursor: pointer;
   }
-  .tmpl-upload-another:hover { background: var(--metime-ice); }
-  .tmpl-upload-use:focus-visible, .tmpl-upload-another:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
+  .tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
+  .tmpl-upload-use:focus-visible, .tmpl-upload-another:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   @media (max-width: 1080px) {
     .tmpl-page .tmpl-grid { grid-template-columns: repeat(2, 1fr); }
     .tmpl-page .tmpl-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
@@ -1501,16 +1542,20 @@
   .bottom-sheet-backdrop.is-lift { z-index: 240; }
   .bottom-sheet.is-lift { z-index: 241; }
   .pal-upload-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; }
+  /* Import actions — Secondary buttons (Medium), not filter pills. */
   .pal-upload-pill {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    height: 32px; padding: 0 24px;
-    font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1;
-    color: var(--metime-black); background: var(--metime-ice);
-    border: none; border-radius: var(--btn-radius); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-sizing: border-box; height: 36px; padding: 0 18px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+    color: var(--btn-secondary-fg); background: var(--btn-secondary-bg);
+    border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius); cursor: pointer;
+    transition: background .12s, box-shadow .12s;
   }
-  .pal-upload-pill:hover { background: #A9BDE6; }
-  .pal-upload-pill[aria-pressed="true"] { background: #A9BDE6; }
-  .pal-upload-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-upload-pill:hover { background: var(--btn-secondary-bg-hover); }
+  .pal-upload-pill:active,
+  .pal-upload-pill[aria-pressed="true"] { background: var(--btn-secondary-bg-active); }
+  .pal-upload-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+  .pal-upload-pill:disabled { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: not-allowed; }
   .pal-upload-pill-kbd {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 28px; height: 18px; padding: 0 5px;
@@ -1538,13 +1583,15 @@
   .pal-upload-url-row input:focus { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
   .pal-upload-url-row input:disabled { opacity: 0.6; }
   .pal-upload-url-row button {
-    flex-shrink: 0; height: 32px; padding: 0 12px;
-    font-family: var(--font-sans); font-size: 12px; font-weight: 500;
-    border: 1px solid var(--metime-black); border-radius: 4px;
-    background: var(--metime-white); color: var(--metime-black); cursor: pointer;
+    flex-shrink: 0; box-sizing: border-box; height: 32px; padding: 0 14px;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
+    background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); cursor: pointer;
   }
-  .pal-upload-url-row button:hover:not(:disabled) { background: var(--warm-hover); }
-  .pal-upload-url-row button:disabled { opacity: 0.45; cursor: default; }
+  .pal-upload-url-row button:hover:not(:disabled) { background: var(--btn-secondary-bg-hover); }
+  .pal-upload-url-row button:active:not(:disabled) { background: var(--btn-secondary-bg-active); }
+  .pal-upload-url-row button:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+  .pal-upload-url-row button:disabled { border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: default; }
   .err-msg {
     background: var(--metime-grapefruit); color: var(--metime-white);
     border-radius: 4px; padding: 8px 10px;
@@ -1611,7 +1658,7 @@
   }
   .pal-from-image-add:hover { background: var(--warm-hover); }
   .pal-from-image-use {
-    padding: 13px 24px; border-radius: var(--btn-radius); font-size: 15px; font-weight: 500; line-height: normal;
+    box-sizing: border-box; min-height: 44px; padding: 0 22px; border-radius: var(--pill-radius); font-size: 16px; font-weight: 500; line-height: normal;
   }
   .pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
@@ -1622,24 +1669,29 @@
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
   .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
   .pal-actions { display: flex; gap: 10px; align-items: center; }
-  /* Same box as .pal-skip-btn: shared control radius, 10/18 padding, Söhne Kräftig 14. */
-  .pal-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--btn-radius); font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: 1px solid var(--metime-almost-black); background: var(--action); color: var(--metime-white); transition: background 0.12s, transform var(--press-dur) var(--ease-out); }
-  .pal-btn:hover { background: var(--action-hover); }
-  .pal-btn.secondary { background: var(--metime-white); border-color: var(--metime-black); color: #000000; }
-  .pal-btn.secondary:hover { background: var(--color-linen-300); }
+  /* Setup-flow buttons — Medium size (36px). .pal-btn is Primary, .pal-btn.secondary
+     and .pal-skip-btn are Secondary. */
+  .pal-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; min-height: 36px; padding: 0 18px; border-radius: var(--pill-radius); font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: var(--btn-stroke-w) solid var(--btn-stroke); background: var(--btn-primary-bg); color: var(--btn-primary-fg); transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform var(--press-dur) var(--ease-out); }
+  .pal-btn:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .pal-btn:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+  .pal-btn:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+  .pal-btn:disabled { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: not-allowed; }
+  .pal-btn.secondary { background: var(--btn-secondary-bg); border-color: var(--btn-secondary-border); color: var(--btn-secondary-fg); }
+  .pal-btn.secondary:hover { background: var(--btn-secondary-bg-hover); }
+  .pal-btn.secondary:active { background: var(--btn-secondary-bg-active); }
+  .pal-btn.secondary:disabled { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); }
   .pal-skip-row { display: flex; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; }
-  /* Skip for now — Figma 2151:263; box border overridden to #707F87 */
   .pal-skip-btn {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 10px 18px; border-radius: var(--btn-radius);
-    border: 1px solid var(--metime-black); background: var(--metime-white);
-    color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    box-sizing: border-box; min-height: 36px; padding: 0 18px; border-radius: var(--pill-radius);
+    border: var(--btn-stroke-w) solid var(--btn-secondary-border); background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-fg); font-family: var(--font-sans); font-size: 14px; font-weight: 500;
     line-height: normal; cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s, transform var(--press-dur) var(--ease-out);
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s, transform var(--press-dur) var(--ease-out);
   }
-  .pal-skip-btn:hover { background: var(--color-linen-300); }
-  .pal-skip-btn:active { background: var(--color-linen-500); }
-  .pal-skip-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+  .pal-skip-btn:hover { background: var(--btn-secondary-bg-hover); }
+  .pal-skip-btn:active { background: var(--btn-secondary-bg-active); }
+  .pal-skip-btn:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   .pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
 
   /* Template selector */
@@ -1683,12 +1735,8 @@
   .pal-suggest-add { width: 44px; height: 44px; border-radius: var(--btn-radius); border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
   .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
 
-  /* Backing-fabric picker: theme filters + dense swatch grid. Filters share the
-     .pal-skip-btn box (white / #707F87 / 6px / Söhne Kräftig 14). */
-  .fabric-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .fabric-filter { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--btn-radius); border: 1px solid var(--metime-black); background: var(--metime-white); color: #000000; font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; transition: background .12s, border-color .12s, color .12s, transform var(--press-dur) var(--ease-out); }
-  .fabric-filter:not(.active):hover { background: var(--color-linen-300); }
-  .fabric-filter.active { background: var(--action); border-color: var(--metime-almost-black); color: var(--metime-white); }
+  /* Backing-fabric picker: Ice filter pills + dense swatch grid. */
+  .fabric-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
   .fabric-filter-count { font-size: 13px; font-weight: 400; opacity: 0.7; }
   .fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
   .fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-cream); font: inherit; transition: box-shadow .15s, transform .12s; }
@@ -1761,8 +1809,7 @@
   /* Mobile-friendly project setup screens (size / template / palette steps). */
   @media (max-width: 640px) {
     .fabric-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
-    .fabric-filters { gap: 6px; }
-    .fabric-filter { padding: 8px 14px; font-size: 13px; }
+    .fabric-filters { gap: 8px; }
     .proj-body { padding: 24px 16px 56px; }
     .proj-heading { font-size: 28px; }
     .proj-intro { margin-bottom: 28px; }
@@ -1792,11 +1839,12 @@
      purpose: the band-card steps flatten the boxed-card hover lift with
      `transform: none`, and the dip has to land after that to win. Cards
      marked "coming soon" aren't pickable, so they stay put. */
-  .size-card, .land-craft, .saved-card, .back-skip, .saved-filter {
+  .size-card, .land-craft, .saved-card {
     transition: transform var(--press-dur) var(--ease-out);
   }
-  .btn:active, .icon-btn:active, .xs-tool:active, .pill:active, .chip:active,
-  .fabric-row:active, .fabric-filter:active, .saved-filter:active,
+  .back-skip { transition: background .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+  .btn:active, .icon-btn:active, .xs-tool:active, .filter-pill:active, .chip:active,
+  .fabric-row:active,
   .pal-btn:active, .pal-skip-btn:active, .pal-suggest-swatch:active {
     transform: scale(var(--press-scale));
   }
@@ -2175,7 +2223,8 @@
   .brand-shell .size-back-icon img { width: 12px; height: auto; }
 
   /* ── Controls ─────────────────────────────────────────────────────────────
-     Square-ish, hairline, flat. No offset shadows anywhere. */
+     Design system V1 buttons at Large (44px): fully rounded, 1.5px outline,
+     black and neutral. No offset shadows anywhere. */
   .brand-shell .brand-btn,
   .brand-shell .back-skip,
   .brand-shell .tmpl-upload-use,
@@ -2189,39 +2238,51 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-sizing: border-box;
     min-width: 0;
     width: auto;
-    height: 40px;
-    padding: 0 18px;
-    background: var(--brand-paper);
-    border: 1px solid var(--brand-ink);
-    border-radius: var(--btn-radius);
+    height: 44px;
+    padding: 0 22px;
+    background: var(--btn-secondary-bg);
+    border: var(--btn-stroke-w) solid var(--btn-secondary-border);
+    border-radius: var(--pill-radius);
     box-shadow: none;
     font-family: var(--brand-font);
-    font-size: var(--brand-label);
+    font-size: 16px;
     font-weight: 500;
     line-height: 1;
     letter-spacing: 0.01em;
-    color: var(--brand-ink);
+    color: var(--btn-secondary-fg);
     cursor: pointer;
-    transition: background 0.14s, color 0.14s;
+    transition: background 0.14s, border-color 0.14s, color 0.14s, box-shadow 0.12s;
   }
   .brand-shell .brand-btn:hover,
   .brand-shell .back-skip:hover,
-  .brand-shell .tmpl-upload-another:hover { background: var(--brand-cream); }
+  .brand-shell .tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
+  .brand-shell .brand-btn:active,
+  .brand-shell .back-skip:active,
+  .brand-shell .tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
   .brand-shell .back-skip:active { transform: none; }
   .brand-shell .brand-btn.is-primary,
   .brand-shell .tmpl-upload-use,
   .brand-shell .pal-page .pal-from-image-use {
-    background: var(--brand-ink);
-    border-color: var(--brand-ink);
-    color: var(--brand-paper);
+    background: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
   }
   .brand-shell .brand-btn.is-primary:hover:not(:disabled),
   .brand-shell .tmpl-upload-use:hover:not(:disabled),
-  .brand-shell .pal-page .pal-from-image-use:hover:not(:disabled) { background: #000; }
-  .brand-shell .brand-btn:disabled,
-  .brand-shell .pal-page .pal-from-image-use:disabled { opacity: 0.38; cursor: default; }
+  .brand-shell .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+  .brand-shell .brand-btn.is-primary:active:not(:disabled),
+  .brand-shell .tmpl-upload-use:active:not(:disabled),
+  .brand-shell .pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+  .brand-shell .brand-btn:disabled {
+    background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: default;
+  }
+  .brand-shell .brand-btn.is-primary:disabled,
+  .brand-shell .pal-page .pal-from-image-use:disabled {
+    background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default;
+  }
 
   /* One focus treatment across the shell: a 2px ink ring, offset so it reads
      on both paper and colour fields. */
@@ -2238,6 +2299,11 @@
     outline: 2px solid var(--brand-ink);
     outline-offset: -4px;
     box-shadow: none;
+  }
+  /* Buttons and filter pills keep the design system's tomato focus ring. */
+  .brand-shell :is(.btn, .brand-btn, .back-skip, .tmpl-upload-use, .tmpl-upload-another, .pal-from-image-use, .pal-btn, .pal-skip-btn, .pal-upload-pill, .filter-pill):focus-visible {
+    outline: none;
+    box-shadow: var(--btn-focus-shadow);
   }
 
   /* ── Product bands (shared by craft / size / template / palette) ──────────
@@ -2431,20 +2497,13 @@
     flex-wrap: wrap;
     margin-left: auto;
   }
-  /* Import pills adopt the flat control box. */
+  /* Import actions are Secondary buttons (Small) beside the heading. */
   .brand-shell .pal-upload-pill {
-    height: 34px;
+    height: 30px;
     padding: 0 14px;
-    background: var(--brand-paper);
-    border: 1px solid var(--brand-ink);
-    border-radius: var(--btn-radius);
     font-family: var(--brand-font);
     font-size: 13px;
-    font-weight: 500;
-    color: var(--brand-ink);
   }
-  .brand-shell .pal-upload-pill:hover,
-  .brand-shell .pal-upload-pill[aria-pressed="true"] { background: var(--brand-cream); }
   .brand-shell .pal-upload-pill-kbd {
     border-color: var(--brand-rule);
     border-radius: 2px;
@@ -2465,9 +2524,9 @@
   }
   .brand-shell .pal-upload-url-row button {
     height: 34px;
-    border-radius: var(--btn-radius);
-    border-color: var(--brand-ink);
-    background: var(--brand-paper);
+    border-radius: var(--pill-radius);
+    border: var(--btn-stroke-w) solid var(--btn-secondary-border);
+    background: var(--btn-secondary-bg);
     font-family: var(--brand-font);
     font-size: 13px;
     font-weight: 500;
@@ -2976,20 +3035,7 @@
     background: var(--brand-cream);
     border-bottom: 1px solid var(--brand-ink);
   }
-  .brand-shell .back-filters .fabric-filter {
-    min-width: 0;
-    height: 34px;
-    padding: 0 14px;
-    background: var(--brand-paper);
-    border: 1px solid var(--brand-ink);
-    border-radius: var(--btn-radius);
-    font-family: var(--brand-font);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--brand-ink);
-  }
-  .brand-shell .back-filters .fabric-filter:not(.active):hover { background: var(--brand-cream); }
-  .brand-shell .back-filters .fabric-filter.active { background: var(--brand-ink); color: var(--brand-paper); }
+  .brand-shell .back-filters .filter-pill { font-family: var(--brand-font); }
   .brand-shell .back-grid .fabric-card { border-color: var(--brand-rule); box-shadow: none; }
   .brand-shell .back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--brand-ink); }
 
@@ -3009,19 +3055,7 @@
     color: var(--brand-ink);
   }
   .brand-shell .saved-count { font-weight: 500; opacity: 0.55; }
-  .brand-shell .saved-filter {
-    height: 30px;
-    padding: 0 12px;
-    background: var(--brand-paper);
-    border: 1px solid var(--brand-ink);
-    border-radius: var(--btn-radius);
-    font-family: var(--brand-font);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--brand-ink);
-  }
-  .brand-shell .saved-filter:hover { background: var(--brand-cream); }
-  .brand-shell .saved-filter.is-on { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--brand-paper); }
+  .brand-shell .saved-filter { font-family: var(--brand-font); }
   .brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
   .brand-shell .saved-card {
     gap: 14px;
@@ -6547,9 +6581,10 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
           </span>
           <input type="text" placeholder="Search colors…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:30 }}/>
         </div>
-        <div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+        <div className="pills-golden" style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
           {groups.map(g => (
-            <button key={g} className={`pill ${grp===g?'active':''}`} onClick={()=>setGrp(g)}>{g}</button>
+            <button key={g} type="button" className={`filter-pill is-compact${grp===g?' active':''}`}
+              aria-pressed={grp===g} onClick={()=>setGrp(g)}>{g}</button>
           ))}
         </div>
         <div>
@@ -8786,10 +8821,10 @@ function SavedDesigns({ onOpen }) {
           <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><i className="iconoir-nav-arrow-down"/></span>
         </button>
         {open && (
-          <div className="saved-filters" role="tablist" aria-label="Filter saved designs">
+          <div className="saved-filters pills-tomato" role="tablist" aria-label="Filter saved designs">
             {SAVED_FILTERS.map(f => (
               <button key={f.id} type="button" role="tab" aria-selected={filter === f.id}
-                className={`saved-filter${filter === f.id ? ' is-on' : ''}`}
+                className={`saved-filter filter-pill${filter === f.id ? ' is-on' : ''}`}
                 onClick={() => setFilter(f.id)}>{f.label}</button>
             ))}
           </div>
@@ -10814,14 +10849,14 @@ function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, upl
   const page = layout === 'page';
   return (
     <>
-      <div className={page ? 'back-filters' : 'fabric-filters'} role="tablist" aria-label="Fabric category">
+      <div className={`${page ? 'back-filters' : 'fabric-filters'} pills-ice`} role="tablist" aria-label="Fabric category">
         {cats.map(c => (
           <button
             key={c.id}
             type="button"
             role="tab"
             aria-selected={cat === c.id}
-            className={`fabric-filter${cat === c.id ? ' active' : ''}`}
+            className={`fabric-filter filter-pill${cat === c.id ? ' active' : ''}`}
             onClick={() => setCat(c.id)}>
             {c.label}
           </button>
