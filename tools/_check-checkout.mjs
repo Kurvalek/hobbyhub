@@ -1038,7 +1038,7 @@ check(!evicted.oldest, 'and the oldest is the one dropped');
 console.log('\n── back from the review page ──');
 await walkToEditor('Quilt', 'Throw Blanket', ['skip', 'skip', 'template']);
 const patchesBefore = await page.evaluate(() => {
-  const m = document.body.innerText.match(/Patches placed\s*(\d+)/);
+  const m = document.body.innerText.match(/(\d+) of \d+ placed/);
   return m ? +m[1] : null;
 });
 const tplBefore = await page.evaluate(() => history.state && history.state.quiltTemplateId);
@@ -1054,7 +1054,7 @@ const backToEditor = await page.evaluate(() => ({
   editor: !!document.querySelector('.app'),
   step: history.state && history.state.step,
   patches: (() => {
-    const m = document.body.innerText.match(/Patches placed\s*(\d+)/);
+    const m = document.body.innerText.match(/(\d+) of \d+ placed/);
     return m ? +m[1] : null;
   })(),
 }));
