@@ -68,7 +68,7 @@
        tone is genuinely useful for standing apart from warm fabric and thread. */
     --metime-black: #171717;
     --metime-almost-black: #171717;
-    --metime-cream: #F8F5ED;
+    --metime-cream: #F9F7F2;
     --metime-white: #FFFFFF;
 
     /* metime accent palette */
@@ -90,7 +90,7 @@
     --warm-placeholder: rgba(23, 23, 23, 0.44);
     --warm-hairline: rgba(23, 23, 23, 0.16);
     --warm-divider-soft: rgba(23, 23, 23, 0.08);
-    --warm-hover: #F2EAD9;
+    --warm-hover: #F5EDE1;
 
     /* Legacy taupe / linen names — now ice aliases so existing var() calls update */
     --color-taupe-900: var(--metime-black);
@@ -164,7 +164,7 @@
     /* Surfaces. The artboard stays white on purpose: it is the ground a maker
        judges fabric and thread colour against, and a cream field behind the work
        would warm every swatch sitting on it. */
-    --surface-card: #F8F5ED;
+    --surface-card: #F9F7F2;
     --surface-canvas: var(--metime-white);
 
     /* Action / accent semantics */
@@ -221,8 +221,8 @@
      stay exactly as it is. Nothing here has any effect until an element sits
      inside .brand-shell (see the brand layer at the end of this stylesheet). */
   :root {
-    --brand-paper:  #F8F5ED;   /* primary page ground */
-    --brand-cream:  #F2EAD9;   /* secondary surfaces, inset fields */
+    --brand-paper:  #F9F7F2;   /* primary page ground */
+    --brand-cream:  #F5EDE1;   /* secondary surfaces, inset fields */
     --brand-ink:    #171717;   /* text + controls */
     --brand-olive:  #BBC13F;
     --brand-tomato: #EF5535;
@@ -3150,6 +3150,8 @@
     --ed-stage-bg: var(--warm-hover);
     --ed-float-shadow: 0 4px 16px rgba(23, 23, 23, 0.10);
     --ed-ring: 0 0 0 2px var(--app-bg), 0 0 0 4px var(--metime-black);
+    --ed-rail-active-bg: #EFE7DA;
+    --ed-rail-active-line: #D9CDB9;
     --ed-tabbar-h: 0px;
     --ed-tray-h: 0px;
     display: flex; flex-direction: column; height: 100vh; overflow: hidden;
@@ -3218,13 +3220,21 @@
   @media (max-width: 1180px) { .ed-zoom input[type=range] { width: 100px; } }
 
   /* Side panel + rail (desktop) */
-  .ed-panel { width: 340px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--app-bg); border-left: var(--div-border); }
+  /* The panel slides out from behind the rail: a negative right margin takes it
+     out of the row, so the canvas widens and narrows with it instead of jumping. */
+  .ed-panel { width: 340px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--app-bg); border-left: var(--div-border); animation: ed-panel-in .28s var(--ease-out) both; }
+  .ed-panel.is-closing { animation: ed-panel-out .22s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+  .ed-panel-body { animation: ed-fade-in .18s ease-out both; }
+  @keyframes ed-panel-in { from { margin-right: -340px; } }
+  @keyframes ed-panel-out { to { margin-right: -340px; } }
+  @keyframes ed-fade-in { from { opacity: 0; } }
+  @keyframes ed-fade-out { to { opacity: 0; } }
   .ed-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px 6px; flex: none; }
   .ed-panel-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; }
   .ed-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 16px 24px; -webkit-overflow-scrolling: touch; }
   .ed-panel-body::-webkit-scrollbar { width: 4px; }
   .ed-panel-body::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
-  .ed-rail { width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; border-left: var(--div-border); background: var(--app-bg); }
+  .ed-rail { position: relative; z-index: 1; width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; border-left: var(--div-border); background: var(--app-bg); }
   .ed-rail-spacer { flex: 1; }
   .ed-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: none; background: none; cursor: pointer; color: var(--warm-muted); font-family: var(--font-sans); font-size: 11px; font-weight: 500; }
   .ed-nav-btn:hover, .ed-nav-btn.is-active { color: var(--warm-fg); }
@@ -3233,7 +3243,14 @@
   .ed-nav-btn.is-active .ed-nav-ic { background: var(--warm-hover); box-shadow: inset 0 0 0 1px var(--warm-hairline); }
   .ed-nav-btn:focus-visible { outline: none; }
   .ed-nav-btn:focus-visible .ed-nav-ic { outline: 2px solid var(--metime-black); outline-offset: 2px; }
-  .ed-rail .ed-nav-btn { width: 64px; }
+  .ed-rail { gap: 6px; }
+  .ed-rail .ed-nav-btn { width: 64px; padding: 8px 0 7px; gap: 5px; border-radius: 10px; font-size: 12px; font-weight: 400; transition: background .12s, box-shadow .12s; }
+  .ed-rail .ed-nav-ic, .ed-rail .ed-nav-btn:hover .ed-nav-ic, .ed-rail .ed-nav-btn.is-active .ed-nav-ic { width: auto; height: 28px; background: none; box-shadow: none; }
+  .ed-rail .ed-nav-btn:hover { background: var(--btn-tool-hover); }
+  .ed-rail .ed-nav-btn.is-active { background: var(--ed-rail-active-bg); box-shadow: inset 0 0 0 1px var(--ed-rail-active-line); color: var(--warm-fg); font-weight: 700; }
+  .ed-rail .ed-nav-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+  .ed-rail .ed-nav-btn:focus-visible .ed-nav-ic { outline: none; }
+  .ed-rail-img { display: block; width: 28px; height: 28px; }
 
   /* Panel content */
   .ed-label { font-size: 15px; font-weight: 500; color: var(--warm-fg); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -3375,14 +3392,19 @@
   .ed-tray-tools { display: flex; justify-content: space-between; align-items: center; }
   .ed-app .ed-tray-tools .icon-btn { width: 56px; height: 48px; }
   .ed-tray-card .ed-hint { display: block; text-align: center; margin-top: 6px; padding: 0; white-space: normal; }
-  .ed-scrim { position: absolute; inset: 0; z-index: 8; background: rgba(23,23,23,0.14); }
-  .ed-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .2s var(--ease-out) both; }
+  .ed-scrim { position: absolute; inset: 0; z-index: 8; background: rgba(23,23,23,0.14); animation: ed-fade-in .28s ease-out both; }
+  .ed-scrim.is-closing { animation: ed-fade-out .22s ease-in both; pointer-events: none; }
+  .ed-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .32s var(--ease-out) both; }
+  .ed-sheet.is-closing { animation: ed-sheet-out .22s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
   .ed-sheet .ed-handle { margin: 8px auto 4px; flex: none; }
   .ed-sheet .ed-panel-head { padding: 4px 16px 6px; }
   .ed-sheet .ed-panel-body { padding: 8px 16px 20px; }
   .ed-sheet .studio-menu-item { padding: 0 4px; min-height: 52px; font-size: 15px; border-radius: var(--btn-radius); }
-  @keyframes ed-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { .ed-sheet { animation: none; } }
+  @keyframes ed-sheet-in { from { transform: translateY(100%); } }
+  @keyframes ed-sheet-out { to { transform: translateY(100%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .ed-panel, .ed-panel.is-closing, .ed-panel-body, .ed-scrim, .ed-scrim.is-closing, .ed-sheet, .ed-sheet.is-closing { animation: none; }
+  }
 
   @media (max-width: 900px) {
     .app.ed-app { --ed-tabbar-h: calc(62px + env(safe-area-inset-bottom)); height: 100%; padding-bottom: 0; }
@@ -7328,6 +7350,11 @@ function EdSwatch({ color, active = false, onClick, title, className = '' }) {
   );
 }
 
+// The rail's full-color panel icons, drawn on a 32 grid in icons/.
+function EdRailIcon({ name }) {
+  return <img className="ed-rail-img" src={`icons/${name}.svg`} alt="" width="28" height="28" draggable="false"/>;
+}
+
 // Icon + label buttons: the desktop rail and the mobile tab bar. `{ spacer }`
 // items push the rest to the far end.
 function EdNav({ className, label, items, active, onSelect }) {
@@ -7372,30 +7399,56 @@ function EdPanelHead({ title, onClose }) {
   );
 }
 
+// Matches the longest exit animation on .ed-panel / .ed-sheet.
+const ED_PANEL_EXIT_MS = 220;
+
+// Keeps a panel mounted through its exit animation, showing what it last held.
+function useLingeringPanel(open, props) {
+  const reduced = usePrefersReducedMotion();
+  const last = useRef(props);
+  if (open) last.current = props;
+  const [mounted, setMounted] = useState(open);
+  useEffect(() => {
+    if (open) { setMounted(true); return; }
+    if (reduced) { setMounted(false); return; }
+    const t = setTimeout(() => setMounted(false), ED_PANEL_EXIT_MS);
+    return () => clearTimeout(t);
+  }, [open, reduced]);
+  return { shown: open || mounted, closing: !open && mounted, ...last.current };
+}
+
 // Desktop: a column between the canvas and the rail.
-function EdPanel({ id, title, onClose, children }) {
+function EdPanel({ open, id, title, onClose, children }) {
+  const p = useLingeringPanel(open, { id, title, onClose, children });
+  if (!p.shown) return null;
   return (
-    <aside className="ed-panel" aria-label={title} data-ed-panel={id}>
-      <EdPanelHead title={title} onClose={onClose}/>
-      <div className="ed-panel-body">{children}</div>
+    <aside className={`ed-panel${p.closing ? ' is-closing' : ''}`} aria-label={p.title}
+      data-ed-panel={p.closing ? undefined : p.id} aria-hidden={p.closing || undefined}>
+      <EdPanelHead title={p.title} onClose={p.onClose}/>
+      <div className="ed-panel-body" key={p.id}>{p.children}</div>
     </aside>
   );
 }
 
 // Mobile: the same panel content as a sheet over the stage, above the tab bar.
-function EdSheet({ id, title, onClose, children }) {
+function EdSheet({ open, id, title, onClose, children }) {
+  const p = useLingeringPanel(open, { id, title, onClose, children });
   useEffect(() => {
+    if (!open) return;
     const onKey = e => { if (e.key === 'Escape' && !studioCovered()) onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [open, onClose]);
+  if (!p.shown) return null;
+  const cls = p.closing ? ' is-closing' : '';
   return (
     <>
-      <div className="ed-scrim" onClick={onClose}/>
-      <div className="ed-sheet" role="dialog" aria-label={title} data-ed-panel={id}>
+      <div className={`ed-scrim${cls}`} onClick={p.onClose}/>
+      <div className={`ed-sheet${cls}`} role="dialog" aria-label={p.title}
+        data-ed-panel={p.closing ? undefined : p.id} aria-hidden={p.closing || undefined}>
         <div className="ed-handle"/>
-        {title && <EdPanelHead title={title} onClose={onClose}/>}
-        <div className="ed-panel-body">{children}</div>
+        {p.title && <EdPanelHead title={p.title} onClose={p.onClose}/>}
+        <div className="ed-panel-body" key={p.id}>{p.children}</div>
       </div>
     </>
   );
@@ -8359,10 +8412,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   };
 
   const railItems = [
-    { id: 'templates', label: 'Templates', icon: <IcTemplates/> },
-    { id: 'fabrics', label: 'Fabrics', icon: <IcFabrics/> },
-    { id: 'quilting', label: 'Quilting', icon: <IcQuilting/> },
-    { id: 'size', label: 'Size', icon: <IcRuler/> },
+    { id: 'templates', label: 'Templates', icon: <EdRailIcon name="designs"/> },
+    { id: 'fabrics', label: 'Fabrics', icon: <EdRailIcon name="fabric"/> },
+    { id: 'quilting', label: 'Quilting', icon: <EdRailIcon name="quilting"/> },
+    { id: 'size', label: 'Size', icon: <EdRailIcon name="size"/> },
     { id: 'sp', spacer: true },
     { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
@@ -8405,8 +8458,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         {!isMobile && <div className="ed-topbar-center">{sizeChip}</div>}
         <div className="ed-topbar-right header-right">
           {!isMobile && savedQuilts.length>0 && (
-            <button className="btn" style={{display:'flex',alignItems:'center',gap:5}} onClick={()=>setShowMyQuilts(true)}>
-              <IcSaved/> My quilts ({savedQuilts.length})
+            <button className="btn" onClick={()=>setShowMyQuilts(true)}>
+              My quilts ({savedQuilts.length})
             </button>
           )}
           {!isMobile && (currentQuilt ? (
@@ -8496,9 +8549,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 </div>
               </div>
             )}
-            {isMobile && panel && (
-              <EdSheet id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
-                {renderPanel(panel)}
+            {isMobile && (
+              <EdSheet open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+                {panel && renderPanel(panel)}
               </EdSheet>
             )}
             {toast && <div className="ed-toast" role="status">{toast}</div>}
@@ -8518,9 +8571,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           )}
         </div>
 
-        {!isMobile && panel && (
-          <EdPanel id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
-            {renderPanel(panel)}
+        {!isMobile && (
+          <EdPanel open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+            {panel && renderPanel(panel)}
           </EdPanel>
         )}
         {!isMobile && <EdNav className="ed-rail" label="Panels" items={railItems} active={panel} onSelect={togglePanel}/>}
@@ -8743,7 +8796,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "borderColor": "rgba(23, 23, 23, 0.22)",
   "borderWidth": "1",
-  "appBg": "#F8F5ED",
+  "appBg": "#F9F7F2",
   "canvasBg": "#FFFFFF",
   "radius": "4"
 }/*EDITMODE-END*/;
@@ -12148,7 +12201,7 @@ const CRAFT_STUDIO = {
     gauge: 14, gaugeLabel: '14-count', gaugeShort: '@14ct', gaugeBadge: '14 ct',
     majorGrid: 10,
     library: DMC, nearest: nearestDMC, byCode: dmcByCode, fallbackCode: '310',
-    codePrefix: 'DMC', threadLabel: 'Floss', threadPlural: 'flosses',
+    codePrefix: 'DMC', threadLabel: 'Floss', threadPlural: 'flosses', threadIcon: 'floss',
     palettes: DMC_PALETTES, resolvePalette: resolveDmcPalette,
     paletteMax: CROSS_STITCH_PALETTE_MAX, defaultCodes: XS_DEFAULT_CODES,
     fabrics: AIDA_FABRICS, fabricLabel: 'Aida',
@@ -12164,7 +12217,7 @@ const CRAFT_STUDIO = {
     // fall every two inches and stop being a useful counting aid.
     majorGrid: 5,
     library: WOOL, nearest: nearestWool, byCode: woolByCode, fallbackCode: 'NOIR',
-    codePrefix: 'DMC', threadLabel: 'Yarn', threadPlural: 'yarns',
+    codePrefix: 'DMC', threadLabel: 'Yarn', threadPlural: 'yarns', threadIcon: 'yarn',
     palettes: WOOL_PALETTES, resolvePalette: resolveWoolPalette,
     paletteMax: PUNCH_NEEDLE_PALETTE_MAX, defaultCodes: PN_DEFAULT_CODES,
     fabrics: PUNCH_CLOTHS, fabricLabel: "Monk's cloth",
@@ -14056,7 +14109,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   }, [isMobile, panel]);
 
   const threadWord = CFG.threadLabel.toLowerCase();
-  const PANEL_TITLES = { designs: 'Designs', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', text: 'Text', help: 'Help', menu: 'More' };
+  const PANEL_TITLES = { designs: 'Templates', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', text: 'Text', help: 'Help', menu: 'More' };
   const renderPanel = id => {
     if (id === 'designs') return (
       <StitchDesignsPanel cfg={CFG} templates={templates} dims={{ name: dims.name, w: W, h: H }} fabric={fabric}
@@ -14101,15 +14154,15 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   };
 
   const railItems = [
-    { id: 'designs', label: 'Designs', icon: <IcTemplates/> },
-    { id: 'floss', label: CFG.threadLabel, icon: <IcSpool/> },
-    { id: 'fabric', label: 'Fabric', icon: <IcGrid size={18}/> },
-    { id: 'size', label: 'Size', icon: <IcRuler/> },
+    { id: 'designs', label: 'Templates', icon: <EdRailIcon name="designs"/> },
+    { id: 'floss', label: CFG.threadLabel, icon: <EdRailIcon name={CFG.threadIcon}/> },
+    { id: 'fabric', label: 'Fabric', icon: <EdRailIcon name="fabric"/> },
+    { id: 'size', label: 'Size', icon: <EdRailIcon name="size"/> },
     { id: 'sp', spacer: true },
     { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
   const tabItems = [
-    { id: 'designs', label: 'Designs', icon: <IcTemplates size={20}/> },
+    { id: 'designs', label: 'Templates', icon: <IcTemplates size={20}/> },
     { id: 'floss', label: CFG.threadLabel, icon: <IcSpool size={20}/> },
     { id: 'tools', label: 'Tools', icon: <toolDef.Ic size={20}/> },
     { id: 'fabric', label: 'Fabric', icon: <IcGrid size={20}/> },
@@ -14187,8 +14240,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
         {!isMobile && <div className="ed-topbar-center">{sizeChip}</div>}
         <div className="ed-topbar-right header-right">
           {!isMobile && savedStitches.length > 0 && (
-            <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
-              <IcSaved/> My designs ({savedStitches.length})
+            <button className="btn" onClick={() => setShowMyStitches(true)}>
+              My designs ({savedStitches.length})
             </button>
           )}
           {!isMobile && (currentStitch ? (
@@ -14274,9 +14327,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
                 </div>
               </div>
             )}
-            {isMobile && panel && (
-              <EdSheet id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
-                {renderPanel(panel)}
+            {isMobile && (
+              <EdSheet open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+                {panel && renderPanel(panel)}
               </EdSheet>
             )}
             {toast && <div className="ed-toast" role="status">{toast}</div>}
@@ -14297,9 +14350,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
           )}
         </div>
 
-        {!isMobile && panel && (
-          <EdPanel id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
-            {renderPanel(panel)}
+        {!isMobile && (
+          <EdPanel open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+            {panel && renderPanel(panel)}
           </EdPanel>
         )}
         {!isMobile && <EdNav className="ed-rail" label="Panels" items={railItems} active={panel} onSelect={togglePanel}/>}
