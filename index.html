@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,500&family=Cal+Sans&family=Manufacturing+Consent&family=Meow+Script&family=Oleo+Script+Swash+Caps:wght@400;700&family=Rye&display=swap" rel="stylesheet"/>
 <style>
-  /* Self-hosted brand type — Söhne (sans + mono) and BC Civitas (display).
+  /* Self-hosted brand type — Söhne (sans) and BC Civitas (display).
      Trial ("TEST") cuts as supplied. The stitch text tool uses Google faces
      instead (Arvo, Cal Sans, Meow Script, Manufacturing Consent, Oleo Script
      Swash Caps, plus Rye for the sampler alphabet). Rye's wedge serifs are
@@ -39,8 +39,6 @@
   /* Design rule: Söhne tops out at Medium — "bold" (600/700) resolves to the Medium cut. */
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
-  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/SohneMono-Regular.woff2') format('woff2'); }
-  @font-face { font-family: 'Söhne Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/SohneMono-Medium.woff2') format('woff2'); }
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/BCCivitas-Light.woff2') format('woff2'); }
   /* Design rule: BC Civitas headers use the Medium cut, so the default (400) weight loads Medium. */
   @font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
@@ -129,7 +127,7 @@
     --color-golden: #FBBB3F;
     --color-golden-dark: #6E4A02;
     --pill-radius: 999px;
-    --btn-stroke-w: 1.5px;
+    --btn-stroke-w: 1px;
     --btn-focus-shadow: 0 0 0 2px var(--ds-cream), 0 0 0 4px var(--color-tomato);
 
     /* Primary (filled) button — black fill, cream label. */
@@ -195,11 +193,9 @@
     /* Fonts. Sans and display both run the brand grotesk so the editor's chrome
        reads as the same product as the pages around it; the display face keeps a
        separate token because it is set bold and tight where the brand headings are.
-       Mono stays: the panel's readouts are columns of figures that want to line up,
-       and that is a tool affordance rather than a brand surface. */
+       There is no mono face: readouts and figures use the sans with tabular numerals. */
     --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
     --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --font-mono: 'Söhne Mono', monospace;
 
     /* Type scale (Figma 02 - typography) — used at editorial moments;
        the dense tool UI keeps its smaller working sizes (11/12/13). */
@@ -497,7 +493,7 @@
   .preset-pill:hover { border-color: var(--ds-black); }
   .preset-pill[aria-expanded="true"] { border-color: var(--ds-black); }
   .preset-pill:focus-visible { outline: none; border-color: var(--ds-black); box-shadow: var(--btn-focus-shadow); }
-  .preset-pill .preset-dim { color: var(--warm-muted); font-weight: 400; font-family: var(--font-mono); font-size: 12px; }
+  .preset-pill .preset-dim { color: var(--warm-muted); font-weight: 400; font-family: var(--font-sans); font-size: 12px; }
   .preset-pill .ic { color: var(--warm-muted); margin-left: 2px; }
   .preset-pill > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
@@ -615,7 +611,7 @@
   /* Bottom-of-canvas zoom bar */
   .zoom-bar { display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-top: var(--div-border); background: var(--surface-canvas); flex-shrink: 0; }
   .zoom-bar input[type=range] { flex: 1; max-width: 280px; }
-  .zoom-bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--warm-fg-2); min-width: 40px; text-align: right; }
+  .zoom-bar-value { font-family: var(--font-sans); font-size: 11px; color: var(--warm-fg-2); min-width: 40px; text-align: right; }
 
   /* Floating selection toolbar (position+coords are computed in JS, FigJam-style) */
   .selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
@@ -625,7 +621,7 @@
   .selection-swatch-preview { width: 14px; height: 14px; border: 1px solid rgba(0,0,0,0.12); border-radius: 2px; flex-shrink: 0; display: block; }
   .selection-swatch-mixed { background: conic-gradient(#E8583A 0deg 90deg, #B5BB46 90deg 180deg, #1A2E4C 180deg 270deg, #E1A92F 270deg 360deg); }
   .selection-swatch-name { font-weight: 500; color: var(--warm-fg); }
-  .selection-swatch-meta { color: var(--warm-muted); font-family: var(--font-mono); font-size: 11px; }
+  .selection-swatch-meta { color: var(--warm-muted); font-family: var(--font-sans); font-size: 11px; }
   .selection-swatch-btn .ic { color: var(--warm-fg-2); margin-left: 2px; }
   .selection-toolbar::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
   .selection-toolbar.above::after { bottom: -5px; border-top: 6px solid var(--surface-card); }
@@ -634,7 +630,7 @@
 
   /* Section labels */
   .label { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--warm-fg); margin-bottom: 10px; }
-  .label-mono { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--warm-muted); }
+  .label-mono { font-family: var(--font-sans); font-size: 10px; letter-spacing: 0.04em; color: var(--warm-muted); }
 
   /* Cards */
   .card { padding: 16px; border-bottom: var(--div-border); }
@@ -689,7 +685,7 @@
   .fabric-row-main { flex: 1; min-width: 0; }
   .fabric-row-title { font-size: 12px; font-weight: 500; color: var(--warm-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fabric-row-name { color: var(--warm-muted); font-weight: 400; }
-  .fabric-row-detail { font-size: 11px; color: var(--warm-muted); font-family: var(--font-mono); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fabric-row-detail { font-size: 11px; color: var(--warm-muted); font-family: var(--font-sans); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Color chip */
   .chip { aspect-ratio: 1; border-radius: 4px; border: 1px solid rgba(0,0,0,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
@@ -770,11 +766,11 @@
   }
   .account-menu-out:hover { opacity: 0.7; }
   .account-menu-out:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 3px; }
-  .auth-code { letter-spacing: 0.35em; font-size: 22px; font-variant-numeric: tabular-nums; text-align: center; font-family: var(--font-mono); }
+  .auth-code { letter-spacing: 0.35em; font-size: 22px; font-variant-numeric: tabular-nums; text-align: center; font-family: var(--font-sans); }
 
   /* Info text */
   .muted { color: var(--warm-muted); }
-  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+  .mono { font-family: var(--font-sans); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
   /* Hint strip */
   .hint-strip { padding: 6px 12px; font-size: 11px; color: var(--warm-muted); display: flex; gap: 12px; flex-wrap: wrap; }
@@ -1144,7 +1140,7 @@
   .xs-flatten-btn:hover:not(.active) { background: var(--metime-cream); }
   .xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
   .xs-flatten-btn.active { background: var(--ice-500); color: var(--metime-white); border-color: var(--metime-black); }
-  .xs-flatten-note { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); }
+  .xs-flatten-note { margin-top: 8px; font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); }
   .xs-flatten-check {
     display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
     font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none;
@@ -1161,7 +1157,7 @@
     flex: 0 0 auto; width: 264px; min-height: 264px; padding: 8px; box-sizing: border-box;
     background: var(--metime-cream); border: 1px solid var(--metime-black);
   }
-  .xs-flatten-empty { font-family: var(--font-mono); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
+  .xs-flatten-empty { font-family: var(--font-sans); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
   .pal-page .pal-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto;
     gap: 0; width: 100%; flex: 0 0 auto;
@@ -1400,7 +1396,7 @@
   .studio-menu-item:focus-visible { outline: 2px solid var(--metime-black); outline-offset: -2px; }
   .studio-menu-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--warm-fg-2); }
   .studio-menu-label { flex: 1; min-width: 0; }
-  .studio-menu-meta { font-family: var(--font-mono); font-size: 12px; color: var(--warm-muted); }
+  .studio-menu-meta { font-family: var(--font-sans); font-size: 12px; color: var(--warm-muted); }
   .studio-menu-sep { height: 1px; background: var(--warm-divider-soft); margin: 6px 0; }
   .studio-menu-email { padding: 8px 16px 2px; font-size: 12px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .xs-body { flex: 1; display: flex; min-height: 0; position: relative; }
@@ -1660,7 +1656,7 @@
   .pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
   .pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
   .pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
-  .pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
+  .pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-sans); }
   .pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
   .pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
   .pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
@@ -1727,7 +1723,7 @@
   .pal-suggest-swatch { width: 44px; height: 44px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.15); cursor: pointer; padding: 0; transition: transform .1s; }
   .pal-suggest-swatch:hover { transform: scale(1.06); }
   .pal-suggest-rm { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: var(--metime-black); color: var(--metime-white); font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
-  .pal-suggest-code { font-size: 10px; color: var(--warm-muted); font-family: var(--font-mono); }
+  .pal-suggest-code { font-size: 10px; color: var(--warm-muted); font-family: var(--font-sans); }
   .pal-suggest-add { width: 44px; height: 44px; border-radius: var(--btn-radius); border: 1px dashed var(--warm-muted); background: none; color: var(--warm-fg-2); font-size: 20px; line-height: 1; cursor: pointer; }
   .pal-suggest-add:hover { border-color: var(--metime-almost-black); color: var(--warm-fg); }
 
@@ -2219,7 +2215,7 @@
   .brand-shell .size-back-icon .ic { width: 14px; height: 14px; }
 
   /* ── Controls ─────────────────────────────────────────────────────────────
-     Design system V1 buttons at Large (44px): fully rounded, 1.5px outline,
+     Design system V1 buttons at Large (44px): fully rounded, 1px outline,
      black and neutral. No offset shadows anywhere. */
   .brand-shell .brand-btn,
   .brand-shell .back-skip,
@@ -3204,7 +3200,7 @@
   /* Swatches */
   .ed-swatch { position: relative; display: block; padding: 0; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.12); cursor: pointer; background-size: cover; background-position: center; transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
   .ed-swatch:active { transform: scale(var(--press-scale)); }
-  .ed-swatch.is-active { box-shadow: var(--ed-ring); border-color: transparent; z-index: 1; }
+  .ed-swatch.is-active { border-color: var(--metime-black); box-shadow: 0 0 0 1px var(--metime-black); z-index: 1; }
   .ed-swatch:focus-visible { outline: none; box-shadow: var(--ed-ring); }
   .ed-swatch-add { display: inline-flex; align-items: center; justify-content: center; border: 1.5px dashed var(--warm-muted-2); background: transparent; color: var(--warm-muted); }
   .ed-swatch-add:hover { border-color: var(--metime-black); color: var(--metime-black); }
@@ -3214,11 +3210,11 @@
 
   /* Bottom status bar (desktop) */
   .ed-statusbar { flex: none; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-top: var(--div-border); background: var(--app-bg); font-size: 12px; color: var(--warm-muted); }
-  .ed-stats { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 11px; }
+  .ed-stats { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-sans); font-size: 11px; }
   .ed-spacer { flex: 1 1 0; min-width: 0; }
   .ed-zoom { display: flex; align-items: center; gap: 6px; flex: none; }
   .ed-zoom input[type=range] { width: 160px; }
-  .ed-zoom-val { font-family: var(--font-mono); font-size: 11px; color: var(--warm-fg); min-width: 38px; text-align: right; }
+  .ed-zoom-val { font-family: var(--font-sans); font-size: 11px; color: var(--warm-fg); min-width: 38px; text-align: right; }
   @media (max-width: 1180px) { .ed-zoom input[type=range] { width: 100px; } }
 
   /* Side panel + rail (desktop) */
@@ -3283,7 +3279,7 @@
   .ed-choice:active { transform: scale(var(--press-scale-card)); }
   .ed-choice:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   .ed-choice-name { font-size: 14px; font-weight: 500; }
-  .ed-choice-sub { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-top: 3px; }
+  .ed-choice-sub { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); margin-top: 3px; }
 
   .ed-slider-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
   .ed-slider-head .ed-label { margin: 0; font-size: 12px; color: var(--warm-muted); }
@@ -3292,7 +3288,7 @@
   .ed-statcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
   .ed-statcard { background: var(--warm-hover); border-radius: 8px; padding: 10px 12px; min-width: 0; }
   .ed-statcard-k { font-size: 11px; color: var(--warm-muted); }
-  .ed-statcard-v { font-family: var(--font-mono); font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ed-statcard-v { font-family: var(--font-sans); font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ed-threads { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .ed-threads .ed-swatch { width: 36px; height: 36px; border-radius: 50%; border-color: var(--warm-hairline); }
   .ed-toggle-row { margin-top: 20px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; background: var(--warm-hover); }
@@ -3302,7 +3298,7 @@
   .ed-tip-ic { width: 32px; height: 32px; flex: none; border-radius: var(--btn-radius); background: var(--warm-hover); display: flex; align-items: center; justify-content: center; }
   .ed-tip b { display: block; font-size: 13px; font-weight: 500; margin-bottom: 2px; }
   .ed-tip p { font-size: 12px; color: var(--warm-muted); line-height: 1.5; }
-  .ed-kbd { font-family: var(--font-mono); font-size: 10px; padding: 1px 5px; border: 1px solid var(--warm-hairline); border-radius: 3px; margin-left: 6px; color: var(--warm-muted); white-space: nowrap; }
+  .ed-kbd { font-family: var(--font-sans); font-size: 10px; padding: 1px 5px; border: 1px solid var(--warm-hairline); border-radius: 3px; margin-left: 6px; color: var(--warm-muted); white-space: nowrap; }
 
   /* Selection toolbar, restyled for the shell */
   .ed-app .selection-toolbar { padding: 6px; gap: 6px; box-shadow: var(--ed-float-shadow); background: var(--app-bg); }
@@ -3317,7 +3313,7 @@
   .ed-app .selection-toolbar.below::after { border-bottom-color: var(--app-bg); }
   .ed-app .selection-toolbar .ed-sel-swatches { max-width: 240px; }
   .ed-app .selection-toolbar .ed-swatch-add { width: 28px; height: 28px; flex: none; }
-  .ed-app .selection-swatch-meta { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); padding: 0 2px 0 4px; }
+  .ed-app .selection-swatch-meta { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); padding: 0 2px 0 4px; }
   .ed-row-title, .ed-row-sub, .ed-choice-name, .ed-choice-sub { display: block; }
   .ed-row[aria-expanded="true"] .ed-row-value { color: var(--warm-muted); }
   .ed-palette-pill .ed-swatch-add { width: 30px; height: 30px; flex: none; }
@@ -3350,7 +3346,7 @@
   .ed-coaster.is-active { box-shadow: var(--ed-ring); }
   .ed-coaster:active { transform: scale(var(--press-scale)); }
   .ed-coaster:focus-visible { outline: none; box-shadow: var(--ed-ring); }
-  .ed-coaster-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 3px; background: var(--metime-black); color: var(--metime-white); font-family: var(--font-mono); font-size: 9px; line-height: 14px; text-align: center; }
+  .ed-coaster-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 3px; background: var(--metime-black); color: var(--metime-white); font-family: var(--font-sans); font-size: 9px; line-height: 14px; text-align: center; }
   .ed-app .btn.ed-coaster-copy { flex: none; background: var(--app-bg); box-shadow: var(--ed-float-shadow); }
   .ed-selbar .ed-selbar-info { flex: none; font-size: 12px; color: var(--warm-muted); white-space: nowrap; font-variant-numeric: tabular-nums; border-left: 1px solid var(--warm-hairline); padding: 0 4px 0 10px; }
   .ed-selbar .btn { flex: none; white-space: nowrap; }
@@ -6892,7 +6888,7 @@ function PresetPill({ preset, presets = PRESETS, label = 'Quilt size', dimsOf = 
                 onMouseEnter={e => { if (preset !== p.name) e.currentTarget.style.background = 'var(--warm-hover)'; }}
                 onMouseLeave={e => { if (preset !== p.name) e.currentTarget.style.background = 'transparent'; }}>
                 <span style={{ fontWeight: preset === p.name ? 500 : 400 }}>{p.name}</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--warm-muted)' }}>{dimsOf(p)}</span>
+                <span style={{ fontFamily:'var(--font-sans)', fontSize:11, color:'var(--warm-muted)' }}>{dimsOf(p)}</span>
               </button>
             ))}
           </div>
@@ -6996,7 +6992,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
               <input type="text" placeholder="Color name" value={cName} onChange={e=>setCName(e.target.value)}/>
               <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                 <input type="color" value={cHex} onChange={e=>setCHex(e.target.value)} style={{ width:36, flexShrink:0 }}/>
-                <input type="text" value={cHex} onChange={e=>setCHex(e.target.value)} style={{ fontFamily:"var(--font-mono)", fontSize:12 }}/>
+                <input type="text" value={cHex} onChange={e=>setCHex(e.target.value)} style={{ fontFamily:"var(--font-sans)", fontSize:12 }}/>
               </div>
               <div style={{ display:'flex', gap:6 }}>
                 <button className="btn btn-dark btn-sm" style={{ flex:1 }} onClick={() => {
@@ -7431,7 +7427,7 @@ function EdZoomControls({ zoom, onZoom, onStep, onFit }) {
   );
 }
 
-// A tappable list row: swatch, title, mono detail line, value on the right.
+// A tappable list row: swatch, title, detail line, value on the right.
 const EdRow = React.forwardRef(function EdRow({ swatch, title, name, sub, value, action, onClick, onSwatchClick, expanded }, ref) {
   return (
     <button ref={ref} type="button" className="ed-row" onClick={onClick} aria-expanded={expanded}>
@@ -7608,7 +7604,7 @@ function QuiltFabricsPanel({ pinned, setPinned, color, onPickColor, onOpenLibrar
       <div className="ed-hr"/>
       <div className="ed-label">
         <span>Quilt top by color</span>
-        {items.length > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmtY(yards)}</span>}
+        {items.length > 0 && <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11 }}>{fmtY(yards)}</span>}
       </div>
       {items.length === 0 ? (
         <p className="ed-intro">Add patches to see how much of each fabric you need.</p>
@@ -8812,7 +8808,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.borderColor} onChange={e=>set('borderColor',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.borderColor}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)' }}>{t.borderColor}</span>
         </div>
       </Row>
 
@@ -8820,7 +8816,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={4} step={0.5} value={t.borderWidth} onChange={e=>set('borderWidth',e.target.value)}
             style={{ width:80, accentColor:'#000000' }}/>
-          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
         </div>
       </Row>
 
@@ -8828,7 +8824,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={12} step={1} value={t.radius} onChange={e=>set('radius',e.target.value)}
             style={{ width:80, accentColor:'#000000' }}/>
-          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
         </div>
       </Row>
 
@@ -8836,7 +8832,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.appBg} onChange={e=>set('appBg',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.appBg}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)' }}>{t.appBg}</span>
         </div>
       </Row>
 
@@ -8844,7 +8840,7 @@ function TweaksPanel() {
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="color" value={t.canvasBg} onChange={e=>set('canvasBg',e.target.value)}
             style={{ width:28, height:24, padding:2, border:'1px solid #CCD6EB', borderRadius:3, cursor:'pointer', background:'none' }}/>
-          <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:'var(--warm-muted)' }}>{t.canvasBg}</span>
+          <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)' }}>{t.canvasBg}</span>
         </div>
       </Row>
 
