@@ -3198,6 +3198,7 @@
   .ed-palette-pill .ed-swatch { width: 30px; height: 30px; flex: none; }
   .ed-hint { font-size: 12px; color: var(--warm-muted); white-space: nowrap; padding-right: 4px; }
   .ed-palette-pill .ed-hint { border-left: 1px solid var(--warm-hairline); padding-left: 10px; margin-left: 2px; }
+  .ed-palette-pill .ed-hint:first-child { border-left: none; padding-left: 4px; margin-left: 0; }
   .ed-toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9; background: var(--metime-black); color: var(--metime-cream); font-size: 12px; font-weight: 500; padding: 8px 14px; border-radius: 999px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-sticky); }
 
   /* Swatches */
@@ -3239,7 +3240,7 @@
   .ed-rail .ed-nav-btn { width: 64px; }
 
   /* Panel content */
-  .ed-label { font-size: 12px; font-weight: 500; color: var(--warm-muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ed-label { font-size: 15px; font-weight: 500; color: var(--warm-fg); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .ed-intro { font-size: 13px; color: var(--warm-muted); line-height: 1.45; margin-bottom: 14px; }
   .ed-hr { height: 1px; background: var(--warm-divider-soft); margin: 16px 0 6px; border: none; }
   .ed-link { background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 500; color: var(--warm-fg); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -3251,10 +3252,11 @@
   .ed-row-main { flex: 1; min-width: 0; }
   .ed-row-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ed-row-title .ed-row-name { font-weight: 400; color: var(--warm-muted); }
-  .ed-row-sub { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-row-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ed-row-value { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ed-row-action { font-size: 12px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; white-space: nowrap; }
   .ed-list > * { border-bottom: 1px solid var(--warm-divider-soft); }
+  .ed-list.is-plain > * { border-bottom: none; }
   .ed-row-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 12px 52px; }
   .ed-row-more-label { width: 100%; font-size: 11px; color: var(--warm-muted); }
   .ed-row-more .ed-swatch { width: 32px; height: 32px; }
@@ -3284,7 +3286,7 @@
   .ed-choice-sub { font-family: var(--font-mono); font-size: 11px; color: var(--warm-muted); margin-top: 3px; }
 
   .ed-slider-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
-  .ed-slider-head .ed-label { margin: 0; }
+  .ed-slider-head .ed-label { margin: 0; font-size: 12px; color: var(--warm-muted); }
   .ed-slider-val { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
   .ed-app input[type=range].ed-range { height: 28px; }
   .ed-statcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
@@ -3325,6 +3327,37 @@
   .ed-app .ed-tray-tools .ic { width: 20px; height: 20px; }
   .ed-threads .ed-link { margin-left: 4px; }
   .ed-panel-body .studio-menu { margin: 0 -4px; }
+
+  /* Grid studios (cross-stitch, punch needle): a stitch canvas on the same stage */
+  .ed-app .xs-canvas-wrap { position: absolute; inset: 0; padding: 76px 92px 32px; background: transparent; }
+  .ed-app .xs-canvas-wrap.has-coasters { padding-bottom: 96px; }
+  .ed-app .xs-canvas { box-shadow: 0 1px 2px rgba(23, 23, 23, 0.10), 0 10px 30px rgba(23, 23, 23, 0.08); }
+  .ed-nibs { display: flex; gap: 4px; flex: none; }
+  .ed-nib { width: 30px; height: 30px; padding: 0; border: none; border-radius: var(--btn-radius); background: var(--warm-hover); color: var(--warm-fg); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background .12s, transform var(--press-dur) var(--ease-out); }
+  .ed-nib:hover { background: var(--btn-tool-hover); }
+  .ed-nib.is-active { background: var(--metime-black); color: var(--metime-white); }
+  .ed-nib:active { transform: scale(var(--press-scale)); }
+  .ed-nib:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+  .ed-nib-chip { display: block; background: currentColor; border-radius: 1px; }
+  .ed-strip-sep { width: 1px; align-self: stretch; background: var(--warm-hairline); flex: none; margin: 2px 4px; }
+  .ed-app .icon-btn.ed-grid-btn { flex: none; }
+  .ed-canvas-head-right { display: flex; align-items: center; gap: 8px; flex: none; }
+  .ed-coasters { display: flex; align-items: center; gap: 10px; }
+  .ed-coasters.is-floating { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 6; }
+  .ed-coaster-list { display: flex; gap: 8px; padding: 6px; }
+  .ed-coaster { position: relative; width: 46px; height: 46px; padding: 3px; border: none; border-radius: var(--btn-radius); background: var(--ds-white); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--warm-hairline); transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+  .ed-coaster:hover { box-shadow: 0 0 0 1px var(--metime-black); }
+  .ed-coaster.is-active { box-shadow: var(--ed-ring); }
+  .ed-coaster:active { transform: scale(var(--press-scale)); }
+  .ed-coaster:focus-visible { outline: none; box-shadow: var(--ed-ring); }
+  .ed-coaster-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 3px; background: var(--metime-black); color: var(--metime-white); font-family: var(--font-mono); font-size: 9px; line-height: 14px; text-align: center; }
+  .ed-app .btn.ed-coaster-copy { flex: none; background: var(--app-bg); box-shadow: var(--ed-float-shadow); }
+  .ed-selbar .ed-selbar-info { flex: none; font-size: 12px; color: var(--warm-muted); white-space: nowrap; font-variant-numeric: tabular-nums; border-left: 1px solid var(--warm-hairline); padding: 0 4px 0 10px; }
+  .ed-selbar .btn { flex: none; white-space: nowrap; }
+  .ed-app .ed-selbar .icon-btn { width: 32px; height: 32px; flex: none; }
+  .ed-palette-pill.ed-selbar { max-width: calc(100% - 120px); }
+  .ed-tile-thumb.is-square { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; padding: 6px; }
+  .ed-tile-thumb.is-square svg { width: 100%; height: 100%; }
 
   /* ── Mobile: tab bar, tools tray, sheets ─────────────────────────────────── */
   .ed-tabbar { flex: none; display: flex; justify-content: space-around; align-items: flex-start; padding: 6px 4px env(safe-area-inset-bottom); height: var(--ed-tabbar-h); border-top: var(--div-border); background: var(--app-bg); position: relative; z-index: 20; }
@@ -3378,10 +3411,31 @@
     .ed-sheet .ed-pattern-tiles .ed-tile-name { font-size: 11px; }
     .ed-panel-body .ed-swatch-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); }
     .ed-app .coaster-bar { padding: 6px 12px; }
+    .ed-app .xs-canvas-wrap, .ed-app .xs-canvas-wrap.has-coasters { padding: 60px 14px calc(var(--ed-tray-h) + 16px); }
+    .ed-strip .ed-nib { width: 40px; height: 40px; }
+    .ed-strip .ed-nib-chip { transform: scale(1.3); }
+    .ed-canvas-head-right { gap: 6px; }
+    .ed-canvas-head-right .ed-zoom-pill button { min-width: 30px; padding: 0 4px; }
+    .ed-canvas-head-right .ed-zoom-pill .ed-zoom-val { min-width: 42px; }
+    .ed-app .ed-canvas-head .ed-grid-btn { width: 36px; height: 36px; border-color: var(--warm-muted-2); background: var(--ds-white); }
+    .ed-app .ed-canvas-head .ed-grid-btn[aria-pressed="true"] { background: var(--btn-primary-bg); border-color: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+    .ed-tray .ed-coasters { margin: 0 12px; justify-content: space-between; }
+    .ed-tray .ed-coaster-list { padding: 5px; gap: 6px; }
+    .ed-app .ed-tray-tools.is-dense .icon-btn { width: auto; flex: 1 1 0; min-width: 0; max-width: 48px; height: 46px; }
+    .ed-strip.ed-selbar { gap: 6px; padding: 6px 8px; }
+    .ed-strip.ed-selbar .ed-sel-swatches { flex: 1 1 auto; min-width: 0; }
+    .ed-strip.ed-selbar .ed-swatch { width: 32px; height: 32px; flex: none; }
+    .ed-strip.ed-selbar .ed-swatch-add { width: 32px; height: 32px; }
+    .ed-app .ed-strip.ed-selbar .icon-btn { width: 36px; height: 36px; }
+    .ed-sheet .ed-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 360px) {
     .ed-app .ed-buy .buy-kit-price { display: none; }
     .ed-app .ed-tray-tools .icon-btn { width: 50px; }
+    .ed-app .ed-tray-tools.is-dense .icon-btn { width: auto; }
+    .xs-ed .ed-canvas-head .preset-dim { display: none; }
+    .ed-tray .ed-coaster { width: 40px; height: 40px; }
+    .ed-app .btn.ed-coaster-copy { padding: 0 10px; font-size: 12px; }
   }
 </style>
 </head>
@@ -5030,6 +5084,8 @@ const ICONS = {
   eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></>,
   eyeOff: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></>,
   pointer: <path d="M5 3.5 19 10l-6 2-2.5 6.5z"/>,
+  marquee: <rect x="4" y="4" width="16" height="16" rx="1.5" strokeDasharray="3 2.6"/>,
+  spool: <><rect x="6" y="3.5" width="12" height="3" rx="1"/><rect x="6" y="17.5" width="12" height="3" rx="1"/><path d="M8.5 6.5v11M15.5 6.5v11M8.5 10h7M8.5 14h7"/></>,
   move: <path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>,
   patch: <rect x="4" y="4" width="16" height="16" rx="4.5"/>,
   triangle: <><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 20 20 4v16z" fill="currentColor"/></>,
@@ -5063,6 +5119,8 @@ const IcErase   = ({ size=18 }) => <Icon name="eraser" size={size}/>;
 const IcEye     = ({ off, size=14 }) => <Icon name={off ? 'eyeOff' : 'eye'} size={size}/>;
 const IcGrid    = ({ size=14 }) => <Icon name="grid" size={size}/>;
 const IcCursor  = ({ size=18 }) => <Icon name="pointer" size={size}/>;
+const IcMarquee = ({ size=18 }) => <Icon name="marquee" size={size}/>;
+const IcSpool   = ({ size=18 }) => <Icon name="spool" size={size}/>;
 const IcHand    = ({ size=18 }) => <Icon name="move" size={size}/>;
 const IcSquare  = ({ size=18 }) => <Icon name="patch" size={size}/>;
 const IcTri     = ({ size=18 }) => <Icon name="triangle" size={size}/>;
@@ -7403,6 +7461,72 @@ function EdSlider({ label, display, value, min, max, step = 1, onChange }) {
   );
 }
 
+// The mobile ⋯ sheet: studio actions, then the account. Items close the sheet
+// unless they set `keepOpen` (Help swaps the sheet's content instead).
+function EdMenu({ items, onClose }) {
+  const auth = useAuth();
+  const user = auth && auth.user;
+  return (
+    <div className="studio-menu" role="menu">
+      {items.map(it => (
+        <button key={it.id} type="button" className="studio-menu-item" role="menuitem" disabled={it.disabled}
+          style={it.disabled ? { opacity: 0.45, cursor: 'default' } : undefined}
+          onClick={() => { if (!it.keepOpen) onClose(); it.onClick(); }}>
+          <span className="studio-menu-icon" aria-hidden="true">{it.icon}</span>
+          <span className="studio-menu-label">{it.label}</span>
+          {it.meta != null && <span className="studio-menu-meta">{it.meta}</span>}
+        </button>
+      ))}
+      {user && (
+        <>
+          <div className="studio-menu-sep" role="separator"/>
+          <div className="studio-menu-email" title={user.email}>{user.email}</div>
+          <button type="button" className="studio-menu-item" role="menuitem"
+            onClick={() => { onClose(); auth.signOut(); }}>
+            <span className="studio-menu-icon" aria-hidden="true"><IcLogout/></span>
+            <span className="studio-menu-label">Sign out</span>
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Palette swatches with an Edit mode for removing them, and a + into the library.
+function EdPaletteEditor({ pinned, setPinned, isActive, onPick, onAdd, addLabel }) {
+  const [editing, setEditing] = useState(false);
+  const addRef = useRef(null);
+  useEffect(() => { if (!pinned.length) setEditing(false); }, [pinned.length]);
+  const remove = i => setPinned(p => p.filter((_, j) => j !== i));
+  return (
+    <>
+      <div className="ed-label">
+        <span>My palette</span>
+        {pinned.length > 0 && (
+          <button type="button" className="ed-link" onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit'}</button>
+        )}
+      </div>
+      <div className="ed-swatch-grid ed-keep-sel">
+        {pinned.map((c, i) => (
+          <div key={`${c.code || c.name}-${i}`} style={{ position: 'relative' }}>
+            <EdSwatch color={c} active={!editing && isActive(c)}
+              title={c.code ? `${c.code} · ${c.name}` : c.name}
+              onClick={() => editing ? remove(i) : onPick(c)}/>
+            {editing && (
+              <button type="button" className="ed-swatch-rm" aria-label={`Remove ${c.name}`}
+                onClick={() => remove(i)}><IcX size={8}/></button>
+            )}
+          </div>
+        ))}
+        <button ref={addRef} type="button" className="ed-swatch ed-swatch-add"
+          onClick={() => onAdd(addRef)} title={addLabel} aria-label={addLabel}>
+          <IcPlus/>
+        </button>
+      </div>
+    </>
+  );
+}
+
 function EdStatCards({ items }) {
   return (
     <div className="ed-statcards">
@@ -7460,39 +7584,17 @@ function QuiltTemplatesPanel({ templates, palette, dims, isCoaster, onApply }) {
 function QuiltFabricsPanel({ pinned, setPinned, color, onPickColor, onOpenLibrary,
   backing, backCalc, onBacking, onBackingView, binding, bindCalc, onBinding,
   items, yards, stacked, onReplace, onReplaceMore }) {
-  const [editing, setEditing] = useState(false);
   const [openItem, setOpenItem] = useState(null);
-  const addRef = useRef(null);
   const bindRef = useRef(null);
-  useEffect(() => { if (!pinned.length) setEditing(false); }, [pinned.length]);
   return (
     <>
-      <div className="ed-label">
-        <span>My palette</span>
-        {pinned.length > 0 && (
-          <button type="button" className="ed-link" onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit'}</button>
-        )}
-      </div>
-      <div className="ed-swatch-grid ed-keep-sel">
-        {pinned.map((c, i) => (
-          <div key={`${c.name}-${i}`} style={{ position: 'relative' }}>
-            <EdSwatch color={c} active={!editing && !!color && color.name === c.name && color.hex === c.hex}
-              onClick={() => editing ? setPinned(p => p.filter((_, j) => j !== i)) : onPickColor(c)}/>
-            {editing && (
-              <button type="button" className="ed-swatch-rm" aria-label={`Remove ${c.name}`}
-                onClick={() => setPinned(p => p.filter((_, j) => j !== i))}><IcX size={8}/></button>
-            )}
-          </div>
-        ))}
-        <button ref={addRef} type="button" className="ed-swatch ed-swatch-add"
-          onClick={() => onOpenLibrary(addRef)} title="Add fabrics from the library" aria-label="Add fabrics">
-          <IcPlus/>
-        </button>
-      </div>
+      <EdPaletteEditor pinned={pinned} setPinned={setPinned}
+        isActive={c => !!color && color.name === c.name && color.hex === c.hex}
+        onPick={onPickColor} onAdd={onOpenLibrary} addLabel="Add fabrics"/>
 
       <div className="ed-hr"/>
       <div className="ed-label">Backing &amp; binding</div>
-      <div className="ed-list">
+      <div className="ed-list is-plain">
         <EdRow swatch={backing} title="Backing" name={backing?.name}
           sub={backing ? `${backCalc.backingW}" × ${backCalc.backingH}" · ${backCalc.widths} width${backCalc.widths !== 1 ? 's' : ''}` : 'Choose the fabric for the back'}
           value={backing ? fmtY(backCalc.yards) : null} action={backing ? null : 'Choose'}
@@ -8255,30 +8357,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           disabled: shapes.length === 0, onClick: () => setConfirmClear(true) },
         { id: 'help', label: 'Help', icon: <IcHelp size={16}/>, keepOpen: true, onClick: () => setPanel('help') },
       ];
-      return (
-        <div className="studio-menu" role="menu">
-          {items.map(it => (
-            <button key={it.id} type="button" className="studio-menu-item" role="menuitem" disabled={it.disabled}
-              style={it.disabled ? { opacity: 0.45, cursor: 'default' } : undefined}
-              onClick={() => { if (!it.keepOpen) setPanel(null); it.onClick(); }}>
-              <span className="studio-menu-icon" aria-hidden="true">{it.icon}</span>
-              <span className="studio-menu-label">{it.label}</span>
-              {it.meta != null && <span className="studio-menu-meta">{it.meta}</span>}
-            </button>
-          ))}
-          {user && (
-            <>
-              <div className="studio-menu-sep" role="separator"/>
-              <div className="studio-menu-email" title={user.email}>{user.email}</div>
-              <button type="button" className="studio-menu-item" role="menuitem"
-                onClick={() => { setPanel(null); auth.signOut(); }}>
-                <span className="studio-menu-icon" aria-hidden="true"><IcLogout/></span>
-                <span className="studio-menu-label">Sign out</span>
-              </button>
-            </>
-          )}
-        </div>
-      );
+      return <EdMenu items={items} onClose={() => setPanel(null)}/>;
     }
     return null;
   };
@@ -12364,6 +12443,208 @@ function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFF
     style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}/>;
 }
 
+// ── Grid studio: tools + panels (cross-stitch and punch needle) ────────────
+// `hint(verb, cfg)` gets 'Tap' or 'Click' and the craft's wording.
+const STITCH_TOOLS = [
+  { id: 'select', label: 'Select', key: 'V', Ic: IcMarquee, hint: v => `${v} a shape to select it · drag to box-select` },
+  { id: 'pan', label: 'Move canvas', key: 'H', Ic: IcHand, hint: () => 'Drag to move around · pinch to zoom' },
+  { id: 'pen', label: 'Pencil', key: 'P', Ic: IcPen, hint: (v, cfg) => `Drag to draw · ${v.toLowerCase()} for a single ${cfg.unit}` },
+  { id: 'eraser', label: 'Eraser', key: 'E', Ic: IcErase, hint: (v, cfg) => `Drag to remove ${cfg.unitPlural}` },
+  { id: 'fill', label: 'Fill', key: 'F', Ic: IcDrop, hint: v => `${v} an area to fill it with your color` },
+  { id: 'line', label: 'Line', key: 'L', Ic: IcLineTool, hint: () => 'Drag from one end to the other' },
+  { id: 'rect', label: 'Rectangle', key: 'R', Ic: IcSquare, hint: () => 'Drag to draw a rectangle' },
+  { id: 'ellipse', label: 'Oval', key: 'O', Ic: IcCircle, hint: () => 'Drag to draw an oval' },
+  { id: 'text', label: 'Text', key: 'T', Ic: IcText, hint: v => `Type your words, then ${v.toLowerCase()} the canvas to place them` },
+];
+// Tools that paint with the current color, so the palette rides along with them.
+const STITCH_COLOR_TOOLS = new Set(['pen', 'fill', 'line', 'rect', 'ellipse', 'text']);
+
+function StitchNibs({ nib, onNib, cfg, label }) {
+  return (
+    <div className="ed-nibs" role="group" aria-label={`${label} size`}>
+      {NIB_SIZES.map(n => (
+        <button key={n} type="button" className={`ed-nib${nib === n ? ' is-active' : ''}`} aria-pressed={nib === n}
+          title={`${n} × ${n} ${cfg.unitPlural} ( [ and ] )`} aria-label={`${n} × ${n}`} onClick={() => onNib(n)}>
+          <span className="ed-nib-chip" style={{ width: 3 + n * 2, height: 3 + n * 2 }}/>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// The four coasters of a set as thumbnails, plus copying one across all four.
+function StitchCoasterStrip({ pages, active, onSelect, onCopyAll, w, h, bg, className = '' }) {
+  const [copied, setCopied] = useState(false);
+  const tRef = useRef(null);
+  useEffect(() => () => clearTimeout(tRef.current), []);
+  const copy = () => {
+    onCopyAll();
+    setCopied(true);
+    clearTimeout(tRef.current);
+    tRef.current = setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <div className={`ed-coasters ${className}`}>
+      <div className="ed-coaster-list ed-float" role="tablist" aria-label="Coasters in this set">
+        {pages.map((cells, i) => (
+          <button key={i} type="button" role="tab" aria-selected={active === i} data-ed-coaster={i}
+            className={`ed-coaster${active === i ? ' is-active' : ''}`} title={`Coaster ${i + 1}`} aria-label={`Coaster ${i + 1}`}
+            onClick={() => onSelect(i)}>
+            <StitchThumb w={w} h={h} cells={cells} size={38} bg={bg}/>
+            <span className="ed-coaster-n">{i + 1}</span>
+          </button>
+        ))}
+      </div>
+      <button type="button" className="btn ed-coaster-copy" onClick={copy} title="Replace the other three coasters with this one">
+        {copied ? <>Copied <IcCheck size={12}/></> : 'Copy to all'}
+      </button>
+    </div>
+  );
+}
+
+function StitchDesignsPanel({ cfg, templates, dims, fabric, isCoaster, onApply }) {
+  return (
+    <>
+      <p className="ed-intro">
+        {isCoaster ? 'Starts this coaster (or the whole set) from a chart.' : 'Starts your canvas from a chart.'} Undo puts your design back.
+      </p>
+      <div className="ed-tiles">
+        <button type="button" className="ed-tile" data-ed-template="blank" onClick={() => onApply(null)} title="Start from an empty canvas">
+          <span className="ed-tile-thumb ed-tile-blank is-square" style={{ background: fabric.hex }}/>
+          <span className="ed-tile-name">Blank</span>
+        </button>
+        {templates.map(t => (
+          <button key={t.id} type="button" className="ed-tile" data-ed-template={t.id} title={t.desc} onClick={() => onApply(t)}>
+            <span className="ed-tile-thumb is-square" style={{ background: fabric.hex }}>
+              <StitchTemplateThumb tpl={t} preset={dims}/>
+            </span>
+            <span className="ed-tile-name">{t.name}{t.set ? ' · set' : ''}</span>
+          </button>
+        ))}
+      </div>
+      {templates.length === 0 && <p className="ed-note">There are no starter charts for this size yet.</p>}
+      <p className="ed-note">Charts arrive in their own {cfg.threadLabel.toLowerCase()} colors, which join your palette.</p>
+    </>
+  );
+}
+
+function StitchFlossPanel({ cfg, pal, setPal, isActive, onPick, onAdd, stats, isCoaster }) {
+  const filled = stats.possible ? Math.round(stats.total / stats.possible * 100) : 0;
+  return (
+    <>
+      <EdPaletteEditor pinned={pal} setPinned={setPal} isActive={isActive} onPick={onPick} onAdd={onAdd}
+        addLabel={`Add ${cfg.threadLabel.toLowerCase()} from the library`}/>
+      <EdStatCards items={[
+        { k: cfg.unitTitle, v: stats.total.toLocaleString() },
+        { k: 'Colors', v: stats.colors.length },
+        { k: 'Covered', v: `${filled}%` },
+      ]}/>
+      <div className="ed-hr"/>
+      <div className="ed-label">
+        <span>{cfg.threadLabel} by color</span>
+        {isCoaster && <span>All 4 coasters</span>}
+      </div>
+      {stats.colors.length === 0 ? (
+        <p className="ed-intro">Add {cfg.unitPlural} to see your {cfg.threadLabel.toLowerCase()} list.</p>
+      ) : (
+        <div className="ed-list">
+          {stats.colors.map(c => (
+            <EdRow key={c.hex} swatch={c} title={`${cfg.codePrefix} ${c.code}`} name={c.name}
+              value={c.count.toLocaleString()} onClick={() => onPick(c)}/>
+          ))}
+        </div>
+      )}
+      <p className="ed-note">Counts are {cfg.unitPlural}. Tap a color to draw with it.</p>
+    </>
+  );
+}
+
+function StitchFabricPanel({ cfg, fabric, setFabric, finished, bg, showBg, setShowBg, bgOpacity, setBgOpacity }) {
+  return (
+    <>
+      <div className="ed-label">{cfg.fabricLabel} color</div>
+      <div className="ed-list">
+        {cfg.fabrics.map(f => (
+          <div key={f.name} data-ed-fabric={f.name}>
+            <EdRow swatch={f} title={f.name} sub={cfg.gaugeLabel}
+              value={fabric.name === f.name ? <IcCheck size={16}/> : null} onClick={() => setFabric(f)}/>
+          </div>
+        ))}
+      </div>
+      <EdStatCards items={[
+        { k: 'Count', v: cfg.gaugeLabel },
+        { k: 'Finished', v: finished },
+      ]}/>
+      {bg && (
+        <>
+          <div className="ed-hr"/>
+          <div className="ed-label">Tracing photo</div>
+          <div className="ed-toggle-row" style={{ marginTop: 0 }}>
+            <span>Show under the design</span>
+            <Switch checked={showBg} onChange={setShowBg} title={showBg ? 'Hide the photo' : 'Show the photo'}/>
+          </div>
+          {showBg && (
+            <EdSlider label="Opacity" value={Math.round(bgOpacity * 100)} display={`${Math.round(bgOpacity * 100)}%`}
+              min={10} max={100} step={5} onChange={v => setBgOpacity(v / 100)}/>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function StitchSizePanel({ cfg, current, onPick, W, H, finishedDims }) {
+  return (
+    <>
+      <div className="ed-label">Finished size</div>
+      <div className="ed-choices">
+        {cfg.presets.map(p => (
+          <button key={p.name} type="button" className={`ed-choice${current === p.name ? ' is-active' : ''}`}
+            aria-pressed={current === p.name} data-ed-size={p.name} onClick={() => onPick(p.name)}>
+            <span className="ed-choice-name">{p.name}</span>
+            <span className="ed-choice-sub">{finishedDims(p)}</span>
+            <span className="ed-choice-sub">{p.w} × {p.h}{isCoasterSize(p.name) ? ' · set of 4' : ''}</span>
+          </button>
+        ))}
+      </div>
+      <EdStatCards items={[
+        { k: 'Grid', v: `${W} × ${H}` },
+        { k: 'Finished', v: finishedDims({ w: W, h: H }) },
+        { k: 'Count', v: cfg.gaugeLabel },
+      ]}/>
+      <p className="ed-note">Your {cfg.unitPlural} keep their scale and stay centered. Anything outside a smaller size is cropped, and undo puts it back.</p>
+    </>
+  );
+}
+
+function StitchHelpPanel({ cfg, isMobile }) {
+  const v = isMobile ? 'Tap' : 'Click';
+  const tips = [
+    { Ic: IcPen, t: 'Pencil & eraser', k: 'P · E', d: `Drag to draw or remove ${cfg.unitPlural}. The size buttons draw ${cfg.unitPlural} up to 5 wide${isMobile ? '' : ', and [ and ] step through them'}.` },
+    { Ic: IcDrop, t: 'Fill', k: 'F', d: `${v} an area to fill everything of that color that touches it.` },
+    { Ic: IcSquare, t: 'Line, rectangle & oval', k: 'L · R · O', d: 'Drag from corner to corner. The shape draws in your current color.' },
+    { Ic: IcText, t: 'Text', k: 'T', d: `Type in the Text panel, pick a style and height, then ${v.toLowerCase()} the canvas to stitch it.` },
+    { Ic: IcMarquee, t: 'Select', k: 'V', d: isMobile
+      ? 'Tap a shape to select it, or drag to box-select. Drag to move it, pull a handle to resize, or tap a color to recolor it.'
+      : 'Click a shape or drag a box. Shift adds, ⌥-drag copies, handles resize, ⌘D duplicates and Delete removes.' },
+    { Ic: IcHand, t: 'Move canvas', k: 'H', d: isMobile ? 'Drag to look around. Pinch to zoom.' : 'Drag to look around. Pinch or ⌘-scroll to zoom.' },
+    { Ic: IcUndo, t: 'Undo & redo', k: '⌘Z', d: 'Changes can be undone, including starter charts and clearing.' },
+  ];
+  return (
+    <div className="ed-tips">
+      {tips.map(({ Ic, t, k, d }) => (
+        <div key={t} className="ed-tip">
+          <span className="ed-tip-ic"><Ic size={16}/></span>
+          <div>
+            <b>{t}{!isMobile && <span className="ed-kbd">{k}</span>}</b>
+            <p>{d}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
@@ -12371,14 +12652,26 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   // rather than being forced into the currently active canvas size.
   const [dims, setDims] = useState({ w: preset.w, h: preset.h, name: preset.name });
   const W = dims.w, H = dims.h;
-  const [panelOpen, setPanelOpen] = useState(() => (typeof window === 'undefined' || window.innerWidth > 900));
   const isMobile = useIsMobile();
-  // Mobile bottom-sheet router: null | 'palette' | 'text' | 'materials'
-  const [sheet, setSheet] = useState(null);
-  // Desktop shows the text controls whenever the tool is active, but on mobile
-  // they live in a sheet that only opens on a tap, so a lettering template would
-  // arrive on the text tool with nothing on screen to type into.
-  useEffect(() => { if (seedText && isMobile) setSheet('text'); }, [isMobile]);
+  // The open panel: the desktop side panel, or the mobile sheet (null shows the
+  // tools tray). A lettering template opens on Text, so there's somewhere to type.
+  const restingPanel = mobile => (mobile ? null : 'floss');
+  const [panel, setPanel] = useState(() => seedText ? 'text'
+    : restingPanel(typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches));
+  const wasMobileRef = useRef(isMobile);
+  useEffect(() => {
+    if (wasMobileRef.current === isMobile) return;
+    wasMobileRef.current = isMobile;
+    setPanel(p => (p === 'text' ? p : restingPanel(isMobile)));
+  }, [isMobile]);
+  const togglePanel = useCallback(id => setPanel(p => p === id ? null : id), []);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+  const showToast = useCallback(msg => {
+    setToast(msg);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2200);
+  }, []);
   const defaultPalette = useMemo(() => CFG.defaultCodes.map(CFG.byCode).filter(Boolean), [CFG]);
   const initPalette = useMemo(() => {
     const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
@@ -12401,6 +12694,13 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   // A template built around lettering opens on the text tool, so the font and
   // height that suit the chart are already chosen and typing is the next step.
   const [tool, setTool] = useState(seedText ? "text" : "pen");
+  // Text has its own panel, so picking it opens the panel and leaving it
+  // returns to the resting one.
+  const chooseTool = useCallback((id) => {
+    setTool(id);
+    if (id === 'text') setPanel('text');
+    else setPanel(p => (p === 'text' ? restingPanel(isMobile) : p));
+  }, [isMobile]);
   // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
   // pencil when you switch back to it.
   const [penNib, setPenNib] = useState(1);
@@ -12415,8 +12715,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   // CSS size, so selection chrome can be stroked a true single device pixel wide
   // instead of being a bitmap pixel that the browser then blows up.
   const dpr = Math.min(3, Math.max(1, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerSearch, setPickerSearch] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [zoom, setZoom] = useState(1);
   const adjustZoom = useCallback((delta) => {
@@ -12424,7 +12722,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   }, []);
   const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(CFG.fabrics[0]);
-  const [showFabric, setShowFabric] = useState(false);
   // A seed usually carries only a font and height; words are optional, and an
   // absent one has to land as "" or the textarea goes uncontrolled.
   const [text, setText] = useState(seedText && seedText.text ? seedText.text : "");
@@ -12478,9 +12775,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   const [xsCustoms, setXsCustoms] = useState([]);
   const [picker, setPicker] = useState(null);
   const libraryAnchorRef = useRef(null);
-  const openLibrary = useCallback((anchorRef) => {
+  const openLibrary = useCallback((anchorRef, placement) => {
     if (anchorRef && anchorRef.current) libraryAnchorRef.current = anchorRef.current;
-    setPicker({});
+    setPicker({ placement });
   }, []);
   const closePicker = useCallback(() => setPicker(null), []);
   const allColors = useMemo(() => [...CFG.library, ...xsCustoms], [xsCustoms, CFG]);
@@ -12577,6 +12874,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     activeCoasterRef.current = i;
     cellsRef.current = pagesRef.current[i];
     undoRef.current = (undoPagesRef.current && undoPagesRef.current[i]) || [];
+    redoRef.current = [];
     previewRef.current = null;
     redraw(); bump();
   };
@@ -12587,6 +12885,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     if (undoPagesRef.current) {
       undoPagesRef.current = undoPagesRef.current.map((stack, i) => i === activeCoaster ? stack : []);
     }
+    redoRef.current = [];
     bump();
   };
 
@@ -12798,17 +13097,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   }, [scheduleRedraw]);
   const { isGestureActive } = useCanvasPinchZoom(wrapRef, zoom, setZoom, cancelPointerInteraction, tool === 'pan');
 
-  // Fit the grid to the available space; recompute on resize.
+  // Fit the grid inside the wrap's padding, which keeps it clear of the floating
+  // tools. Observing the wrap also catches the mobile tray changing height.
   useLayoutEffect(() => {
+    const wrap = wrapRef.current; if (!wrap) return undefined;
     const fit = () => {
-      const wrap = wrapRef.current; if (!wrap) return;
-      const availW = wrap.clientWidth - 48, availH = wrap.clientHeight - 48;
+      const s = getComputedStyle(wrap);
+      const availW = wrap.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+      const availH = wrap.clientHeight - parseFloat(s.paddingTop) - parseFloat(s.paddingBottom);
       const cs = Math.max(3, Math.min(30, Math.floor(Math.min(availW / W, availH / H))));
       setCellSize(cs);
     };
     fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    return () => ro.disconnect();
   }, [W, H]);
 
   // Layout effect (not passive) so the redraw runs for every committed render,
@@ -12831,7 +13134,25 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     img.src = bg;
   }, [bg, redraw]);
 
-  const pushUndo = () => { undoRef.current.push(cellsRef.current.slice()); if (undoRef.current.length > 40) undoRef.current.shift(); };
+  // Redo covers the board in view: it's dropped by any new edit, and by
+  // anything that swaps the board (another coaster, a size, a saved design).
+  const redoRef = useRef([]);
+  const recordUndo = (snapshot) => {
+    undoRef.current.push(snapshot);
+    if (undoRef.current.length > 40) undoRef.current.shift();
+    redoRef.current = [];
+  };
+  const pushUndo = () => recordUndo(cellsRef.current.slice());
+  const redo = useCallback(() => {
+    if (!redoRef.current.length || (selRef.current && selRef.current.floating)) return;
+    undoRef.current.push(cellsRef.current.slice());
+    cellsRef.current = redoRef.current.pop();
+    bindActivePage();
+    selRef.current = null; movingRef.current = false;
+    dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
+    setHasSel(false); setSelCursor(null);
+    redraw(); bump();
+  }, [redraw, bump]);
   const undo = useCallback(() => {
     // An uncommitted float is undone by dropping it and putting the grid back
     // the way it was before the lift — no undo entry is consumed, because none
@@ -12848,7 +13169,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     }
     if (!undoRef.current.length) return;
     const last = undoRef.current[undoRef.current.length - 1];
-    if (last.resize) { restoreSize(undoRef.current.pop().resize); return; }
+    if (last.resize) { redoRef.current = []; restoreSize(undoRef.current.pop().resize); return; }
+    redoRef.current.push(cellsRef.current.slice());
     cellsRef.current = undoRef.current.pop();
     bindActivePage();
     // The stitches the selection referred to may not exist any more, so drop it.
@@ -13054,8 +13376,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   const commitFloat = () => {
     const sel = selRef.current;
     if (!sel || !sel.floating) return false;
-    undoRef.current.push(sel.before);
-    if (undoRef.current.length > 40) undoRef.current.shift();
+    recordUndo(sel.before);
     const cells = cellsRef.current;
     for (const [i, hex] of sel.cells) cells[i] = hex;
     // Once stamped, the stitches are the selection again: the resize frame and
@@ -13131,10 +13452,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       // The float is discarded rather than stamped. A lifted move already
       // emptied its source cells, so that needs an undo point; a floating copy
       // never touched the grid, so dropping it changes nothing.
-      if (!sel.copy) {
-        undoRef.current.push(sel.before);
-        if (undoRef.current.length > 40) undoRef.current.shift();
-      }
+      if (!sel.copy) recordUndo(sel.before);
     } else {
       pushUndo();
       for (const i of sel.cells.keys()) cellsRef.current[i] = null;
@@ -13442,7 +13760,8 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       if (studioCovered()) return;
       const tag = e.target.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
       if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) { e.preventDefault(); adjustZoom(+ZOOM_STEP); return; }
       if ((e.metaKey || e.ctrlKey) && (e.key === '-' || e.key === '_')) { e.preventDefault(); adjustZoom(-ZOOM_STEP); return; }
       if ((e.metaKey || e.ctrlKey) && e.key === '0') { e.preventDefault(); resetZoom(); return; }
@@ -13464,17 +13783,17 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       if ((e.key === 'Delete' || e.key === 'Backspace') && selRef.current) {
         e.preventDefault();
         deleteSelection();
+        return;
+      }
+      if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+        const t = STITCH_TOOLS.find(x => x.key.toLowerCase() === e.key.toLowerCase());
+        if (t) { e.preventDefault(); chooseTool(t.id); }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redraw, bump, adjustZoom, resetZoom, tool]);
+  }, [undo, redo, redraw, bump, adjustZoom, resetZoom, tool, chooseTool]);
 
-  const addColor = (dmc) => {
-    setPal(prev => prev.some(c => c.code === dmc.code) ? prev : [...prev, dmc]);
-    setColor(dmc);
-    setShowPicker(false); setPickerSearch("");
-  };
   const clearAll = () => {
     // Drop any float first so one undo restores the board as it was before the
     // lift, rather than the half-lifted grid.
@@ -13558,6 +13877,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     if (!d) return;
     setCurrentStitchId(d.id ?? null);
     undoRef.current = [];
+    redoRef.current = [];
     // The incoming grid replaces everything, so any float is simply dropped.
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
@@ -13622,6 +13942,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     activeCoasterRef.current = b.active;
     setDims(b.dims);
     bump();
+    scheduleRedraw();
   };
   const applySize = (name) => {
     const p = CFG.presets.find(x => x.name === name);
@@ -13645,6 +13966,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       cellsRef.current = fit(cellsRef.current);
       undoRef.current = [{ resize: before }];
     }
+    redoRef.current = [];
     setActiveCoaster(active);
     activeCoasterRef.current = active;
     setDims({ w: p.w, h: p.h, name: p.name });
@@ -13652,349 +13974,348 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   };
   const finishedDims = p => inchDims(+(p.w / CFG.gauge).toFixed(1), +(p.h / CFG.gauge).toFixed(1));
 
-  const pickerResults = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase();
-    if (!q) return CFG.library.slice(0, 120);
-    return CFG.library.filter(c => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)).slice(0, 200);
-  }, [pickerSearch, CFG]);
+  // Starter charts replace the canvas and stay undoable. A set chart re-dresses
+  // all four coasters as one step, held like a size change so undo restores the
+  // whole set and its histories; anything else lands on the coaster in view.
+  // Charts keep their own colors so they match the thumbnail.
+  const applyTemplate = (tpl) => {
+    const len = W * H;
+    const seed = tpl ? gridSeedFromTemplate(tpl, { name: dims.name, w: W, h: H }, null) : { autoGrid: null, autoPages: null };
+    if (tpl && !(seed.autoGrid && seed.autoGrid.length === len)) { showToast(`${tpl.name} doesn't fit this size`); return; }
+    commitFloat();
+    clearSelection();
+    bindActivePage();
+    const wholeSet = !!(pagesRef.current && seed.autoPages && seed.autoPages.length === COASTER_COUNT
+      && seed.autoPages.every(p => p && p.length === len));
+    if (wholeSet) {
+      undoPagesRef.current[activeCoaster] = undoRef.current;
+      const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
+        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
+      pagesRef.current = seed.autoPages.map(p => p.slice());
+      undoPagesRef.current = pagesRef.current.map(() => [{ resize: before }]);
+      cellsRef.current = pagesRef.current[activeCoaster];
+      undoRef.current = undoPagesRef.current[activeCoaster];
+      redoRef.current = [];
+    } else {
+      recordUndo(cellsRef.current.slice());
+      cellsRef.current = seed.autoGrid ? seed.autoGrid.slice() : new Array(len).fill(null);
+      bindActivePage();
+    }
+    const incoming = new Set();
+    for (const cells of (wholeSet ? pagesRef.current : [cellsRef.current])) for (const h of cells) if (h) incoming.add(h);
+    if (incoming.size) {
+      const byHex = new Map(CFG.library.map(c => [c.hex, c]));
+      setPal(prev => {
+        const have = new Set(prev.map(c => c.hex));
+        const add = [...incoming].filter(h => !have.has(h)).map(h => byHex.get(h)).filter(Boolean);
+        return add.length ? [...prev, ...add] : prev;
+      });
+    }
+    redraw(); bump();
+    showToast(tpl ? `${tpl.name} applied · undo to go back` : 'Canvas cleared · undo to go back');
+    if (isMobile) setPanel(null);
+    if (tpl && tpl.seedText) {
+      if (tpl.seedText.font) setTextFont(tpl.seedText.font);
+      if (tpl.seedText.size) setTextSize(tpl.seedText.size);
+      if (tpl.seedText.text) setText(tpl.seedText.text);
+      chooseTool('text');
+    }
+  };
 
-  const TOOLS = [
-    { id: 'select', label: 'Select, move, copy & resize', icon: <IcCursor/> },
-    { id: 'pan', label: 'Move canvas', icon: <IcHand/> },
-    { id: 'pen', label: 'Draw', icon: <IcPen/> },
-    { id: 'eraser', label: 'Erase', icon: <IcErase/> },
-    { id: 'fill', label: 'Fill area', icon: <IcFill/> },
-    { id: 'line', label: 'Line', icon: <IcLineTool/> },
-    { id: 'rect', label: 'Rectangle', icon: <IcSquare/> },
-    { id: 'ellipse', label: 'Ellipse', icon: <IcCircle/> },
-    { id: 'text', label: 'Text', icon: <IcText/> },
+  const pickColor = (c) => {
+    setColor(c);
+    if (selRef.current) recolorSelection(c);
+  };
+
+  const toolDef = STITCH_TOOLS.find(t => t.id === tool) || STITCH_TOOLS[2];
+  const toolHint = toolDef.hint(isMobile ? 'Tap' : 'Click', CFG);
+  const tools = STITCH_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
+  const painting = STITCH_COLOR_TOOLS.has(tool);
+  const nibbed = tool === 'pen' || tool === 'eraser';
+  const setNib = n => (tool === 'eraser' ? setEraserNib : setPenNib)(n);
+  const isColorActive = c => !!color && color.hex === c.hex;
+  const canUndo = undoRef.current.length > 0;
+  const canRedo = redoRef.current.length > 0;
+  const openSave = () => { setSaveName(''); setShowSave(true); };
+  const openSaveAs = () => { setSaveName(((currentStitch && currentStitch.name) || '') + ' copy'); setShowSave(true); };
+  const finished = finishedDims({ w: W, h: H });
+  const presetLabel = dims.name === 'Custom' ? 'Custom size' : dims.name;
+  const templates = useMemo(() => stitchTemplatesFor({ name: dims.name, w: W, h: H }, craft), [dims.name, W, H, craft]);
+  // Coaster thumbnails: the page in view is read live, so they follow each edit.
+  const coasterPages = useMemo(() => (pagesRef.current
+    ? pagesRef.current.map((p, i) => (i === activeCoaster ? cellsRef.current : p).slice())
+    : null), [version, activeCoaster, isCoasterKit]);
+  const pillAddRef = useRef(null);
+  const selAddRef = useRef(null);
+  const trayRef = useRef(null);
+  const [trayH, setTrayH] = useState(0);
+  useLayoutEffect(() => {
+    const el = trayRef.current;
+    if (!el) { setTrayH(0); return undefined; }
+    const measure = () => setTrayH(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile, panel]);
+
+  const threadWord = CFG.threadLabel.toLowerCase();
+  const PANEL_TITLES = { designs: 'Designs', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', text: 'Text', help: 'Help', menu: 'More' };
+  const renderPanel = id => {
+    if (id === 'designs') return (
+      <StitchDesignsPanel cfg={CFG} templates={templates} dims={{ name: dims.name, w: W, h: H }} fabric={fabric}
+        isCoaster={isCoasterKit} onApply={applyTemplate}/>
+    );
+    if (id === 'floss') return (
+      <StitchFlossPanel cfg={CFG} pal={pal} setPal={setPal} isActive={isColorActive} onPick={pickColor}
+        onAdd={ref => openLibrary(ref)} stats={stats} isCoaster={isCoasterKit}/>
+    );
+    if (id === 'fabric') return (
+      <StitchFabricPanel cfg={CFG} fabric={fabric} setFabric={setFabric} finished={finished}
+        bg={bg} showBg={showBg} setShowBg={setShowBg} bgOpacity={bgOpacity} setBgOpacity={setBgOpacity}/>
+    );
+    if (id === 'size') return (
+      <StitchSizePanel cfg={CFG} current={dims.name} onPick={applySize} W={W} H={H} finishedDims={finishedDims}/>
+    );
+    if (id === 'text') return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <StitchTextControls autoFocus={!isMobile}
+          text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
+          textSize={textSize} setTextSize={setTextSize}/>
+        <p className="ed-note" style={{ marginTop: 6 }}>{isMobile ? 'Close this, then tap' : 'Click'} the canvas to place your words in the current color.</p>
+      </div>
+    );
+    if (id === 'help') return <StitchHelpPanel cfg={CFG} isMobile={isMobile}/>;
+    if (id === 'menu') {
+      const items = [
+        ...(currentStitch
+          ? [{ id: 'save', label: justSaved ? 'Saved' : 'Save', icon: justSaved ? <IcCheck size={16}/> : <IcSave/>, onClick: updateCurrentDesign },
+             { id: 'save-as', label: 'Save as…', icon: <IcCopy size={16}/>, onClick: openSaveAs }]
+          : [{ id: 'save', label: justSaved ? 'Saved' : 'Save design', icon: justSaved ? <IcCheck size={16}/> : <IcSave/>, onClick: openSave }]),
+        ...(savedStitches.length > 0
+          ? [{ id: 'mine', label: 'My designs', icon: <IcSaved size={18}/>, meta: savedStitches.length, onClick: () => setShowMyStitches(true) }]
+          : []),
+        { id: 'clear', label: isCoasterKit ? 'Clear this coaster' : 'Clear design', icon: <IcTrash size={16}/>,
+          disabled: stats.total === 0 && !hasSel, onClick: () => setConfirmClear(true) },
+        { id: 'help', label: 'Help', icon: <IcHelp size={16}/>, keepOpen: true, onClick: () => setPanel('help') },
+      ];
+      return <EdMenu items={items} onClose={() => setPanel(null)}/>;
+    }
+    return null;
+  };
+
+  const railItems = [
+    { id: 'designs', label: 'Designs', icon: <IcTemplates/> },
+    { id: 'floss', label: CFG.threadLabel, icon: <IcSpool/> },
+    { id: 'fabric', label: 'Fabric', icon: <IcGrid size={18}/> },
+    { id: 'size', label: 'Size', icon: <IcRuler/> },
+    { id: 'sp', spacer: true },
+    { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
+  const tabItems = [
+    { id: 'designs', label: 'Designs', icon: <IcTemplates size={20}/> },
+    { id: 'floss', label: CFG.threadLabel, icon: <IcSpool size={20}/> },
+    { id: 'tools', label: 'Tools', icon: <toolDef.Ic size={20}/> },
+    { id: 'fabric', label: 'Fabric', icon: <IcGrid size={20}/> },
+  ];
+  const sizeChip = (
+    <button type="button" className="preset-pill ed-size-chip" aria-expanded={panel === 'size'}
+      onClick={() => togglePanel('size')} title={`Change ${CFG.label.toLowerCase()} size`}>
+      <span>{presetLabel}</span>
+      <span className="preset-dim">{finished}</span>
+      <IcChevD size={10}/>
+    </button>
+  );
+  const gridBtn = (
+    <button type="button" className="icon-btn ed-grid-btn" aria-pressed={showGrid} onClick={() => setShowGrid(v => !v)}
+      title={showGrid ? 'Hide grid lines' : 'Show grid lines'} aria-label="Grid lines">
+      <IcGrid size={isMobile ? 18 : 16}/>
+    </button>
+  );
+  const paletteSwatches = pal.map((c, i) => (
+    <EdSwatch key={`${c.code || c.name}-${i}`} color={c} active={isColorActive(c)} onClick={() => pickColor(c)}
+      title={`${CFG.codePrefix} ${c.code} · ${c.name}`}/>
+  ));
+  const addSwatch = (ref, placement, size) => (
+    <button ref={ref} type="button" className="ed-swatch ed-swatch-add"
+      onClick={() => openLibrary(ref, placement)} title={`Add ${threadWord} from the library`} aria-label={`Add ${threadWord}`}>
+      <IcPlus size={size}/>
+    </button>
+  );
+  const nibs = nibbed && (
+    <StitchNibs nib={nib} onNib={setNib} cfg={CFG} label={tool === 'eraser' ? 'Eraser' : 'Pencil'}/>
+  );
+  const coasterStrip = isCoasterKit && coasterPages && (
+    <StitchCoasterStrip pages={coasterPages} active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}
+      w={W} h={H} bg={fabric.hex} className={isMobile ? '' : 'is-floating'}/>
+  );
+  const sel = hasSel ? selRef.current : null;
+  const selInfo = sel && (() => {
+    const f = selFrame(sel);
+    const n = new Set(sel.cells.values()).size;
+    return `${sel.cells.size} ${CFG.unitPlural} · ${n} color${n !== 1 ? 's' : ''} · ${f.maxX - f.minX + 1}×${f.maxY - f.minY + 1}`;
+  })();
+  const selBar = sel && (
+    <div className={`ed-selbar ed-float ed-keep-sel ${isMobile ? 'ed-strip' : 'ed-palette-pill'}`}
+      role="toolbar" aria-label="Selection">
+      <div className={isMobile ? 'ed-sel-swatches' : 'ed-swatches'} title="Recolor the selection">
+        {paletteSwatches}
+      </div>
+      {addSwatch(selAddRef, isMobile ? undefined : 'bottom-center', 12)}
+      {!isMobile && <span className="ed-selbar-info">{selInfo}</span>}
+      <button type="button" className={`btn btn-xs${lockRatio ? ' btn-dark' : ''}`} onClick={() => setLockRatio(v => !v)}
+        aria-pressed={lockRatio} title="Keep the proportions when dragging a corner handle (hold Shift to flip)">Lock ratio</button>
+      <button type="button" className="icon-btn" onClick={duplicateSelection} title="Duplicate (⌘D)" aria-label="Duplicate"><IcCopy size={16}/></button>
+      <button type="button" className="icon-btn" onClick={deleteSelection} title={`Delete these ${CFG.unitPlural} (Delete)`} aria-label="Delete"><IcTrash size={16}/></button>
+      <button type="button" className="btn btn-xs btn-dark" onClick={deselect} title="Deselect (Enter or Esc)">Done</button>
+    </div>
+  );
 
   return (
-    <div className="xs-app">
-      <div className="xs-topbar">
-        <button className="icon-btn" onClick={onBack} title="Back to projects" style={{ marginRight: 2 }}><IcArrowL/></button>
-        <div className="xs-titleblock">
-          <div className="xs-title">{CFG.label}</div>
-        </div>
-        <PresetPill
-          preset={dims.name}
-          presets={CFG.presets}
-          label={`${CFG.label} size`}
-          dimsOf={finishedDims}
-          fallbackDims={finishedDims({ w: W, h: H })}
-          onApply={applySize}/>
-        <div className="xs-topbar-spacer"/>
-        {!isMobile && <AccountChip/>}
-        <button className="icon-btn rp-toggle-header" aria-expanded={panelOpen} aria-controls="xs-detail-panel"
-          title={panelOpen ? 'Hide colors panel' : 'Show colors panel'}
-          onClick={()=>setPanelOpen(v=>!v)}>
-          <IcPanel open={panelOpen}/>
-        </button>
-        {!isMobile && bg && (
-          <label className="xs-ctrl" title="Toggle the tracing image">
-            <input type="checkbox" checked={showBg} onChange={e => setShowBg(e.target.checked)}/>
-            <IcImage/> Trace image
-          </label>
-        )}
-        {!isMobile && bg && showBg && (
-          <div className="xs-ctrl">
-            <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)} style={{ width: 90 }}/>
-          </div>
-        )}
-        {!isMobile && savedStitches.length > 0 && (
-          <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
-            <IcSaved/> My designs ({savedStitches.length})
-          </button>
-        )}
-        {!isMobile && (currentStitch ? (
-          <>
-            <button className="btn" title="Save as a new copy"
-              onClick={() => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); }}>Save as…</button>
-            <button className="btn" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
-              {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save'}
+    <div className="app ed-app xs-ed" style={{ '--ed-tray-h': `${trayH}px` }}>
+
+      <div className="ed-topbar">
+        <div className="ed-topbar-left">
+          {onBack && (
+            <button type="button" className="icon-btn ed-lg" onClick={onBack} title="Back to projects" aria-label="Back to projects">
+              <IcArrowL/>
             </button>
-          </>
-        ) : (
-          <button className="btn" onClick={() => { setSaveName(''); setShowSave(true); }}>
-            {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save design'}
-          </button>
-        ))}
-        {/* Buying needs no account and no prior save. An empty board is blocked
-            because the kit would be cloth and no yarn. */}
-        <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }} onReview={onReview}
-          blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
-          getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
-          onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
-        {isMobile && (
-          <StudioMenu saved={justSaved} items={[
-            ...(currentStitch ? [
-              { id: 'save', label: 'Save', icon: <IcSave/>, onClick: updateCurrentDesign },
-              { id: 'save-as', label: 'Save as…', icon: <IcCopy size={16}/>,
-                onClick: () => { setSaveName(((currentStitch.name || '') + ' copy').trim()); setShowSave(true); } },
-            ] : [
-              { id: 'save', label: 'Save design', icon: <IcSave/>,
-                onClick: () => { setSaveName(''); setShowSave(true); } },
-            ]),
-            ...(savedStitches.length > 0 ? [
-              { id: 'mine', label: 'My designs', icon: <IcSaved size={18}/>, meta: savedStitches.length, onClick: () => setShowMyStitches(true) },
-            ] : []),
-          ]}>
-            {bg && (
-              <>
-                <Switch checked={showBg} onChange={setShowBg} label="Trace image" title="Toggle the tracing image"/>
-                {showBg && (
-                  <label className="studio-menu-range">
-                    <span>Opacity</span>
-                    <input type="range" min={0.1} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(+e.target.value)}/>
-                  </label>
-                )}
-              </>
-            )}
-          </StudioMenu>
-        )}
-      </div>
-      <div className={`xs-body${panelOpen ? '' : ' rp-closed'}`}>
-        {!isMobile && (
-          <div className="xs-rail">
-            {TOOLS.map(t => (
-              <button key={t.id} className={`xs-tool${tool === t.id ? ' active' : ''}`} title={t.label} onClick={() => setTool(t.id)}>{t.icon}</button>
-            ))}
-          </div>
-        )}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-          {isCoasterKit && (
-            <CoasterTabs active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}/>
           )}
-          <div className="size-bar">
-            <Switch checked={showGrid} onChange={setShowGrid} label="Grid" title="Toggle grid lines"/>
-            {(tool === 'pen' || tool === 'eraser') && (
-              <div className="nib-bar" role="group" aria-label={`${tool === 'pen' ? 'Pencil' : 'Eraser'} size`}>
-                <span className="size-bar-label">{tool === 'pen' ? 'Pencil' : 'Eraser'}</span>
-                {NIB_SIZES.map(n => (
-                  <button key={n} type="button" className={`nib-btn${nib === n ? ' active' : ''}`}
-                    aria-pressed={nib === n}
-                    title={`${n} × ${n} ${CFG.unitPlural} ( [ and ] )`}
-                    onClick={() => (tool === 'eraser' ? setEraserNib : setPenNib)(n)}>
-                    <span className="nib-chip" style={{ width: 3 + n * 2, height: 3 + n * 2 }}/>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button className="icon-btn" onClick={undo} title="Undo (Ctrl/Cmd Z)"><IcUndo/></button>
-              {confirmClear ? (
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
-                  <button className="btn btn-dark" onClick={clearAll}>{isCoasterKit ? 'Clear coaster' : 'Clear all'}</button>
-                </span>
-              ) : (
-                <button className="btn" onClick={() => setConfirmClear(true)}>Clear</button>
-              )}
-            </div>
-          </div>
-          <div className={`xs-canvas-wrap${tool === 'pan' ? ' is-panning' : ''}`} ref={wrapRef}>
-            <canvas ref={canvasRef} className="xs-canvas"
-              width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
-              style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
-              onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
-          </div>
-          <ZoomBar zoom={zoom} onZoomChange={setZoom} onReset={resetZoom} onStep={adjustZoom}/>
+          {(!isMobile || !onBack) && (
+            <a className="brand" href="/" aria-label="metime home"><MetimeLogo/></a>
+          )}
+          {!isMobile && <span className="ed-vrule"/>}
+          <button type="button" className="icon-btn ed-lg" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)" aria-label="Undo"><IcUndo/></button>
+          <button type="button" className="icon-btn ed-lg" onClick={redo} disabled={!canRedo} title="Redo (⇧⌘Z)" aria-label="Redo"><IcRedo/></button>
         </div>
-        {hasSel && selRef.current && (
-          // Floats just under the size bar so it never collides with it.
-          <div className={`xs-selbar${isMobile ? ' mobile-selbar' : ''}`} style={{ position: 'absolute', top: 58, left: 'calc(50% + 100px)', transform: 'translateX(-50%)',
-            display: 'flex', alignItems: 'center', gap: 12, background: 'var(--metime-white)', border: '1px solid var(--warm-hairline)',
-            borderRadius: 10, padding: '5px 6px 5px 12px', zIndex: 20, fontSize: 12, color: 'var(--warm-fg)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 10px 28px -6px rgba(0,0,0,0.18)' }}>
-            <span style={{ whiteSpace: 'nowrap' }}>
-              <b>{selRef.current.cells.size}</b> {CFG.unitPlural} · {new Set(selRef.current.cells.values()).size} color{new Set(selRef.current.cells.values()).size !== 1 ? 's' : ''}
-              {' · '}{selFrame(selRef.current).maxX - selFrame(selRef.current).minX + 1}×{selFrame(selRef.current).maxY - selFrame(selRef.current).minY + 1}
-            </span>
-            {!isMobile && (
-              <span style={{ color: 'var(--warm-muted)', whiteSpace: 'nowrap' }}>
-                {selRef.current.floating
-                  ? 'floating above the design · Done places it'
-                  : 'drag to move · ⌥drag to copy · handles resize'}
-              </span>
-            )}
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button className={`btn btn-xs${lockRatio ? ' btn-dark' : ''}`} onClick={() => setLockRatio(v => !v)}
-                aria-pressed={lockRatio} style={{ whiteSpace: 'nowrap' }}
-                title="Keep the proportions when dragging a corner handle (hold Shift to flip)">
-                Lock ratio
+        {!isMobile && <div className="ed-topbar-center">{sizeChip}</div>}
+        <div className="ed-topbar-right header-right">
+          {!isMobile && savedStitches.length > 0 && (
+            <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: 5 }} onClick={() => setShowMyStitches(true)}>
+              <IcSaved/> My designs ({savedStitches.length})
+            </button>
+          )}
+          {!isMobile && (currentStitch ? (
+            <>
+              <button className="btn" title="Save as a new copy" onClick={openSaveAs}>Save as…</button>
+              <button className="btn" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
+                {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save'}
               </button>
-              <button className="btn btn-xs" onClick={duplicateSelection} title="Duplicate (Ctrl/Cmd D)"
-                style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcCopy/> Duplicate</button>
-              <button className="btn btn-xs" onClick={deleteSelection} title={`Delete these ${CFG.unitPlural} (Delete)`}
-                style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IcTrash/> Delete</button>
-              <button className="btn btn-xs btn-dark" onClick={deselect} title="Deselect (Enter or Esc)">Done</button>
-            </span>
-          </div>
-        )}
-        {/* Right column (desktop only; mobile uses the bottom toolbar + sheets) */}
-        {!isMobile && (<>
-        {panelOpen && <div className="rp-backdrop" onClick={()=>setPanelOpen(false)}/>}
-        {panelOpen && (
-          <button className="xs-rp-close icon-btn" title="Close panel" aria-label="Close panel" onClick={()=>setPanelOpen(false)}>
-            <IcX/>
-          </button>
-        )}
-        {!panelOpen && (
-          <div className="rp-rail">
-            <button className="icon-btn" aria-expanded={false} aria-controls="xs-detail-panel"
-              title="Expand colors panel" aria-label="Expand colors panel" onClick={()=>setPanelOpen(true)}>
-              <IcPanel/>
+            </>
+          ) : (
+            <button className="btn" onClick={openSave}>
+              {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save design'}
             </button>
-            <div className="rail-divider"/>
-            <button className={`rp-rail-swatch${color ? '' : ' empty'}`} onClick={()=>setPanelOpen(true)}
-              title={color ? `Current color: ${CFG.codePrefix} ${color.code} ${color.name}` : 'No color selected'}
-              style={color ? {background:color.hex} : undefined}/>
-            <div className="rp-rail-stat">
-              <b>{stats.total}</b>
-              <span>sts</span>
-            </div>
-            <div className="rp-rail-stat">
-              <b>{stats.colors.length}</b>
-              <span>cols</span>
-            </div>
-          </div>
-        )}
-        <div id="xs-detail-panel" className="xs-panel">
-          {tool === 'text' && (
-            <div style={{ borderBottom: '1px solid var(--warm-divider-soft)' }}>
-              <div className="xs-panel-head"><div className="xs-panel-title">Text</div></div>
-              <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <StitchTextControls autoFocus
-                  text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
-                  textSize={textSize} setTextSize={setTextSize}/>
-              </div>
-            </div>
+          ))}
+          {!isMobile && <AccountChip/>}
+          {isMobile && (
+            <button type="button" className="icon-btn ed-lg ed-more-btn" aria-haspopup="menu" aria-expanded={panel === 'menu'}
+              aria-label={justSaved ? 'Saved. More actions' : 'More actions'} title="More actions"
+              onClick={() => togglePanel('menu')}>
+              {justSaved ? <IcCheck size={18}/> : <span className="ed-more-dots" aria-hidden="true"><span/><span/><span/></span>}
+            </button>
           )}
-          <MyPaletteCard
-            color={color}
-            pinned={pal}
-            setPinned={setPal}
-            setColor={setColor}
-            onRecolor={hasSel ? recolorSelection : undefined}
-            onOpenLibrary={openLibrary}/>
-          <FabricRow
-            label={CFG.fabricLabel}
-            fabric={fabric}
-            detail={`${fabric.name} · ${CFG.gaugeLabel}`}
-            onClick={() => setShowFabric(true)}/>
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div className="label" style={{ marginBottom: 0 }}>Materials</div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warm-muted)' }}>{CFG.gaugeBadge}</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>{CFG.unitTitle}</div>
-                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.total}</div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>of {stats.possible}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>{CFG.threadLabel} colors</div>
-                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.colors.length}</div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>used</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ borderTop: '1px solid var(--warm-divider-soft)', flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            <div style={{ padding: '10px 16px 4px' }}>
-              <div className="label">{CFG.threadLabel} · by color</div>
-            </div>
-            {stats.colors.length === 0 ? (
-              <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic' }}>Add {CFG.unitPlural} to see your {CFG.threadLabel.toLowerCase()} list.</div>
-            ) : stats.colors.map(c => (
-              <div key={c.hex} className="mat-row">
-                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 3, flexShrink: 0 }}/>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CFG.codePrefix} {c.code}</div>
-                  <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--warm-fg)' }}>{c.count}</div>
-              </div>
-            ))}
+          {/* Buying needs no account and no prior save. An empty board is held
+              back, since the kit would be cloth and no thread. */}
+          <div className="ed-buy">
+            <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }} onReview={onReview}
+              blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
+              getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
+              onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
           </div>
         </div>
-        </>)}
-
-        {/* Mobile bottom toolbar (Canva-style): tools + extras that open sheets */}
-        {isMobile && (
-          <MobileToolbar items={[
-            ...TOOLS.map(t => ({ id: t.id, label: t.label, icon: t.icon, active: tool === t.id,
-              onClick: () => { setTool(t.id); if (t.id === 'text') setSheet('text'); } })),
-            { id:'d1', divider:true },
-            { id:'palette', label:'My palette', active: sheet==='palette',
-              icon:<span className={`mt-swatch${color?'':' empty'}`} style={color?{background:color.hex}:undefined}/>,
-              onClick:()=>setSheet(s=>s==='palette'?null:'palette') },
-            { id:'fabric', label:`${CFG.fabricLabel} fabric`, icon:<IcTiles/>, onClick:()=>setShowFabric(true) },
-            { id:'materials', label:'Materials', icon:<IcList/>, active: sheet==='materials', onClick:()=>setSheet(s=>s==='materials'?null:'materials') },
-            { id:'d2', divider:true },
-            { id:'grid', label:'Grid', icon:<IcGrid/>, active: showGrid, onClick:()=>setShowGrid(v=>!v) },
-            ...(bg ? [{ id:'trace', label: showBg?'Hide trace':'Trace image', icon:<IcImage/>, active: showBg, onClick:()=>setShowBg(v=>!v) }] : []),
-          ]}/>
-        )}
       </div>
 
-      {/* Mobile bottom sheets (desktop shows this content in the right panel). */}
-      {isMobile && sheet === 'palette' && (
-        <BottomSheet onClose={()=>setSheet(null)} title="My palette">
-          <MyPaletteCard color={color} pinned={pal} setPinned={setPal} setColor={setColor}
-            onRecolor={hasSel ? recolorSelection : undefined} onOpenLibrary={openLibrary}
-            onAfterPick={()=>setSheet(null)}/>
-        </BottomSheet>
-      )}
-      {isMobile && sheet === 'text' && (
-        <BottomSheet onClose={()=>setSheet(null)} title="Text">
-          <div style={{ padding: '2px 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <StitchTextControls
-              text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
-              textSize={textSize} setTextSize={setTextSize}/>
-          </div>
-        </BottomSheet>
-      )}
-      {isMobile && sheet === 'materials' && (
-        <BottomSheet onClose={()=>setSheet(null)} title="Materials">
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div className="label" style={{ marginBottom: 0 }}>Materials</div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--warm-muted)' }}>{CFG.gaugeBadge}</span>
+      <div className="ed-main">
+        <div className="ed-stage-col">
+          <div className="ed-stage">
+            <div className={`xs-canvas-wrap${tool === 'pan' ? ' is-panning' : ''}${isCoasterKit ? ' has-coasters' : ''}`} ref={wrapRef}>
+              <canvas ref={canvasRef} className="xs-canvas"
+                width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
+                style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+                onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>{CFG.unitTitle}</div>
-                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.total}</div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>of {stats.possible}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)', marginBottom: 2 }}>{CFG.threadLabel} colors</div>
-                <div style={{ fontSize: 30, fontWeight: 400, fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontFamily: 'var(--font-display)' }}>{stats.colors.length}</div>
-                <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>used</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ borderTop: '1px solid var(--warm-divider-soft)' }}>
-            <div style={{ padding: '10px 16px 4px' }}><div className="label">{CFG.threadLabel} · by color</div></div>
-            {stats.colors.length === 0 ? (
-              <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--warm-muted)', fontStyle: 'italic' }}>Add {CFG.unitPlural} to see your {CFG.threadLabel.toLowerCase()} list.</div>
-            ) : stats.colors.map(c => (
-              <div key={c.hex} className="mat-row">
-                <div style={{ width: 26, height: 26, background: c.hex, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 3, flexShrink: 0 }}/>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{CFG.codePrefix} {c.code}</div>
-                  <div style={{ fontSize: 11, color: 'var(--warm-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--warm-fg)' }}>{c.count}</div>
+
+            {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={chooseTool}/>}
+            {!isMobile && (selBar || (
+              <div className="ed-palette-pill ed-float ed-keep-sel">
+                {nibs}
+                {nibs && painting && <span className="ed-strip-sep"/>}
+                {painting && (
+                  <>
+                    <div className="ed-swatches">{paletteSwatches}</div>
+                    {addSwatch(pillAddRef, 'bottom-center', 12)}
+                  </>
+                )}
+                <span className="ed-hint">{toolHint}</span>
               </div>
             ))}
+            {!isMobile && coasterStrip}
+
+            {isMobile && (
+              <div className="ed-canvas-head">
+                {sizeChip}
+                <div className="ed-canvas-head-right">
+                  {gridBtn}
+                  <EdZoomPill zoom={zoom} onStep={adjustZoom} onFit={resetZoom}/>
+                </div>
+              </div>
+            )}
+            {isMobile && !panel && (
+              <div className="ed-tray" ref={trayRef}>
+                {coasterStrip}
+                {selBar || ((nibbed || painting) && (
+                  <div className="ed-strip ed-float ed-keep-sel">
+                    {nibs}
+                    {nibs && painting && <span className="ed-strip-sep"/>}
+                    {painting && paletteSwatches}
+                    {painting && addSwatch(pillAddRef, undefined)}
+                  </div>
+                ))}
+                <div className="ed-tray-card">
+                  <div className="ed-handle"/>
+                  <EdTools className="ed-tray-tools is-dense" tools={tools} tool={tool} onTool={chooseTool}/>
+                </div>
+              </div>
+            )}
+            {isMobile && panel && (
+              <EdSheet id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+                {renderPanel(panel)}
+              </EdSheet>
+            )}
+            {toast && <div className="ed-toast" role="status">{toast}</div>}
           </div>
-        </BottomSheet>
+
+          {!isMobile && (
+            <div className="ed-statusbar">
+              <span className="ed-stats">
+                {W} × {H} · {finished} · {CFG.gaugeLabel} · {stats.total.toLocaleString()} {CFG.unitPlural} · {stats.colors.length} {threadWord} color{stats.colors.length !== 1 ? 's' : ''}{isCoasterKit ? ' · set of 4' : ''}
+              </span>
+              <span className="ed-spacer"/>
+              {gridBtn}
+              <button type="button" className="btn btn-sm" onClick={() => setConfirmClear(true)} disabled={stats.total === 0 && !hasSel}
+                title={isCoasterKit ? 'Clear this coaster' : 'Clear the design'}>Clear</button>
+              <span className="ed-vrule"/>
+              <EdZoomControls zoom={zoom} onZoom={setZoom} onStep={adjustZoom} onFit={resetZoom}/>
+            </div>
+          )}
+        </div>
+
+        {!isMobile && panel && (
+          <EdPanel id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+            {renderPanel(panel)}
+          </EdPanel>
+        )}
+        {!isMobile && <EdNav className="ed-rail" label="Panels" items={railItems} active={panel} onSelect={togglePanel}/>}
+      </div>
+
+      {isMobile && (
+        <EdNav className="ed-tabbar" label="Panels" items={tabItems}
+          active={panel === 'designs' || panel === 'floss' || panel === 'fabric' ? panel : (panel ? null : 'tools')}
+          onSelect={id => id === 'tools' ? setPanel(null) : togglePanel(id)}/>
       )}
 
-      {/* Color library popover — same pattern as the quilt "My palette" + button. */}
+      {/* Color library popover, anchored to whichever + opened it. */}
       {picker && libraryAnchorRef.current && (
         <LibraryPopover
           anchorRef={libraryAnchorRef}
@@ -14010,23 +14331,21 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
           pinned={pal}
           suggested={dmcSuggested}
           isMobile={isMobile}
-          afterPick={isMobile ? () => setSheet(null) : undefined}/>
+          afterPick={c => { if (selRef.current) recolorSelection(c); }}
+          placement={picker.placement || 'left-anchored'}/>
       )}
 
-      {showFabric && (
-        <div className="xs-picker" onClick={() => setShowFabric(false)}>
-          <div className="xs-picker-card" onClick={e => e.stopPropagation()}>
-            <div style={{ padding: 14, borderBottom: '1px solid var(--warm-divider-soft)', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20 }}>{CFG.fabricLabel} fabric color</div>
-              <button onClick={() => setShowFabric(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--warm-muted)', display: 'flex' }}><IcX/></button>
+      {confirmClear && (
+        <div className="overlay" onClick={() => setConfirmClear(false)}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#FFFFFF', border: '1px solid #CCD6EB', borderRadius: 8, padding: 24, maxWidth: 340, width: '100%', margin: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)' }}>
+            <div style={{ fontWeight: 400, fontSize: 24, marginBottom: 8, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>{isCoasterKit ? 'Clear this coaster?' : 'Clear the design?'}</div>
+            <div style={{ fontSize: 13, color: '#3D4E70', marginBottom: 20, lineHeight: 1.5 }}>
+              {isCoasterKit ? `This removes every ${CFG.unit} from this coaster. The rest of the set is unchanged.` : `This removes every ${CFG.unit} from your design. You can undo it.`}
             </div>
-            <div className="xs-picker-list">
-              {AIDA_FABRICS.map(f => (
-                <div key={f.name} className="xs-picker-item" onClick={() => { setFabric(f); setShowFabric(false); }}>
-                  <span className="xs-picker-dot" style={{ background: f.hex }}/>
-                  <span className="xs-picker-name" style={{ fontSize: 12, color: fabric.name === f.name ? 'var(--warm-fg)' : undefined, fontWeight: fabric.name === f.name ? 600 : 400 }}>{f.name}</span>
-                </div>
-              ))}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setConfirmClear(false)}>Cancel</button>
+              <button className="btn btn-dark" onClick={() => { clearAll(); showToast('Cleared · undo to go back'); }}>{isCoasterKit ? 'Clear coaster' : 'Clear all'}</button>
             </div>
           </div>
         </div>
