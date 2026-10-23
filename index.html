@@ -3163,7 +3163,6 @@
   /* Top bar */
   .ed-topbar { flex: none; height: 60px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-bottom: var(--div-border); background: var(--app-bg); position: relative; z-index: 20; }
   .ed-topbar-left { display: flex; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; }
-  .ed-topbar-center { display: flex; justify-content: center; flex: 0 1 auto; min-width: 0; }
   .ed-topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 0; min-width: 0; }
   .ed-topbar .brand { margin: 0 6px; }
   .ed-vrule { width: 1px; height: 24px; background: var(--warm-hairline); margin: 0 6px; flex: none; }
@@ -3376,9 +3375,8 @@
   .ed-tabbar { flex: none; display: flex; justify-content: space-around; align-items: flex-start; padding: 6px 4px env(safe-area-inset-bottom); height: var(--ed-tabbar-h); border-top: var(--div-border); background: var(--app-bg); position: relative; z-index: 20; }
   .ed-tabbar .ed-nav-btn { flex: 1; min-width: 0; height: 52px; justify-content: center; gap: 3px; }
   .ed-tabbar .ed-nav-ic { height: 30px; }
-  .ed-canvas-head { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 6; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: none; }
+  .ed-canvas-head { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 6; display: flex; justify-content: flex-end; align-items: center; gap: 8px; pointer-events: none; }
   .ed-canvas-head > * { pointer-events: auto; }
-  .ed-app .ed-canvas-head .preset-pill { min-height: 36px; min-width: 0; flex: 0 1 auto; }
   .ed-zoom-pill { display: flex; align-items: center; height: 36px; flex: none; border: 1px solid var(--warm-muted-2); border-radius: 4px; background: var(--ds-white); }
   .ed-zoom-pill button { height: 34px; min-width: 36px; padding: 0 6px; border: none; background: none; cursor: pointer; color: var(--warm-fg); display: inline-flex; align-items: center; justify-content: center; }
   .ed-zoom-pill .ed-zoom-val { min-width: 44px; text-align: center; }
@@ -3451,7 +3449,6 @@
     .ed-app .ed-buy .buy-kit-price { display: none; }
     .ed-app .ed-tray-tools .icon-btn { width: 50px; }
     .ed-app .ed-tray-tools.is-dense .icon-btn { width: auto; }
-    .xs-ed .ed-canvas-head .preset-dim { display: none; }
     .ed-tray .ed-coaster { width: 40px; height: 40px; }
     .ed-app .btn.ed-coaster-copy { padding: 0 10px; font-size: 12px; }
   }
@@ -8342,8 +8339,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     if (isMobile) setPanel(null);
   };
 
-  const presetInfo = PRESETS.find(x => x.name === preset);
-  const presetLabel = (presetInfo && (presetInfo.label || presetInfo.name)) || preset;
   const toolDef = QUILT_TOOLS.find(t => t.id === tool) || QUILT_TOOLS[0];
   const toolHint = toolDef.hint(isMobile ? 'Tap' : 'Click');
   const tools = QUILT_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
@@ -8426,14 +8421,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting" size={26}/> },
   ];
-  const sizeChip = (
-    <button type="button" className="preset-pill ed-size-chip" aria-expanded={panel === 'size'}
-      onClick={() => togglePanel('size')} title="Change quilt size">
-      <span>{presetLabel}</span>
-      <span className="preset-dim">{fw}" × {fh}"</span>
-      <IcChevD size={10}/>
-    </button>
-  );
   const paletteSwatches = pinned.map((c, i) => (
     <EdSwatch key={`${c.name}-${i}`} color={c} active={isColorActive(c)} onClick={() => pickColor(c)}/>
   ));
@@ -8455,7 +8442,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           <button type="button" className="icon-btn ed-lg" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)" aria-label="Undo"><IcUndo/></button>
           <button type="button" className="icon-btn ed-lg" onClick={redo} disabled={!canRedo} title="Redo (⇧⌘Z)" aria-label="Redo"><IcRedo/></button>
         </div>
-        {!isMobile && <div className="ed-topbar-center">{sizeChip}</div>}
         <div className="ed-topbar-right header-right">
           {!isMobile && savedQuilts.length>0 && (
             <button className="btn" onClick={()=>setShowMyQuilts(true)}>
@@ -8527,7 +8513,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
             {isMobile && (
               <div className="ed-canvas-head">
-                {sizeChip}
                 <EdZoomPill zoom={zoom} onStep={adjustZoom} onFit={resetZoom}/>
               </div>
             )}
@@ -14088,7 +14073,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   const openSave = () => { setSaveName(''); setShowSave(true); };
   const openSaveAs = () => { setSaveName(((currentStitch && currentStitch.name) || '') + ' copy'); setShowSave(true); };
   const finished = finishedDims({ w: W, h: H });
-  const presetLabel = dims.name === 'Custom' ? 'Custom size' : dims.name;
   const templates = useMemo(() => stitchTemplatesFor({ name: dims.name, w: W, h: H }, craft), [dims.name, W, H, craft]);
   // Coaster thumbnails: the page in view is read live, so they follow each edit.
   const coasterPages = useMemo(() => (pagesRef.current
@@ -14165,16 +14149,9 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     { id: 'designs', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
     { id: 'floss', label: CFG.threadLabel, icon: <EdNavIcon name={CFG.threadIcon} size={26}/> },
     { id: 'tools', label: 'Tools', icon: <EdNavIcon name="tools" size={26}/> },
+    { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'fabric', label: 'Fabric', icon: <EdNavIcon name="fabric" size={26}/> },
   ];
-  const sizeChip = (
-    <button type="button" className="preset-pill ed-size-chip" aria-expanded={panel === 'size'}
-      onClick={() => togglePanel('size')} title={`Change ${CFG.label.toLowerCase()} size`}>
-      <span>{presetLabel}</span>
-      <span className="preset-dim">{finished}</span>
-      <IcChevD size={10}/>
-    </button>
-  );
   const gridBtn = (
     <button type="button" className="icon-btn ed-grid-btn" aria-pressed={showGrid} onClick={() => setShowGrid(v => !v)}
       title={showGrid ? 'Hide grid lines' : 'Show grid lines'} aria-label="Grid lines">
@@ -14237,7 +14214,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
           <button type="button" className="icon-btn ed-lg" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)" aria-label="Undo"><IcUndo/></button>
           <button type="button" className="icon-btn ed-lg" onClick={redo} disabled={!canRedo} title="Redo (⇧⌘Z)" aria-label="Redo"><IcRedo/></button>
         </div>
-        {!isMobile && <div className="ed-topbar-center">{sizeChip}</div>}
         <div className="ed-topbar-right header-right">
           {!isMobile && savedStitches.length > 0 && (
             <button className="btn" onClick={() => setShowMyStitches(true)}>
@@ -14303,7 +14279,6 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
 
             {isMobile && (
               <div className="ed-canvas-head">
-                {sizeChip}
                 <div className="ed-canvas-head-right">
                   {gridBtn}
                   <EdZoomPill zoom={zoom} onStep={adjustZoom} onFit={resetZoom}/>
@@ -14360,7 +14335,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
 
       {isMobile && (
         <EdNav className="ed-tabbar" label="Panels" items={tabItems}
-          active={panel === 'designs' || panel === 'floss' || panel === 'fabric' ? panel : (panel ? null : 'tools')}
+          active={panel === 'designs' || panel === 'floss' || panel === 'size' || panel === 'fabric' ? panel : (panel ? null : 'tools')}
           onSelect={id => id === 'tools' ? setPanel(null) : togglePanel(id)}/>
       )}
 
