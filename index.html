@@ -3238,7 +3238,6 @@
 
   /* Bottom status bar (desktop) */
   .ed-statusbar { flex: none; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-top: var(--div-border); background: var(--app-bg); font-size: 12px; color: var(--warm-muted); }
-  .ed-stats { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-family: var(--font-sans); font-size: 11px; }
   .ed-spacer { flex: 1 1 0; min-width: 0; }
   .ed-zoom { display: flex; align-items: center; gap: 6px; flex: none; }
   .ed-zoom input[type=range] { width: 160px; }
@@ -8639,13 +8638,9 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
           {!isMobile && (
             <div className="ed-statusbar">
-              <span className="ed-stats">
-                cut {bs + SEAM}" · {cols} × {rows} blocks · {materials.total} of {materials.possible} placed · {fmtY(grandTotal)} fabric
-              </span>
-              <span className="ed-spacer"/>
               <button type="button" className="btn btn-sm" onClick={() => setConfirmClear(true)} disabled={shapes.length === 0}
                 title={isCoasterKit ? 'Clear this coaster' : 'Clear the quilt'}>Clear</button>
-              <span className="ed-vrule"/>
+              <span className="ed-spacer"/>
               <EdZoomControls zoom={zoom} onZoom={setZoom} onStep={adjustZoom} onFit={resetZoom}/>
             </div>
           )}
@@ -13187,16 +13182,22 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
       ctx.restore();
     }
     if (showGrid && cs >= 5) {
+      // The canvas is exactly the board, so lines on the far edges are pulled
+      // one pixel in; otherwise the right and bottom borders fall outside it.
+      const gx = x => Math.min(x * cs, W * cs - 1) + 0.5;
+      const gy = y => Math.min(y * cs, H * cs - 1) + 0.5;
       ctx.strokeStyle = 'rgba(0,0,0,0.12)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      for (let x = 0; x <= W; x++) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
-      for (let y = 0; y <= H; y++) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
+      for (let x = 0; x <= W; x++) { ctx.moveTo(gx(x), 0); ctx.lineTo(gx(x), H * cs); }
+      for (let y = 0; y <= H; y++) { ctx.moveTo(0, gy(y)); ctx.lineTo(W * cs, gy(y)); }
       ctx.stroke();
       ctx.strokeStyle = 'rgba(0,0,0,0.34)';
       ctx.beginPath();
-      for (let x = 0; x <= W; x += CFG.majorGrid) { ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); }
-      for (let y = 0; y <= H; y += CFG.majorGrid) { ctx.moveTo(0, y * cs + 0.5); ctx.lineTo(W * cs, y * cs + 0.5); }
+      for (let x = 0; x <= W; x += CFG.majorGrid) { ctx.moveTo(gx(x), 0); ctx.lineTo(gx(x), H * cs); }
+      for (let y = 0; y <= H; y += CFG.majorGrid) { ctx.moveTo(0, gy(y)); ctx.lineTo(W * cs, gy(y)); }
+      if (W % CFG.majorGrid) { ctx.moveTo(gx(W), 0); ctx.lineTo(gx(W), H * cs); }
+      if (H % CFG.majorGrid) { ctx.moveTo(0, gy(H)); ctx.lineTo(W * cs, gy(H)); }
       ctx.stroke();
     }
   }, [cellSize, showBg, bgOpacity, showGrid, color, fabric, W, H, zoom, dpr, CFG, nib]);
@@ -14430,14 +14431,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
 
           {!isMobile && (
             <div className="ed-statusbar">
-              <span className="ed-stats">
-                {W} × {H} · {finished} · {CFG.gaugeLabel} · {stats.total.toLocaleString()} {CFG.unitPlural} · {stats.colors.length} {threadWord} color{stats.colors.length !== 1 ? 's' : ''}{isCoasterKit ? ' · set of 4' : ''}
-              </span>
-              <span className="ed-spacer"/>
               {gridBtn}
               <button type="button" className="btn btn-sm" onClick={() => setConfirmClear(true)} disabled={stats.total === 0 && !hasSel}
                 title={isCoasterKit ? 'Clear this coaster' : 'Clear the design'}>Clear</button>
-              <span className="ed-vrule"/>
+              <span className="ed-spacer"/>
               <EdZoomControls zoom={zoom} onZoom={setZoom} onStep={adjustZoom} onFit={resetZoom}/>
             </div>
           )}
