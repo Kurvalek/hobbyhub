@@ -5823,7 +5823,7 @@ const ZOOM_MIN=0.25, ZOOM_MAX=4, ZOOM_STEP=0.25;
 // Pencil/eraser nib widths, in stitches. A short ladder rather than a slider:
 // the smallest board is 30 stitches wide, so only the first few sizes are
 // useful and each one should be a single click away.
-const NIB_SIZES = [1, 2, 3, 5];
+const NIB_SIZES = [1, 2, 3, 4];
 
 // Suggested Kona starter palettes. Mostly tuned to the same muted, earthy vibe as
 // the cross-stitch DMC samples — soft blues, terracotta, peach, sage, and warm
@@ -12720,25 +12720,25 @@ const STITCH_TOOLS = [
 // Tools that paint with the current color, so the palette rides along with them.
 const STITCH_COLOR_TOOLS = new Set(['pen', 'fill', 'line', 'rect', 'ellipse', 'text']);
 
-// Pencil-size icons from icons/pencil-size-{1..4}.svg, one per NIB_SIZES step,
+// Pencil-size icons from icons/pencil-size-{n}x{n}.svg, one per NIB_SIZES entry,
 // with their stamp color swapped for the color being drawn with.
 const NIB_ICON_STAMP = '#E8583A';
 const nibIconCache = new Map();
-function useNibIconSvg(step) {
-  const [svg, setSvg] = useState(() => nibIconCache.get(step) || null);
+function useNibIconSvg(n) {
+  const [svg, setSvg] = useState(() => nibIconCache.get(n) || null);
   useEffect(() => {
-    if (nibIconCache.has(step)) { setSvg(nibIconCache.get(step)); return undefined; }
+    if (nibIconCache.has(n)) { setSvg(nibIconCache.get(n)); return undefined; }
     let alive = true;
-    fetch(`icons/pencil-size-${step}.svg`).then(r => r.text()).then(t => {
-      nibIconCache.set(step, t);
+    fetch(`icons/pencil-size-${n}x${n}.svg`).then(r => r.text()).then(t => {
+      nibIconCache.set(n, t);
       if (alive) setSvg(t);
     }).catch(() => {});
     return () => { alive = false; };
-  }, [step]);
+  }, [n]);
   return svg;
 }
 function EdNibIcon({ nib, color }) {
-  const svg = useNibIconSvg(Math.max(1, NIB_SIZES.indexOf(nib) + 1));
+  const svg = useNibIconSvg(nib);
   const fill = /^#[0-9a-f]{3,8}$/i.test(color?.hex || '') ? color.hex : 'var(--metime-black)';
   return (
     <span className="ed-nib-icon" aria-hidden="true"
