@@ -3169,6 +3169,11 @@
   .ed-topbar .brand { margin: 0 6px; }
   .ed-vrule { width: 1px; height: 24px; background: var(--warm-hairline); margin: 0 6px; flex: none; }
   .ed-app .icon-btn.ed-lg { width: 40px; height: 40px; }
+  .ed-topbar-link { background: none; border: none; padding: 6px 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 16px; color: var(--warm-fg); cursor: pointer; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--link-line, currentColor); text-decoration-thickness: 2px; text-underline-offset: 4px; transition: text-decoration-thickness .12s; }
+  .ed-topbar-link:hover { text-decoration-thickness: 3px; }
+  .ed-topbar-link.is-tomato { --link-line: var(--brand-tomato); }
+  .ed-topbar-link.is-olive { --link-line: var(--brand-olive); }
+  .ed-topbar-link:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; border-radius: 4px; }
   .ed-more-dots { display: inline-flex; gap: 3px; }
   .ed-more-dots span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 
@@ -3216,7 +3221,7 @@
   .ed-menu-btn.is-open .ic { transform: rotate(180deg); }
   .ed-menu-btn .ic { transition: transform .15s var(--ease-out); }
   .ed-menu-swatch, .ed-menu-nib { width: 30px; height: 30px; flex: none; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.12); background-size: cover; background-position: center; }
-  .ed-menu-nib { display: inline-flex; align-items: center; justify-content: center; border: none; background: var(--metime-black); color: var(--metime-white); }
+  .ed-menu-nib { display: inline-flex; border: none; background: none; }
   .ed-menu-body { padding: 10px 12px 12px; }
   .ed-menu-label { font-size: 12px; font-weight: 500; color: var(--warm-muted); margin-bottom: 8px; }
   .ed-menu-swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
@@ -3389,12 +3394,13 @@
   .ed-app .xs-canvas-wrap.has-coasters { padding-bottom: 96px; }
   .ed-app .xs-canvas { box-shadow: 0 1px 2px rgba(23, 23, 23, 0.10), 0 10px 30px rgba(23, 23, 23, 0.08); }
   .ed-nibs { display: flex; gap: 4px; flex: none; }
-  .ed-nib { width: 30px; height: 30px; padding: 0; border: none; border-radius: var(--btn-radius); background: var(--warm-hover); color: var(--warm-fg); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background .12s, transform var(--press-dur) var(--ease-out); }
+  .ed-nib { width: 30px; height: 30px; padding: 0; border: none; border-radius: var(--btn-radius); background: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
   .ed-nib:hover { background: var(--btn-tool-hover); }
-  .ed-nib.is-active { background: var(--metime-black); color: var(--metime-white); }
+  .ed-nib.is-active { background: var(--warm-hover); box-shadow: inset 0 0 0 1.5px var(--metime-black); }
   .ed-nib:active { transform: scale(var(--press-scale)); }
   .ed-nib:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
-  .ed-nib-chip { display: block; background: currentColor; border-radius: 1px; }
+  .ed-nib-icon { display: block; width: 100%; height: 100%; }
+  .ed-nib-icon svg { display: block; width: 100%; height: 100%; }
   .ed-strip-sep { width: 1px; align-self: stretch; background: var(--warm-hairline); flex: none; margin: 2px 4px; }
   .ed-app .icon-btn.ed-grid-btn { flex: none; }
   .ed-canvas-head-right { display: flex; align-items: center; gap: 8px; flex: none; }
@@ -3471,7 +3477,6 @@
     .ed-app .coaster-bar { padding: 6px 12px; }
     .ed-app .xs-canvas-wrap, .ed-app .xs-canvas-wrap.has-coasters { padding: 60px 14px calc(var(--ed-tray-h) + 16px); }
     .ed-strip .ed-nib { width: 40px; height: 40px; }
-    .ed-strip .ed-nib-chip { transform: scale(1.3); }
     .ed-canvas-head-right { gap: 6px; }
     .ed-canvas-head-right .ed-zoom-pill button { min-width: 30px; padding: 0 4px; }
     .ed-canvas-head-right .ed-zoom-pill .ed-zoom-val { min-width: 42px; }
@@ -8685,13 +8690,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         </div>
         <div className="ed-topbar-right header-right">
           {!isMobile && savedQuilts.length>0 && (
-            <button className="btn" onClick={()=>setShowMyQuilts(true)}>
-              My quilts ({savedQuilts.length})
-            </button>
+            <button type="button" className="ed-topbar-link is-tomato" onClick={()=>setShowMyQuilts(true)}>My quilts</button>
           )}
           {!isMobile && (currentQuilt ? (
             <>
-              <button className="btn" title="Save as a new copy"
+              <button type="button" className="ed-topbar-link is-olive" title="Save as a new copy"
                 onClick={()=>{setSaveName(((currentQuilt.name||'')+' copy').trim());setShowSave(true);}}>
                 Save as…
               </button>
@@ -12717,13 +12720,39 @@ const STITCH_TOOLS = [
 // Tools that paint with the current color, so the palette rides along with them.
 const STITCH_COLOR_TOOLS = new Set(['pen', 'fill', 'line', 'rect', 'ellipse', 'text']);
 
-function StitchNibs({ nib, onNib, cfg, label }) {
+// Pencil-size icons from icons/pencil-size-{1..4}.svg, one per NIB_SIZES step,
+// with their stamp color swapped for the color being drawn with.
+const NIB_ICON_STAMP = '#E8583A';
+const nibIconCache = new Map();
+function useNibIconSvg(step) {
+  const [svg, setSvg] = useState(() => nibIconCache.get(step) || null);
+  useEffect(() => {
+    if (nibIconCache.has(step)) { setSvg(nibIconCache.get(step)); return undefined; }
+    let alive = true;
+    fetch(`icons/pencil-size-${step}.svg`).then(r => r.text()).then(t => {
+      nibIconCache.set(step, t);
+      if (alive) setSvg(t);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [step]);
+  return svg;
+}
+function EdNibIcon({ nib, color }) {
+  const svg = useNibIconSvg(Math.max(1, NIB_SIZES.indexOf(nib) + 1));
+  const fill = /^#[0-9a-f]{3,8}$/i.test(color?.hex || '') ? color.hex : 'var(--metime-black)';
+  return (
+    <span className="ed-nib-icon" aria-hidden="true"
+      dangerouslySetInnerHTML={svg ? { __html: svg.split(NIB_ICON_STAMP).join(fill) } : undefined}/>
+  );
+}
+
+function StitchNibs({ nib, onNib, cfg, label, color }) {
   return (
     <div className="ed-nibs" role="group" aria-label={`${label} size`}>
       {NIB_SIZES.map(n => (
         <button key={n} type="button" className={`ed-nib${nib === n ? ' is-active' : ''}`} aria-pressed={nib === n}
           title={`${n} × ${n} ${cfg.unitPlural} ( [ and ] )`} aria-label={`${n} × ${n}`} onClick={() => onNib(n)}>
-          <span className="ed-nib-chip" style={{ width: 3 + n * 2, height: 3 + n * 2 }}/>
+          <EdNibIcon nib={n} color={color}/>
         </button>
       ))}
     </div>
@@ -14404,7 +14433,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
     </button>
   );
   const nibs = nibbed && (
-    <StitchNibs nib={nib} onNib={setNib} cfg={CFG} label={tool === 'eraser' ? 'Eraser' : 'Pencil'}/>
+    <StitchNibs nib={nib} onNib={setNib} cfg={CFG} label={tool === 'eraser' ? 'Eraser' : 'Pencil'} color={color}/>
   );
   const coasterStrip = isCoasterKit && coasterPages && (
     <StitchCoasterStrip pages={coasterPages} active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}
@@ -14451,13 +14480,11 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
         </div>
         <div className="ed-topbar-right header-right">
           {!isMobile && savedStitches.length > 0 && (
-            <button className="btn" onClick={() => setShowMyStitches(true)}>
-              My designs ({savedStitches.length})
-            </button>
+            <button type="button" className="ed-topbar-link is-tomato" onClick={() => setShowMyStitches(true)}>My designs</button>
           )}
           {!isMobile && (currentStitch ? (
             <>
-              <button className="btn" title="Save as a new copy" onClick={openSaveAs}>Save as…</button>
+              <button type="button" className="ed-topbar-link is-olive" title="Save as a new copy" onClick={openSaveAs}>Save as…</button>
               <button className="btn" title={`Update “${currentStitch.name}”`} onClick={updateCurrentDesign}>
                 {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save'}
               </button>
@@ -14502,7 +14529,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
                 {nibbed && (
                   <EdMenuButton label={`${tool === 'eraser' ? 'Eraser' : 'Pencil'} size: ${nib} × ${nib}`}
                     menuLabel={`${tool === 'eraser' ? 'Eraser' : 'Pencil'} size`} width={206}
-                    trigger={<span className="ed-menu-nib"><span className="ed-nib-chip" style={{ width: 3 + nib * 2, height: 3 + nib * 2 }}/></span>}>
+                    trigger={<span className="ed-menu-nib"><EdNibIcon nib={nib} color={color}/></span>}>
                     {nibs}
                   </EdMenuButton>
                 )}
