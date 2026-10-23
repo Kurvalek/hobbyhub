@@ -88,12 +88,12 @@ const WORD_NAMES = { NOIR: 'Noir', BLANC: 'Blanc', ECRU: 'Ecru' };
 // get the bare catalog code.
 const bare = tok => tok.replace(/[*X]+$/g, '');
 
-// Pull the floss library straight out of index.html so the wool colors stay in
-// lockstep with the floss hexes the rest of the app already uses.
+// Pull the floss library straight out of the app's color catalog so the wool
+// colors stay in lockstep with the floss hexes the rest of the app already uses.
 function readFloss() {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const m = html.match(/const DMC_ENC = "([^"]+)"/);
-  if (!m) throw new Error('Could not find DMC_ENC in index.html');
+  const src = fs.readFileSync(path.join(ROOT, 'assets', 'color-catalogs.js'), 'utf8');
+  const m = src.match(/const DMC_ENC = "([^"]+)"/);
+  if (!m) throw new Error('Could not find DMC_ENC in assets/color-catalogs.js');
   const byCode = new Map();
   for (const rec of m[1].split('|')) {
     const [code, name, hex] = rec.split('~');

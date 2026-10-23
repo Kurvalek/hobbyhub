@@ -32,12 +32,12 @@ const SAVED_DIR = path.join(IMG_DIR, 'saved');
 const PREVIEW_DIR = path.join(__dirname, '_preview');
 const OUT_JS = path.join(ROOT, 'assets', 'stitch-templates-data.js');
 
-// ── Pull the DMC floss list straight out of index.html so we snap to the exact
-// same palette the app ships with. ──────────────────────────────────────────
+// ── Pull the DMC floss list straight out of the app's color catalog so we snap
+// to the exact same palette the app ships with. ─────────────────────────────
 function loadDMC() {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const m = html.match(/const DMC_ENC = "([^"]*)"/);
-  if (!m) throw new Error('DMC_ENC not found in index.html');
+  const src = fs.readFileSync(path.join(ROOT, 'assets', 'color-catalogs.js'), 'utf8');
+  const m = src.match(/const DMC_ENC = "([^"]*)"/);
+  if (!m) throw new Error('DMC_ENC not found in assets/color-catalogs.js');
   return m[1].split('|').map(s => {
     const [code, name, hex] = s.split('~');
     return { code, name, hex: '#' + hex, r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };

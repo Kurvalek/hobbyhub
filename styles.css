@@ -1,0 +1,3077 @@
+/* Self-hosted brand type — Söhne (sans) and BC Civitas (display).
+   Trial ("TEST") cuts as supplied. The stitch text tool uses Google faces
+   instead (Arvo, Cal Sans, Meow Script, Manufacturing Consent, Oleo Script
+   Swash Caps, plus Rye for the sampler alphabet). Rye's wedge serifs are
+   the classic stitched-sampler letterforms, and they survive being
+   rasterized down to ~12 stitches, which most display faces don't. */
+@font-face { font-family: 'Söhne'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Sohne-Light.woff2') format('woff2'); }
+@font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }
+@font-face { font-family: 'Söhne'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
+/* Design rule: Söhne tops out at Medium — "bold" (600/700) resolves to the Medium cut. */
+@font-face { font-family: 'Söhne'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Söhne'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/Sohne-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/BCCivitas-Light.woff2') format('woff2'); }
+/* Design rule: BC Civitas headers use the Medium cut, so the default (400) weight loads Medium. */
+@font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/BCCivitas-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/BCCivitas-Semibold.woff2') format('woff2'); }
+@font-face { font-family: 'BC Civitas'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/BCCivitas-Bold.woff2') format('woff2'); }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+
+:root {
+  /* Ice scale — fills, hovers, highlights, active / disabled */
+  --ice-50: #F9FBFE;
+  --ice-100: #EDF2FC;
+  --ice-200: #CCD6EB;
+  --ice-300: #A9BDE6;
+  --ice-400: #7A94C9;
+  --ice-500: #52658D;
+  --ice-600: #3D4E70;
+  --ice-700: #2A3752;
+
+  /* metime base palette.
+     The studio reads the brand's warm grounds and ink directly, so the editor
+     sits in the same room as the setup flow and the kit review page instead of
+     the cool near-white it used to. The ice scale below stays exactly as it is:
+     it still carries selection, focus and the interaction states, where a cool
+     tone is genuinely useful for standing apart from warm fabric and thread. */
+  --metime-black: #171717;
+  --metime-almost-black: #171717;
+  --metime-cream: #F9F7F2;
+  --metime-white: #FFFFFF;
+
+  /* metime accent palette */
+  --metime-tomato: #E8583A;
+  --metime-avocado: #B5BB46;
+  --metime-olive: #B9B74B;
+  --metime-grapefruit: #FDA198;
+  --metime-ice: var(--ice-200);
+  --metime-golden: #FBBB3F;
+
+  /* Text and structure (legacy --warm-* names kept so existing rules pick these
+     up). Ink at decreasing strength rather than a separate grey ramp, which is
+     how the brand builds its hierarchy — and reduced ink stays neutral against
+     the warm ground where a cool grey turned slightly blue on it. */
+  --warm-fg: var(--metime-black);
+  --warm-fg-2: rgba(23, 23, 23, 0.78);
+  --warm-muted: rgba(23, 23, 23, 0.66);
+  --warm-muted-2: rgba(23, 23, 23, 0.38);
+  --warm-placeholder: rgba(23, 23, 23, 0.44);
+  --warm-hairline: rgba(23, 23, 23, 0.16);
+  --warm-divider-soft: rgba(23, 23, 23, 0.08);
+  --warm-hover: #F5EDE1;
+
+  /* Legacy taupe / linen names — now ice aliases so existing var() calls update */
+  --color-taupe-900: var(--metime-black);
+  --color-taupe-700: var(--ice-600);
+  --color-taupe-600: var(--ice-500);
+  --color-taupe-500: var(--ice-400);
+  --color-taupe-100: var(--ice-200);
+  --color-linen-800: var(--ice-200);
+  --color-linen-600: var(--ice-100);
+  --color-linen-500: var(--ice-200);
+  --color-linen-300: var(--ice-100);
+  --color-linen-100: var(--ice-50);
+
+  /* metime design system V1 — 04 Buttons and Pills (Figma 19:78). Buttons
+     stay black and neutral so the five brand accents are left for filter
+     pills, where each filter row takes one accent for all of its pills. */
+  --ds-black: #1F1E1D;
+  --ds-near-black: #2C2928;
+  --ds-gray-600: #5C5955;
+  --ds-gray-400: #A8A49C;
+  --ds-gray-300: #D1CEC7;
+  --ds-gray-200: #E5E2DB;
+  --ds-gray-100: #F0EDE7;
+  --ds-cream: #F5F3EE;
+  --ds-white: #FFFFFF;
+  --color-tomato: #E8583A;
+  --color-tomato-dark: #3D1007;
+  --color-avocado: #B9B74B;
+  --color-avocado-dark: #46451B;
+  --color-grapefruit: #FDA198;
+  --color-grapefruit-dark: #7C3029;
+  --color-ice: #CCD6EB;
+  --color-ice-dark: #3A599A;
+  --color-golden: #FBBB3F;
+  --color-golden-dark: #6E4A02;
+  --pill-radius: 999px;
+  --btn-stroke-w: 1px;
+  --btn-focus-shadow: 0 0 0 2px var(--ds-cream), 0 0 0 4px var(--color-tomato);
+
+  /* Primary (filled) button — black fill, cream label. */
+  --btn-primary-bg: var(--ds-black);
+  --btn-primary-bg-hover: var(--ds-near-black);
+  --btn-primary-bg-active: var(--ds-gray-600);
+  --btn-primary-bg-disabled: var(--ds-gray-200);
+  --btn-primary-fg: var(--ds-cream);
+  --btn-primary-fg-active: var(--ds-cream);
+  --btn-stroke: var(--ds-black);
+
+  /* Secondary (outline) button — white face, black outline. Shared with
+     .brand-btn so a button means the same thing on both sides of Buy kit. */
+  --btn-secondary-bg: var(--ds-white);
+  --btn-secondary-bg-hover: var(--ds-gray-100);
+  --btn-secondary-bg-active: var(--ds-gray-200);
+  --btn-secondary-border: var(--ds-black);
+  --btn-secondary-fg: var(--ds-black);
+
+  /* Shared button states */
+  --btn-disabled-fg: var(--ds-gray-400);
+  --btn-disabled-border: var(--ds-gray-300);
+  --btn-focus-ring: var(--ice-300);
+  --btn-tool-hover: rgba(23, 23, 23, 0.08);
+
+  /* Corner for the square tool controls — icon buttons, the tool rail, nib
+     and swatch pickers, upload method cards. Labelled buttons and filter
+     pills are fully rounded instead (--pill-radius). Swatches, chips, panels
+     and dialogs keep their own radii: those are surfaces and colour samples,
+     and rounding them like controls would say they can be pressed. Note
+     applyTweaks overwrites this at startup, so the tweak knob is the live value. */
+  --btn-radius: 4px;
+
+  /* Surfaces. The artboard stays white on purpose: it is the ground a maker
+     judges fabric and thread colour against, and a cream field behind the work
+     would warm every swatch sitting on it. */
+  --surface-card: #F9F7F2;
+  --surface-canvas: var(--metime-white);
+
+  /* Action / accent semantics */
+  --action: var(--metime-black);
+  --action-hover: var(--ice-500);
+  --selection: var(--ice-200);
+  --metime-wave: var(--metime-tomato);
+
+  /* Shadows */
+  --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.14);
+
+  /* Motion — one easing and two press depths, so every tap and every step
+     change moves the same way. Cards get the shallower dip: the setup steps
+     lay them out edge to edge with 1px dividers, and a deep dip pulls a
+     visible gap open between neighbours. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --press-scale: 0.96;
+  --press-scale-card: 0.985;
+  --press-dur: 90ms;
+  --step-dur: 150ms;
+  --art-dur: 150ms;
+  --art-rise: 8px;
+  --art-stagger: 30ms;
+
+  /* Fonts. Sans and display both run the brand grotesk so the editor's chrome
+     reads as the same product as the pages around it; the display face keeps a
+     separate token because it is set bold and tight where the brand headings are.
+     There is no mono face: readouts and figures use the sans with tabular numerals. */
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Type scale (Figma 02 - typography) — used at editorial moments;
+     the dense tool UI keeps its smaller working sizes (11/12/13). */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  /* Tweakable structural tokens (kept for backwards-compat with TweaksPanel) */
+  /* The brand builds structure out of hairlines rather than fills or shadows, so
+     the panel divisions drop from solid black to the brand's visible rule weight. */
+  --div-border: 1px solid rgba(23, 23, 23, 0.22);
+  --app-bg: var(--metime-cream);
+  --canvas-bg: var(--metime-white);
+}
+
+/* ── Brand tokens (2026 direction) ────────────────────────────────────────
+   Deliberately a NEW namespace rather than a repoint of the --metime-* /
+   --ice-* tokens above: both studios read those, and the editor is meant to
+   stay exactly as it is. Nothing here has any effect until an element sits
+   inside .brand-shell (see the brand layer at the end of this stylesheet). */
+:root {
+  --brand-paper:  #F9F7F2;   /* primary page ground */
+  --brand-cream:  #F5EDE1;   /* secondary surfaces, inset fields */
+  --brand-ink:    #171717;   /* text + controls */
+  --brand-olive:  #BBC13F;
+  --brand-tomato: #EF5535;
+  --brand-lilac:  #ACA6CE;
+  --brand-butter: #F0C75E;
+  --brand-camel:  #A36C42;
+  --brand-blue:   #CBD7ED;
+
+  /* Ink at reduced strength. Hairlines are the main structural device, so
+     they get three weights: a visible rule, a quiet divider, and a wash used
+     for inset fields sitting on top of a colour panel. */
+  --brand-rule:    rgba(23, 23, 23, 0.22);
+  --brand-rule-2:  rgba(23, 23, 23, 0.12);
+  --brand-wash:    rgba(23, 23, 23, 0.05);
+  /* Both cleared against paper AND cream at 4.5:1, since captions and spec
+     labels run at 12–13px and the small-text bar applies. Ink below about
+     0.61 alpha fails on paper, so these sit deliberately above that. */
+  --brand-muted:   rgba(23, 23, 23, 0.72);
+  --brand-muted-2: rgba(23, 23, 23, 0.66);
+
+  /* A grotesk, per the brand direction. Helvetica Neue is present on the
+     Apple devices this ships to and degrades through Helvetica → Arial;
+     metrics are close enough that the tight heading tracking below holds. */
+  --brand-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Display scale. Fluid so a 92px hero on a desktop becomes a 40px hero on
+     a phone without a separate breakpoint for every heading. */
+  --brand-display-xl: clamp(36px, 5.6vw, 88px);
+  --brand-display-l:  clamp(30px, 3.9vw, 54px);
+  --brand-display-m:  clamp(25px, 2.5vw, 34px);
+  --brand-display-s:  clamp(21px, 1.7vw, 26px);
+  --brand-body:       17px;   /* ≥16px per the brief */
+  --brand-body-s:     16px;
+  --brand-label:      14px;   /* interface labels */
+  --brand-eyebrow:    12px;   /* caps micro-label, letterspaced */
+
+  /* Headings run tight; body runs comfortable. */
+  --brand-track-display: -0.028em;
+  --brand-leading-display: 0.98;
+  --brand-leading-body: 1.5;
+
+  --brand-gutter: clamp(20px, 4.2vw, 64px);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--metime-cream);
+  color: var(--warm-fg);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--app-bg); }
+.body { flex: 1; display: grid; grid-template-columns: 52px 1fr 290px; min-height: 0; }
+.panel { overflow-y: auto; border-right: var(--div-border); }
+.panel:last-child { border-right: none; }
+
+/* Scrollbar */
+.panel::-webkit-scrollbar { width: 4px; }
+.panel::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
+
+/* Collapsible right panel.
+   Both desktop and mobile collapse the panel to a thin rail (mirroring the
+   left tool rail) that keeps the selected color + high-level totals visible.
+   Expanding restores the full panel column on desktop, and slides it in as a
+   drawer over a backdrop on mobile. */
+.body { position: relative; transition: grid-template-columns .22s ease; }
+
+/* Thin collapsed rail contents (swatch + high-level stats) */
+
+@media (max-width: 900px) {
+  /* Quilt: expanded overlays a drawer instead of using a grid column
+     (collapsed still shows the 52px rail column from the base rules) */
+  .body { grid-template-columns: 52px 1fr; }
+
+  /* Tighten chrome so the canvas keeps as much room as possible
+     (studio header/top bar rules live after their base styles, below) */
+  .preset-pill { max-width: 200px; }
+  .canvas-scroll { padding: 12px; }
+  .xs-canvas-wrap { padding: 12px; }
+}
+
+@media (max-width: 560px) {
+  .btn { padding: 6px 12px; font-size: 11px; }
+  .header-right { gap: 6px; }
+}
+
+/* ── Mobile: Canva-style bottom toolbar + bottom sheets ──────────────────
+   Mobile-only (<=900px). The vertical rails and the right drawer are replaced
+   by a fixed bottom toolbar and slide-up sheets. Everything reuses the
+   existing tokens/classes so the look is unchanged — only the layout moves. */
+@media (max-width: 900px) {
+  /* Studio chrome must stay on-screen. `.app` / `.xs-app` are 100vh with
+     overflow:hidden, but on mobile 100vh can exceed the visible viewport
+     (iOS URL bar) so the DOCUMENT becomes the scroller and the top bar
+     slides away. Lock that, pin the shell to 100%, and keep the header
+     sticky as a backstop if any ancestor still scrolls. */
+  html:has(.app), html:has(.xs-app),
+  body:has(.app), body:has(.xs-app) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .app {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    padding-bottom: calc(58px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .app > header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  /* Center column used to be `.panel { overflow-y:auto }`, so SizeBar
+     (and ZoomBar) scrolled away with the canvas. Canvas-scroll is the
+     scroller; keep the top chrome in flow. */
+  .body { min-height: 0; overflow: hidden; }
+  .body > .panel { min-height: 0; overflow: hidden; }
+  .canvas-scroll, .xs-canvas-wrap { overscroll-behavior: contain; }
+  /* Single-column body (rails + right drawer are not rendered on mobile). */
+  .body { grid-template-columns: 1fr; }
+
+  .mobile-toolbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+    display: flex; align-items: center; gap: 4px; overflow-x: auto;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    background: var(--app-bg); border-top: var(--div-border);
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.08); -webkit-overflow-scrolling: touch;
+  }
+  .mobile-toolbar::-webkit-scrollbar { display: none; }
+  .mobile-toolbar .icon-btn { flex-shrink: 0; width: 40px; height: 40px; }
+  .mobile-toolbar-divider { flex-shrink: 0; width: 1px; height: 22px; background: var(--warm-hairline); margin: 0 4px; }
+
+  /* Selection toolbars become a contextual bar pinned above the toolbar.
+     Reuses the existing .selection-toolbar chrome; overrides the JS-computed
+     fixed coords with a bottom-anchored, full-width bar. */
+  .selection-toolbar.mobile-selbar {
+    position: fixed !important; left: 8px; right: 8px; top: auto !important;
+    bottom: calc(66px + env(safe-area-inset-bottom)); visibility: visible !important;
+    justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .selection-toolbar.mobile-selbar::after { display: none; }
+
+  /* Bottom sheet chrome. */
+  .bottom-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 200; }
+  .bottom-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
+    background: var(--app-bg); border-top: var(--div-border);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0,0,0,0.20);
+    display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 8px auto 2px; flex-shrink: 0; }
+  .bottom-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 12px 6px; flex-shrink: 0; }
+  .bottom-sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Center modal dialogs (.overlay) and the cross-stitch fabric picker become
+     bottom sheets on mobile. `!important` is required to override the cards'
+     inline styles; desktop keeps the centered dialog untouched. */
+  .overlay { align-items: flex-end !important; }
+  .overlay > div {
+    max-width: none !important; width: 100% !important; margin: 0 !important;
+    border-radius: 14px 14px 0 0 !important; max-height: 88vh !important; overflow-y: auto !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Header */
+header { padding: 14px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; flex-shrink: 0; background: var(--app-bg); position: relative; z-index: 5; border-bottom: var(--div-border); box-shadow: none; }
+.header-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* Brand wordmark (metime) — canvas headers use the compact icon on narrow
+   screens so Save keeps padding; setup/proj pages keep the full wordmark. */
+.brand { display: inline-flex; align-items: center; color: var(--metime-almost-black); text-decoration: none; line-height: 0; }
+.brand-mark { height: 28px; width: auto; display: block; }
+.brand-icon { display: none; height: 28px; width: 28px; object-fit: contain; }
+@media (max-width: 900px) {
+  .app .brand-mark { display: none; }
+  .app .brand-icon { display: block; }
+  .app .header-right .btn { white-space: nowrap; }
+}
+@media (max-width: 560px) {
+  .app .brand-icon { height: 26px; width: 26px; }
+}
+
+/* Preset selector (header center). A dropdown field, not a button: the same
+   4px corner and 1px stroke as the select inputs, and the stroke rather than
+   a fill answers hover and open. */
+.preset-pill { display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 30px; padding: 0 10px 0 12px; background: var(--ds-white); border: 1px solid var(--warm-muted-2); border-radius: 4px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--warm-fg); cursor: pointer; transition: border-color .12s, box-shadow .12s; max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preset-pill:hover { border-color: var(--ds-black); }
+.preset-pill[aria-expanded="true"] { border-color: var(--ds-black); }
+.preset-pill:focus-visible { outline: none; border-color: var(--ds-black); box-shadow: var(--btn-focus-shadow); }
+.preset-pill .preset-dim { color: var(--warm-muted); font-weight: 400; font-family: var(--font-sans); font-size: 12px; }
+.preset-pill .ic { color: var(--warm-muted); margin-left: 2px; }
+.preset-pill > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Icons (<Icon>): one color at rest; the pastel duotone layer fades in on hover */
+.ic { display: inline-block; flex: none; vertical-align: middle; }
+
+/* Icon button (used in header + tool rail + popover triggers) */
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--btn-radius); border: 1px solid transparent; background: transparent; color: var(--btn-secondary-fg); cursor: pointer; transition: background .12s, border-color .12s, color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); padding: 0; }
+.icon-btn:hover { background: var(--btn-tool-hover); }
+.icon-btn:active { background: var(--btn-secondary-bg-active); }
+.icon-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; box-shadow: none; }
+.icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
+.icon-btn[aria-pressed="true"]:hover, .icon-btn.active:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-stroke); }
+.icon-btn:disabled { color: var(--btn-disabled-fg); cursor: not-allowed; }
+.icon-btn:disabled:hover { background: transparent; }
+
+/* Toggle switch (pill on/off control) */
+.switch { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: 12px; color: var(--warm-fg-2); user-select: none; }
+.switch-track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--color-linen-800); border: 1px solid var(--btn-secondary-border); transition: background .12s, border-color .12s; flex-shrink: 0; }
+.switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--metime-white); box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform .12s; }
+.switch[aria-checked="true"] .switch-track { background: var(--color-taupe-900); border-color: var(--color-taupe-900); }
+.switch[aria-checked="true"] .switch-knob { transform: translateX(14px); }
+.switch:focus-visible { outline: none; }
+.switch:focus-visible .switch-track { box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+
+/* Popover (anchored floating panel) */
+.popover-backdrop { position: fixed; inset: 0; z-index: 90; background: transparent; }
+.popover { position: fixed; z-index: 91; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 10px 32px rgba(0,0,0,0.16); font-family: var(--font-sans); }
+.popover-header { padding: 12px 14px 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.popover-title { font-size: 12px; font-weight: 500; color: var(--warm-fg); }
+.popover-body { padding: 4px 14px 14px; }
+
+/* Coaster set: 4 pages sharing palette/template, edited one at a time. */
+.coaster-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 20px; border-bottom: var(--div-border); background: var(--surface-canvas);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.coaster-tablist {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--warm-hairline); border-radius: 8px;
+  overflow: hidden; background: var(--surface-card);
+}
+.coaster-tab {
+  appearance: none; border: none; background: transparent; cursor: pointer;
+  padding: 6px 12px; font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+  color: var(--warm-muted); border-right: 1px solid var(--warm-hairline); white-space: nowrap;
+}
+.coaster-tab:last-child { border-right: none; }
+.coaster-tab:hover { background: var(--warm-hover); color: var(--warm-fg); }
+.coaster-tab.active { background: var(--metime-almost-black); color: var(--metime-white); }
+.coaster-tab.active:hover { background: var(--metime-almost-black); color: var(--metime-white); }
+.coaster-tab:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
+.coaster-copy { flex-shrink: 0; }
+@media (max-width: 900px) {
+  .coaster-bar { padding: 8px 14px; }
+  .coaster-tab { padding: 6px 9px; font-size: 11px; }
+}
+
+/* Canvas viewport (scrollable, centered, scaled by zoom).
+   `margin: auto` on the child centers a small design and still lets you
+   scroll to every edge once zoom makes it larger than the viewport. */
+.canvas-scroll { width: 100%; height: 100%; overflow: auto; display: flex; padding: 24px; box-sizing: border-box; }
+.canvas-scroll > .canvas-frame { flex-shrink: 0; position: relative; background: var(--canvas-bg); margin: auto; }
+.canvas-surface { position: absolute; inset: 0; user-select: none; touch-action: none; }
+.canvas-scroll.is-panning, .xs-canvas-wrap.is-panning { cursor: grab; }
+.canvas-scroll.is-panning:active, .xs-canvas-wrap.is-panning:active { cursor: grabbing; }
+.canvas-scroll.is-panning .canvas-surface, .xs-canvas-wrap.is-panning .xs-canvas { cursor: grab; }
+
+/* Bottom-of-canvas zoom bar */
+.zoom-bar { display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-top: var(--div-border); background: var(--surface-canvas); flex-shrink: 0; }
+.zoom-bar input[type=range] { flex: 1; max-width: 280px; }
+.zoom-bar-value { font-family: var(--font-sans); font-size: 11px; color: var(--warm-fg-2); min-width: 40px; text-align: right; }
+
+/* Floating selection toolbar (position+coords are computed in JS, FigJam-style) */
+.selection-toolbar { z-index: 100; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--surface-card); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.16); font-size: 12px; white-space: nowrap; pointer-events: auto; }
+.selection-toolbar-divider { display: inline-block; width: 1px; height: 16px; background: var(--warm-hairline); margin: 0 2px; }
+.selection-swatch-meta { color: var(--warm-muted); font-family: var(--font-sans); font-size: 11px; }
+.selection-toolbar::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+.selection-toolbar.above::after { bottom: -5px; border-top: 6px solid var(--surface-card); }
+.selection-toolbar.below::after { top: -5px; border-bottom: 6px solid var(--surface-card); }
+.selection-toolbar.clamped::after { display: none; }
+
+/* Section labels */
+.label { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--warm-fg); margin-bottom: 10px; }
+
+/* Cards */
+.card { padding: 16px; border-bottom: var(--div-border); }
+.card:last-child { border-bottom: none; }
+
+/* Inputs */
+input[type=text], input[type=email], select, textarea {
+  width: 100%; padding: 7px 10px; font-size: 13px; font-family: var(--font-sans);
+  border: 1px solid var(--warm-hairline); background: var(--surface-card); color: var(--warm-fg); outline: none;
+  border-radius: 4px; transition: border-color .15s;
+}
+input[type=text]:focus, input[type=email]:focus, select:focus, textarea:focus { border-color: var(--metime-almost-black); }
+select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='10' height='10' fill='none' stroke='%238A8580' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
+input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
+input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
+input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--warm-hairline); background: none; border-radius: 4px; cursor: pointer; }
+
+/* Buttons — metime design system V1 (Figma 2095:232).
+   Default .btn = Secondary hierarchy, .btn-dark = Primary, .btn-tertiary = Tertiary.
+   .btn is the Small size (30px) the dense studio chrome runs at; .btn-md,
+   .btn-lg and .btn-cta are Medium (36px), Large (44px) and CTA (52px).
+   .btn-sm and .btn-xs are tighter still for inline rows inside panels and popovers. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; min-height: 30px; padding: 0 14px; font-size: 13px; line-height: 16px; font-family: var(--font-sans); font-weight: 500; letter-spacing: 0.01em; border-radius: var(--pill-radius); cursor: pointer; transition: background .14s, border-color .14s, color .14s, box-shadow .12s, transform var(--press-dur) var(--ease-out); border: var(--btn-stroke-w) solid var(--btn-secondary-border); background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+.btn:hover { background: var(--btn-secondary-bg-hover); border-color: var(--btn-secondary-border); }
+.btn:active { background: var(--btn-secondary-bg-active); }
+.btn:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.btn:disabled, .btn[disabled] { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: not-allowed; box-shadow: none; }
+
+.btn-dark { background: var(--btn-primary-bg); color: var(--btn-primary-fg); border-color: var(--btn-stroke); }
+.btn-dark:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.btn-dark:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); color: var(--btn-primary-fg-active); }
+.btn-dark:disabled, .btn-dark[disabled] { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); }
+
+.btn-sm { min-height: 26px; padding: 0 12px; font-size: 12px; }
+.btn-xs { min-height: 22px; padding: 0 10px; font-size: 11px; }
+
+/* Fabric row (clickable color field) */
+.fabric-row { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: transparent; border: none; border-bottom: var(--div-border); width: 100%; cursor: pointer; text-align: left; font: inherit; color: inherit; transition: background .12s, transform var(--press-dur) var(--ease-out); box-sizing: border-box; }
+.fabric-row:hover { background: var(--warm-hover); }
+.fabric-row:focus-visible { outline: 2px solid var(--selection); outline-offset: -2px; }
+.fabric-row-swatch { width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--warm-hairline); }
+.fabric-row-swatch.empty { border: 1px dashed var(--warm-hairline); background: transparent; }
+.fabric-row-main { flex: 1; min-width: 0; }
+.fabric-row-title { font-size: 12px; font-weight: 500; color: var(--warm-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabric-row-name { color: var(--warm-muted); font-weight: 400; }
+.fabric-row-detail { font-size: 11px; color: var(--warm-muted); font-family: var(--font-sans); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Color chip */
+.chip { aspect-ratio: 1; border-radius: 4px; border: 1px solid rgba(0,0,0,0.12); cursor: pointer; transition: transform .1s, box-shadow .1s; display: block; width: 100%; }
+.chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+.chip.selected { outline: 2pt solid var(--metime-black); outline-offset: 0; box-shadow: none; position: relative; z-index: 2; }
+
+/* Filter pills — metime design system V1 (Figma 2190:1646). Every filter row
+   uses the ice accent. Default: accent outline, dark-shade label.
+   Hover: accent fill. Selected: accent fill with a dark-shade outline. The
+   outline sits inside the 9/18 padding, as Figma's inside stroke does, and
+   thins from 2px to 1.5px when selected without changing the pill's size. */
+.filter-pill {
+  --pill: var(--color-ice); --pill-dark: var(--color-ice-dark);
+  --pill-bw: 2px; --pill-py: 9px; --pill-px: 18px;
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  padding: calc(var(--pill-py) - var(--pill-bw)) calc(var(--pill-px) - var(--pill-bw));
+  border: var(--pill-bw) solid var(--pill); border-radius: var(--pill-radius);
+  background: transparent; color: var(--pill-dark);
+  font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap;
+  cursor: pointer; transition: background .12s, border-color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out);
+}
+.filter-pill:hover { background: var(--pill); }
+.filter-pill:is([aria-selected="true"], [aria-pressed="true"]) {
+  --pill-bw: 1.5px;
+  background: var(--pill); border-color: var(--pill-dark);
+}
+.filter-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.filter-pill.is-compact { --pill-py: 5px; --pill-px: 12px; }
+
+/* Overlay */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 100; display: flex; align-items: center; justify-content: center; }
+
+/* Signed-in account: 24px profile-circle (Figma 7:1132) + email/sign-out menu. */
+.account-menu { position: relative; z-index: 20; }
+.account-menu-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; border: none; background: none;
+  color: var(--metime-black); cursor: pointer; line-height: 0;
+}
+.account-menu-btn:hover { opacity: 0.7; }
+.account-menu-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+.account-menu-pop {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  min-width: 200px; max-width: min(280px, calc(100vw - 32px));
+  padding: 12px 14px; background: var(--metime-white);
+  border: 1px solid var(--metime-black); border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+}
+.account-menu-email {
+  font-family: var(--font-sans); font-size: 13px; font-weight: 400; line-height: 1.3;
+  color: var(--warm-fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.account-menu-out {
+  display: inline-flex; margin-top: 10px; padding: 0; background: none; border: none;
+  border-bottom: 1px solid currentColor; border-radius: 0;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1.2;
+  color: var(--metime-black); cursor: pointer;
+}
+.account-menu-out:hover { opacity: 0.7; }
+.account-menu-out:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 3px; }
+.auth-code { letter-spacing: 0.35em; font-size: 22px; font-variant-numeric: tabular-nums; text-align: center; font-family: var(--font-sans); }
+
+/* Info text */
+.muted { color: var(--warm-muted); }
+/* auto-fit (not auto-fill) collapses empty trailing tracks so the cards
+   stretch to fill the row on desktop; at narrow widths it still resolves to a
+   single column, so mobile stacking is unchanged. max-width keeps cards sane
+   on very wide screens. Shared by the craft picker and both size selectors. */
+
+/* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards.
+   Lives as a sibling of .land-main so the viewport-locked landing flex
+   cannot clip the grid under the golden footer. */
+.saved-sec { flex: 0 0 auto; background: var(--metime-white); border-top: 1px solid var(--metime-black); }
+.saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; padding: 16px 40px; }
+.saved-head { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
+.saved-head:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+.saved-head-title { font-family: var(--font-sans); font-size: 16px; font-weight: 700; line-height: 1.2; color: var(--metime-black); }
+.saved-count { font-weight: 400; }
+.saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--metime-black); transition: transform 0.15s; }
+.saved-chev.is-open { transform: rotate(180deg); }
+.saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
+.saved-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 28px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
+.saved-card:nth-child(4n) { border-right: none; }
+.saved-card:nth-child(n+5) { border-top: 1px solid var(--metime-black); }
+.saved-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+.saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; overflow: hidden; background: var(--metime-cream); }
+.saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+.saved-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.saved-card-text { min-width: 0; }
+.saved-name { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-meta { font-family: var(--font-sans); font-size: 13px; font-weight: 300; line-height: 1.3; color: var(--metime-black); margin-top: 4px; }
+.saved-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+.saved-card:hover .saved-card-arrow,
+.saved-card:focus-visible .saved-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+.saved-card-arrow .ic { display: block; width: 22px; height: 22px; }
+.saved-empty { grid-column: 1 / -1; padding: 36px 40px; font-family: var(--font-sans); font-size: 14px; color: var(--warm-muted); }
+@media (max-width: 1080px) {
+  .saved-grid { grid-template-columns: 1fr 1fr; }
+  .saved-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+  .saved-card:nth-child(2n) { border-right: none; }
+  .saved-card:nth-child(n+5) { border-top: none; }
+  .saved-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
+}
+@media (max-width: 900px) {
+  .saved-toolbar { padding: 14px 20px; }
+  .saved-card { padding: 20px; gap: 12px; }
+}
+@media (max-width: 600px) {
+  .saved-grid { grid-template-columns: 1fr; }
+  .saved-card { border-right: none; }
+  .saved-card:nth-child(2n) { border-right: none; }
+  .saved-card:nth-child(n+3) { border-top: none; }
+  .saved-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
+}
+
+/* Landing page (Figma Desktop - 1, node 1:4).
+   .land-page is the scrollport; .land-fill is at least one viewport tall so
+   the golden footer sits under the content instead of pinning over it. */
+.land-page { height: 100%; overflow: auto; background: var(--metime-white); color: var(--metime-black); }
+.land-fill { display: flex; flex-direction: column; min-height: 100%; }
+.land-login { background: none; border: none; padding: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: normal; color: var(--metime-black); cursor: pointer; }
+.land-login:hover { opacity: 0.7; }
+.land-login:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+.land-craft + .land-craft::before {
+  content: ""; position: absolute; pointer-events: none; z-index: 4; background: var(--metime-black);
+}
+
+.land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: min(360px, 40vh); background: var(--metime-white); }
+.land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: min(360px, 40vh); }
+.land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; min-height: 0; outline: none; }
+.land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+.land-craft.is-soon { opacity: 0.55; cursor: default; }
+.land-craft + .land-craft::before { left: 0; top: 0; bottom: 0; width: 1px; }
+.land-craft-visual { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; padding: 8px 0 20px; }
+.land-craft-visual img { display: block; width: auto; height: auto; max-width: min(320px, 100%); max-height: 100%; object-fit: contain; }
+.land-craft-copy { flex: 0 0 auto; min-width: 0; }
+.land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); margin-bottom: 6px; }
+.land-craft-desc-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.land-craft-desc { flex: 1 1 auto; font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: 1.3; color: var(--metime-black); min-width: 0; }
+.land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; margin-top: -4px; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+.land-craft:hover .land-craft-arrow,
+.land-craft:focus-visible .land-craft-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+.land-craft-arrow .ic { display: block; width: 26px; height: 26px; }
+@keyframes land-craft-arrow-nudge {
+  from { transform: translateX(0); }
+  to { transform: translateX(8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .land-craft:hover .land-craft-arrow,
+  .land-craft:focus-visible .land-craft-arrow,
+  .saved-card:hover .saved-card-arrow,
+  .saved-card:focus-visible .saved-card-arrow { animation: none; }
+}
+
+@media (max-height: 900px) {
+  .land-craft { padding: 20px 32px 24px; }
+  .land-craft-visual { padding: 4px 0 12px; }
+  .land-craft-name { font-size: 22px; }
+  .land-craft-desc { font-size: 18px; }
+}
+
+@media (max-width: 900px) {
+  .land-crafts { grid-template-columns: 1fr; }
+  .land-craft { padding: 24px 28px; }
+  .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
+  .land-craft-visual img { max-height: 180px; }
+}
+
+/* Quilt "What size?" step (Figma Desktop - 2, node 5:3).
+   Continues the landing page: same olive header, same 1px black rules, same
+   hover-reveal arrow. The size cards are one edge-to-edge band of white
+   columns divided by hairlines, sitting on the golden footer. */
+.size-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+.size-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 4.44vw, 64px); line-height: 1.1; color: var(--metime-white); text-align: center; }
+.size-back { position: absolute; left: 41px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 2px; background: none; border: none; padding: 0; cursor: pointer; color: var(--color-taupe-900); }
+.size-back:hover { opacity: 0.7; }
+.size-back:active { opacity: 0.55; }
+.size-back:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
+.size-back-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
+.size-back-icon .ic { display: block; width: 14px; height: 14px; }
+.size-back-label { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 24px; border-bottom: 1px solid currentColor; }
+
+.size-row { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--metime-black); }
+/* Grid, not flex: iPad Safari shrinks flex children of <button> to content
+   width, which left-aligns the photo and parks the arrow next to the title. */
+.size-card {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
+  width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
+  background: none; border: none; border-left: 1px solid var(--metime-black);
+  text-align: left; font: inherit; color: inherit; cursor: pointer;
+  outline: none; -webkit-appearance: none; appearance: none;
+}
+.size-card:first-child { border-left: none; }
+.size-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+.size-card-visual {
+  justify-self: stretch; width: 100%; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  height: clamp(140px, 21.6vh, 221px); overflow: hidden;
+  background: transparent;
+}
+.size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0 auto; object-fit: contain; }
+.size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
+.size-card-copy {
+  display: flex; align-items: center; justify-content: space-between;
+  justify-self: stretch; width: 100%; min-width: 0;
+  gap: 12px; margin-top: 24px;
+}
+.size-card-text { min-width: 0; }
+.size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
+.size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
+/* Kit price, fetched live from Shopify. Absent for sizes we don't sell yet. */
+.size-card-price { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--metime-black); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; margin-left: auto; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+.size-card:hover .size-card-arrow,
+.size-card:focus-visible .size-card-arrow,
+.pal-page .pal-card:hover .size-card-arrow,
+.pal-page .pal-card:focus-visible .size-card-arrow,
+.tmpl-page .tmpl-card:hover .size-card-arrow,
+.tmpl-page .tmpl-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
+.size-card-arrow .ic { display: block; width: 26px; height: 26px; }
+@media (prefers-reduced-motion: reduce) {
+  .size-card:hover .size-card-arrow,
+  .size-card:focus-visible .size-card-arrow,
+  .pal-page .pal-card:hover .size-card-arrow,
+  .pal-page .pal-card:focus-visible .size-card-arrow,
+  .tmpl-page .tmpl-card:hover .size-card-arrow,
+  .tmpl-page .tmpl-card:focus-visible .size-card-arrow { animation: none; }
+}
+
+/* Phones have no hover, so the product-block arrows stay visible. */
+@media (hover: none), (max-width: 900px) {
+  .land-craft-arrow,
+  .size-card-arrow,
+  .saved-card-arrow,
+  .pal-page .pal-card .size-card-arrow,
+  .tmpl-page .tmpl-card .size-card-arrow {
+    opacity: 1;
+    visibility: visible;
+    animation: none;
+  }
+}
+
+/* Two-across before one-across: four 20px names in a row need ~230px each. */
+@media (max-width: 1080px) {
+  .size-row { grid-template-columns: 1fr 1fr; }
+  .size-card:nth-child(odd) { border-left: none; }
+  .size-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
+}
+@media (max-width: 900px) {
+  .size-back { left: 20px; }
+  .size-card { padding: 24px 28px; }
+  .size-card-visual { height: clamp(120px, 18vh, 200px); }
+}
+@media (max-width: 600px) {
+  .size-row { grid-template-columns: 1fr; }
+  .size-card { border-left: none; }
+  .size-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
+}
+
+/* Quilt backing step (Figma Desktop - 5, node 13:1260). */
+.back-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+.back-skip {
+  position: absolute; right: 41px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; min-width: 0; height: 36px; padding: 0 18px;
+  background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
+  font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+  color: var(--btn-secondary-fg); cursor: pointer;
+}
+.back-skip:hover { background: var(--btn-secondary-bg-hover); }
+.back-skip:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.back-filters {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 10px; flex: 0 0 auto; min-height: 130px; padding: 24px 40px;
+  background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+}
+.back-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; flex: 0 0 auto; }
+.back-grid .fabric-card {
+  border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+  border-radius: 0; box-shadow: none; transform: none;
+}
+.back-grid .fabric-card:hover { box-shadow: none; transform: none; }
+.back-grid .fabric-card:nth-child(8n) { border-right: none; }
+.back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--metime-black); }
+.back-grid .fabric-thumb { aspect-ratio: 180 / 192; }
+@media (max-width: 1080px) {
+  .back-grid { grid-template-columns: repeat(4, 1fr); }
+  .back-grid .fabric-card:nth-child(8n) { border-right: 1px solid var(--metime-black); }
+  .back-grid .fabric-card:nth-child(4n) { border-right: none; }
+}
+@media (max-width: 900px) {
+  .back-skip { right: 20px; min-width: 0; height: 36px; padding: 0 12px; font-size: 13px; }
+  .back-filters { min-height: 0; padding: 16px 20px; }
+}
+@media (max-width: 600px) {
+  .back-grid { grid-template-columns: repeat(2, 1fr); }
+  .back-grid .fabric-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+  .back-grid .fabric-card:nth-child(2n) { border-right: none; }
+}
+
+/* Quilt palette step (Figma Desktop - 6, node 18:1425). */
+.pal-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+.pal-suggest-bar {
+  display: flex; align-items: center; flex: 0 0 auto; min-height: 173px; padding: 24px 40px;
+  background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+}
+.pal-page .pal-from-image {
+  display: flex; align-items: center; gap: 24px;
+  width: 100%; max-width: none; padding: 0; border: none; border-radius: 0; background: none;
+}
+.pal-page .pal-from-image-preview {
+  width: 97px; height: 97px; outline: none; border: 1px solid var(--metime-black);
+}
+.pal-page .pal-from-image-preview-btn {
+  padding: 0; margin: 0; background: none; border: none; cursor: zoom-in;
+  flex-shrink: 0; line-height: 0;
+}
+.pal-page .pal-from-image-preview-btn:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring);
+}
+.pal-page .pal-from-image-main {
+  flex: 1; flex-direction: row; align-items: center; gap: 24px; min-width: 0;
+}
+.pal-page .pal-from-image-swatches { gap: 8px; flex: 1 1 auto; min-width: 0; }
+.pal-page .pal-from-image-swatch { width: 64px; height: 64px; }
+.pal-page .pal-from-image-add {
+  width: 64px; height: 64px; border-radius: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.5); background: #F5F5F5;
+  color: var(--metime-black); font-size: 0;
+}
+.pal-page .pal-from-image-add:hover { background: var(--metime-cream); }
+.pal-page .pal-from-image-use {
+  flex: 0 0 auto; min-width: 160px; height: 44px; padding: 0 22px; margin-left: auto;
+  border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
+  background: var(--btn-primary-bg); color: var(--btn-primary-fg);
+  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
+  cursor: pointer;
+}
+.pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+.pal-page .pal-from-image-use:disabled { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default; }
+/* Photo → chart flattening. Sits under the palette bar because it shapes the
+   same generated design, and carries a live chart preview: the setting means
+   nothing until you can see what it does to your own photo. */
+.xs-flatten {
+  display: flex; align-items: center; gap: 24px; flex: 0 0 auto;
+  padding: 20px 40px; background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
+}
+.xs-flatten-main { flex: 1; min-width: 0; }
+.xs-flatten-row {
+  display: flex; width: fit-content; margin-top: 12px;
+  border: 1px solid var(--metime-black); border-radius: 4px; overflow: hidden;
+}
+.xs-flatten-btn {
+  height: 34px; padding: 0 16px; border: none; border-left: 1px solid var(--metime-black);
+  background: var(--metime-white); color: var(--metime-black);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1;
+  cursor: pointer; transition: background .12s, color .12s;
+}
+.xs-flatten-btn:first-child { border-left: none; }
+.xs-flatten-btn:hover:not(.active) { background: var(--metime-cream); }
+.xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
+.xs-flatten-btn.active { background: var(--ice-500); color: var(--metime-white); border-color: var(--metime-black); }
+.xs-flatten-note { margin-top: 8px; font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); }
+.xs-flatten-check {
+  display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none;
+}
+.xs-flatten-check input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; accent-color: var(--color-taupe-900); cursor: pointer; }
+.xs-flatten-check-note { font-weight: 400; color: var(--warm-muted); }
+/* Sized for the photo-to-chart reveal rather than for a thumbnail. At the old
+   140px a Medium Hoop chart was about one pixel per stitch, so stitches
+   arriving one after another read as nothing at all; this also puts the
+   smaller presets over the threshold where their counting grid is worth
+   drawing (see XS_REVEAL_GRID_MIN). */
+.xs-flatten-preview {
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; width: 264px; min-height: 264px; padding: 8px; box-sizing: border-box;
+  background: var(--metime-cream); border: 1px solid var(--metime-black);
+}
+.xs-flatten-empty { font-family: var(--font-sans); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
+.pal-page .pal-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto;
+  gap: 0; width: 100%; flex: 0 0 auto;
+}
+.pal-page .pal-card {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between;
+  align-items: stretch; width: 100%; min-height: 230px; padding: 32px; gap: 0;
+  box-sizing: border-box;
+  border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+  border-radius: 0; box-shadow: none; transform: none;
+}
+.pal-page .pal-card:hover { box-shadow: none; transform: none; }
+.pal-page .pal-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+.pal-page .pal-card:nth-child(4n) { border-right: none; }
+.pal-page .pal-swatches { height: auto; min-height: 48px; flex-wrap: nowrap; }
+.pal-page .pal-swatch { width: 48px; height: 48px; margin-left: -10px; flex-shrink: 0; }
+.pal-page .pal-card-body {
+  display: flex; align-items: center; justify-content: space-between;
+  justify-self: stretch; width: 100%; min-width: 0; gap: 12px; padding: 0;
+}
+.pal-page .pal-card-text { min-width: 0; }
+.pal-page .pal-card-name { font-size: 20px; font-weight: 500; color: var(--metime-black); }
+.pal-page .pal-card-meta { font-size: 16px; font-weight: 300; color: var(--metime-black); margin-top: 5px; }
+@media (max-width: 1080px) {
+  .pal-page .pal-grid { grid-template-columns: repeat(2, 1fr); }
+  .pal-page .pal-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+  .pal-page .pal-card:nth-child(2n) { border-right: none; }
+}
+@media (max-width: 900px) {
+  .pal-suggest-bar { min-height: 0; padding: 16px 20px; }
+  .pal-page .pal-from-image,
+  .pal-page .pal-from-image-main { flex-wrap: wrap; }
+  .pal-page .pal-from-image-use { margin-left: 0; }
+  .pal-page .pal-card { min-height: 0; padding: 24px; }
+  .xs-flatten { padding: 16px 20px; gap: 16px; }
+}
+@media (max-width: 600px) {
+  .xs-flatten { flex-direction: column; align-items: stretch; }
+  .xs-flatten-row { width: 100%; }
+  .xs-flatten-btn { flex: 1; padding: 0 8px; }
+  .xs-flatten-preview { width: 100%; }
+  .pal-page .pal-grid { grid-template-columns: 1fr; }
+  .pal-page .pal-card { border-right: none; }
+  .pal-page .pal-card:nth-child(2n) { border-right: none; }
+  .pal-page .pal-from-image-swatch,
+  .pal-page .pal-from-image-add { width: 48px; height: 48px; }
+  .pal-page .pal-from-image-add { border-radius: 24px; }
+  .pal-page .pal-swatch { width: 48px; height: 48px; }
+}
+
+/* Template step — same shell as size / backing / palette. */
+.tmpl-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+.tmpl-page .tmpl-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+  width: 100%; flex: 0 0 auto;
+}
+.tmpl-page .tmpl-card {
+  display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
+  width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
+  background: none; border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
+  border-radius: 0; box-shadow: none; transform: none;
+  text-align: left; font: inherit; color: inherit; cursor: pointer;
+  outline: none; -webkit-appearance: none; appearance: none;
+}
+.tmpl-page .tmpl-card:nth-child(4n) { border-right: none; }
+.tmpl-page .tmpl-card:hover { box-shadow: none; transform: none; }
+.tmpl-page .tmpl-card:active { transform: none; }
+.tmpl-page .tmpl-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
+.tmpl-page .tmpl-card-thumb {
+  flex: 0 0 auto; align-self: stretch; width: 100%; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: var(--metime-cream); padding: 0;
+}
+.tmpl-page .tmpl-card-thumb svg {
+  display: block; height: 100%; width: auto; max-width: 100%;
+}
+.tmpl-page .tmpl-card-thumb.is-ratio { height: clamp(140px, 21.6vh, 221px); background: var(--metime-cream); }
+.tmpl-page .tmpl-card-thumb.is-ratio svg {
+  width: auto; height: 100%; max-width: 100%;
+  aspect-ratio: var(--tmpl-ar);
+}
+.tmpl-page .tmpl-card-body {
+  display: flex; align-items: center; justify-content: space-between;
+  align-self: stretch; width: 100%; min-width: 0;
+  gap: 12px; margin-top: 24px; padding: 0;
+}
+.tmpl-page .tmpl-card-text { min-width: 0; }
+.tmpl-page .tmpl-card-name {
+  display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500;
+  line-height: 1.2; color: var(--metime-black); margin-bottom: 0;
+}
+.tmpl-page .tmpl-card-desc {
+  display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 300;
+  line-height: 1.3; color: var(--metime-black); margin-top: 6px;
+}
+.tmpl-upload-bar {
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; min-height: 0; padding: 24px;
+  background: #EDF2FC; border-bottom: 1px solid var(--metime-black);
+}
+.tmpl-upload {
+  display: flex; flex-direction: column; align-items: center;
+  width: 100%; cursor: default; text-align: center; gap: 16px;
+}
+.tmpl-upload-heading {
+  font-family: var(--font-sans); font-size: 20px; font-weight: 500;
+  line-height: normal; color: var(--metime-black);
+}
+.tmpl-upload-drop {
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+  padding: 0; border: none; background: transparent;
+  cursor: pointer; text-align: left;
+}
+.tmpl-upload-drop:hover, .tmpl-upload-drop.drag { color: var(--color-taupe-700); }
+.tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.2; color: var(--metime-black); }
+.tmpl-upload .pal-upload-pills { justify-content: center; }
+.tmpl-upload .pal-upload-url {
+  width: 486px; max-width: 100%; padding: 0; background: transparent; border-radius: 0;
+}
+.tmpl-upload .pal-upload-url-row input {
+  height: 40px; padding: 8px; font-size: 16px; border-color: #1F1E1D;
+}
+.tmpl-upload .pal-upload-url-row input::placeholder { color: #7D7A7A; }
+.tmpl-upload .pal-upload-url-row button { height: 40px; font-size: 14px; }
+.tmpl-upload .pal-upload-error { width: 486px; max-width: 100%; }
+.tmpl-upload-result {
+  display: flex; align-items: center; justify-content: center; gap: 24px;
+  width: 100%; min-width: 0;
+}
+.tmpl-upload-file { display: flex; align-items: stretch; gap: 24px; min-width: 0; }
+.tmpl-upload-preview {
+  width: 130px; height: 130px; object-fit: cover; flex-shrink: 0;
+  border: 1px solid #1F1E1D; display: block; background: var(--metime-white);
+}
+.tmpl-upload-preview.is-cutout {
+  object-fit: contain;
+  background-color: var(--ice-100);
+  background-image:
+    linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.tmpl-upload-file-meta { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; }
+.tmpl-upload-file-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 24px; color: var(--metime-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.tmpl-upload-file-dims { font-family: var(--font-sans); font-size: 14px; font-weight: 300; line-height: 24px; color: var(--metime-black); }
+.tmpl-upload-result .switch { gap: 16px; font-size: 16px; color: var(--metime-black); }
+.tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.tmpl-upload-use {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
+  border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
+  background: var(--btn-primary-bg); color: var(--btn-primary-fg);
+  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
+  cursor: pointer;
+}
+.tmpl-upload-use:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.tmpl-upload-use:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+.tmpl-upload-another {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
+  background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
+  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
+  color: var(--btn-secondary-fg); cursor: pointer;
+}
+.tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
+.tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
+.tmpl-upload-use:focus-visible, .tmpl-upload-another:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+@media (max-width: 1080px) {
+  .tmpl-page .tmpl-grid { grid-template-columns: repeat(2, 1fr); }
+  .tmpl-page .tmpl-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
+  .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
+}
+@media (max-width: 900px) {
+  .tmpl-page .tmpl-card { padding: 24px 28px; }
+  .tmpl-upload-bar { min-height: 0; padding: 16px 20px; }
+  .tmpl-upload { align-items: stretch; }
+  .tmpl-upload-heading { text-align: left; }
+  .tmpl-upload-result { flex-wrap: wrap; justify-content: flex-start; }
+  .tmpl-upload-file { width: 100%; }
+  .tmpl-upload-file-name { max-width: none; }
+  .tmpl-upload-actions { margin-left: 0; }
+  .pal-upload-drop, .tmpl-upload-drop, .pal-upload-pills { display: none; }
+  .pal-upload { width: 100%; max-width: none; }
+}
+@media (max-width: 600px) {
+  .tmpl-page .tmpl-grid { grid-template-columns: 1fr; }
+  .tmpl-page .tmpl-card { border-right: none; }
+  .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
+}
+
+/* Cross-stitch editor */
+.xs-ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warm-fg-2); }
+
+/* Mobile studio chrome: one row — back, brand/title, size, Buy kit, menu.
+   Must follow the base header/.xs-topbar rules to win at equal specificity. */
+@media (max-width: 900px) {
+  .app > header { grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 12px; gap: 8px; }
+  .app > header .preset-pill { max-width: 100%; }
+  .app > header .header-right { gap: 6px; }
+  .app > header .btn-dark { padding-left: 12px; padding-right: 12px; }
+}
+@media (max-width: 420px) {
+  :is(.app > header, .xs-topbar) .preset-pill { padding-left: 12px; padding-right: 10px; }
+  :is(.app > header, .xs-topbar) .preset-pill .preset-dim { display: none; }
+  .buy-kit-price { display: none; }
+}
+
+/* Mobile studio menu (StudioMenu) */
+.studio-menu-btn { width: 40px; height: 40px; flex-shrink: 0; }
+.studio-menu-btn[aria-expanded="true"] { background: var(--btn-tool-hover); }
+.studio-menu { padding: 6px 0; }
+.studio-menu-controls { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px 12px; border-bottom: 1px solid var(--warm-divider-soft); margin-bottom: 6px; }
+.studio-menu-controls .switch { font-size: 14px; color: var(--warm-fg); }
+.studio-menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 16px; background: none; border: none; font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--warm-fg); text-align: left; cursor: pointer; box-sizing: border-box; }
+.studio-menu-item:hover { background: var(--warm-hover); }
+.studio-menu-item:focus-visible { outline: 2px solid var(--metime-black); outline-offset: -2px; }
+.studio-menu-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--warm-fg-2); }
+.studio-menu-label { flex: 1; min-width: 0; }
+.studio-menu-meta { font-family: var(--font-sans); font-size: 12px; color: var(--warm-muted); }
+.studio-menu-sep { height: 1px; background: var(--warm-divider-soft); margin: 6px 0; }
+.studio-menu-email { padding: 8px 16px 2px; font-size: 12px; color: var(--warm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
+.xs-canvas-wrap { flex: 1; overflow: auto; display: flex; padding: 24px; background: var(--metime-cream); min-width: 0; }
+.xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); image-rendering: pixelated; touch-action: none; margin: auto; flex-shrink: 0; }
+/* Setup-step intro — heading row carries the top-right skip (Figma 2151:266) */
+.pal-section { margin-bottom: 36px; }
+.pal-section-head { margin-bottom: 14px; }
+/* Palette-step section labels — Söhne Kräftig 20 / Buch 13 (Figma 2151:261) */
+.pal-section-title { font-size: 20px; font-weight: 500; letter-spacing: 0; color: #000000; }
+.pal-section-sub { font-size: 13px; font-weight: 400; color: #3D4E70; margin-top: 3px; }
+/* Even rows that divide both 6 (DMC) and 12 (Kona) sample counts:
+   6 / 4 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
+.pal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 14px;
+  width: 100%;
+}
+@media (min-width: 1800px) {
+  .pal-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 1200px) {
+  .pal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .pal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .pal-grid { grid-template-columns: 1fr; }
+}
+/* Sample palette card — Figma metime design system node 2151:47.
+   Sized for up to 8 overlapping 32px swatches plus padding.
+   Box border #707F87; swatch stroke = 1pt inset black @ 50%. */
+.pal-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  width: 100%; height: 100%; min-width: 0; box-sizing: border-box;
+  padding: 16px 12px 12px; background: var(--metime-white);
+  border: 1px solid #707F87; border-radius: 4px;
+  cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
+  text-align: left; font: inherit; color: inherit;
+}
+.pal-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
+.pal-card:active { transform: translateY(0); }
+.pal-card.selected { box-shadow: 0 0 0 2px #707F87; }
+.pal-swatches { display: flex; align-items: center; height: 32px; width: 100%; }
+.pal-swatch {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box; margin-left: -6px; display: block; position: relative;
+}
+.pal-swatch:first-child { margin-left: 0; }
+.pal-card-body { padding: 10px 0 0; min-width: 0; width: 100%; }
+/* Figma: Söhne Kräftig 14 / Buch 13 */
+.pal-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; }
+.pal-card-meta { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-top: 4px; }
+
+/* Upload */
+.pal-upload {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  text-align: left; cursor: default; width: 50%; max-width: 100%; box-sizing: border-box;
+}
+.pal-upload-drop {
+  display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px;
+  border: 1px dashed #707F87; border-radius: 4px; padding: 10px 14px; text-align: left;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  background: var(--metime-white);
+}
+.pal-upload-drop:hover, .pal-upload-drop.drag { border-color: var(--metime-almost-black); background: var(--warm-hover); }
+.pal-upload-icon { color: #3D4E70; display: inline-flex; flex-shrink: 0; }
+.pal-upload-title { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; }
+.pal-upload-hit { cursor: pointer; }
+.pal-upload-hit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+.pal-upload-add { align-self: flex-start; }
+.pal-upload-sheet .popover-title {
+  font-family: var(--font-sans); font-size: 16px; font-weight: 500; color: var(--metime-black);
+}
+.pal-upload-sheet .bottom-sheet-head { padding: 4px 16px 8px; }
+.pal-upload-sheet-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 16px; }
+.pal-upload-sheet-hint { font-family: var(--font-sans); font-size: 13px; font-weight: 400; color: var(--warm-muted); line-height: 1.35; margin: -2px 0 4px; }
+.pal-upload-method {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%;
+  padding: 12px 14px; text-align: left; cursor: pointer;
+  font: inherit; color: inherit;
+  background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: var(--btn-radius);
+}
+.pal-upload-method:hover { background: var(--color-linen-300); }
+.pal-upload-method[aria-pressed="true"] { background: var(--metime-ice); border-color: var(--metime-almost-black); }
+.pal-upload-method:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+.pal-upload-method:disabled { opacity: 0.5; cursor: default; }
+.pal-upload-method-icon { display: inline-flex; flex-shrink: 0; color: var(--metime-almost-black); margin-top: 1px; }
+.pal-upload-method-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pal-upload-method-title { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--metime-black); line-height: 1.25; }
+.pal-upload-method-sub { font-family: var(--font-sans); font-size: 12px; font-weight: 400; color: var(--warm-muted); line-height: 1.3; }
+.pal-upload-method-block { display: flex; flex-direction: column; gap: 8px; }
+.pal-upload-method-block .pal-upload-url { padding: 0; background: transparent; border-radius: 0; }
+.pal-upload-method-block .pal-upload-url-row { flex-direction: column; }
+.pal-upload-method-block .pal-upload-url-row button { width: 100%; }
+.bottom-sheet-backdrop.is-lift { z-index: 240; }
+.bottom-sheet.is-lift { z-index: 241; }
+.pal-upload-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-start; }
+/* Import actions — Secondary buttons (Medium), not filter pills. */
+.pal-upload-pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  box-sizing: border-box; height: 36px; padding: 0 18px;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
+  color: var(--btn-secondary-fg); background: var(--btn-secondary-bg);
+  border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius); cursor: pointer;
+  transition: background .12s, box-shadow .12s;
+}
+.pal-upload-pill:hover { background: var(--btn-secondary-bg-hover); }
+.pal-upload-pill:active,
+.pal-upload-pill[aria-pressed="true"] { background: var(--btn-secondary-bg-active); }
+.pal-upload-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.pal-upload-pill:disabled { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: not-allowed; }
+.pal-upload-url {
+  position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  width: 100%; padding: 10px; box-sizing: border-box;
+  background: var(--color-linen-500); border-radius: 6px;
+  cursor: default; text-align: left;
+}
+.pal-upload-url-label {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.pal-upload-url-row { display: flex; gap: 6px; width: 100%; }
+.pal-upload-url-row input {
+  flex: 1; min-width: 0; height: 32px; padding: 0 10px;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 400;
+  border: 1px solid var(--metime-black); border-radius: 4px;
+  background: var(--metime-white); color: var(--warm-fg);
+}
+.pal-upload-url-row input:focus { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+.pal-upload-url-row input:disabled { opacity: 0.6; }
+.pal-upload-url-row button {
+  flex-shrink: 0; box-sizing: border-box; height: 32px; padding: 0 14px;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
+  background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); cursor: pointer;
+}
+.pal-upload-url-row button:hover:not(:disabled) { background: var(--btn-secondary-bg-hover); }
+.pal-upload-url-row button:active:not(:disabled) { background: var(--btn-secondary-bg-active); }
+.pal-upload-url-row button:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.pal-upload-url-row button:disabled { border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: default; }
+.err-msg {
+  background: var(--metime-grapefruit); color: var(--metime-white);
+  border-radius: 4px; padding: 8px 10px;
+  font-family: var(--font-sans); font-weight: 400; line-height: 1.35;
+}
+.pal-upload-error {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; padding: 8px 10px;
+}
+.pal-result { display: flex; gap: 20px; align-items: flex-start; background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; padding: 16px; }
+/* outline (not a border) so the stroke paints over the image content */
+.pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
+.pal-result-main { flex: 1; min-width: 0; }
+.pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+
+/* Suggested palette from image — Figma metime design system node 2151:24 */
+.pal-from-image {
+  display: flex; gap: 20px; align-items: flex-start;
+  background: var(--metime-white); border: 1px solid #707F87;
+  border-radius: 4px; padding: 25px 16px 16px; box-sizing: border-box;
+  width: fit-content; max-width: 100%;
+}
+.pal-from-image-preview {
+  width: 100px; height: 100px; object-fit: cover; flex-shrink: 0;
+  border: none; display: block; box-sizing: border-box;
+  background-color: var(--ice-100);
+  background-image:
+    linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  /* outline (not inset box-shadow) so the stroke paints over the image content */
+  outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px;
+}
+.pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
+.pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pal-from-image-swatch {
+  position: relative; width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
+  border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box; padding: 0; cursor: pointer; overflow: hidden;
+  transition: opacity var(--art-dur) var(--ease-out), transform var(--art-dur) var(--ease-out);
+}
+/* Held under the row until its turn comes, so the colors lift out of the
+   photo one after another instead of all appearing at once. */
+.pal-from-image-swatch.rising { opacity: 0; transform: translateY(10px) scale(0.86); }
+.pal-from-image-x {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(245, 243, 238, 0.72); color: var(--metime-almost-black);
+  opacity: 0; transition: opacity .12s; pointer-events: none;
+}
+.pal-from-image-x svg { width: 22px; height: 22px; }
+@media (hover: hover) and (pointer: fine) {
+  .pal-from-image-swatch:hover .pal-from-image-x { opacity: 1; }
+}
+.pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
+.pal-from-image-add {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  border: 1px dashed var(--ice-400); background: var(--metime-white);
+  color: #3D4E70; font-size: 20px; line-height: 1; font-weight: 400;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; font-family: inherit;
+}
+.pal-from-image-add:hover { background: var(--warm-hover); }
+.pal-from-image-use {
+  box-sizing: border-box; min-height: 44px; padding: 0 22px; border-radius: var(--pill-radius); font-size: 16px; font-weight: 500; line-height: normal;
+}
+.pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
+.pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
+.pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
+.pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
+.pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-sans); }
+.pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
+.pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
+.pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
+.pal-actions { display: flex; gap: 10px; align-items: center; }
+/* Setup-flow buttons — Medium size (36px). .pal-btn is Primary, .pal-btn.secondary
+   and .pal-skip-btn are Secondary. */
+.pal-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; min-height: 36px; padding: 0 18px; border-radius: var(--pill-radius); font: inherit; font-size: 14px; font-weight: 500; line-height: normal; cursor: pointer; border: var(--btn-stroke-w) solid var(--btn-stroke); background: var(--btn-primary-bg); color: var(--btn-primary-fg); transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform var(--press-dur) var(--ease-out); }
+.pal-btn:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.pal-btn:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+.pal-btn:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.pal-btn:disabled { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: not-allowed; }
+.pal-btn.secondary { background: var(--btn-secondary-bg); border-color: var(--btn-secondary-border); color: var(--btn-secondary-fg); }
+.pal-btn.secondary:hover { background: var(--btn-secondary-bg-hover); }
+.pal-btn.secondary:active { background: var(--btn-secondary-bg-active); }
+.pal-btn.secondary:disabled { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); }
+.pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
+
+/* Template selector */
+.tmpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 900px) { .tmpl-grid { grid-template-columns: repeat(2, 1fr); } }
+.tmpl-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; text-align: left; font: inherit; color: inherit; padding: 0; }
+.tmpl-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
+.tmpl-card:active { transform: translateY(0); }
+.tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
+.tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
+/* Templates that know their own grid size (--tmpl-ar = width/height, set per
+   card) preview at that proportion instead of inside a fixed box, so a 30x120
+   bookmark chart reads as a tall strip. Height is capped at --tmpl-thumb-h and
+   the strip is centered, keeping cards a sane size; no plate behind the art. */
+.tmpl-card-thumb.is-ratio { background: var(--metime-cream); height: auto; }
+.tmpl-card-thumb.is-ratio svg { width: min(100%, calc(var(--tmpl-thumb-h, 300px) * var(--tmpl-ar))); height: auto; aspect-ratio: var(--tmpl-ar); }
+.tmpl-card-body { padding: 12px 15px 15px; }
+.tmpl-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; margin-bottom: 4px; }
+.tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; }
+
+/* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
+.pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+
+/* Backing-fabric picker: Ice filter pills + dense swatch grid. */
+.fabric-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.fabric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.fabric-card { padding: 0; border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; background: var(--metime-cream); font: inherit; transition: box-shadow .15s, transform .12s; }
+.fabric-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.13); transform: translateY(-2px); }
+.fabric-card:active { transform: translateY(0); }
+.fabric-card.selected { box-shadow: 0 0 0 2px var(--metime-almost-black); }
+.fabric-thumb { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+
+/* Full-res fabric enlarge (studio swatch + picker confirm). Sits above
+   bottom sheets so it still works from the mobile fabrics sheet. */
+.overlay-lift { z-index: 220; }
+.fabric-enlarge {
+  background: var(--metime-white); border: 1px solid #CCD6EB; border-radius: 8px;
+  padding: 20px 24px; max-width: min(720px, calc(100vw - 32px)); width: 100%;
+  max-height: 90vh; overflow: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  box-sizing: border-box;
+}
+.fabric-enlarge-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.fabric-enlarge-name { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #000000; min-width: 0; }
+.fabric-enlarge-img {
+  display: block; width: 100%; max-height: min(70vh, 640px); object-fit: contain;
+  background: var(--metime-cream); border: 1px solid #707F87; border-radius: 4px;
+}
+.fabric-enlarge-swatch {
+  width: 100%; max-height: min(70vh, 640px); aspect-ratio: 1; border: 1px solid #707F87; border-radius: 4px;
+}
+.fabric-enlarge-stage { position: relative; }
+.fabric-enlarge-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  background: var(--metime-white); border: 1px solid var(--metime-black); border-radius: 4px;
+  color: var(--metime-black); cursor: pointer;
+}
+.fabric-enlarge-nav.is-prev { left: 8px; }
+.fabric-enlarge-nav.is-next { right: 8px; }
+.fabric-enlarge-nav:hover { background: #EDF2FC; }
+.fabric-enlarge-nav:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring); }
+.fabric-enlarge-count {
+  font-family: var(--font-sans); font-size: 13px; font-weight: 400;
+  color: #3D4E70; white-space: nowrap; margin-left: auto; margin-right: 8px;
+}
+.fabric-enlarge-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* In-studio backing picker (reuses the setup catalog). */
+.backing-picker-dialog {
+  background: var(--metime-white); border: 1px solid #CCD6EB; border-radius: 8px;
+  max-width: 860px; width: 100%; margin: 16px; max-height: 90vh;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14); display: flex; flex-direction: column;
+  overflow: hidden; box-sizing: border-box;
+}
+.backing-picker-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 20px 24px 12px; border-bottom: 1px solid #EDF2FC; flex-shrink: 0;
+}
+.backing-picker-title { font-family: var(--font-display); font-size: 24px; font-weight: 400; line-height: 1.1; color: #000000; }
+.backing-picker-body { overflow-y: auto; padding: 20px 24px 24px; flex: 1; min-height: 0; }
+.backing-picker-dialog .pal-upload { width: 100%; max-width: 360px; }
+.backing-current {
+  display: block; width: 100%; margin: 0 0 20px; padding: 0; border: 1px solid #707F87;
+  border-radius: 4px; overflow: hidden; background: var(--metime-white); cursor: zoom-in;
+  font: inherit; color: inherit; text-align: left;
+}
+.backing-current:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+.backing-current-img { display: block; width: 100%; height: 220px; object-fit: cover; }
+.backing-current-caption { padding: 10px 12px; font-size: 13px; color: #3D4E70; }
+.fabric-row-swatch.can-enlarge { cursor: zoom-in; }
+.fabric-row-swatch.can-enlarge:hover { outline: 2px solid var(--selection); outline-offset: 1px; }
+
+/* Mobile-friendly project setup screens (size / template / palette steps). */
+@media (max-width: 640px) {
+  .fabric-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+  .fabric-filters { gap: 8px; }
+  .pal-section { margin-bottom: 28px; }
+  .pal-section-title { font-size: 18px; }
+  .pal-upload { width: 100%; max-width: none; }
+  .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; --tmpl-thumb-h: 240px; }
+  .tmpl-page .tmpl-grid { gap: 0; }
+  .pal-grid { gap: 12px; }
+  .pal-result { flex-direction: column; gap: 14px; }
+  .pal-result-preview { width: 100%; height: 160px; }
+  .pal-actions { flex-wrap: wrap; }
+  .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; width: 100%; }
+  .pal-from-image-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 220px; }
+  .pal-from-image-main { gap: 20px; width: 100%; }
+  .pal-from-image-swatch, .pal-from-image-add { width: 48px; height: 48px; }
+  .pal-from-image-add { font-size: 20px; }
+  .pal-from-image-use { width: 100%; justify-content: center; }
+  .backing-current-img { height: 160px; }
+  .fabric-enlarge-name, .backing-picker-title { font-size: 22px; }
+}
+
+/* ── Press feedback ────────────────────────────────────────────────────────
+   Everything pickable dips under the pointer so a tap reads as a press
+   before the next screen arrives. These rules sit last in the sheet on
+   purpose: the band-card steps flatten the boxed-card hover lift with
+   `transform: none`, and the dip has to land after that to win. Cards
+   marked "coming soon" aren't pickable, so they stay put. */
+.size-card, .land-craft, .saved-card {
+  transition: transform var(--press-dur) var(--ease-out);
+}
+.back-skip { transition: background .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.btn:active, .icon-btn:active, .filter-pill:active, .chip:active,
+.fabric-row:active,
+.pal-btn:active {
+  transform: scale(var(--press-scale));
+}
+/* Already centered on its own transform, so the dip has to compose with it. */
+.back-skip:active { transform: translateY(-50%) scale(var(--press-scale)); }
+
+/* On the boxed cards the dip replaces the hover lift rather than stacking on
+   it, since a bare scale() drops the hover's translateY. */
+.pal-card:active, .tmpl-card:active, .fabric-card:active,
+.size-card:active, .land-craft:not(.is-soon):active, .saved-card:active,
+.pal-page .pal-card:active, .tmpl-page .tmpl-card:active, .back-grid .fabric-card:active {
+  transform: scale(var(--press-scale-card));
+}
+
+/* ── Step-to-step transitions ──────────────────────────────────────────────
+   Every setup step is its own component, so React remounts the page root on
+   each move and these enter animations run once per screen. The steps all
+   share the same furniture though — olive header, grapefruit hero, golden
+   footer — so animating the whole page made identical pixels flicker every
+   time, which is what read as a jump. Only what actually changes moves: the
+   step title crossfades and the card artwork drifts up into place. The
+   studios are a genuinely different screen, so those fade in whole. */
+.app {
+  animation: step-fade var(--step-dur) var(--ease-out) both;
+}
+.brand-head-text {
+  animation: head-enter var(--step-dur) var(--ease-out) both;
+}
+.land-craft-visual, .size-card-visual,
+.tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches {
+  animation: art-rise var(--art-dur) var(--ease-out) both;
+  animation-delay: calc(var(--art-i, 0) * var(--art-stagger));
+}
+/* Each card hands its position to the art inside it, so a row fills in one
+   card after the next rather than landing as a single block. Anything past
+   the first row shares the last delay — the stagger is there to soften the
+   arrival, not to march down a long grid. */
+:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(2) { --art-i: 1; }
+:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(3) { --art-i: 2; }
+:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(4) { --art-i: 3; }
+:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(n+5) { --art-i: 4; }
+
+@keyframes step-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes head-enter {
+  from { transform: translate3d(0, 6px, 0); }
+  to   { transform: none; }
+}
+@keyframes art-rise {
+  from { transform: translate3d(0, var(--art-rise), 0); }
+  to   { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --press-scale: 1; --press-scale-card: 1; }
+  .app, .brand-head-text, .land-craft-visual, .size-card-visual,
+  .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BRAND LAYER
+   ───────────────────────────────────────────────────────────────────────────
+   STUDIO BOUNDARY: every selector below is nested under .brand-shell, which
+   only the presentation page roots carry (craft picker, size, backing,
+   template, palette). The studios mount as .app / .xs-app and never get it,
+   so nothing here — type, buttons, spacing, colour — can reach the canvas,
+   the tool rails or the panels. Add the class to a new screen to opt in; it
+   is never applied globally.
+
+   Note the near-miss this protects against: .size-hero / .size-card are setup
+   furniture but .size-bar is the studio's block-size slider. Scoping by
+   ancestor rather than by prefix keeps those apart.
+
+   STRUCTURE: flat panels, hairline rules, inset colour fields, no drop
+   shadows, square-to-2px corners. One colour field per screen (the heading
+   band); content areas stay paper so artwork and swatches carry the colour.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.brand-shell {
+  font-family: var(--brand-font);
+  font-size: var(--brand-body);
+  line-height: var(--brand-leading-body);
+  color: var(--brand-ink);
+  background: var(--brand-paper);
+  -webkit-font-smoothing: antialiased;
+  /* A nowrap heading or 1px rule can overshoot the viewport by a few pixels
+     and the resulting scrollbar then eats width, which overshoots again. */
+  overflow-x: clip;
+}
+.brand-shell :is(h1, h2, h3, h4) {
+  font-family: var(--brand-font);
+  font-weight: 700;
+  letter-spacing: var(--brand-track-display);
+  line-height: var(--brand-leading-display);
+  color: var(--brand-ink);
+}
+/* Setup screens are edge-to-edge bands, so the shell itself owns no padding;
+   each band pulls the shared gutter instead. */
+.brand-shell .brand-bleed { padding-inline: var(--brand-gutter); }
+
+/* ── Motifs ───────────────────────────────────────────────────────────────
+   The wiggle (the thread mark carried in the wordmark) and the stitch X.
+   Both are pure decoration: aria-hidden at the call site, and inert here so
+   they can never eat a click or be mistaken for a close control. The X in
+   particular sits near copy, never on or beside a dismissable surface. */
+.brand-shell .brand-wiggle,
+.brand-shell .brand-x,
+.brand-shell .brand-xrule {
+  pointer-events: none;
+  user-select: none;
+  flex: none;
+}
+.brand-shell .brand-wiggle {
+  display: block;
+  height: 14px;
+  width: auto;
+  color: var(--brand-tomato);
+  overflow: visible;
+}
+.brand-shell .brand-wiggle.is-lg { height: 20px; }
+.brand-shell .brand-xrule {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brand-tomato);
+}
+.brand-shell .brand-x { display: block; }
+
+/* ── Editorial labels ─────────────────────────────────────────────────────
+   Small caps micro-labels. Ink rather than tomato: at 12px, tomato on paper
+   is ~3.2:1, which clears the 3:1 bar for graphics but not the 4.5:1 one for
+   text. Tomato stays on the motifs and on display-size numerals. */
+.brand-shell .brand-eyebrow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 16px;
+  font-size: var(--brand-eyebrow);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+.brand-shell .brand-eyebrow.is-plain {
+  font-family: "Bodoni Moda", "Times New Roman", serif;
+  font-style: italic;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Label / value rows under a hairline — used for real metadata only. */
+.brand-shell .brand-specs { display: block; width: 100%; margin-top: 14px; }
+.brand-shell .brand-spec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-top: 1px solid var(--brand-rule-2);
+  font-size: 13px;
+  line-height: 1.3;
+}
+.brand-shell .brand-spec-k {
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brand-muted-2);
+  font-weight: 500;
+}
+.brand-shell .brand-spec-v {
+  font-weight: 500;
+  color: var(--brand-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Navigation ───────────────────────────────────────────────────────────
+   Paper, one hairline, wordmark left. The real logo asset is used as-is; its
+   own tomato wiggle is the mark's thread, so no extra wiggle here. */
+.brand-shell .brand-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+  min-height: 74px;
+  padding-block: 14px;
+  background: var(--brand-paper);
+  border-bottom: 1px solid var(--brand-ink);
+  box-shadow: none;
+}
+.brand-shell .brand-nav-logo {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.brand-shell .brand-nav-logo img { display: block; width: 104px; height: auto; }
+.brand-shell .brand-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: auto;
+}
+/* The auth trigger + account chip live in the nav; give them the brand's
+   interface-label treatment without touching the studio's copy of them. */
+.brand-shell .brand-nav .land-login,
+.brand-shell .brand-nav .account-menu-btn {
+  font-family: var(--brand-font);
+  font-size: var(--brand-label);
+  font-weight: 500;
+  color: var(--brand-ink);
+}
+
+/* ── Heading band ─────────────────────────────────────────────────────────
+   The one colour field per screen. Left-aligned, generous, with the wiggle
+   sitting under the heading. Height is content-driven so a two-line title
+   wraps instead of overflowing a fixed band. */
+.brand-shell .brand-head {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  height: auto;
+  overflow-x: clip;
+  padding-block: clamp(20px, 2.4vw, 36px);
+  background: var(--brand-cream);
+  border-bottom: 1px solid var(--brand-ink);
+}
+.brand-shell .brand-head.tone-olive  { background: var(--brand-olive); }
+.brand-shell .brand-head.tone-butter { background: var(--brand-butter); }
+.brand-shell .brand-head.tone-blue   { background: var(--brand-blue); }
+.brand-shell .brand-head.tone-lilac  { background: var(--brand-lilac); }
+.brand-shell .brand-head.tone-cream  { background: var(--brand-cream); }
+.brand-shell .brand-head.tone-paper  { background: var(--brand-paper); }
+
+/* Utility row above the heading: back on the left, step actions on the
+   right. Sits on the colour field, so it uses ink at full strength. */
+.brand-shell .brand-head-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 34px;
+  margin-bottom: clamp(16px, 2vw, 30px);
+}
+.brand-shell .brand-head-top-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+/* Grid rather than flex so the heading column has a real measure: the title
+   runs at display size while the sub-copy beside it stays at body size, and a
+   `ch` measure on either would be relative to the wrong font. With no aside
+   the heading simply occupies the first column and the colour field carries
+   the rest, which is where the composition wants the space anyway. */
+.brand-shell .brand-head-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+  align-items: end;
+  gap: clamp(20px, 4vw, 56px);
+}
+.brand-shell .brand-head-text { min-width: 0; }
+/* Long titles ("Choose a starting point") take the full band width; the
+   sub-copy keeps its own measure so the paragraph never runs edge to edge. */
+.brand-shell .brand-head-text.is-wide { grid-column: 1 / -1; }
+.brand-shell .brand-head-aside {
+  min-width: 0;
+  padding-bottom: 6px;
+  text-align: right;
+}
+/* Reuses .size-title so the existing step-title crossfade keeps working. */
+.brand-shell .brand-title,
+.brand-shell h1.size-title {
+  margin: 0;
+  font-family: var(--brand-font);
+  font-weight: 700;
+  font-size: var(--brand-display-l);
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-track-display);
+  color: var(--brand-ink);
+  text-align: left;
+  text-wrap: balance;
+}
+.brand-shell .brand-title.is-xl,
+.brand-shell h1.size-title.is-xl {
+  font-size: var(--brand-display-xl);
+  max-width: 100%;
+  white-space: nowrap;
+}
+@media (max-width: 899px) {
+  .brand-shell .brand-title.is-xl,
+  .brand-shell h1.size-title.is-xl { white-space: normal; text-wrap: balance; }
+}
+.brand-shell .brand-head-wiggle { margin-top: clamp(14px, 1.6vw, 22px); }
+.brand-shell .brand-head-sub {
+  margin-top: 16px;
+  max-width: 52ch;
+  font-size: var(--brand-body-s);
+  line-height: var(--brand-leading-body);
+  color: var(--brand-ink);
+}
+
+/* A compact band, for a screen whose job is the content below it rather than
+   the heading itself. Everything folds onto one line — title, the craft beside
+   it, and what the design actually is pushed to the far end — which turns a
+   250px colour field into something closer to 100px. Titles here are short and
+   fixed, so there's none of the wrapping the tall band exists to allow.
+
+   The wiggle sits this one out. It's the brand's flourish and it earns its
+   space where a screen opens; on a working screen it would be 35px of
+   decoration taken from the list someone is trying to read. */
+.brand-shell .brand-head.is-compact { padding-block: clamp(12px, 1.2vw, 18px); }
+.brand-shell .is-compact .brand-head-top {
+  min-height: 0;
+  margin-bottom: 8px;
+}
+.brand-shell .is-compact .brand-head-main { display: block; }
+.brand-shell .is-compact .brand-head-text {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.brand-shell .is-compact .brand-title { font-size: var(--brand-display-m); }
+.brand-shell .is-compact .brand-eyebrow { margin: 0; }
+.brand-shell .is-compact .brand-head-wiggle { display: none; }
+/* Pushed to the end on a wide row, but it's the first thing to wrap, so on a
+   narrow one it drops to its own line and loses the auto margin with it. */
+.brand-shell .is-compact .brand-head-sub {
+  margin: 0 0 0 auto;
+  max-width: none;
+}
+@media (max-width: 720px) {
+  .brand-shell .is-compact .brand-head-sub { margin-left: 0; }
+}
+
+/* Back link — inherits ink on whatever colour field it lands on. */
+.brand-shell .size-back {
+  position: static;
+  transform: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brand-ink);
+  border-radius: var(--btn-radius);
+}
+.brand-shell .size-back-label {
+  font-family: var(--brand-font);
+  font-size: var(--brand-label);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid currentColor;
+}
+.brand-shell .size-back-icon { width: 16px; height: 16px; }
+.brand-shell .size-back-icon .ic { width: 14px; height: 14px; }
+
+/* ── Controls ─────────────────────────────────────────────────────────────
+   Design system V1 buttons at Large (44px): fully rounded, 1px outline,
+   black and neutral. No offset shadows anywhere. */
+.brand-shell .brand-btn,
+.brand-shell .back-skip,
+.brand-shell .tmpl-upload-use,
+.brand-shell .tmpl-upload-another,
+.brand-shell .pal-page .pal-from-image-use {
+  /* .back-skip is absolutely placed in the pre-brand hero; pin it back into
+     the heading's flex row so it cannot sit on top of the title. */
+  position: static;
+  transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  width: auto;
+  height: 44px;
+  padding: 0 22px;
+  background: var(--btn-secondary-bg);
+  border: var(--btn-stroke-w) solid var(--btn-secondary-border);
+  border-radius: var(--pill-radius);
+  box-shadow: none;
+  font-family: var(--brand-font);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--btn-secondary-fg);
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, box-shadow 0.12s;
+}
+.brand-shell .brand-btn:hover,
+.brand-shell .back-skip:hover,
+.brand-shell .tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
+.brand-shell .brand-btn:active,
+.brand-shell .back-skip:active,
+.brand-shell .tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
+.brand-shell .back-skip:active { transform: none; }
+.brand-shell .brand-btn.is-primary,
+.brand-shell .tmpl-upload-use,
+.brand-shell .pal-page .pal-from-image-use {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+}
+.brand-shell .brand-btn.is-primary:hover:not(:disabled),
+.brand-shell .tmpl-upload-use:hover:not(:disabled),
+.brand-shell .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.brand-shell .brand-btn.is-primary:active:not(:disabled),
+.brand-shell .tmpl-upload-use:active:not(:disabled),
+.brand-shell .pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+.brand-shell .brand-btn:disabled {
+  background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: default;
+}
+.brand-shell .brand-btn.is-primary:disabled,
+.brand-shell .pal-page .pal-from-image-use:disabled {
+  background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default;
+}
+
+/* One focus treatment across the shell: a 2px ink ring, offset so it reads
+   on both paper and colour fields. */
+.brand-shell :is(a, button, [role="button"], input, label):focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.brand-shell .land-craft:focus-visible,
+.brand-shell .size-card:focus-visible,
+.brand-shell .tmpl-card:focus-visible,
+.brand-shell .pal-card:focus-visible,
+.brand-shell .saved-card:focus-visible {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: -4px;
+  box-shadow: none;
+}
+/* Buttons and filter pills keep the design system's tomato focus ring. */
+.brand-shell :is(.btn, .brand-btn, .back-skip, .tmpl-upload-use, .tmpl-upload-another, .pal-from-image-use, .pal-btn, .pal-skip-btn, .pal-upload-pill, .filter-pill):focus-visible {
+  outline: none;
+  box-shadow: var(--btn-focus-shadow);
+}
+
+/* ── Product bands (shared by craft / size / template / palette) ──────────
+   Edge-to-edge columns split by hairlines. Flat, no lift on hover; hover
+   just warms the cell so the artwork stays the thing you look at. */
+.brand-shell :is(.land-crafts, .size-row, .tmpl-grid, .pal-grid) { background: var(--brand-paper); }
+.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card) {
+  background: var(--brand-paper);
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  transition: background 0.16s;
+}
+.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card):hover { background: var(--brand-cream); box-shadow: none; transform: none; }
+.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card).is-soon:hover { background: var(--brand-paper); }
+
+/* Card copy: bold grotesk name, comfortable description, numbered label. */
+.brand-shell :is(.land-craft-name, .size-card-name, .tmpl-card-name, .pal-card-name) {
+  font-family: var(--brand-font);
+  font-size: var(--brand-display-s);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--brand-ink);
+}
+.brand-shell :is(.land-craft-desc, .size-card-dims, .tmpl-card-desc, .pal-card-meta) {
+  font-family: var(--brand-font);
+  font-size: var(--brand-body-s);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--brand-muted);
+}
+/* `order` only applies to flex/grid children. .land-craft, .size-card and
+   .pal-card are already one or the other; .tmpl-card is a plain button, so
+   give it a column so its label can be hoisted too. */
+.brand-shell .tmpl-card { display: flex; flex-direction: column; }
+
+/* Hover arrow: keep the existing affordance, just quieter and ink-coloured. */
+.brand-shell :is(.land-craft-arrow, .size-card-arrow, .saved-card-arrow) .ic { opacity: 0.85; }
+
+/* ── Craft selection ─────────────────────────────────────────────────────
+   The olive heading band is this screen's colour moment, so the craft cells
+   stay paper and the project photography does the talking. */
+.brand-shell.land-page { background: var(--brand-paper); }
+/* Drop the old 360px floor — with the taller heading it pushes the page a
+   sliver past the viewport and you get a dead 80–160px scroll. */
+.brand-shell .land-main,
+.brand-shell .land-crafts { min-height: 0; }
+.brand-shell .land-crafts { border-bottom: 1px solid var(--brand-ink); }
+.brand-shell .land-craft {
+  padding: clamp(22px, 2.4vw, 34px) var(--brand-gutter) clamp(26px, 2.6vw, 36px);
+  border-left: 1px solid var(--brand-ink);
+}
+.brand-shell .land-craft:first-child { border-left: none; }
+/* The old 1px pseudo-divider is replaced by a real border above. */
+.brand-shell .land-craft + .land-craft::before { display: none; }
+/* Inset field padding belongs on the plate, not the image: a max-height:100%
+   image with its own padding measures 100% + padding and overflows the box. */
+.brand-shell .land-craft-visual {
+  padding: 0;
+  margin-bottom: clamp(20px, 2.2vw, 30px);
+  background: none;
+  border: none;
+  min-height: 0;
+}
+.brand-shell .land-craft-visual img {
+  max-width: min(300px, 100%);
+  max-height: min(240px, 28vh);
+  padding: 0;
+}
+.brand-shell .land-craft-desc-row { align-items: flex-start; gap: 12px; margin-top: 8px; }
+.brand-shell .land-craft-arrow { width: 36px; height: 36px; margin-top: 0; }
+.brand-shell .land-craft-arrow .ic { width: 20px; height: 20px; }
+
+/* ── Size band ───────────────────────────────────────────────────────────── */
+.brand-shell.size-page { background: var(--brand-paper); }
+.brand-shell .size-row { border-bottom: 1px solid var(--brand-ink); }
+.brand-shell .size-card {
+  padding: clamp(22px, 2.2vw, 30px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+  border-left: 1px solid var(--brand-ink);
+}
+.brand-shell .size-card:first-child { border-left: none; }
+.brand-shell .size-card-visual {
+  padding: 0;
+  background: none;
+  border: none;
+  height: clamp(120px, 18vh, 190px);
+}
+.brand-shell .size-card-visual img,
+.brand-shell .size-card-visual svg { max-height: 100%; max-width: 100%; }
+.brand-shell .size-card-copy { margin-top: clamp(18px, 2vw, 26px); align-items: flex-start; }
+.brand-shell .size-card-dims { margin-top: 7px; }
+.brand-shell .size-card-price { font-family: var(--brand-font); font-size: var(--brand-body-s); font-weight: 500; line-height: 1.4; color: var(--brand-ink); margin-top: 7px; }
+.brand-shell .size-card-arrow { width: 36px; height: 36px; }
+.brand-shell .size-card-arrow .ic { width: 20px; height: 20px; }
+
+/* ── Utility strip ───────────────────────────────────────────────────────
+   One compact row for the secondary actions a step supports (image import,
+   blank canvas). Cream so it reads as a tool shelf, not as content. */
+.brand-shell .brand-utility {
+  display: block;
+  flex: 0 0 auto;
+  padding-block: 16px;
+  background: var(--brand-cream);
+  border-bottom: 1px solid var(--brand-ink);
+}
+.brand-shell .brand-utility-intake,
+.brand-shell .brand-utility-result {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 28px);
+  flex-wrap: wrap;
+}
+/* The URL field and any error open on their own line rather than squeezing
+   the source buttons. */
+.brand-shell .brand-utility-url,
+.brand-shell .brand-utility-intake .err-msg { flex: 1 0 100%; }
+.brand-shell .brand-utility-url .pal-upload-url-row { max-width: 520px; }
+.brand-shell .brand-utility-intake .err-msg {
+  background: var(--brand-tomato);
+  color: #fff;
+  border-radius: 2px;
+  font-family: var(--brand-font);
+  font-size: 13px;
+}
+.brand-shell .brand-utility-result .tmpl-upload-preview {
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--brand-ink);
+}
+.brand-shell .brand-utility-result-meta { flex: 1 1 220px; min-width: 0; }
+.brand-shell .brand-utility-result-meta .tmpl-upload-file-name {
+  font-family: var(--brand-font);
+  font-size: var(--brand-label);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--brand-ink);
+  max-width: none;
+}
+.brand-shell .brand-utility-result-meta .brand-specs { margin-top: 8px; max-width: 280px; }
+.brand-shell .brand-utility-result-meta .switch {
+  gap: 10px;
+  margin-top: 12px;
+  font-family: var(--brand-font);
+  font-size: 13px;
+  color: var(--brand-ink);
+}
+.brand-shell .brand-utility-text { min-width: 0; flex: 0 1 auto; }
+.brand-shell .brand-utility-title {
+  font-size: var(--brand-label);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--brand-ink);
+}
+/* Label-sized rather than body-sized: this is a hint attached to the adjacent
+   controls, and the strip has to stay compact next to the template grid. */
+.brand-shell .brand-utility-sub {
+  margin-top: 3px;
+  font-size: var(--brand-label);
+  line-height: 1.4;
+  color: var(--brand-muted);
+}
+.brand-shell .brand-utility-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+/* Import actions are Secondary buttons (Small) beside the heading. */
+.brand-shell .pal-upload-pill {
+  height: 30px;
+  padding: 0 14px;
+  font-family: var(--brand-font);
+  font-size: 13px;
+}
+.brand-shell .pal-upload-url { background: transparent; padding: 0; border-radius: 0; }
+.brand-shell .pal-upload-url-row input {
+  height: 34px;
+  padding: 0 10px;
+  background: var(--brand-paper);
+  border: 1px solid var(--brand-ink);
+  border-radius: 2px;
+  font-family: var(--brand-font);
+  font-size: var(--brand-body-s);
+  color: var(--brand-ink);
+}
+.brand-shell .pal-upload-url-row button {
+  height: 34px;
+  border-radius: var(--pill-radius);
+  border: var(--btn-stroke-w) solid var(--btn-secondary-border);
+  background: var(--btn-secondary-bg);
+  font-family: var(--brand-font);
+  font-size: 13px;
+  font-weight: 500;
+}
+.brand-shell .tmpl-upload-drop { gap: 10px; }
+.brand-shell .tmpl-upload-title { font-size: var(--brand-label); font-weight: 500; color: var(--brand-ink); }
+
+/* ── Template step ───────────────────────────────────────────────────────
+   Bigger, quieter thumbs on a cream plate; metadata only where it exists. */
+.brand-shell.tmpl-page { background: var(--brand-paper); }
+.brand-shell .tmpl-page .tmpl-grid,
+.brand-shell .tmpl-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
+.brand-shell .tmpl-page .tmpl-card,
+.brand-shell .tmpl-card {
+  padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+  border-right: 1px solid var(--brand-ink);
+  /* Rows close themselves, so a part-filled last row reads as a short row in
+     a ruled table rather than as a staircase of dangling column rules. The
+     grid's own bottom border completes that last rule across the full width. */
+  border-bottom: 1px solid var(--brand-ink);
+  overflow: visible;
+}
+.brand-shell .tmpl-page .tmpl-card-thumb,
+.brand-shell .tmpl-card-thumb {
+  height: clamp(190px, 27vh, 280px);
+  padding: 0;
+  box-sizing: border-box;
+  background: var(--brand-cream);
+  border: none;
+}
+.brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
+.brand-shell .tmpl-card-thumb.is-ratio {
+  height: clamp(190px, 27vh, 280px);
+  background: var(--brand-cream);
+}
+.brand-shell .tmpl-page .tmpl-card-body,
+.brand-shell .tmpl-card-body {
+  display: block;
+  margin-top: clamp(18px, 2vw, 26px);
+  padding: 0;
+}
+.brand-shell .tmpl-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.brand-shell .tmpl-page .tmpl-card-desc,
+.brand-shell .tmpl-card-desc { margin-top: 7px; }
+.brand-shell .tmpl-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
+.brand-shell .tmpl-card .size-card-arrow .ic { width: 19px; height: 19px; }
+
+/* ── Palette step ────────────────────────────────────────────────────────
+   Two clearly separated zones: what you're making (preview + chosen colours)
+   and how it converts. Suggested palettes come last, under their own rule. */
+.brand-shell.pal-page { background: var(--brand-paper); }
+.brand-shell .brand-section {
+  flex: 0 0 auto;
+  padding-block: clamp(22px, 2.6vw, 38px);
+  background: var(--brand-paper);
+  border-bottom: 1px solid var(--brand-ink);
+}
+.brand-shell .brand-section.is-quiet { background: var(--brand-cream); }
+.brand-shell .brand-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(16px, 2vw, 26px);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--brand-rule);
+}
+.brand-shell .brand-section-head-text { min-width: 0; }
+.brand-shell .brand-section-head-text .brand-section-note { margin-top: 6px; }
+.brand-shell .brand-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+/* A section with no children is a labelled header for the full-bleed band
+   that follows it (the palette grid), so its own rule becomes that band's
+   top edge and the inner divider is redundant. */
+.brand-shell .brand-section.is-head-only { padding-bottom: clamp(16px, 1.8vw, 24px); }
+.brand-shell .brand-section.is-head-only .brand-section-head {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Project focus pair: the live chart beside the colours going into it. */
+.brand-shell .brand-project {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(20px, 3vw, 40px);
+}
+@media (max-width: 900px) {
+  .brand-shell .brand-project { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Kit review ───────────────────────────────────────────────────────────
+   The last screen before Shopify. The design on the left at a size worth
+   looking at, the reckoning on the right: what's in the box, what isn't, and
+   what it costs. Two equal columns rather than a narrow sidebar, because the
+   supply list is the reason someone is on this page. */
+
+/* Full page to look at, but the studio is still mounted underneath so Back
+   returns to the canvas exactly as it was — nothing saves a design mid-edit.
+   Opaque and exactly the height of the window: the columns inside scroll, the
+   layer itself doesn't. That's what lets the price and Checkout hold still
+   while a long supply list moves past them. */
+.kit-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: var(--brand-paper);
+}
+.kit-layer .kit-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+/* The wordmark and the heading band keep their full height — they're the only
+   thing telling you where you are, and a flex row shrinks by default. */
+.kit-layer .kit-page > .brand-nav,
+.kit-layer .kit-page > .brand-head { flex: 0 0 auto; }
+
+/* Everything under the heading, and no taller: min-height: 0 is what stops a
+   long list sizing this to its content and walking the pinned footer off the
+   bottom of the window. */
+.brand-shell .kit-band {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  background: var(--brand-paper);
+}
+/* A scrollport each, divided by a rule rather than a gap. Reading down the
+   supply list shouldn't carry the design it's a list for off the screen, and
+   checking the design against the colours shouldn't lose your place in them. */
+.brand-shell .kit-col {
+  --kit-l: clamp(18px, 2.2vw, 34px);
+  --kit-r: clamp(18px, 2.2vw, 34px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.brand-shell .kit-col:first-child { --kit-l: var(--brand-gutter); }
+.brand-shell .kit-col:last-child { --kit-r: var(--brand-gutter); }
+.brand-shell .kit-col + .kit-col { border-left: 1px solid var(--brand-ink); }
+.brand-shell .kit-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block: clamp(24px, 3vw, 44px);
+}
+/* The price and the way forward, pinned to the bottom of the column. This is
+   the last screen before money changes hands and that button is the only exit,
+   so it doesn't depend on someone scrolling to find it. Its rule runs the full
+   width of the column — the padding is on the contents — so it reads as part of
+   the page's structure and not as a box floating over the list. */
+.brand-shell .kit-foot {
+  flex: 0 0 auto;
+  padding-bottom: clamp(16px, 2vw, 24px);
+  background: var(--brand-paper);
+  border-top: 1px solid var(--brand-ink);
+}
+.brand-shell .kit-scroll,
+.brand-shell .kit-foot > * {
+  padding-left: var(--kit-l);
+  padding-right: var(--kit-r);
+}
+/* Give the page back to its own scroller and pin the bar to the window instead.
+   Used on a phone, where one column means two stacked scrollports would just be
+   two places to get stuck, and in any window too short to divide — a scroll area
+   squeezed to nothing would clip the Checkout button, which is the one thing
+   this layout exists to keep on screen. */
+@media (max-width: 900px), (max-height: 480px) {
+  .kit-layer { overflow-y: auto; }
+  .kit-layer .kit-page { height: auto; min-height: 100%; }
+  .brand-shell .kit-scroll { overflow-y: visible; }
+  .brand-shell .kit-foot {
+    position: sticky;
+    bottom: 0;
+    padding-top: 2px;
+  }
+}
+/* Stacked, so the rule between the columns turns and lies down. */
+@media (max-width: 900px) {
+  .brand-shell .kit-band { grid-template-columns: minmax(0, 1fr); }
+  .brand-shell .kit-col {
+    --kit-l: var(--brand-gutter);
+    --kit-r: var(--brand-gutter);
+  }
+  .brand-shell .kit-col + .kit-col {
+    border-left: none;
+    border-top: 1px solid var(--brand-ink);
+  }
+}
+/* One tile today. auto-fit rather than a fixed column so a second tile — a
+   generated shot of the finished thing — drops in beside it without a
+   layout change, and doesn't leave a hole meanwhile. */
+.brand-shell .kit-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+.brand-shell .kit-tile {
+  margin: 0;
+  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid var(--brand-ink);
+  border-radius: 2px;
+}
+/* Square by default, but capped: on a wide screen an uncapped square preview
+   runs far past the supply list beside it and pushes the specs below the fold. */
+.brand-shell .kit-tile-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  max-height: 360px;
+  overflow: hidden;
+}
+.brand-shell .kit-tile-art > * { max-width: 100%; max-height: 100%; }
+.brand-shell .kit-tile-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* The preview tile before there's a preview in it. Cream rather than white, so
+   an empty tile reads as a waiting surface instead of a failed image. */
+.brand-shell .kit-tile-blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  background: var(--brand-cream);
+  text-align: center;
+}
+.brand-shell .kit-tile-msg {
+  max-width: 30ch;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--brand-muted);
+}
+.brand-shell .kit-tile-msg.is-err { color: #B3261E; }
+.brand-shell .kit-tile-cap {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--brand-rule-2);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brand-muted-2);
+}
+.brand-shell .kit-group + .kit-group { margin-top: clamp(22px, 2.4vw, 32px); }
+.brand-shell .kit-group-title {
+  font-size: var(--brand-display-s);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--brand-rule);
+}
+.brand-shell .kit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.brand-shell .kit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--brand-rule-2);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.brand-shell .kit-sw {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  border: 1px solid rgba(23, 23, 23, 0.18);
+  transform: translateY(2px);
+}
+.brand-shell .kit-row-label { flex: 1 1 auto; min-width: 0; }
+.brand-shell .kit-row-qty {
+  flex: 0 0 auto;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The bring-your-own list is the one thing on the page that isn't a promise,
+   so it reads a step back from the supplies above it. */
+.brand-shell .kit-list.is-own .kit-row { color: var(--brand-muted); }
+.brand-shell .kit-buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+}
+.brand-shell .kit-buy-k {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brand-muted-2);
+}
+.brand-shell .kit-buy-v {
+  display: block;
+  margin-top: 3px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.brand-shell .kit-buy-go { height: 46px; padding: 0 26px; }
+.brand-shell .kit-note {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--brand-muted);
+}
+.brand-shell .kit-err {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #B3261E;
+}
+.brand-shell .brand-section-title {
+  font-size: var(--brand-display-m);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--brand-ink);
+}
+.brand-shell .brand-section-note {
+  font-size: var(--brand-body-s);
+  line-height: var(--brand-leading-body);
+  color: var(--brand-muted);
+  max-width: 58ch;
+}
+/* Selected-colour row and photo preview become the focal pair. */
+.brand-shell .pal-suggest-bar {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border-bottom: none;
+}
+.brand-shell .pal-page .pal-from-image {
+  align-items: center;
+  gap: clamp(18px, 2.4vw, 32px);
+  flex-wrap: wrap;
+}
+.brand-shell .pal-page .pal-from-image-preview {
+  width: clamp(120px, 13vw, 164px);
+  height: clamp(120px, 13vw, 164px);
+  border: 1px solid var(--brand-ink);
+  outline: none;
+}
+.brand-shell .pal-page .pal-from-image-main { gap: clamp(18px, 2.4vw, 32px); flex-wrap: wrap; }
+.brand-shell .pal-page .pal-from-image-swatches { gap: 10px; }
+.brand-shell .pal-page .pal-from-image-swatch {
+  width: clamp(52px, 4.6vw, 66px);
+  height: clamp(52px, 4.6vw, 66px);
+  box-shadow: inset 0 0 0 1px var(--brand-rule);
+}
+.brand-shell .pal-page .pal-from-image-add {
+  width: clamp(52px, 4.6vw, 66px);
+  height: clamp(52px, 4.6vw, 66px);
+  background: var(--brand-paper);
+  border: 1px dashed var(--brand-rule);
+  color: var(--brand-ink);
+}
+.brand-shell .pal-page .pal-from-image-add:hover { background: var(--brand-cream); }
+.brand-shell .pal-busy { font-size: var(--brand-body-s); color: var(--brand-muted); padding: 4px 0; }
+
+/* Conversion controls: same content, presented as a tool block rather than
+   as another band of product. */
+.brand-shell .xs-flatten {
+  gap: clamp(20px, 2.6vw, 36px);
+  padding: 0;
+  background: none;
+  border-bottom: none;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.brand-shell .xs-flatten-row { border: 1px solid var(--brand-ink); border-radius: 2px; }
+.brand-shell .xs-flatten-btn {
+  height: 36px;
+  padding: 0 16px;
+  background: var(--brand-paper);
+  border-left-color: var(--brand-ink);
+  font-family: var(--brand-font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--brand-ink);
+}
+.brand-shell .xs-flatten-btn:hover:not(.active) { background: var(--brand-cream); }
+.brand-shell .xs-flatten-btn.active { background: var(--brand-ink); color: var(--brand-paper); }
+.brand-shell .xs-flatten-note {
+  font-family: var(--brand-font);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--brand-muted-2);
+}
+.brand-shell .xs-flatten-check {
+  font-family: var(--brand-font);
+  font-size: var(--brand-body-s);
+  font-weight: 500;
+  color: var(--brand-ink);
+  flex-wrap: wrap;
+}
+.brand-shell .xs-flatten-check-note { font-weight: 400; color: var(--brand-muted); }
+.brand-shell .xs-flatten-preview {
+  background: var(--brand-cream);
+  border: 1px solid var(--brand-ink);
+  border-radius: 0;
+}
+.brand-shell .xs-flatten-empty {
+  font-family: var(--brand-font);
+  font-size: 13px;
+  color: var(--brand-muted);
+}
+
+/* Suggested palettes: swatches stay the largest thing in the cell. */
+.brand-shell .pal-page .pal-grid,
+.brand-shell .pal-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
+.brand-shell .pal-page .pal-card,
+.brand-shell .pal-card {
+  align-content: start;
+  min-height: 0;
+  padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
+  border-right: 1px solid var(--brand-ink);
+  border-bottom: 1px solid var(--brand-ink);  /* see .tmpl-card */
+  border-radius: 0;
+}
+.brand-shell .pal-page .pal-swatches,
+.brand-shell .pal-swatches {
+  height: auto;
+  min-height: 0;
+  margin-bottom: clamp(18px, 2vw, 26px);
+}
+.brand-shell .pal-page .pal-swatch,
+.brand-shell .pal-swatch {
+  width: clamp(46px, 4vw, 60px);
+  height: clamp(46px, 4vw, 60px);
+  margin-left: -8px;
+  box-shadow: inset 0 0 0 1px var(--brand-rule);
+}
+.brand-shell .pal-swatch:first-child { margin-left: 0; }
+.brand-shell .pal-page .pal-card-body,
+.brand-shell .pal-card-body { display: block; padding: 0; }
+.brand-shell .pal-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.brand-shell .pal-page .pal-card-meta,
+.brand-shell .pal-card-meta { margin-top: 7px; }
+.brand-shell .pal-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
+.brand-shell .pal-card .size-card-arrow .ic { width: 19px; height: 19px; }
+
+/* ── Backing step ────────────────────────────────────────────────────────── */
+.brand-shell.back-page { background: var(--brand-paper); }
+.brand-shell .back-filters {
+  justify-content: flex-start;
+  min-height: 0;
+  padding-block: 16px;
+  background: var(--brand-cream);
+  border-bottom: 1px solid var(--brand-ink);
+}
+.brand-shell .back-filters .filter-pill { font-family: var(--brand-font); }
+.brand-shell .back-grid .fabric-card { border-color: var(--brand-rule); box-shadow: none; }
+.brand-shell .back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--brand-ink); }
+
+/* ── Saved designs ───────────────────────────────────────────────────────
+   Kept in place and fully functional; restyled to the same editorial grid. */
+/* The craft band already draws the rule above this section — don't add another. */
+.brand-shell .saved-sec { background: var(--brand-paper); border-top: none; }
+.brand-shell .saved-toolbar { padding: 16px var(--brand-gutter); }
+.brand-shell .saved-head-title {
+  font-family: var(--brand-font);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--brand-ink);
+}
+.brand-shell .saved-count { font-weight: 400; margin-left: 2px; }
+.brand-shell .saved-filter { font-family: var(--brand-font); }
+.brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
+.brand-shell .saved-card {
+  gap: 14px;
+  padding: 22px var(--brand-gutter) 26px;
+  background: var(--brand-paper);
+  border-right-color: var(--brand-ink);
+  transition: background 0.16s;
+}
+.brand-shell .saved-card:hover { background: var(--brand-cream); }
+.brand-shell .saved-card:nth-child(n+5) { border-top-color: var(--brand-ink); }
+.brand-shell .saved-thumb { background: var(--brand-cream); border: none; }
+.brand-shell .saved-name {
+  font-family: var(--brand-font);
+  font-size: var(--brand-body-s);
+  font-weight: 700;
+  letter-spacing: -0.008em;
+  color: var(--brand-ink);
+}
+.brand-shell .saved-meta {
+  font-family: var(--brand-font);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--brand-muted);
+}
+.brand-shell .saved-empty { font-family: var(--brand-font); font-size: var(--brand-body-s); color: var(--brand-muted); padding: 30px var(--brand-gutter); }
+@media (max-width: 1080px) { .brand-shell .saved-card:nth-child(n+3) { border-top-color: var(--brand-ink); } }
+@media (max-width: 600px) { .brand-shell .saved-card:nth-child(n+2) { border-top-color: var(--brand-ink); } }
+
+/* ── Footer ──────────────────────────────────────────────────────────────
+   Replaces the golden dead band: a flexible paper spacer that absorbs the
+   leftover viewport height, then a hairline strip carrying a factual caption
+   and a few stitch Xs as margin detail. */
+.brand-shell .brand-spacer {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--brand-paper);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────
+   The bands already collapse 4 → 2 → 1 via the existing media queries; these
+   only relax the brand's own spacing and stack the heading pairs. */
+@media (max-height: 820px) {
+  .brand-shell .brand-head { padding-block: 16px; }
+  .brand-shell .brand-head-wiggle { margin-top: 10px; }
+  .brand-shell .brand-head-sub { margin-top: 10px; }
+  .brand-shell .land-craft { padding-block: 16px; }
+  .brand-shell .land-craft-visual { margin-bottom: 14px; }
+  .brand-shell .land-craft-visual img { max-height: min(200px, 24vh); }
+}
+@media (max-width: 1080px) {
+  .brand-shell .brand-head-main { display: block; }
+  .brand-shell .brand-head-aside { max-width: 52ch; margin-top: 18px; padding-bottom: 0; text-align: left; }
+  .brand-shell .brand-head-text:not(.is-wide) { max-width: 30ch; }
+}
+@media (max-width: 900px) {
+  .brand-shell .brand-nav { min-height: 62px; }
+  .brand-shell .brand-nav-logo img { width: 88px; }
+  .brand-shell .brand-head { padding-block: 24px; }
+  .brand-shell .brand-head-text,
+  .brand-shell .brand-head-text.is-wide { max-width: none; }
+  .brand-shell .brand-utility { align-items: stretch; flex-direction: column; }
+  .brand-shell .brand-utility-actions { margin-left: 0; }
+  .brand-shell .xs-flatten { gap: 20px; }
+  .brand-shell .land-craft-visual img { max-height: 190px; }
+  .brand-shell .tmpl-page .tmpl-card-thumb,
+  .brand-shell .tmpl-card-thumb,
+  .brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
+  .brand-shell .tmpl-card-thumb.is-ratio { height: clamp(170px, 24vh, 230px); }
+}
+@media (max-width: 600px) {
+  .brand-shell .brand-head-top { flex-wrap: nowrap; justify-content: space-between; }
+  .brand-shell .land-craft { border-left: none; border-top: 1px solid var(--brand-ink); }
+  .brand-shell .land-craft:first-child { border-top: none; }
+  .brand-shell .size-card { border-left: none; }
+  .brand-shell .tmpl-page .tmpl-card,
+  .brand-shell .tmpl-card,
+  .brand-shell .pal-page .pal-card,
+  .brand-shell .pal-card { border-right: none; border-bottom: 1px solid var(--brand-ink); }
+  .brand-shell .xs-flatten-preview { width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EDITOR SHELL (.ed-app)
+   ───────────────────────────────────────────────────────────────────────────
+   The studio layout: a top bar, a canvas stage with floating tools, and
+   focused panels. Desktop opens panels from an icon rail on the right; mobile
+   opens the same panels as sheets from a bottom tab bar, with the tools in a
+   tray docked above it. Built for any studio — the quilt editor is the first
+   to mount it — and drawn entirely from the studio tokens above, so it reads
+   as the same product. Everything is scoped under .ed-app.
+   ═════════════════════════════════════════════════════════════════════════ */
+.ed-app {
+  --app-bg: #FDFCF7;
+  --surface-card: #FDFCF7;
+  --ed-stage-bg: #EEE9E0;
+  --ed-float-shadow: 0 4px 16px rgba(23, 23, 23, 0.10);
+  --ed-ring: 0 0 0 2px var(--app-bg), 0 0 0 4px var(--metime-black);
+  --ed-rail-active-bg: #EFE7DA;
+  --ed-rail-active-line: #D9CDB9;
+  --ed-tabbar-h: 0px;
+  --ed-tray-h: 0px;
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  background: var(--app-bg); color: var(--warm-fg); font-family: var(--font-sans);
+  user-select: none; -webkit-user-select: none;
+}
+.ed-app input, .ed-app textarea { user-select: text; -webkit-user-select: text; }
+
+/* Top bar */
+.ed-topbar { flex: none; height: 60px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border-bottom: var(--div-border); background: var(--app-bg); position: relative; z-index: 20; }
+.ed-topbar-left { display: flex; align-items: center; gap: 2px; flex: 1 1 0; min-width: 0; }
+.ed-topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 1 1 0; min-width: 0; }
+.ed-topbar .brand { margin: 0 6px; }
+.ed-vrule { width: 1px; height: 24px; background: var(--warm-hairline); margin: 0 6px; flex: none; }
+.ed-app .icon-btn.ed-lg { width: 40px; height: 40px; }
+.ed-topbar-link { background: none; border: none; padding: 6px 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 16px; color: var(--warm-fg); cursor: pointer; white-space: nowrap; text-decoration: underline; text-decoration-color: var(--link-line, currentColor); text-decoration-thickness: 2px; text-underline-offset: 4px; transition: text-decoration-thickness .12s; }
+.ed-topbar-link:hover { text-decoration-thickness: 3px; }
+.ed-topbar-link.is-tomato { --link-line: var(--brand-tomato); }
+.ed-topbar-link.is-olive { --link-line: var(--brand-olive); }
+.ed-topbar-link:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; border-radius: 4px; }
+.ed-more-dots { display: inline-flex; gap: 3px; }
+.ed-more-dots span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+
+/* Body: stage column, optional panel, rail */
+.ed-main { flex: 1; display: flex; min-height: 0; }
+.ed-stage-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ed-stage { flex: 1; position: relative; min-height: 0; overflow: hidden; background: var(--ed-stage-bg); }
+.ed-canvas { position: absolute; inset: 0; }
+.ed-app .coaster-bar { background: var(--app-bg); }
+
+/* Canvas: zoom 1 fits the whole quilt inside the stage, clear of the tools. */
+.ed-app .canvas-scroll { padding: 76px 92px 32px; container-type: size; }
+.ed-app .canvas-scroll > .canvas-frame {
+  width: calc(var(--ed-zoom, 1) * 100%);
+  width: calc(var(--ed-zoom, 1) * min(100cqw, 100cqh * var(--ed-ar, 1)));
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.10), 0 10px 30px rgba(23, 23, 23, 0.08);
+}
+
+/* Floating cards on the stage */
+.ed-float { background: var(--app-bg); border: 1px solid var(--warm-hairline); border-radius: 8px; box-shadow: var(--ed-float-shadow); }
+.ed-dock { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); z-index: 6; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.ed-app .ed-dock .icon-btn { width: 44px; height: 44px; }
+.ed-palette-pill { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 6; padding: 6px 8px; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 200px); }
+.ed-palette-pill .ed-swatches { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
+.ed-palette-pill .ed-swatches::-webkit-scrollbar { display: none; }
+.ed-palette-pill .ed-swatch { width: 30px; height: 30px; flex: none; }
+/* Tip bubble: the current tool's hint, centered under the design (desktop) or
+   on top of the tools tray (mobile). Hidden from its × or the Help panel. */
+.ed-bottom-stack { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100% - 200px); pointer-events: none; }
+.ed-bottom-stack > * { pointer-events: auto; }
+.ed-hint-bubble { display: flex; align-items: center; gap: 7px; max-width: 100%; padding: 5px 6px 5px 9px; border-radius: 999px; font-size: 12px; line-height: 16px; color: var(--warm-muted); }
+.ed-hint-ic { display: inline-flex; flex: none; color: var(--warm-fg-2); }
+.ed-hint-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-hint-x { flex: none; width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: none; color: var(--warm-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.ed-hint-x:hover { background: var(--btn-tool-hover); color: var(--warm-fg); }
+.ed-hint-x:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 1px; }
+.ed-tray .ed-hint-bubble { align-self: center; max-width: calc(100% - 24px); }
+.ed-tray .ed-hint-text { white-space: normal; }
+.ed-app .ed-stage.has-hint .canvas-scroll, .ed-app .ed-stage.has-hint .xs-canvas-wrap { padding-bottom: 64px; }
+.ed-app .ed-stage.has-hint .xs-canvas-wrap.has-coasters { padding-bottom: 132px; }
+/* Palette bar menus: the current color / pen width, opening their choices below. */
+.ed-menu-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 8px 0 4px; border: none; border-radius: var(--btn-radius); background: none; color: var(--warm-fg-2); cursor: pointer; flex: none; transition: background .12s; }
+.ed-menu-btn:hover, .ed-menu-btn.is-open { background: var(--btn-tool-hover); color: var(--warm-fg); }
+.ed-menu-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+.ed-menu-btn.is-open .ic { transform: rotate(180deg); }
+.ed-menu-btn .ic { transition: transform .15s var(--ease-out); }
+.ed-menu-swatch, .ed-menu-nib { width: 30px; height: 30px; flex: none; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.12); background-size: cover; background-position: center; }
+.ed-menu-nib { display: inline-flex; border: none; background: none; }
+.ed-menu-body { padding: 10px 12px 12px; }
+.ed-menu-label { font-size: 12px; font-weight: 500; color: var(--warm-muted); margin-bottom: 8px; }
+.ed-menu-swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.ed-menu-swatches .ed-swatch { width: 100%; aspect-ratio: 1; }
+.ed-menu-body .ed-nibs { gap: 6px; }
+.ed-menu-body .ed-nib { width: 30px; height: 30px; }
+.ed-tips-switch { padding-bottom: 14px; border-bottom: 1px solid var(--warm-divider-soft); }
+.ed-tips-switch .switch { font-size: 13px; color: var(--warm-fg); }
+.ed-toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9; background: var(--metime-black); color: var(--metime-cream); font-size: 12px; font-weight: 500; padding: 8px 14px; border-radius: 999px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-sticky); }
+
+/* Swatches */
+.ed-swatch { position: relative; display: block; padding: 0; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.12); cursor: pointer; background-size: cover; background-position: center; transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.ed-swatch:active { transform: scale(var(--press-scale)); }
+.ed-swatch.is-active { border-color: var(--metime-black); box-shadow: 0 0 0 1px var(--metime-black); z-index: 1; }
+.ed-swatch:focus-visible { outline: none; box-shadow: var(--ed-ring); }
+.ed-swatch-add { display: inline-flex; align-items: center; justify-content: center; border: 1.5px dashed var(--warm-muted-2); background: transparent; color: var(--warm-muted); }
+.ed-swatch-add:hover { border-color: var(--metime-black); color: var(--metime-black); }
+.ed-swatch-rm { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--app-bg); background: var(--metime-black); color: var(--metime-white); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; z-index: 2; }
+.ed-swatch-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.ed-swatch-grid .ed-swatch { aspect-ratio: 1; width: 100%; }
+
+/* Bottom status bar (desktop) */
+.ed-statusbar { flex: none; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-top: var(--div-border); background: var(--app-bg); font-size: 12px; color: var(--warm-muted); }
+.ed-spacer { flex: 1 1 0; min-width: 0; }
+.ed-zoom { display: flex; align-items: center; gap: 6px; flex: none; }
+.ed-zoom input[type=range] { width: 160px; }
+.ed-zoom-val { font-family: var(--font-sans); font-size: 11px; color: var(--warm-fg); min-width: 38px; text-align: right; }
+@media (max-width: 1180px) { .ed-zoom input[type=range] { width: 100px; } }
+
+/* Side panel + rail (desktop) */
+/* The panel slides out from behind the rail: a negative right margin takes it
+   out of the row, so the canvas widens and narrows with it instead of jumping. */
+.ed-panel { width: 340px; flex: none; display: flex; flex-direction: column; min-height: 0; background: var(--app-bg); border-left: var(--div-border); animation: ed-panel-in .28s var(--ease-out) both; }
+.ed-panel.is-closing { animation: ed-panel-out .22s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+.ed-panel-body { animation: ed-fade-in .18s ease-out both; }
+@keyframes ed-panel-in { from { margin-right: -340px; } }
+@keyframes ed-panel-out { to { margin-right: -340px; } }
+@keyframes ed-fade-in { from { opacity: 0; } }
+@keyframes ed-fade-out { to { opacity: 0; } }
+.ed-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px 6px; flex: none; }
+.ed-panel-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; }
+.ed-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 16px 24px; -webkit-overflow-scrolling: touch; }
+.ed-panel-body::-webkit-scrollbar { width: 4px; }
+.ed-panel-body::-webkit-scrollbar-thumb { background: var(--warm-hairline); border-radius: 2px; }
+.ed-rail { position: relative; z-index: 1; width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 0; border-left: var(--div-border); background: var(--app-bg); }
+.ed-rail-spacer { flex: 1; }
+.ed-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: none; background: none; cursor: pointer; color: var(--warm-muted); font-family: var(--font-sans); font-size: 11px; font-weight: 500; }
+.ed-nav-btn:hover, .ed-nav-btn.is-active { color: var(--warm-fg); }
+.ed-nav-ic { width: 44px; height: 36px; border-radius: var(--btn-radius); display: flex; align-items: center; justify-content: center; transition: background .12s; }
+.ed-nav-btn:hover .ed-nav-ic { background: var(--btn-tool-hover); }
+.ed-nav-btn.is-active .ed-nav-ic { background: var(--warm-hover); box-shadow: inset 0 0 0 1px var(--warm-hairline); }
+.ed-nav-btn:focus-visible { outline: none; }
+.ed-nav-btn:focus-visible .ed-nav-ic { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+.ed-rail { gap: 6px; }
+.ed-rail .ed-nav-btn { width: 64px; padding: 8px 0 7px; gap: 5px; border-radius: 10px; font-size: 12px; font-weight: 400; transition: background .12s, box-shadow .12s; }
+.ed-rail .ed-nav-ic, .ed-rail .ed-nav-btn:hover .ed-nav-ic, .ed-rail .ed-nav-btn.is-active .ed-nav-ic { width: auto; height: 28px; background: none; box-shadow: none; }
+.ed-rail .ed-nav-btn:hover { background: var(--btn-tool-hover); }
+.ed-rail .ed-nav-btn.is-active { background: var(--ed-rail-active-bg); box-shadow: inset 0 0 0 1px var(--ed-rail-active-line); color: var(--warm-fg); font-weight: 700; }
+.ed-rail .ed-nav-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+.ed-rail .ed-nav-btn:focus-visible .ed-nav-ic { outline: none; }
+.ed-nav-img { display: block; }
+.ed-nav-badged { position: relative; display: inline-flex; }
+.ed-nav-badge { position: absolute; right: -4px; bottom: -2px; width: 11px; height: 11px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); box-shadow: 0 0 0 1.5px var(--app-bg); background-size: cover; background-position: center; }
+.ed-rail .ed-nav-btn.is-active .ed-nav-badge { box-shadow: 0 0 0 1.5px var(--ed-rail-active-bg); }
+
+/* Panel content */
+.ed-label { font-size: 15px; font-weight: 500; color: var(--warm-fg); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ed-intro { font-size: 13px; color: var(--warm-muted); line-height: 1.45; margin-bottom: 14px; }
+.ed-hr { height: 1px; background: var(--warm-divider-soft); margin: 16px 0 6px; border: none; }
+.ed-link { background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 500; color: var(--warm-fg); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.ed-link:hover { color: var(--warm-fg-2); }
+.ed-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 0; border: none; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; border-radius: var(--btn-radius); }
+.ed-row:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+.ed-row-sw { width: 40px; height: 40px; flex: none; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.10); background-size: cover; background-position: center; }
+.ed-row-sw.is-empty { border: 1.5px dashed var(--warm-muted-2); background: transparent; }
+.ed-row-main { flex: 1; min-width: 0; }
+.ed-row-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-row-title .ed-row-name { font-weight: 400; color: var(--warm-muted); }
+.ed-row-sub { font-size: 12px; color: var(--warm-muted); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-row-value { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ed-row-action { font-size: 12px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; white-space: nowrap; }
+.ed-list > * { border-bottom: 1px solid var(--warm-divider-soft); }
+.ed-list.is-plain > * { border-bottom: none; }
+.ed-fab-list { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+.ed-fab-row { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 8px; border-radius: var(--btn-radius); }
+.ed-fab-row .ed-row { flex: 1; min-width: 0; padding: 8px 0; }
+.ed-fab-row.is-active { background: var(--warm-hover); }
+.ed-fab-row.is-active .ed-row-sw { border-color: var(--metime-black); box-shadow: 0 0 0 1px var(--metime-black); }
+.ed-fab-row.is-unused:not(.is-active) .ed-row-sw { opacity: 0.5; }
+.ed-fab-row.is-unused .ed-row-title, .ed-fab-row.is-unused .ed-row-value { color: var(--warm-muted); }
+.ed-app .ed-fab-more { width: 28px; height: 28px; flex: none; color: var(--warm-fg-2); opacity: 0; }
+.ed-fab-row:hover .ed-fab-more, .ed-fab-row.is-menu .ed-fab-more, .ed-fab-more:focus-visible { opacity: 1; }
+.ed-app .ed-sheet .ed-fab-more { opacity: 1; }
+@media (hover: none) { .ed-app .ed-fab-more { opacity: 1; } }
+.ed-fab-add { padding-right: 32px; }
+.ed-fab-add .ed-row-sw { display: flex; align-items: center; justify-content: center; color: var(--warm-muted); }
+.ed-fab-add:not(:disabled):hover .ed-row-sw { border-color: var(--metime-black); color: var(--metime-black); }
+.ed-fab-add:disabled { cursor: default; opacity: 0.55; }
+.ed-fab-menu { padding: 4px 0; }
+.ed-fab-menu .studio-menu-item { min-height: 38px; padding: 0 14px; font-size: 13px; }
+.ed-fab-menu .studio-menu-item:disabled { color: var(--warm-muted); background: none; cursor: default; }  .ed-note { font-size: 11px; color: var(--warm-muted); line-height: 1.6; margin-top: 14px; }
+
+.ed-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
+.ed-tile { display: flex; flex-direction: column; gap: 6px; padding: 0; border: none; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.ed-tile-thumb { display: block; border-radius: var(--btn-radius); overflow: hidden; background: var(--metime-cream); box-shadow: 0 0 0 1px var(--warm-hairline); transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.ed-tile:hover .ed-tile-thumb { box-shadow: 0 0 0 1px var(--metime-black); }
+.ed-tile.is-active .ed-tile-thumb { box-shadow: var(--ed-ring); }
+.ed-tile:active .ed-tile-thumb { transform: scale(var(--press-scale-card)); }
+.ed-tile:focus-visible { outline: none; }
+.ed-tile:focus-visible .ed-tile-thumb { box-shadow: var(--ed-ring); }
+.ed-tile-name { font-size: 12px; font-weight: 500; line-height: 1.25; }
+.ed-tile-blank { display: flex; align-items: center; justify-content: center; color: var(--warm-muted-2); background: var(--metime-white); }
+
+.ed-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ed-choice { padding: 12px 14px; border: 1px solid var(--warm-hairline); border-radius: 8px; background: var(--ds-white); cursor: pointer; text-align: left; font: inherit; color: inherit; transition: border-color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.ed-choice:hover { border-color: var(--metime-black); }
+.ed-choice.is-active { border-color: var(--metime-black); box-shadow: inset 0 0 0 1px var(--metime-black); }
+.ed-choice:active { transform: scale(var(--press-scale-card)); }
+.ed-choice:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
+.ed-choice-name { font-size: 14px; font-weight: 500; }
+.ed-choice-sub { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); margin-top: 3px; }
+
+.ed-slider-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
+.ed-slider-head .ed-label { margin: 0; font-size: 12px; color: var(--warm-muted); }
+.ed-slider-val { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ed-app input[type=range].ed-range { height: 28px; }
+.ed-statcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.ed-statcard { background: var(--warm-hover); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.ed-statcard-k { font-size: 11px; color: var(--warm-muted); }
+.ed-statcard-v { font-family: var(--font-sans); font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-threads { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ed-threads .ed-swatch { width: 36px; height: 36px; border-radius: 50%; border-color: var(--warm-hairline); }
+.ed-toggle-row { margin-top: 20px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; background: var(--warm-hover); }
+.ed-toggle-row > span { flex: 1; font-size: 14px; font-weight: 500; }
+.ed-tips { display: flex; flex-direction: column; gap: 14px; }
+.ed-tip { display: flex; gap: 12px; align-items: flex-start; }
+.ed-tip-ic { width: 32px; height: 32px; flex: none; border-radius: var(--btn-radius); background: var(--warm-hover); display: flex; align-items: center; justify-content: center; }
+.ed-tip b { display: block; font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+.ed-tip p { font-size: 12px; color: var(--warm-muted); line-height: 1.5; }
+.ed-kbd { font-family: var(--font-sans); font-size: 10px; padding: 1px 5px; border: 1px solid var(--warm-hairline); border-radius: 3px; margin-left: 6px; color: var(--warm-muted); white-space: nowrap; }
+
+/* Selection toolbar, restyled for the shell */
+.ed-app .selection-toolbar { padding: 6px; gap: 6px; box-shadow: var(--ed-float-shadow); background: var(--app-bg); }
+.ed-app .selection-toolbar .ed-swatch { width: 28px; height: 28px; flex: none; }
+.ed-sel-swatches { display: flex; gap: 6px; padding: 3px; margin: -3px; overflow-x: auto; scrollbar-width: none; }
+.ed-sel-swatches::-webkit-scrollbar { display: none; }
+.ed-sel-slot { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: var(--btn-radius); border: 1px solid transparent; background: none; cursor: pointer; flex: none; }
+.ed-sel-slot.is-active { border-color: var(--metime-black); }
+.ed-sel-slot svg { display: block; border: 1px solid rgba(0,0,0,0.12); }
+.ed-app .selection-toolbar .icon-btn { width: 32px; height: 32px; flex: none; }
+.ed-app .selection-toolbar.above::after { border-top-color: var(--app-bg); }
+.ed-app .selection-toolbar.below::after { border-bottom-color: var(--app-bg); }
+.ed-app .selection-toolbar .ed-sel-swatches { max-width: 240px; }
+.ed-app .selection-toolbar .ed-swatch-add { width: 28px; height: 28px; flex: none; }
+.ed-app .selection-swatch-meta { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); padding: 0 2px 0 4px; }
+.ed-row-title, .ed-row-sub, .ed-choice-name, .ed-choice-sub { display: block; }
+.ed-row[aria-expanded="true"] .ed-row-value { color: var(--warm-muted); }
+.ed-palette-pill .ed-swatch-add { width: 30px; height: 30px; flex: none; }
+.ed-palette-pill .ed-swatches { flex: 0 1 auto; min-width: 72px; }
+.ed-strip .ed-swatch-add { width: 40px; height: 40px; flex: none; }
+.ed-app .ed-tray-tools .ic { width: 20px; height: 20px; }
+.ed-threads .ed-link { margin-left: 4px; }
+.ed-panel-body .studio-menu { margin: 0 -4px; }
+
+/* Grid studios (cross-stitch, punch needle): a stitch canvas on the same stage */
+.ed-app .xs-canvas-wrap { position: absolute; inset: 0; padding: 76px 92px 32px; background: transparent; }
+.ed-app .xs-canvas-wrap.has-coasters { padding-bottom: 96px; }
+.ed-app .xs-canvas { box-shadow: 0 1px 2px rgba(23, 23, 23, 0.10), 0 10px 30px rgba(23, 23, 23, 0.08); }
+.ed-nibs { display: flex; gap: 4px; flex: none; }
+.ed-nib { width: 30px; height: 30px; padding: 0; border: none; border-radius: var(--btn-radius); background: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.ed-nib:hover { background: var(--btn-tool-hover); }
+.ed-nib.is-active { background: var(--warm-hover); box-shadow: inset 0 0 0 1.5px var(--metime-black); }
+.ed-nib:active { transform: scale(var(--press-scale)); }
+.ed-nib:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+.ed-nib-icon { display: block; width: 100%; height: 100%; }
+.ed-nib-icon svg { display: block; width: 100%; height: 100%; }
+.ed-strip-sep { width: 1px; align-self: stretch; background: var(--warm-hairline); flex: none; margin: 2px 4px; }
+.ed-app .icon-btn.ed-grid-btn { flex: none; }
+.ed-canvas-head-right { display: flex; align-items: center; gap: 8px; flex: none; }
+.ed-coasters { display: flex; align-items: center; gap: 10px; }
+.ed-coaster-list { display: flex; gap: 8px; padding: 6px; }
+.ed-coaster { position: relative; width: 46px; height: 46px; padding: 3px; border: none; border-radius: var(--btn-radius); background: var(--ds-white); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--warm-hairline); transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+.ed-coaster:hover { box-shadow: 0 0 0 1px var(--metime-black); }
+.ed-coaster.is-active { box-shadow: var(--ed-ring); }
+.ed-coaster:active { transform: scale(var(--press-scale)); }
+.ed-coaster:focus-visible { outline: none; box-shadow: var(--ed-ring); }
+.ed-coaster-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 3px; background: var(--metime-black); color: var(--metime-white); font-family: var(--font-sans); font-size: 9px; line-height: 14px; text-align: center; }
+.ed-app .btn.ed-coaster-copy { flex: none; background: var(--app-bg); box-shadow: var(--ed-float-shadow); }
+.ed-selbar .ed-selbar-info { flex: none; font-size: 12px; color: var(--warm-muted); white-space: nowrap; font-variant-numeric: tabular-nums; border-left: 1px solid var(--warm-hairline); padding: 0 4px 0 10px; }
+.ed-selbar .btn { flex: none; white-space: nowrap; }
+.ed-app .ed-selbar .icon-btn { width: 32px; height: 32px; flex: none; }
+.ed-palette-pill.ed-selbar { max-width: calc(100% - 120px); }
+.ed-tile-thumb.is-square { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; padding: 6px; }
+.ed-tile-thumb.is-square svg { width: 100%; height: 100%; }
+
+/* ── Mobile: tab bar, tools tray, sheets ─────────────────────────────────── */
+.ed-tabbar { flex: none; display: flex; justify-content: space-around; align-items: flex-start; padding: 6px 4px env(safe-area-inset-bottom); height: var(--ed-tabbar-h); border-top: var(--div-border); background: var(--app-bg); position: relative; z-index: 20; }
+.ed-tabbar .ed-nav-btn { flex: 1; min-width: 0; height: 52px; justify-content: center; gap: 3px; }
+.ed-tabbar .ed-nav-ic { height: 30px; }
+.ed-canvas-head { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 6; display: flex; justify-content: flex-end; align-items: center; gap: 8px; pointer-events: none; }
+.ed-canvas-head > * { pointer-events: auto; }
+.ed-zoom-pill { display: flex; align-items: center; height: 36px; flex: none; border: 1px solid var(--warm-muted-2); border-radius: 4px; background: var(--ds-white); }
+.ed-zoom-pill button { height: 34px; min-width: 36px; padding: 0 6px; border: none; background: none; cursor: pointer; color: var(--warm-fg); display: inline-flex; align-items: center; justify-content: center; }
+.ed-zoom-pill .ed-zoom-val { min-width: 44px; text-align: center; }
+.ed-tray { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.ed-tray > * { pointer-events: auto; }
+.ed-strip { margin: 0 12px; padding: 8px 10px; display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.ed-strip::-webkit-scrollbar { display: none; }
+.ed-strip .ed-swatch { width: 40px; height: 40px; flex: none; }
+.ed-tray-card { background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 18px rgba(23,23,23,0.06); padding: 8px 14px 10px; }
+.ed-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 0 auto 8px; }
+.ed-tray-tools { display: flex; justify-content: space-between; align-items: center; }
+.ed-app .ed-tray-tools .icon-btn { width: 56px; height: 48px; }
+.ed-scrim { position: absolute; inset: 0; z-index: 8; background: rgba(23,23,23,0.14); animation: ed-fade-in .28s ease-out both; }
+.ed-scrim.is-closing { animation: ed-fade-out .22s ease-in both; pointer-events: none; }
+.ed-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .32s var(--ease-out) both; }
+.ed-sheet.is-closing { animation: ed-sheet-out .22s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+.ed-sheet .ed-handle { margin: 8px auto 4px; flex: none; }
+.ed-sheet .ed-panel-head { padding: 4px 16px 6px; }
+.ed-sheet .ed-panel-body { padding: 8px 16px 20px; }
+.ed-sheet .studio-menu-item { padding: 0 4px; min-height: 52px; font-size: 15px; border-radius: var(--btn-radius); }
+@keyframes ed-sheet-in { from { transform: translateY(100%); } }
+@keyframes ed-sheet-out { to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ed-panel, .ed-panel.is-closing, .ed-panel-body, .ed-scrim, .ed-scrim.is-closing, .ed-sheet, .ed-sheet.is-closing { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .app.ed-app { --ed-tabbar-h: calc(62px + env(safe-area-inset-bottom)); height: 100%; padding-bottom: 0; }
+  .ed-topbar { height: 52px; padding: 0 8px; gap: 2px; }
+  .ed-topbar-left { flex: 0 0 auto; }
+  .ed-topbar-right { gap: 4px; }
+  .ed-app .icon-btn.ed-lg { width: 44px; height: 44px; }
+  .ed-app .ed-buy .btn { min-height: 36px; padding: 0 14px; }
+  .ed-app .ed-buy .ic { display: none; }
+  .ed-app .ed-buy .buy-kit-price { display: inline; }
+  .ed-app .canvas-scroll { padding: 60px 14px max(184px, calc(var(--ed-tray-h) + 16px)); }
+  .ed-toast { top: 58px; bottom: auto; }
+  .ed-app .selection-toolbar.mobile-selbar {
+    left: 12px; right: 12px; justify-content: flex-start;
+    bottom: calc(var(--ed-tabbar-h) + var(--ed-tray-h) + 8px);
+  }
+  .ed-app .selection-toolbar.mobile-selbar .ed-sel-swatches { max-width: none; flex: 1 1 auto; min-width: 0; }
+  .ed-app .selection-toolbar.mobile-selbar .ed-swatch { width: 32px; height: 32px; }
+  .ed-app .selection-toolbar.mobile-selbar .icon-btn { width: 40px; height: 40px; }
+  .ed-kbd { display: none; }
+  .ed-sheet .ed-pattern-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 8px; }
+  .ed-sheet .ed-pattern-tiles .ed-tile-name { font-size: 11px; }
+  .ed-panel-body .ed-swatch-grid { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); }
+  .ed-app .coaster-bar { padding: 6px 12px; }
+  .ed-app .xs-canvas-wrap, .ed-app .xs-canvas-wrap.has-coasters { padding: 60px 14px calc(var(--ed-tray-h) + 16px); }
+  .ed-strip .ed-nib { width: 40px; height: 40px; }
+  .ed-canvas-head-right { gap: 6px; }
+  .ed-canvas-head-right .ed-zoom-pill button { min-width: 30px; padding: 0 4px; }
+  .ed-canvas-head-right .ed-zoom-pill .ed-zoom-val { min-width: 42px; }
+  .ed-app .ed-canvas-head .ed-grid-btn { width: 36px; height: 36px; border-color: var(--warm-muted-2); background: var(--ds-white); }
+  .ed-app .ed-canvas-head .ed-grid-btn[aria-pressed="true"] { background: var(--btn-primary-bg); border-color: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+  .ed-tray .ed-coasters { margin: 0 12px; justify-content: space-between; }
+  .ed-tray .ed-coaster-list { padding: 5px; gap: 6px; }
+  .ed-app .ed-tray-tools.is-dense .icon-btn { width: auto; flex: 1 1 0; min-width: 0; max-width: 48px; height: 46px; }
+  .ed-strip.ed-selbar { gap: 6px; padding: 6px 8px; }
+  .ed-strip.ed-selbar .ed-sel-swatches { flex: 1 1 auto; min-width: 0; }
+  .ed-strip.ed-selbar .ed-swatch { width: 32px; height: 32px; flex: none; }
+  .ed-strip.ed-selbar .ed-swatch-add { width: 32px; height: 32px; }
+  .ed-app .ed-strip.ed-selbar .icon-btn { width: 36px; height: 36px; }
+  .ed-sheet .ed-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 360px) {
+  .ed-app .ed-buy .buy-kit-price { display: none; }
+  .ed-app .ed-tray-tools .icon-btn { width: 50px; }
+  .ed-app .ed-tray-tools.is-dense .icon-btn { width: auto; }
+  .ed-tray .ed-coaster { width: 40px; height: 40px; }
+  .ed-app .btn.ed-coaster-copy { padding: 0 10px; font-size: 12px; }
+}

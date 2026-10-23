@@ -111,8 +111,8 @@ that link points at localhost.
 goes in the same slots below — publishable/anon in the client, secret/service_role
 on the server.
 
-**A. `index.html`** — near the top of the `<script type="text/babel">` block,
-in the "Supabase config" comment block:
+**A. `index.html`** — in the inline config `<script>` near the bottom of the
+page, under the "Supabase config" comment block:
 
 ```js
 const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";  // ← Project URL
