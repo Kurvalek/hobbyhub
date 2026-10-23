@@ -816,8 +816,8 @@
   .saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; padding: 16px 40px; }
   .saved-head { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
   .saved-head:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
-  .saved-head-title { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
-  .saved-count { font-weight: 300; }
+  .saved-head-title { font-family: var(--font-sans); font-size: 16px; font-weight: 700; line-height: 1.2; color: var(--metime-black); }
+  .saved-count { font-weight: 400; }
   .saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--metime-black); transition: transform 0.15s; }
   .saved-chev.is-open { transform: rotate(180deg); }
   .saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -3030,16 +3030,15 @@
   .brand-shell .saved-sec { background: var(--brand-paper); border-top: none; }
   .brand-shell .saved-toolbar { padding: 16px var(--brand-gutter); }
   .brand-shell .saved-head-title {
-    font-family: "Bodoni Moda", "Times New Roman", serif;
-    font-style: italic;
-    font-optical-sizing: auto;
-    font-weight: 400;
-    font-size: 21px;
+    font-family: var(--brand-font);
+    font-style: normal;
+    font-weight: 700;
+    font-size: 18px;
     letter-spacing: 0;
     text-transform: none;
     color: var(--brand-ink);
   }
-  .brand-shell .saved-count { font-weight: 500; opacity: 0.55; }
+  .brand-shell .saved-count { font-weight: 400; opacity: 0.55; margin-left: 2px; }
   .brand-shell .saved-filter { font-family: var(--brand-font); }
   .brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
   .brand-shell .saved-card {
@@ -9781,7 +9780,7 @@ function SavedDesigns({ onOpen }) {
     <div className="saved-sec">
       <div className="saved-toolbar">
         <button className="saved-head" type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-          <span className="saved-head-title">Saved Designs <span className="saved-count">({items.length})</span></span>
+          <span className="saved-head-title">Saved Designs <span className="saved-count">{items.length}</span></span>
           <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><IcChevD size={14}/></span>
         </button>
         {open && (
