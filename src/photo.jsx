@@ -523,7 +523,7 @@ const PASTE_SHORTCUT = (typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPo
 const PUNCH_TOL = 38;
 const PUNCH_MAX_CLEAR = 0.92;
 const PUNCH_MIN_CLEAR = 0.02;
-function punchImageBackground(img, { maxDim = 720 } = {}) {
+export function punchImageBackground(img, { maxDim = 720 } = {}) {
   if (!img || !img.width || !img.height) return null;
   const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
   const w = Math.max(1, Math.round(img.width * scale));

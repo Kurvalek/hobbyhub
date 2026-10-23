@@ -11,24 +11,27 @@ import {
   seedCoasterPages, serializeGrid,
 } from './design-model.jsx';
 import {
-  IcArrowL, IcCheck, IcCircle, IcCopy, IcDrop, IcErase, IcGrid, IcHand, IcHelp, IcLineTool,
-  IcMarquee, IcPen, IcPlus, IcRedo, IcSave, IcSaved, IcSquare, IcText, IcTrash, IcUndo, IcX,
-  MetimeLogo,
+  IcArrowL, IcCheck, IcCircle, IcCopy, IcDrop, IcErase, IcGrid, IcHand, IcHelp, IcImage,
+  IcLineTool, IcMarquee, IcPen, IcPlus, IcRedo, IcSave, IcSaved, IcSquare, IcText, IcTrash,
+  IcUndo, IcX, MetimeLogo,
 } from './icons.jsx';
 import {
-  DMC, DMC_PALETTES, dmcByCode, nearestDMC, nearestWool, NIB_SIZES, PN_DEFAULT_CODES,
+  DMC, DMC_PALETTES, dmcByCode, extractColors, nearestDMC, nearestWool, NIB_SIZES, PN_DEFAULT_CODES,
   PUNCH_CLOTHS, PUNCH_NEEDLE_PALETTE_MAX, PUNCH_PRESETS, resolveDmcPalette, resolveWoolPalette,
   STITCH_PRESETS, WOOL, WOOL_PALETTES, woolByCode, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP,
 } from './catalog.jsx';
 import {
-  EdHintBubble, EdMenu, EdMenuButton, EdNav, EdNavIcon, EdPaletteEditor, EdPanel, EdRow,
-  EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle, EdTipsSwitch, EdTools,
-  EdZoomControls, EdZoomPill, inchDims, LibraryPopover, Switch, useCanvasPinchZoom,
-  useIsMobile, usePrefersReducedMotion, useShowTips,
+  EdGuideFooter, EdHintBubble, EdMenu, EdMenuButton, EdNav, EdNavIcon, EdPaletteEditor,
+  EdPaletteStarters, EdPanel, EdRow, EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle,
+  EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, inchDims, LibraryPopover, Switch,
+  useCanvasPinchZoom, useEdGuide, useIsMobile, usePrefersReducedMotion, useShowTips,
 } from './editor-ui.jsx';
 import { AccountChip, AccountsOfflineNote } from './account.jsx';
 import { gridSeedFromTemplate, stitchTemplatesFor } from './templates.jsx';
-import { xsFitImageToGrid } from './photo.jsx';
+import {
+  buildGridFromImage, punchImageBackground, xsFitImageToGrid, XS_SIMPLIFY, XS_SIMPLIFY_DEFAULT,
+  xsSimplifySpec,
+} from './photo.jsx';
 import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './setup-steps.jsx';
 import { studioCovered } from './kit-review.jsx';
 
@@ -420,9 +423,102 @@ function StitchCoasterStrip({ pages, active, onSelect, onCopyAll, w, h, bg, clas
   );
 }
 
-function StitchDesignsPanel({ cfg, templates, dims, fabric, isCoaster, onApply }) {
+const loadImage = src => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => resolve(img);
+  img.onerror = () => reject(new Error("Couldn't open that image."));
+  img.src = src;
+});
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) { reject(new Error('Please choose a JPG, PNG or WebP image.')); return; }
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Guided setup's own-image source, at the top of the Templates panel. Before an
+// image: a drop target (click, drop or paste). After: the image and the two
+// conversion settings the classic palette step offers.
+function StitchPhotoSource({ cfg, photo, busy, error, onFile, onDetail, onRemoveBg, onRemove }) {
+  const fileRef = useRef(null);
+  const [drag, setDrag] = useState(false);
+  useEffect(() => {
+    const onPaste = e => {
+      const item = [...((e.clipboardData && e.clipboardData.items) || [])].find(i => i.type && i.type.startsWith('image/'));
+      if (!item) return;
+      e.preventDefault();
+      onFile(item.getAsFile());
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [onFile]);
+  const input = (
+    <input ref={fileRef} type="file" accept="image/*" hidden data-ed-photo-input
+      onChange={e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) onFile(f); }}/>
+  );
+  const chartsLabel = <div className="ed-label">Or start from a chart</div>;
+  if (!photo) {
+    return (
+      <>
+        <div className="ed-label">Use your own image</div>
+        <button type="button" className={`ed-photo-drop${drag ? ' is-drag' : ''}`} disabled={busy}
+          onClick={() => fileRef.current && fileRef.current.click()}
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) onFile(f); }}>
+          <IcImage size={20}/>
+          <span className="ed-photo-drop-title">{busy ? 'Reading your image…' : 'Choose a photo'}</span>
+          <span className="ed-photo-drop-sub">Or drop or paste one here, and we chart it in {cfg.threadLabel.toLowerCase()} colors.</span>
+        </button>
+        {error && <p className="ed-note ed-photo-error">{error}</p>}
+        {input}
+        <div className="ed-hr"/>
+        {chartsLabel}
+      </>
+    );
+  }
   return (
     <>
+      <div className="ed-label">Your image</div>
+      <div className="ed-photo-card" data-ed-photo>
+        <img className={`ed-photo-thumb${photo.removeBg && photo.cutout ? ' is-cutout' : ''}`}
+          src={(photo.removeBg && photo.cutout) || photo.original} alt="Your image"/>
+        <div className="ed-photo-meta">
+          <span className="ed-photo-name">{photo.name}</span>
+          <span className="ed-photo-actions">
+            <button type="button" className="ed-link" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>Choose another</button>
+            <button type="button" className="ed-link" onClick={onRemove}>Remove</button>
+          </span>
+        </div>
+      </div>
+      <div className="ed-sublabel">Detail</div>
+      <div className="ed-seg" role="group" aria-label="Detail level">
+        {XS_SIMPLIFY.map(s => (
+          <button key={s.id} type="button" className={`ed-seg-btn${photo.simplify === s.id ? ' is-active' : ''}`}
+            aria-pressed={photo.simplify === s.id} title={s.note} data-ed-detail={s.id} onClick={() => onDetail(s.id)}>{s.label}</button>
+        ))}
+      </div>
+      <p className="ed-note">{xsSimplifySpec(photo.simplify).note}</p>
+      <div className="ed-toggle-row">
+        <span>Remove background</span>
+        <Switch checked={photo.removeBg} onChange={onRemoveBg}
+          title={photo.removeBg ? `Fill in the whole photo` : `Leave the background as bare ${cfg.fabricLabel}`}/>
+      </div>
+      {error && <p className="ed-note ed-photo-error">{error}</p>}
+      {input}
+      <div className="ed-hr"/>
+      {chartsLabel}
+    </>
+  );
+}
+
+function StitchDesignsPanel({ cfg, templates, dims, fabric, isCoaster, onApply, photoSource = null }) {
+  return (
+    <>
+      {photoSource}
       <p className="ed-intro">
         {isCoaster ? 'Starts this coaster (or the whole set) from a chart.' : 'Starts your canvas from a chart.'} Undo puts your design back.
       </p>
@@ -446,10 +542,11 @@ function StitchDesignsPanel({ cfg, templates, dims, fabric, isCoaster, onApply }
   );
 }
 
-function StitchFlossPanel({ cfg, pal, setPal, isActive, onPick, onAdd, stats, isCoaster }) {
+function StitchFlossPanel({ cfg, pal, setPal, isActive, onPick, onAdd, stats, isCoaster, starters = null }) {
   const filled = stats.possible ? Math.round(stats.total / stats.possible * 100) : 0;
   return (
     <>
+      {starters}
       <EdPaletteEditor pinned={pal} setPinned={setPal} isActive={isActive} onPick={onPick} onAdd={onAdd}
         addLabel={`Add ${cfg.threadLabel.toLowerCase()} from the library`}/>
       <EdStatCards items={[
@@ -564,8 +661,16 @@ function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
   );
 }
 
-export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
+// `guided` replaces the setup screens: the studio opens on Size and steps
+// through the guide (size, starting point, colors, fabric) before free editing.
+export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, guided = false, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
+  const GUIDE = useMemo(() => [
+    { id: 'size', title: 'Choose a size', next: 'Next: Starting point' },
+    { id: 'designs', title: 'Pick a starting point', next: `Next: ${CFG.threadLabel}` },
+    { id: 'floss', title: 'Choose your colors', next: `Next: ${CFG.fabricLabel}` },
+    { id: 'fabric', title: `Choose your ${CFG.fabricLabel}`, next: 'Start designing' },
+  ], [CFG]);
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,
   // rather than being forced into the currently active canvas size.
@@ -575,15 +680,21 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
   // The open panel: the desktop side panel, or the mobile sheet (null shows the
   // tools tray). A lettering template opens on Text, so there's somewhere to type.
   const restingPanel = mobile => (mobile ? null : 'floss');
-  const [panel, setPanel] = useState(() => seedText ? 'text'
+  const [panel, setPanel] = useState(() => guided ? 'size' : seedText ? 'text'
     : restingPanel(typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches));
+  const guideCtl = useEdGuide({ steps: GUIDE, enabled: guided, panel, setPanel });
+  const guide = guideCtl.on;
   const wasMobileRef = useRef(isMobile);
   useEffect(() => {
     if (wasMobileRef.current === isMobile) return;
     wasMobileRef.current = isMobile;
+    if (guide) return;
     setPanel(p => (p === 'text' ? p : restingPanel(isMobile)));
   }, [isMobile]);
-  const togglePanel = useCallback(id => setPanel(p => p === id ? null : id), []);
+  const togglePanel = useCallback(id => {
+    guideCtl.cancel();
+    setPanel(p => p === id ? null : id);
+  }, [guideCtl.cancel]);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
   const showToast = useCallback(msg => {
@@ -1879,21 +1990,28 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
     const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
       cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
     const fit = cells => refitGrid(cells, W, H, p.w, p.h);
+    // Guided setup can pick the size after the design is in, so an untouched
+    // chart or photo is laid again at the new size rather than cropped.
+    const relaid = guided ? reseed(p, null) : null;
     const active = 0;
     if (isCoasterSize(p.name)) {
-      pagesRef.current = seedCoasterPages(fit(cellsRef.current), p.w * p.h);
+      pagesRef.current = relaid
+        ? seedCoasterPages(relaid.autoGrid, p.w * p.h, relaid.autoPages)
+        : seedCoasterPages(fit(cellsRef.current), p.w * p.h);
       undoPagesRef.current = pagesRef.current.map(() => [{ resize: before }]);
       cellsRef.current = pagesRef.current[active];
       undoRef.current = undoPagesRef.current[active];
     } else {
       pagesRef.current = null;
       undoPagesRef.current = null;
-      cellsRef.current = fit(cellsRef.current);
+      cellsRef.current = relaid ? relaid.autoGrid.slice() : fit(cellsRef.current);
       undoRef.current = [{ resize: before }];
     }
     redoRef.current = [];
     setActiveCoaster(active);
     activeCoasterRef.current = active;
+    if (relaid) markLaid();
+    else sourceRef.current = null;
     setDims({ w: p.w, h: p.h, name: p.name });
     bump();
   };
@@ -1907,6 +2025,7 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
     const len = W * H;
     const seed = tpl ? gridSeedFromTemplate(tpl, { name: dims.name, w: W, h: H }, null) : { autoGrid: null, autoPages: null };
     if (tpl && !(seed.autoGrid && seed.autoGrid.length === len)) { showToast(`${tpl.name} doesn't fit this size`); return; }
+    if (guide) { applyGuidedTemplate(tpl, seed); return; }
     commitFloat();
     clearSelection();
     bindActivePage();
@@ -1946,6 +2065,218 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
       chooseTool('text');
     }
   };
+
+  // ── Guided setup ────────────────────────────────────────────────────────
+  // What the design was started from — { kind: 'template', tpl } or
+  // { kind: 'photo' } — with the palette it was dressed in and a copy of every
+  // page as laid. While the board still matches that copy, a new size or
+  // palette lays the source again instead of cropping or recoloring it.
+  const sourceRef = useRef(null);
+  const boardPages = () => (pagesRef.current
+    ? pagesRef.current.map((p, i) => (i === activeCoasterRef.current ? cellsRef.current : p))
+    : [cellsRef.current]);
+  const markLaid = () => { if (sourceRef.current) sourceRef.current.laid = boardPages().map(p => p.slice()); };
+  const sourceFresh = () => {
+    const s = sourceRef.current;
+    if (!s || !s.laid) return false;
+    const pages = boardPages();
+    return pages.length === s.laid.length
+      && pages.every((p, i) => p.length === s.laid[i].length && p.every((h, j) => h === s.laid[i][j]));
+  };
+  // Every color on the board joins the palette, as starter charts do.
+  const paletteWith = (base, pages) => {
+    const byHex = new Map(CFG.library.map(c => [c.hex, c]));
+    const have = new Set(base.map(c => c.hex)), out = base.slice();
+    for (const cells of pages) for (const h of cells) {
+      if (h && !have.has(h)) { have.add(h); const c = byHex.get(h); if (c) out.push(c); }
+    }
+    return out;
+  };
+  // Lays a seed on the board as one undo step. A coaster set takes it on every
+  // coaster (its own four pages for a set chart), as the classic setup does.
+  const layGuided = (seed) => {
+    const len = W * H;
+    commitFloat();
+    clearSelection();
+    bindActivePage();
+    const grid = seed.autoGrid ? seed.autoGrid.slice() : new Array(len).fill(null);
+    if (pagesRef.current) {
+      undoPagesRef.current[activeCoaster] = undoRef.current;
+      const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
+        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
+      pagesRef.current = seedCoasterPages(grid, len, seed.autoPages);
+      undoPagesRef.current = pagesRef.current.map(() => [{ resize: before }]);
+      cellsRef.current = pagesRef.current[activeCoaster];
+      undoRef.current = undoPagesRef.current[activeCoaster];
+      redoRef.current = [];
+    } else {
+      recordUndo(cellsRef.current.slice());
+      cellsRef.current = grid;
+    }
+    redraw(); bump();
+  };
+  // The current source laid again at another size or in another palette, or
+  // null when it can't be (an edited board, or a chart this size doesn't offer).
+  const reseed = ({ w, h, name }, colors) => {
+    const s = sourceRef.current;
+    if (!s || !sourceFresh()) return null;
+    if (s.kind === 'photo') {
+      if (!photo) return null;
+      const use = colors || s.palette;
+      return use && use.length ? { autoGrid: photoGrid(photo, use, w, h), autoPages: null } : null;
+    }
+    if (!stitchTemplatesFor({ name, w, h }, craft).some(t => t.id === s.tpl.id)) return null;
+    const seed = gridSeedFromTemplate(s.tpl, { name, w, h }, colors || s.palette);
+    return seed.autoGrid && seed.autoGrid.length === w * h ? seed : null;
+  };
+
+  const applyGuidedTemplate = (tpl, seed) => {
+    layGuided(seed);
+    sourceRef.current = tpl ? { kind: 'template', tpl, palette: null } : null;
+    markLaid();
+    if (tpl) setPal(prev => paletteWith(prev, boardPages()));
+    if (photo) { photoGenRef.current++; setPhoto(null); setBg(null); setShowBg(false); }
+    showToast(tpl ? `${tpl.name} applied · undo to go back` : 'Canvas cleared · undo to go back');
+    // A lettering chart still sets up the text tool, but its panel waits until
+    // the guide is done.
+    if (tpl && tpl.seedText) {
+      if (tpl.seedText.font) setTextFont(tpl.seedText.font);
+      if (tpl.seedText.size) setTextSize(tpl.seedText.size);
+      if (tpl.seedText.text) setText(tpl.seedText.text);
+      setTool('text');
+    }
+    guideCtl.advance('designs');
+  };
+
+  // Own-image source. The original and its background cutout are both kept, so
+  // "Remove background" can flip between them without asking for the file again.
+  const [photo, setPhoto] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoGenRef = useRef(0);
+  const photoImg = ph => (ph.removeBg && ph.cutoutImg) || ph.img;
+  const photoGrid = (ph, colors, w, h) =>
+    buildGridFromImage(photoImg(ph), colors, w, h, { simplify: ph.simplify, removeBg: ph.removeBg });
+  const suggestFromImage = img => {
+    const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+    let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch { return []; }
+    const seen = new Set(), colors = [];
+    for (const c of extractColors(pixels, 24)) {
+      const k = CFG.nearest(c);
+      if (k && !seen.has(k.code)) { seen.add(k.code); colors.push(k); }
+    }
+    return colors.slice(0, CFG.paletteMax);
+  };
+  const layPhoto = (ph, colors) => {
+    layGuided({ autoGrid: photoGrid(ph, colors, W, H), autoPages: null });
+    sourceRef.current = { kind: 'photo', palette: colors };
+    markLaid();
+    setPal(paletteWith(colors, boardPages()));
+    setColor(colors[0]);
+    setBg((ph.removeBg && ph.cutout) || ph.original);
+    setShowBg(true);
+  };
+  const onPhotoFile = async (file) => {
+    const gen = ++photoGenRef.current;
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      const original = await readImageFile(file);
+      const img = await loadImage(original);
+      const cutout = punchImageBackground(img);
+      const cutoutImg = cutout ? await loadImage(cutout) : null;
+      if (gen !== photoGenRef.current) return;
+      const ph = { name: file.name || 'Your image', original, img, cutout, cutoutImg, simplify: XS_SIMPLIFY_DEFAULT, removeBg: true };
+      ph.suggested = suggestFromImage(photoImg(ph));
+      if (!ph.suggested.length) throw new Error("We couldn't find any colors in that image.");
+      setPhoto(ph);
+      layPhoto(ph, ph.suggested);
+      showToast('Charted from your image · undo to go back');
+    } catch (e) {
+      if (gen === photoGenRef.current) setPhotoError((e && e.message) || "Couldn't use that image.");
+    } finally {
+      if (gen === photoGenRef.current) setPhotoBusy(false);
+    }
+  };
+  // The palette a photo setting re-charts in: whatever was chosen for it, or
+  // its own suggestion if nothing else was.
+  const photoPalette = ph => {
+    const s = sourceRef.current;
+    return s && s.kind === 'photo' && s.palette ? s.palette : ph.suggested;
+  };
+  const setPhotoDetail = simplify => {
+    if (!photo || simplify === photo.simplify) return;
+    const next = { ...photo, simplify };
+    setPhoto(next);
+    layPhoto(next, photoPalette(photo));
+  };
+  const setPhotoRemoveBg = removeBg => {
+    if (!photo) return;
+    const s = sourceRef.current;
+    const onSuggestion = !s || s.kind !== 'photo' || s.palette === photo.suggested;
+    const next = { ...photo, removeBg };
+    const found = suggestFromImage(photoImg(next));
+    next.suggested = found.length ? found : photo.suggested;
+    setPhoto(next);
+    layPhoto(next, onSuggestion ? next.suggested : s.palette);
+  };
+  const removePhoto = () => {
+    photoGenRef.current++;
+    const s = sourceRef.current;
+    if (s && s.kind === 'photo' && sourceFresh()) layGuided({ autoGrid: null, autoPages: null });
+    if (s && s.kind === 'photo') sourceRef.current = null;
+    setPhoto(null); setPhotoError('');
+    setBg(null); setShowBg(false);
+  };
+
+  // The guide's color step: a palette re-dresses an untouched photo or chart,
+  // and otherwise swaps color for color by palette position.
+  const starterPalettes = useMemo(() => [
+    ...(photo ? [{ name: 'From your photo', colors: photo.suggested }] : []),
+    ...dmcSuggested,
+  ], [photo, dmcSuggested]);
+  const applyPalette = colors => {
+    if (!colors || !colors.length) return;
+    const s = sourceRef.current;
+    if (s && s.kind === 'photo' && photo && sourceFresh()) { layPhoto(photo, colors); return; }
+    const seed = reseed({ w: W, h: H, name: dims.name }, colors);
+    if (seed) {
+      layGuided(seed);
+      s.palette = colors;
+      markLaid();
+    } else {
+      const map = new Map(pal.map((c, i) => [c.hex, colors[i % colors.length].hex]));
+      const pages = boardPages().map(p => p.map(h => (h && map.has(h) ? map.get(h) : h)));
+      layGuided({ autoGrid: pages[pagesRef.current ? activeCoaster : 0], autoPages: pagesRef.current ? pages : null });
+      sourceRef.current = null;
+    }
+    setPal(paletteWith(colors, boardPages()));
+    setColor(colors[0]);
+  };
+  const activeStarter = useMemo(() => {
+    const key = pal.map(c => c.hex).join('|');
+    const hit = starterPalettes.find(p => p.colors.map(c => c.hex).join('|') === key);
+    return hit ? hit.name : null;
+  }, [pal, starterPalettes]);
+
+  const finishGuide = () => {
+    guideCtl.end();
+    setPanel(tool === 'text' ? 'text' : (isMobile ? null : 'floss'));
+    showToast(craft === 'punch-needle' ? 'All set · happy punching' : 'All set · happy stitching');
+  };
+  const guideStep = guideCtl.step;
+  const guideFooter = guideStep >= 0 && (
+    <EdGuideFooter steps={GUIDE} step={guideStep}
+      onBack={() => { guideCtl.cancel(); setPanel(GUIDE[guideStep - 1].id); }}
+      onNext={() => {
+        guideCtl.cancel();
+        if (guideStep < GUIDE.length - 1) setPanel(GUIDE[guideStep + 1].id);
+        else finishGuide();
+      }}/>
+  );
 
   const pickColor = (c) => {
     setColor(c);
@@ -1989,21 +2320,28 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
 
   const threadWord = CFG.threadLabel.toLowerCase();
   const PANEL_TITLES = { designs: 'Templates', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', text: 'Text', help: 'Help', menu: 'More' };
+  const panelTitle = guideStep >= 0 ? GUIDE[guideStep].title : PANEL_TITLES[panel];
   const renderPanel = id => {
     if (id === 'designs') return (
       <StitchDesignsPanel cfg={CFG} templates={templates} dims={{ name: dims.name, w: W, h: H }} fabric={fabric}
-        isCoaster={isCoasterKit} onApply={applyTemplate}/>
+        isCoaster={isCoasterKit} onApply={applyTemplate}
+        photoSource={guided ? (
+          <StitchPhotoSource cfg={CFG} photo={photo} busy={photoBusy} error={photoError} onFile={onPhotoFile}
+            onDetail={setPhotoDetail} onRemoveBg={setPhotoRemoveBg} onRemove={removePhoto}/>
+        ) : null}/>
     );
     if (id === 'floss') return (
       <StitchFlossPanel cfg={CFG} pal={pal} setPal={setPal} isActive={isColorActive} onPick={pickColor}
-        onAdd={ref => openLibrary(ref)} stats={stats} isCoaster={isCoasterKit}/>
+        onAdd={ref => openLibrary(ref)} stats={stats} isCoaster={isCoasterKit}
+        starters={guide ? <EdPaletteStarters palettes={starterPalettes} activeName={activeStarter} onApply={applyPalette}/> : null}/>
     );
     if (id === 'fabric') return (
       <StitchFabricPanel cfg={CFG} fabric={fabric} setFabric={setFabric} finished={finished}
         bg={bg} showBg={showBg} setShowBg={setShowBg} bgOpacity={bgOpacity} setBgOpacity={setBgOpacity}/>
     );
     if (id === 'size') return (
-      <StitchSizePanel cfg={CFG} current={dims.name} onPick={applySize} W={W} H={H} finishedDims={finishedDims}/>
+      <StitchSizePanel cfg={CFG} current={dims.name} W={W} H={H} finishedDims={finishedDims}
+        onPick={name => { applySize(name); if (guide) guideCtl.advance('size'); }}/>
     );
     if (id === 'text') return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2032,21 +2370,30 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
     return null;
   };
 
-  const railItems = [
+  const railPanels = [
     { id: 'designs', label: 'Templates', icon: <EdNavIcon name="designs"/> },
     { id: 'floss', label: CFG.threadLabel, icon: <EdNavIcon name={CFG.threadIcon}/> },
     { id: 'fabric', label: 'Fabric', icon: <EdNavIcon name="fabric"/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size"/> },
-    { id: 'sp', spacer: true },
-    { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
-  const tabItems = [
+  const tabPanels = [
     { id: 'designs', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
     { id: 'floss', label: CFG.threadLabel, icon: <EdNavIcon name={CFG.threadIcon} size={26}/> },
     { id: 'tools', label: 'Tools', icon: <EdNavIcon name="tools" size={26}/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'fabric', label: 'Fabric', icon: <EdNavIcon name="fabric" size={26}/> },
   ];
+  // Guided mode lists the panels in the order the setup walks them, Size first.
+  const inGuideOrder = list => {
+    const rank = id => { const i = GUIDE.findIndex(g => g.id === id); return i < 0 ? GUIDE.length : i; };
+    return list.slice().sort((a, b) => rank(a.id) - rank(b.id));
+  };
+  const railItems = [
+    ...(guided ? inGuideOrder(railPanels) : railPanels),
+    { id: 'sp', spacer: true },
+    { id: 'help', label: 'Help', icon: <IcHelp/> },
+  ];
+  const tabItems = guided ? inGuideOrder(tabPanels) : tabPanels;
   const gridBtn = (
     <button type="button" className="icon-btn ed-grid-btn" aria-pressed={showGrid} onClick={() => setShowGrid(v => !v)}
       title={showGrid ? 'Hide grid lines' : 'Show grid lines'} aria-label="Grid lines">
@@ -2214,7 +2561,7 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
               </div>
             )}
             {isMobile && (
-              <EdSheet open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+              <EdSheet open={!!panel} id={panel} title={panelTitle} footer={guideFooter} onClose={() => setPanel(null)}>
                 {panel && renderPanel(panel)}
               </EdSheet>
             )}
@@ -2233,7 +2580,7 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
         </div>
 
         {!isMobile && (
-          <EdPanel open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+          <EdPanel open={!!panel} id={panel} title={panelTitle} footer={guideFooter} onClose={() => setPanel(null)}>
             {panel && renderPanel(panel)}
           </EdPanel>
         )}

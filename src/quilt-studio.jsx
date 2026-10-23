@@ -15,14 +15,15 @@ import {
   IcSquare, IcTrash, IcTri, IcUndo, IcX, MetimeLogo,
 } from './icons.jsx';
 import {
-  calcBacking, calcBinding, calcYardage, fmtY, MAX, PRESETS, QUILT_PATTERNS, SEAM, ZOOM_MAX,
-  ZOOM_MIN, ZOOM_STEP,
+  calcBacking, calcBinding, calcYardage, fmtY, MAX, PRESETS, QUILT_PATTERNS, resolvePalette, SEAM,
+  SUGGESTED_PALETTES, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP,
 } from './catalog.jsx';
 import { GridCanvas, QuiltOverlay } from './quilt-canvas.jsx';
 import {
-  EdHintBubble, EdMenu, EdNav, EdNavIcon, EdPanel, EdRow, EdSheet, EdSlider, EdStatCards,
-  EdSwatch, edSwatchStyle, EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, LibraryPopover,
-  Popover, quiltColorKey, Switch, useIsMobile, useShowTips,
+  EdGuideFooter, EdHintBubble, EdMenu, EdNav, EdNavIcon, EdPaletteStarters, EdPanel, EdRow,
+  EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle, EdTipsSwitch, EdTools,
+  EdZoomControls, EdZoomPill, LibraryPopover, Popover, quiltColorKey, Switch, useEdGuide,
+  useIsMobile, useShowTips,
 } from './editor-ui.jsx';
 import { AccountChip, AccountsOfflineNote } from './account.jsx';
 import { QUILT_TEMPLATES } from './templates.jsx';
@@ -48,6 +49,15 @@ const QUILT_THREADS = [
   { name: 'Gold', hex: '#C9A24B' },
   { name: 'Charcoal', hex: '#343434' },
 ];
+
+// The guided setup: the studio opens on Size and walks the panels in this order.
+const QUILT_GUIDE = [
+  { id: 'size', title: 'Choose a size', next: 'Next: Template' },
+  { id: 'templates', title: 'Pick a starting layout', next: 'Next: Fabrics' },
+  { id: 'fabrics', title: 'Choose your fabrics', next: 'Next: Quilting' },
+  { id: 'quilting', title: 'Choose your quilting', next: 'Start designing' },
+];
+const STARTER_PALETTES = SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) }));
 
 function QuiltTemplatesPanel({ templates, palette, dims, isCoaster, onApply }) {
   const thumbRows = Math.max(4, Math.round(12 * (dims.h / dims.w)));
@@ -122,11 +132,12 @@ function QuiltFabricRow({ row, active, onPick, onSwap, onSelectAll, onRemove }) 
 }
 
 function QuiltFabricsPanel({ rows, yards, isActive, onPick, onAdd, canAdd, onSwap, onSelectAll, onRemove,
-  backing, backCalc, onBacking, onBackingView, binding, bindCalc, onBinding, stacked }) {
+  backing, backCalc, onBacking, onBackingView, binding, bindCalc, onBinding, stacked, starters = null }) {
   const bindRef = useRef(null);
   const addRef = useRef(null);
   return (
     <>
+      {starters}
       <div className="ed-label">
         <span>Your fabrics</span>
         {yards > 0 && <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11 }}>{fmtY(yards)}</span>}
@@ -291,7 +302,9 @@ function quiltGridForPreset(p, preferredBs = 3) {
   };
 }
 
-export function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack, onReview = null }) {
+// `guided` replaces the setup screens: the studio opens straight onto the Size
+// panel and steps through QUILT_GUIDE before handing over to free editing.
+export function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, guided = false, onBack, onReview = null }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
   const _initGrid = quiltGridForPreset(_initP, 3);
   const _initBs = _initGrid.bs;
@@ -303,15 +316,23 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
   const isMobile = useIsMobile();
   // The open panel: 'templates' | 'fabrics' | 'quilting' | 'size' | 'help', or
   // on mobile also 'menu'. null means none — on mobile, the tools tray.
-  const [panel, setPanel] = useState(() =>
-    (typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches) ? null : 'fabrics');
+  const [panel, setPanel] = useState(() => {
+    if (guided) return QUILT_GUIDE[0].id;
+    return (typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches) ? null : 'fabrics';
+  });
+  const guideCtl = useEdGuide({ steps: QUILT_GUIDE, enabled: guided, panel, setPanel });
+  const guide = guideCtl.on;
   const wasMobileRef = useRef(isMobile);
   useEffect(() => {
     if (wasMobileRef.current === isMobile) return;
     wasMobileRef.current = isMobile;
+    if (guide) return;
     setPanel(isMobile ? null : 'fabrics');
   }, [isMobile]);
-  const togglePanel = useCallback(id => setPanel(p => p === id ? null : id), []);
+  const togglePanel = useCallback(id => {
+    guideCtl.cancel();
+    setPanel(p => p === id ? null : id);
+  }, [guideCtl.cancel]);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
   const showToast = useCallback(msg => {
@@ -405,6 +426,21 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
   pinnedRef.current = pinned;
   const colorRef = useRef(color);
   colorRef.current = color;
+  // The last template laid and the exact shapes it produced. While the canvas is
+  // still those shapes, the guided setup can lay it again in a new size or
+  // palette. `all`: it filled every coaster in a set, not just the active one.
+  const templateRef = useRef(null);
+  const templateFresh = () => !!templateRef.current && shapesRef.current === templateRef.current.shapes;
+  const layTemplate = (tpl, { all, palette, cols, rows }) => {
+    const built = tpl ? tpl.build({ cols, rows, palette }) : [];
+    templateRef.current = tpl ? { tpl, shapes: built, all } : null;
+    if (all && coasterUnitsRef.current) {
+      const active = activeCoasterRef.current;
+      coasterUnitsRef.current = coasterUnitsRef.current.map((_, i) => i === active ? built : cloneQuiltShapes(built));
+      setCoasterRev(n => n + 1);
+    }
+    return built;
+  };
   const [preset, setPreset] = useState(initialPreset);
   const [backing, setBacking] = useState(initialBacking);
   const [binding, setBinding] = useState(null);
@@ -764,11 +800,15 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
 
   useEffect(()=>{
     const clamp = s => ({...s,r:Math.min(s.r,rows-1),c:Math.min(s.c,cols-1),h:Math.max(1,Math.min(s.h,rows-Math.min(s.r,rows-1))),w:Math.max(1,Math.min(s.w,cols-Math.min(s.c,cols-1)))});
-    if (coasterUnitsRef.current) {
+    // Guided setup picks the size after the layout can be in place, so an
+    // untouched template is laid again at the new size rather than cropped.
+    const rebuild = guided && templateFresh() ? templateRef.current : null;
+    if (coasterUnitsRef.current && !(rebuild && rebuild.all)) {
       const active = activeCoasterRef.current;
       coasterUnitsRef.current = coasterUnitsRef.current.map((u, i) => i === active ? u : u.map(clamp));
     }
-    setShapes(p=>p.map(clamp));
+    if (rebuild) setShapes(layTemplate(rebuild.tpl, { all: rebuild.all, palette: pinnedRef.current, cols, rows }));
+    else setShapes(p=>p.map(clamp));
     setSelIds(new Set());
   },[rows,cols]);
 
@@ -884,12 +924,62 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
 
   // Templates replace the canvas (the active coaster, for a set) and stay
   // undoable, so trying one costs nothing.
+  // During the guided setup a coaster set takes the layout on every coaster, as
+  // the template step does in the classic flow.
   const applyTemplate = tpl => {
-    setShapes(tpl ? tpl.build({ cols, rows, palette: pinned }) : []);
+    const all = guide && !!coasterUnitsRef.current;
+    if (all) pushStep();
+    const built = layTemplate(tpl, { all, palette: pinned, cols, rows });
+    if (all) _setShapes(built);
+    else setShapes(built);
     setSelIds(new Set());
     showToast(tpl ? `${tpl.name} applied · undo to go back` : 'Canvas cleared · undo to go back');
-    if (isMobile) setPanel(null);
+    if (guide) guideCtl.advance('templates');
+    else if (isMobile) setPanel(null);
   };
+
+  // Guided setup's palette starters. An untouched template is laid again in the
+  // new fabrics; anything else swaps fabric for fabric by palette position.
+  const applyPalette = colors => {
+    if (!colors || !colors.length) return;
+    const t = templateFresh() ? templateRef.current : null;
+    const map = new Map(pinnedRef.current.map((c, i) => [quiltColorKey(c), colors[i % colors.length]]));
+    const remap = list => list.map(s => {
+      const to = s.color && map.get(quiltColorKey(s.color));
+      return to ? { ...s, color: to } : s;
+    });
+    pushStep();
+    if (coasterUnitsRef.current && !(t && t.all)) {
+      coasterUnitsRef.current = coasterUnitsRef.current.map((u, i) => i === activeCoaster ? u : remap(u));
+      setCoasterRev(n => n + 1);
+    }
+    _setShapes(t ? layTemplate(t.tpl, { all: t.all, palette: colors, cols, rows }) : remap(shapesRef.current));
+    setPinned(colors);
+    setColor(colors[0]);
+    setSelIds(new Set());
+  };
+  const activeStarter = useMemo(() => {
+    const keys = pinned.map(quiltColorKey).join('|');
+    const hit = STARTER_PALETTES.find(p => p.colors.map(quiltColorKey).join('|') === keys);
+    return hit ? hit.name : null;
+  }, [pinned]);
+
+  const finishGuide = () => {
+    guideCtl.end();
+    setPanel(isMobile ? null : 'fabrics');
+    setTool('paint');
+    showToast('All set · happy quilting');
+  };
+  const guideStep = guideCtl.step;
+  const guideFooter = guideStep >= 0 && (
+    <EdGuideFooter steps={QUILT_GUIDE} step={guideStep}
+      onBack={() => { guideCtl.cancel(); setPanel(QUILT_GUIDE[guideStep - 1].id); }}
+      onNext={() => {
+        guideCtl.cancel();
+        if (guideStep < QUILT_GUIDE.length - 1) setPanel(QUILT_GUIDE[guideStep + 1].id);
+        else finishGuide();
+      }}/>
+  );
 
   const toolDef = QUILT_TOOLS.find(t => t.id === tool) || QUILT_TOOLS[0];
   const toolHint = toolDef.hint(isMobile ? 'Tap' : 'Click');
@@ -917,6 +1007,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
   }, [isMobile, panel]);
 
   const PANEL_TITLES = { templates: 'Templates', fabrics: 'Fabrics', quilting: 'Quilting', size: 'Size', help: 'Help', menu: 'More' };
+  const panelTitle = guideStep >= 0 ? QUILT_GUIDE[guideStep].title : PANEL_TITLES[panel];
   const renderPanel = id => {
     if (id === 'templates') return (
       <QuiltTemplatesPanel templates={QUILT_TEMPLATES} palette={pinned} dims={{ w: fw, h: fh }}
@@ -930,7 +1021,8 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
         onBackingView={fabricFullSrc(backing) ? () => setInspectBacking(backing) : null}
         binding={binding} bindCalc={bindCalc}
         onBinding={ref => openColorPicker(ref, setBinding, binding ? () => setBinding(null) : null, 'Binding fabric')}
-        stacked={materials.stacked}/>
+        stacked={materials.stacked}
+        starters={guide ? <EdPaletteStarters palettes={STARTER_PALETTES} activeName={activeStarter} onApply={applyPalette}/> : null}/>
     );
     if (id === 'quilting') return (
       <QuiltQuiltingPanel qPattern={qPattern} setQPattern={setQPattern} qSpacing={qSpacing} setQSpacing={setQSpacing}
@@ -938,7 +1030,8 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
         onMoreThread={ref => openColorPicker(ref, setQColor, null, 'Thread color')}/>
     );
     if (id === 'size') return (
-      <QuiltSizePanel preset={preset} onPreset={applyPreset} bs={bs} minBs={minBs} maxBs={maxBs}
+      <QuiltSizePanel preset={preset} bs={bs} minBs={minBs} maxBs={maxBs}
+        onPreset={name => { applyPreset(name); if (guide) guideCtl.advance('size'); }}
         onBs={handleBsChange} cols={cols} rows={rows} fw={fw} fh={fh}/>
     );
     if (id === 'help') return <QuiltHelpPanel isMobile={isMobile} showTips={showTips} setShowTips={setShowTips}/>;
@@ -968,21 +1061,30 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
       {color && <span className="ed-nav-badge" style={edSwatchStyle(color)} title={`Current fabric: ${color.name}`}/>}
     </span>
   );
-  const railItems = [
+  const railPanels = [
     { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs"/> },
     { id: 'fabrics', label: 'Fabrics', icon: fabricsIcon() },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting"/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size"/> },
-    { id: 'sp', spacer: true },
-    { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
-  const tabItems = [
+  const tabPanels = [
     { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
     { id: 'fabrics', label: 'Fabrics', icon: fabricsIcon(26) },
     { id: 'tools', label: 'Tools', icon: <EdNavIcon name="tools" size={26}/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting" size={26}/> },
   ];
+  // Guided mode lists the panels in the order the setup walks them, Size first.
+  const inGuideOrder = list => {
+    const rank = id => { const i = QUILT_GUIDE.findIndex(g => g.id === id); return i < 0 ? QUILT_GUIDE.length : i; };
+    return list.slice().sort((a, b) => rank(a.id) - rank(b.id));
+  };
+  const railItems = [
+    ...(guided ? inGuideOrder(railPanels) : railPanels),
+    { id: 'sp', spacer: true },
+    { id: 'help', label: 'Help', icon: <IcHelp/> },
+  ];
+  const tabItems = guided ? inGuideOrder(tabPanels) : tabPanels;
   const paletteSwatches = fabricOrder.map((c, i) => (
     <EdSwatch key={`${c.name}-${i}`} color={c} active={isColorActive(c)} onClick={() => pickColor(c)}/>
   ));
@@ -1082,7 +1184,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
               </div>
             )}
             {isMobile && (
-              <EdSheet open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+              <EdSheet open={!!panel} id={panel} title={panelTitle} footer={guideFooter} onClose={() => setPanel(null)}>
                 {panel && renderPanel(panel)}
               </EdSheet>
             )}
@@ -1100,7 +1202,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
         </div>
 
         {!isMobile && (
-          <EdPanel open={!!panel} id={panel} title={PANEL_TITLES[panel]} onClose={() => setPanel(null)}>
+          <EdPanel open={!!panel} id={panel} title={panelTitle} footer={guideFooter} onClose={() => setPanel(null)}>
             {panel && renderPanel(panel)}
           </EdPanel>
         )}

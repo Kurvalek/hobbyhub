@@ -779,21 +779,23 @@ function useLingeringPanel(open, props) {
 }
 
 // Desktop: a column between the canvas and the rail.
-export function EdPanel({ open, id, title, onClose, children }) {
-  const p = useLingeringPanel(open, { id, title, onClose, children });
+// `footer` sits under the scrolling body, so it stays in view however long the panel is.
+export function EdPanel({ open, id, title, onClose, footer, children }) {
+  const p = useLingeringPanel(open, { id, title, onClose, footer, children });
   if (!p.shown) return null;
   return (
     <aside className={`ed-panel${p.closing ? ' is-closing' : ''}`} aria-label={p.title}
       data-ed-panel={p.closing ? undefined : p.id} aria-hidden={p.closing || undefined}>
       <EdPanelHead title={p.title} onClose={p.onClose}/>
       <div className="ed-panel-body" key={p.id}>{p.children}</div>
+      {p.footer}
     </aside>
   );
 }
 
 // Mobile: the same panel content as a sheet over the stage, above the tab bar.
-export function EdSheet({ open, id, title, onClose, children }) {
-  const p = useLingeringPanel(open, { id, title, onClose, children });
+export function EdSheet({ open, id, title, onClose, footer, children }) {
+  const p = useLingeringPanel(open, { id, title, onClose, footer, children });
   useEffect(() => {
     if (!open) return;
     const onKey = e => { if (e.key === 'Escape' && !studioCovered()) onClose(); };
@@ -810,7 +812,78 @@ export function EdSheet({ open, id, title, onClose, children }) {
         <div className="ed-handle"/>
         {p.title && <EdPanelHead title={p.title} onClose={p.onClose}/>}
         <div className="ed-panel-body" key={p.id}>{p.children}</div>
+        {p.footer}
       </div>
+    </>
+  );
+}
+
+// ── Guided setup ──────────────────────────────────────────────────────────
+// The studio opens on the first step's panel and walks `steps` in order
+// ({ id, title, next } each, `id` being a panel id). Closing the panel, or
+// opening one outside the guide other than Help, hands over to free editing.
+// `steps` must keep its identity between renders.
+const ED_GUIDE_ADVANCE_MS = 380;
+export function useEdGuide({ steps, enabled, panel, setPanel }) {
+  const [on, setOn] = useState(enabled);
+  useEffect(() => {
+    if (on && panel !== 'help' && !steps.some(s => s.id === panel)) setOn(false);
+  }, [on, panel, steps]);
+  const timerRef = useRef(null);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+  const cancel = useCallback(() => clearTimeout(timerRef.current), []);
+  // After a step's main choice, move on a beat later (long enough to see the
+  // choice land), unless the maker has already gone elsewhere.
+  const advance = useCallback(from => {
+    const next = steps[steps.findIndex(s => s.id === from) + 1];
+    if (!next) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setPanel(p => p === from ? next.id : p), ED_GUIDE_ADVANCE_MS);
+  }, [steps, setPanel]);
+  const end = useCallback(() => { clearTimeout(timerRef.current); setOn(false); }, []);
+  const step = on ? steps.findIndex(s => s.id === panel) : -1;
+  return { on, step, advance, cancel, end };
+}
+
+export function EdGuideFooter({ steps, step, onBack, onNext }) {
+  return (
+    <div className="ed-guide">
+      <div className="ed-guide-progress" aria-hidden="true">
+        {steps.map((s, i) => <span key={s.id} className={`ed-guide-seg${i <= step ? ' is-on' : ''}`}/>)}
+      </div>
+      <div className="ed-guide-row">
+        <span className="ed-guide-count">Step {step + 1} of {steps.length}</span>
+        {step > 0 && <button type="button" className="btn" onClick={onBack}>Back</button>}
+        <button type="button" className="btn btn-dark" data-ed-guide-next onClick={onNext}>{steps[step].next}</button>
+      </div>
+    </div>
+  );
+}
+
+// Named palettes ({ name, colors }) as strips, for the guide's color step.
+export function EdPaletteStarters({ palettes, activeName, onApply, shownAtFirst = 6 }) {
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? palettes : palettes.slice(0, shownAtFirst);
+  return (
+    <>
+      <div className="ed-label">Start from a palette</div>
+      <div className="ed-pal-grid ed-keep-sel">
+        {shown.map(p => (
+          <button key={p.name} type="button" className={`ed-pal${activeName === p.name ? ' is-active' : ''}`}
+            aria-pressed={activeName === p.name} data-ed-palette={p.name} onClick={() => onApply(p.colors)}>
+            <span className="ed-pal-strip">
+              {p.colors.map((c, i) => <span key={`${c.code || c.name}-${i}`} style={{ background: c.hex }}/>)}
+            </span>
+            <span className="ed-pal-name">{p.name}</span>
+          </button>
+        ))}
+      </div>
+      {palettes.length > shownAtFirst && (
+        <button type="button" className="ed-link ed-pal-more" onClick={() => setShowAll(v => !v)}>
+          {showAll ? 'Show fewer' : `Show all ${palettes.length}`}
+        </button>
+      )}
+      <div className="ed-hr"/>
     </>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { canonicalPresetName, fetchDesignRecord } from './services.jsx';
+import { resolvePalette, SUGGESTED_PALETTES } from './catalog.jsx';
 import { App } from './quilt-studio.jsx';
 import { AuthProvider, TweaksPanel } from './account.jsx';
 import { CraftSelector, ProjectSelector } from './landing.jsx';
@@ -19,6 +20,7 @@ import { KitReviewLoading, KitReviewPage } from './kit-review.jsx';
 const STEP_DEPTH = {
   'craft': 0,
   'q-size': 1, 'q-backing': 2, 'q-palette': 3, 'q-template': 4, 'q-editor': 5,
+  'q-guided': 1, 'xs-guided': 1, 'pn-guided': 1,
   'xs-size': 1, 'xs-template': 2, 'xs-palette': 3, 'xs-editor': 4,
   'pn-size': 1, 'pn-template': 2, 'pn-palette': 3, 'pn-editor': 4,
   'saved': 1,
@@ -28,6 +30,31 @@ const STEP_DEPTH = {
 // use. Both walk the same size → template → palette → editor chain, so they
 // share one set of flow state and one set of step components.
 const GRID_CRAFTS = { 'cross-stitch': 'xs', 'punch-needle': 'pn' };
+
+// Which onboarding this device gets. 'classic' walks the setup screens; 'guided'
+// skips them and steps through the studio's own panels instead, for every craft.
+// `?onboarding=guided` or `?onboarding=classic` switches it and is remembered.
+const ONBOARDING_KEY = 'metime.onboarding';
+function readOnboarding() {
+  if (typeof window === 'undefined') return 'classic';
+  try {
+    const asked = new URLSearchParams(window.location.search).get('onboarding');
+    if (asked === 'guided' || asked === 'classic') {
+      localStorage.setItem(ONBOARDING_KEY, asked);
+      return asked;
+    }
+    return localStorage.getItem(ONBOARDING_KEY) === 'guided' ? 'guided' : 'classic';
+  } catch {
+    return 'classic';
+  }
+}
+const GUIDED = readOnboarding() === 'guided';
+const GUIDED_START_PALETTE = resolvePalette(SUGGESTED_PALETTES[0]);
+// The size a guided grid studio opens on, before the maker picks one.
+function guidedGridPreset(craft) {
+  const presets = CRAFT_STUDIO[craft].presets;
+  return presets.find(p => p.name === 'Small Hoop') || presets[0];
+}
 
 // ── Restoring a step from its history entry ────────────────────────────────
 // Each entry carries a snapshot of the choices that identify its step (see
@@ -145,12 +172,14 @@ function Root() {
     if (openSaved) return 'saved';
     if (!craft) return 'craft';
     const p = GRID_CRAFTS[craft];
+    if (p && GUIDED) return `${p}-guided`;
     if (p) {
       if (!gridPreset) return `${p}-size`;
       if (!gridTemplateDone) return `${p}-template`;
       if (!gridDone) return `${p}-palette`;
       return `${p}-editor`;
     }
+    if (GUIDED) return 'q-guided';
     if (!selectedPreset) return 'q-size';
     if (!quiltBackingDone) return 'q-backing';
     if (!paletteDone) return 'q-palette';
@@ -313,6 +342,10 @@ function Root() {
       return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
     }
 
+    if (GRID_CRAFTS[craft] && GUIDED) {
+      return <CrossStitchApp key={craft} guided craft={craft} preset={guidedGridPreset(craft)} palette={null}
+        onBack={resetAll} onReview={openCart}/>;
+    }
     if (GRID_CRAFTS[craft]) {
       const cfg = CRAFT_STUDIO[craft];
       if (!gridPreset) {
@@ -382,6 +415,14 @@ function Root() {
       );
     }
 
+    if (GUIDED) {
+      return (
+        <>
+          <App guided initialPalette={GUIDED_START_PALETTE} onBack={resetAll} onReview={openCart}/>
+          <TweaksPanel/>
+        </>
+      );
+    }
     if (!selectedPreset) {
       return <ProjectSelector onSelect={setSelectedPreset} onBack={() => window.history.back()}/>;
     }
