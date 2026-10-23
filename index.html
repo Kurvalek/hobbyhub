@@ -3278,6 +3278,9 @@
   .ed-rail .ed-nav-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
   .ed-rail .ed-nav-btn:focus-visible .ed-nav-ic { outline: none; }
   .ed-nav-img { display: block; }
+  .ed-nav-badged { position: relative; display: inline-flex; }
+  .ed-nav-badge { position: absolute; right: -4px; bottom: -2px; width: 11px; height: 11px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); box-shadow: 0 0 0 1.5px var(--app-bg); background-size: cover; background-position: center; }
+  .ed-rail .ed-nav-btn.is-active .ed-nav-badge { box-shadow: 0 0 0 1.5px var(--ed-rail-active-bg); }
 
   /* Panel content */
   .ed-label { font-size: 15px; font-weight: 500; color: var(--warm-fg); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -3302,6 +3305,8 @@
   .ed-fab-row .ed-row { flex: 1; min-width: 0; padding: 8px 0; }
   .ed-fab-row.is-active { background: var(--warm-hover); }
   .ed-fab-row.is-active .ed-row-sw { border-color: var(--metime-black); box-shadow: 0 0 0 1px var(--metime-black); }
+  .ed-fab-row.is-unused:not(.is-active) .ed-row-sw { opacity: 0.5; }
+  .ed-fab-row.is-unused .ed-row-title, .ed-fab-row.is-unused .ed-row-value { color: var(--warm-muted); }
   .ed-app .ed-fab-more { width: 28px; height: 28px; flex: none; color: var(--warm-fg-2); opacity: 0; }
   .ed-fab-row:hover .ed-fab-more, .ed-fab-row.is-menu .ed-fab-more, .ed-fab-more:focus-visible { opacity: 1; }
   .ed-app .ed-sheet .ed-fab-more { opacity: 1; }
@@ -3312,11 +3317,7 @@
   .ed-fab-add:disabled { cursor: default; opacity: 0.55; }
   .ed-fab-menu { padding: 4px 0; }
   .ed-fab-menu .studio-menu-item { min-height: 38px; padding: 0 14px; font-size: 13px; }
-  .ed-fab-menu .studio-menu-item:disabled { color: var(--warm-muted); background: none; cursor: default; }
-  .ed-tool-slot { position: relative; display: inline-flex; }
-  .ed-tool-badge { position: absolute; right: 8px; bottom: 8px; width: 10px; height: 10px; padding: 0; border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); box-shadow: 0 0 0 1.5px var(--app-bg); background-size: cover; background-position: center; cursor: pointer; }
-  .ed-tray-tools .ed-tool-badge { right: 14px; bottom: 10px; }
-  .ed-note { font-size: 11px; color: var(--warm-muted); line-height: 1.6; margin-top: 14px; }
+  .ed-fab-menu .studio-menu-item:disabled { color: var(--warm-muted); background: none; cursor: default; }  .ed-note { font-size: 11px; color: var(--warm-muted); line-height: 1.6; margin-top: 14px; }
 
   .ed-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
   .ed-tile { display: flex; flex-direction: column; gap: 6px; padding: 0; border: none; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; }
@@ -6026,7 +6027,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // triangle pair, tap a pair to turn it) and replace (tap a patch to swap its
 // fabric everywhere via onReplaceColor). One drag is one undo step: follow-up
 // updates in the same gesture pass { merge: true } to setShapes.
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onPickFabric }) {
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onPickFabric, onAddFabric }) {
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -6441,6 +6442,14 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   // half when the selection is one triangle pair.
   const paletteTargetIds = singleTriPair ? new Set([singleTriPair[triSlot].id]) : selIds;
   const paletteCurrentColor = singleTriPair ? singleTriPair[triSlot].color : selectionSwatchColor;
+  // A mixed selection shows its fabrics as slices of one swatch.
+  const mixedSwatchStyle = useMemo(() => {
+    const hexes = [...new Set(selShapes.map(s => s.color?.hex).filter(Boolean))].slice(0, 4);
+    if (hexes.length < 2) return undefined;
+    const step = 360 / hexes.length;
+    return { background: `conic-gradient(${hexes.map((h, i) => `${h} ${i * step}deg ${(i + 1) * step}deg`).join(', ')})` };
+  }, [selShapes]);
+  const fabricMenuRef = useRef(null);
 
   useEffect(() => { setTriSlot('a'); }, [selIds]);
 
@@ -6667,13 +6676,23 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
               {selIds.size === 1 && singleSel ? `${singleSel.w}×${singleSel.h}` : `${selIds.size} selected`}
             </span>
           )}
-          <div className="ed-sel-swatches">
-            {pinned.map((c, i) => (
-              <EdSwatch key={`${c.name}-${i}`} color={c}
-                active={!!paletteCurrentColor && paletteCurrentColor.hex === c.hex && paletteCurrentColor.name === c.name}
-                onClick={() => { handleRecolor(c, paletteTargetIds); onPickFabric?.(c); }}/>
-            ))}
-          </div>
+          <EdMenuButton btnRef={fabricMenuRef} menuLabel="Fabrics" width={256}
+            label={paletteCurrentColor ? `Fabric: ${paletteCurrentColor.name}` : 'Fabric: mixed'}
+            trigger={<span className="ed-menu-swatch" style={paletteCurrentColor ? edSwatchStyle(paletteCurrentColor) : mixedSwatchStyle}/>}>
+            <div className="ed-menu-swatches">
+              {pinned.map((c, i) => (
+                <EdSwatch key={`${c.name}-${i}`} color={c}
+                  active={!!paletteCurrentColor && paletteCurrentColor.hex === c.hex && paletteCurrentColor.name === c.name}
+                  onClick={() => { handleRecolor(c, paletteTargetIds); onPickFabric?.(c); }}/>
+              ))}
+              {onAddFabric && (
+                <button type="button" className="ed-swatch ed-swatch-add" onClick={() => onAddFabric(fabricMenuRef)}
+                  title="Add a fabric" aria-label="Add a fabric">
+                  <IcPlus size={12}/>
+                </button>
+              )}
+            </div>
+          </EdMenuButton>
           <span className="selection-toolbar-divider"/>
           {hasTri && <>
             <button className="icon-btn" onClick={handleRotateTri} title="Turn triangle" aria-label="Turn triangle"><IcRotate/></button>
@@ -6779,10 +6798,18 @@ function SimpleSuggested({ palettes, onLoad, onSelect }) {
 function Popover({ anchorRef, onClose, placement = 'right-bottom', children, width = 280 }) {
   const [pos, setPos] = useState(null);
   const popRef = useRef(null);
+  const calcRef = useRef(null);
+  const measuredH = useRef(0);
+  // The first placement guesses the height; once the popover has rendered,
+  // place it again with its real height so a flip lands next to the anchor.
+  useLayoutEffect(() => {
+    const h = popRef.current?.offsetHeight || 0;
+    if (pos && h && h !== measuredH.current) { measuredH.current = h; calcRef.current?.(); }
+  });
 
   useEffect(() => {
     if (!anchorRef?.current) return;
-    const calc = () => {
+    const calc = calcRef.current = () => {
       const a = anchorRef.current.getBoundingClientRect();
       const popH = popRef.current?.offsetHeight || 320;
       let top, left;
@@ -6793,10 +6820,12 @@ function Popover({ anchorRef, onClose, placement = 'right-bottom', children, wid
       else if (placement === 'bottom-end') { top = a.bottom + 6; left = a.right - width; }
       else if (placement === 'left-anchored') { top = a.top; left = a.left - width - 8; }
       else { top = a.bottom + 6; left = a.left; }
-      // Flip upward if popover would overflow bottom of viewport
+      // Flip upward if the popover would overflow the bottom of the viewport:
+      // menus below their anchor open above it instead; side popovers line up
+      // with the anchor's bottom edge.
       const maxLeft = window.innerWidth - width - 8;
       const maxTop = window.innerHeight - popH - 8;
-      if (top > maxTop) top = Math.max(8, a.bottom - popH);
+      if (top > maxTop) top = Math.max(8, placement.startsWith('bottom') ? a.top - popH - 6 : a.bottom - popH);
       left = Math.max(8, Math.min(left, maxLeft));
       top = Math.max(8, Math.min(top, maxTop));
       setPos({ top, left });
@@ -7403,28 +7432,16 @@ function EdNav({ className, label, items, active, onSelect }) {
   );
 }
 
-// A tool can carry a `badge` ({ color, label, onClick }): a small swatch in the
-// button's corner, its own button so it can't nest inside the tool's.
 function EdTools({ className, tools, tool, onTool }) {
   return (
     <div className={className} role="toolbar" aria-label="Tools">
-      {tools.map(t => {
-        const btn = (
-          <button key={t.id} type="button" className="icon-btn" aria-pressed={tool === t.id}
-            data-ed-tool={t.id} title={t.key ? `${t.label} (${t.key})` : t.label} aria-label={t.label}
-            onClick={() => onTool(t.id)}>
-            {t.icon}
-          </button>
-        );
-        if (!t.badge) return btn;
-        return (
-          <span key={t.id} className="ed-tool-slot">
-            {btn}
-            <button type="button" className="ed-tool-badge" style={edSwatchStyle(t.badge.color)}
-              title={t.badge.label} aria-label={t.badge.label} onClick={t.badge.onClick}/>
-          </span>
-        );
-      })}
+      {tools.map(t => (
+        <button key={t.id} type="button" className="icon-btn" aria-pressed={tool === t.id}
+          data-ed-tool={t.id} title={t.key ? `${t.label} (${t.key})` : t.label} aria-label={t.label}
+          onClick={() => onTool(t.id)}>
+          {t.icon}
+        </button>
+      ))}
     </div>
   );
 }
@@ -7751,7 +7768,7 @@ function QuiltFabricRow({ row, active, onPick, onSwap, onSelectAll, onRemove }) 
     { id: 'remove', label: 'Remove from kit', disabled: used, meta: used ? 'Swap it first' : null, onClick: () => onRemove(fabric) },
   ];
   return (
-    <div ref={rowRef} className={`ed-fab-row${active ? ' is-active' : ''}${menuOpen ? ' is-menu' : ''}`} data-ed-fabric={fabric.name}>
+    <div ref={rowRef} className={`ed-fab-row${active ? ' is-active' : ''}${used ? '' : ' is-unused'}${menuOpen ? ' is-menu' : ''}`} data-ed-fabric={fabric.name}>
       <button type="button" className="ed-row" aria-pressed={active} onClick={() => onPick(fabric)}>
         <span className="ed-row-sw" style={edSwatchStyle(fabric)}/>
         <span className="ed-row-main">
@@ -8559,12 +8576,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const hintBubble = showTips && (
     <EdHintBubble text={toolHint} onHide={() => { setShowTips(false); showToast('Tips hidden. Turn them back on in Help.'); }}/>
   );
-  const tools = QUILT_TOOLS.map(t => ({
-    ...t, icon: <t.Ic size={isMobile ? 20 : 18}/>,
-    badge: t.id === 'replace' && color
-      ? { color, label: `Current fabric: ${color.name}. Open Fabrics`, onClick: () => setPanel('fabrics') }
-      : null,
-  }));
+  const tools = QUILT_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
   const painting = QUILT_PAINT_TOOLS.has(tool);
   const isColorActive = c => !!color && color.name === c.name && color.hex === c.hex;
   const canUndo = historyRef.current.length > 0;
@@ -8627,9 +8639,17 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     return null;
   };
 
+  // The Fabrics icon carries the current fabric, so the brush stays visible
+  // while the panel is closed.
+  const fabricsIcon = size => (
+    <span className="ed-nav-badged">
+      <EdNavIcon name="fabric" size={size}/>
+      {color && <span className="ed-nav-badge" style={edSwatchStyle(color)} title={`Current fabric: ${color.name}`}/>}
+    </span>
+  );
   const railItems = [
     { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs"/> },
-    { id: 'fabrics', label: 'Fabrics', icon: <EdNavIcon name="fabric"/> },
+    { id: 'fabrics', label: 'Fabrics', icon: fabricsIcon() },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting"/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size"/> },
     { id: 'sp', spacer: true },
@@ -8637,7 +8657,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   ];
   const tabItems = [
     { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
-    { id: 'fabrics', label: 'Fabrics', icon: <EdNavIcon name="fabric" size={26}/> },
+    { id: 'fabrics', label: 'Fabrics', icon: fabricsIcon(26) },
     { id: 'tools', label: 'Tools', icon: <EdNavIcon name="tools" size={26}/> },
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting" size={26}/> },
@@ -8716,7 +8736,8 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 tool={tool} selectedColor={color}
                 quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}
                 zoom={zoom} onZoomChange={setZoom} pinned={fabricOrder} isMobile={isMobile}
-                onReplaceColor={replaceEverywhere} onPickFabric={setColor}/>
+                onReplaceColor={replaceEverywhere} onPickFabric={setColor}
+                onAddFabric={canAddFabric ? ref => openLibrary(ref, 'bottom-start') : undefined}/>
             </div>
 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={setTool}/>}
