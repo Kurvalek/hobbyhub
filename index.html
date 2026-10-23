@@ -3250,7 +3250,7 @@
   .ed-rail .ed-nav-btn.is-active { background: var(--ed-rail-active-bg); box-shadow: inset 0 0 0 1px var(--ed-rail-active-line); color: var(--warm-fg); font-weight: 700; }
   .ed-rail .ed-nav-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
   .ed-rail .ed-nav-btn:focus-visible .ed-nav-ic { outline: none; }
-  .ed-rail-img { display: block; width: 28px; height: 28px; }
+  .ed-nav-img { display: block; }
 
   /* Panel content */
   .ed-label { font-size: 15px; font-weight: 500; color: var(--warm-fg); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -7350,9 +7350,9 @@ function EdSwatch({ color, active = false, onClick, title, className = '' }) {
   );
 }
 
-// The rail's full-color panel icons, drawn on a 32 grid in icons/.
-function EdRailIcon({ name }) {
-  return <img className="ed-rail-img" src={`icons/${name}.svg`} alt="" width="28" height="28" draggable="false"/>;
+// Full-color panel icons for the rail and tab bar, drawn on a 32 grid in icons/.
+function EdNavIcon({ name, size = 28 }) {
+  return <img className="ed-nav-img" src={`icons/${name}.svg`} alt="" width={size} height={size} draggable="false"/>;
 }
 
 // Icon + label buttons: the desktop rail and the mobile tab bar. `{ spacer }`
@@ -8412,19 +8412,19 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   };
 
   const railItems = [
-    { id: 'templates', label: 'Templates', icon: <EdRailIcon name="designs"/> },
-    { id: 'fabrics', label: 'Fabrics', icon: <EdRailIcon name="fabric"/> },
-    { id: 'quilting', label: 'Quilting', icon: <EdRailIcon name="quilting"/> },
-    { id: 'size', label: 'Size', icon: <EdRailIcon name="size"/> },
+    { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs"/> },
+    { id: 'fabrics', label: 'Fabrics', icon: <EdNavIcon name="fabric"/> },
+    { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting"/> },
+    { id: 'size', label: 'Size', icon: <EdNavIcon name="size"/> },
     { id: 'sp', spacer: true },
     { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
   const tabItems = [
-    { id: 'templates', label: 'Templates', icon: <IcTemplates size={20}/> },
-    { id: 'fabrics', label: 'Fabrics', icon: <IcFabrics size={20}/> },
+    { id: 'templates', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
+    { id: 'fabrics', label: 'Fabrics', icon: <EdNavIcon name="fabric" size={26}/> },
     { id: 'tools', label: 'Tools', icon: <toolDef.Ic size={20}/> },
-    { id: 'size', label: 'Size', icon: <IcRuler size={20}/> },
-    { id: 'quilting', label: 'Quilting', icon: <IcQuilting size={20}/> },
+    { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
+    { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting" size={26}/> },
   ];
   const sizeChip = (
     <button type="button" className="preset-pill ed-size-chip" aria-expanded={panel === 'size'}
@@ -14154,18 +14154,18 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   };
 
   const railItems = [
-    { id: 'designs', label: 'Templates', icon: <EdRailIcon name="designs"/> },
-    { id: 'floss', label: CFG.threadLabel, icon: <EdRailIcon name={CFG.threadIcon}/> },
-    { id: 'fabric', label: 'Fabric', icon: <EdRailIcon name="fabric"/> },
-    { id: 'size', label: 'Size', icon: <EdRailIcon name="size"/> },
+    { id: 'designs', label: 'Templates', icon: <EdNavIcon name="designs"/> },
+    { id: 'floss', label: CFG.threadLabel, icon: <EdNavIcon name={CFG.threadIcon}/> },
+    { id: 'fabric', label: 'Fabric', icon: <EdNavIcon name="fabric"/> },
+    { id: 'size', label: 'Size', icon: <EdNavIcon name="size"/> },
     { id: 'sp', spacer: true },
     { id: 'help', label: 'Help', icon: <IcHelp/> },
   ];
   const tabItems = [
-    { id: 'designs', label: 'Templates', icon: <IcTemplates size={20}/> },
-    { id: 'floss', label: CFG.threadLabel, icon: <IcSpool size={20}/> },
+    { id: 'designs', label: 'Templates', icon: <EdNavIcon name="designs" size={26}/> },
+    { id: 'floss', label: CFG.threadLabel, icon: <EdNavIcon name={CFG.threadIcon} size={26}/> },
     { id: 'tools', label: 'Tools', icon: <toolDef.Ic size={20}/> },
-    { id: 'fabric', label: 'Fabric', icon: <IcGrid size={20}/> },
+    { id: 'fabric', label: 'Fabric', icon: <EdNavIcon name="fabric" size={26}/> },
   ];
   const sizeChip = (
     <button type="button" className="preset-pill ed-size-chip" aria-expanded={panel === 'size'}
