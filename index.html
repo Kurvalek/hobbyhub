@@ -3193,9 +3193,36 @@
   .ed-palette-pill .ed-swatches { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 3px; margin: -3px; }
   .ed-palette-pill .ed-swatches::-webkit-scrollbar { display: none; }
   .ed-palette-pill .ed-swatch { width: 30px; height: 30px; flex: none; }
-  .ed-hint { font-size: 12px; color: var(--warm-muted); white-space: nowrap; padding-right: 4px; }
-  .ed-palette-pill .ed-hint { border-left: 1px solid var(--warm-hairline); padding-left: 10px; margin-left: 2px; }
-  .ed-palette-pill .ed-hint:first-child { border-left: none; padding-left: 4px; margin-left: 0; }
+  /* Tip bubble: the current tool's hint, centered under the design (desktop) or
+     on top of the tools tray (mobile). Hidden from its × or the Help panel. */
+  .ed-bottom-stack { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100% - 200px); pointer-events: none; }
+  .ed-bottom-stack > * { pointer-events: auto; }
+  .ed-hint-bubble { display: flex; align-items: center; gap: 7px; max-width: 100%; padding: 5px 6px 5px 9px; border-radius: 999px; font-size: 12px; line-height: 16px; color: var(--warm-muted); }
+  .ed-hint-ic { display: inline-flex; flex: none; color: var(--warm-fg-2); }
+  .ed-hint-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-hint-x { flex: none; width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%; background: none; color: var(--warm-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .ed-hint-x:hover { background: var(--btn-tool-hover); color: var(--warm-fg); }
+  .ed-hint-x:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 1px; }
+  .ed-tray .ed-hint-bubble { align-self: center; max-width: calc(100% - 24px); }
+  .ed-tray .ed-hint-text { white-space: normal; }
+  .ed-app .ed-stage.has-hint .canvas-scroll, .ed-app .ed-stage.has-hint .xs-canvas-wrap { padding-bottom: 64px; }
+  .ed-app .ed-stage.has-hint .xs-canvas-wrap.has-coasters { padding-bottom: 132px; }
+  /* Palette bar menus: the current color / pen width, opening their choices below. */
+  .ed-menu-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 8px 0 4px; border: none; border-radius: var(--btn-radius); background: none; color: var(--warm-fg-2); cursor: pointer; flex: none; transition: background .12s; }
+  .ed-menu-btn:hover, .ed-menu-btn.is-open { background: var(--btn-tool-hover); color: var(--warm-fg); }
+  .ed-menu-btn:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 2px; }
+  .ed-menu-btn.is-open .ic { transform: rotate(180deg); }
+  .ed-menu-btn .ic { transition: transform .15s var(--ease-out); }
+  .ed-menu-swatch, .ed-menu-nib { width: 30px; height: 30px; flex: none; border-radius: var(--btn-radius); border: 1px solid rgba(0,0,0,0.12); background-size: cover; background-position: center; }
+  .ed-menu-nib { display: inline-flex; align-items: center; justify-content: center; border: none; background: var(--metime-black); color: var(--metime-white); }
+  .ed-menu-body { padding: 10px 12px 12px; }
+  .ed-menu-label { font-size: 12px; font-weight: 500; color: var(--warm-muted); margin-bottom: 8px; }
+  .ed-menu-swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .ed-menu-swatches .ed-swatch { width: 100%; aspect-ratio: 1; }
+  .ed-menu-body .ed-nibs { gap: 6px; }
+  .ed-menu-body .ed-nib { width: 30px; height: 30px; }
+  .ed-tips-switch { padding-bottom: 14px; border-bottom: 1px solid var(--warm-divider-soft); }
+  .ed-tips-switch .switch { font-size: 13px; color: var(--warm-fg); }
   .ed-toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9; background: var(--metime-black); color: var(--metime-cream); font-size: 12px; font-weight: 500; padding: 8px 14px; border-radius: 999px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-sticky); }
 
   /* Swatches */
@@ -3334,7 +3361,6 @@
   .ed-row[aria-expanded="true"] .ed-row-value { color: var(--warm-muted); }
   .ed-palette-pill .ed-swatch-add { width: 30px; height: 30px; flex: none; }
   .ed-palette-pill .ed-swatches { flex: 0 1 auto; min-width: 72px; }
-  .ed-palette-pill .ed-hint { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .ed-strip .ed-swatch-add { width: 40px; height: 40px; flex: none; }
   .ed-app .ed-tray-tools .ic { width: 20px; height: 20px; }
   .ed-threads .ed-link { margin-left: 4px; }
@@ -3355,7 +3381,6 @@
   .ed-app .icon-btn.ed-grid-btn { flex: none; }
   .ed-canvas-head-right { display: flex; align-items: center; gap: 8px; flex: none; }
   .ed-coasters { display: flex; align-items: center; gap: 10px; }
-  .ed-coasters.is-floating { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 6; }
   .ed-coaster-list { display: flex; gap: 8px; padding: 6px; }
   .ed-coaster { position: relative; width: 46px; height: 46px; padding: 3px; border: none; border-radius: var(--btn-radius); background: var(--ds-white); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--warm-hairline); transition: box-shadow .12s, transform var(--press-dur) var(--ease-out); }
   .ed-coaster:hover { box-shadow: 0 0 0 1px var(--metime-black); }
@@ -3389,7 +3414,6 @@
   .ed-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 0 auto 8px; }
   .ed-tray-tools { display: flex; justify-content: space-between; align-items: center; }
   .ed-app .ed-tray-tools .icon-btn { width: 56px; height: 48px; }
-  .ed-tray-card .ed-hint { display: block; text-align: center; margin-top: 6px; padding: 0; white-space: normal; }
   .ed-scrim { position: absolute; inset: 0; z-index: 8; background: rgba(23,23,23,0.14); animation: ed-fade-in .28s ease-out both; }
   .ed-scrim.is-closing { animation: ed-fade-out .22s ease-in both; pointer-events: none; }
   .ed-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .32s var(--ease-out) both; }
@@ -3413,7 +3437,7 @@
     .ed-app .ed-buy .btn { min-height: 36px; padding: 0 14px; }
     .ed-app .ed-buy .ic { display: none; }
     .ed-app .ed-buy .buy-kit-price { display: inline; }
-    .ed-app .canvas-scroll { padding: 60px 14px 184px; }
+    .ed-app .canvas-scroll { padding: 60px 14px max(184px, calc(var(--ed-tray-h) + 16px)); }
     .ed-toast { top: 58px; bottom: auto; }
     .ed-app .selection-toolbar.mobile-selbar {
       left: 12px; right: 12px; justify-content: flex-start;
@@ -7451,6 +7475,67 @@ function EdSheet({ open, id, title, onClose, children }) {
   );
 }
 
+// Whether the studios show the current tool's tip under the design. One setting
+// for every studio, remembered on this device.
+const SHOW_TIPS_KEY = 'metime.studio.showTips';
+function useShowTips() {
+  const [show, setShow] = useState(() => {
+    try { return localStorage.getItem(SHOW_TIPS_KEY) !== 'off'; } catch { return true; }
+  });
+  const update = useCallback(v => {
+    setShow(v);
+    try { localStorage.setItem(SHOW_TIPS_KEY, v ? 'on' : 'off'); } catch { /* private mode */ }
+  }, []);
+  return [show, update];
+}
+
+function EdHintBubble({ text, onHide }) {
+  return (
+    <div className="ed-hint-bubble ed-float" role="status">
+      <span className="ed-hint-ic" aria-hidden="true"><IcHelp size={14}/></span>
+      <span className="ed-hint-text">{text}</span>
+      <button type="button" className="ed-hint-x" onClick={onHide}
+        title="Hide tips (turn them back on in Help)" aria-label="Hide tips"><IcX size={10}/></button>
+    </div>
+  );
+}
+
+// A compact trigger in the palette bar that opens its choices in a menu below.
+// Any button picked in the menu closes it. The menu goes to <body> because the
+// bar is centered with a transform, which would throw off fixed positioning.
+function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, children }) {
+  const ownRef = useRef(null);
+  const ref = btnRef || ownRef;
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  return (
+    <>
+      <button ref={ref} type="button" className={`ed-menu-btn${open ? ' is-open' : ''}`}
+        aria-haspopup="true" aria-expanded={open} aria-label={label} title={title || label}
+        onClick={() => setOpen(v => !v)}>
+        {trigger}
+        <IcChevD size={10}/>
+      </button>
+      {open && ReactDOM.createPortal(
+        <Popover anchorRef={ref} onClose={close} placement="bottom-center" width={width}>
+          <div className="ed-menu-body" onClick={e => { if (e.target.closest('button')) close(); }}>
+            {menuLabel && <div className="ed-menu-label">{menuLabel}</div>}
+            {children}
+          </div>
+        </Popover>,
+        document.body)}
+    </>
+  );
+}
+
+function EdTipsSwitch({ checked, onChange }) {
+  return (
+    <div className="ed-tips-switch">
+      <Switch checked={checked} onChange={onChange} label="Show tips under the design"/>
+    </div>
+  );
+}
+
 // Zoom 1 means "fit": the whole design in view.
 function EdZoomPill({ zoom, onStep, onFit }) {
   return (
@@ -7769,7 +7854,7 @@ function QuiltSizePanel({ preset, onPreset, bs, minBs, maxBs, onBs, cols, rows, 
   );
 }
 
-function QuiltHelpPanel({ isMobile }) {
+function QuiltHelpPanel({ isMobile, showTips, setShowTips }) {
   const v = isMobile ? 'Tap' : 'Click';
   const tips = [
     { Ic: IcSquare, t: 'Patch', k: 'P', d: `Drag across empty blocks to add a patch. ${v} or drag over patches to recolor them.` },
@@ -7783,6 +7868,7 @@ function QuiltHelpPanel({ isMobile }) {
   ];
   return (
     <div className="ed-tips">
+      <EdTipsSwitch checked={showTips} onChange={setShowTips}/>
       {tips.map(({ Ic, t, k, d }) => (
         <div key={t} className="ed-tip">
           <span className="ed-tip-ic"><Ic size={16}/></span>
@@ -8341,6 +8427,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
   const toolDef = QUILT_TOOLS.find(t => t.id === tool) || QUILT_TOOLS[0];
   const toolHint = toolDef.hint(isMobile ? 'Tap' : 'Click');
+  const [showTips, setShowTips] = useShowTips();
+  const hintBubble = showTips && (
+    <EdHintBubble text={toolHint} onHide={() => { setShowTips(false); showToast('Tips hidden. Turn them back on in Help.'); }}/>
+  );
   const tools = QUILT_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
   const painting = QUILT_PAINT_TOOLS.has(tool);
   const isColorActive = c => !!color && color.name === c.name && color.hex === c.hex;
@@ -8387,7 +8477,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       <QuiltSizePanel preset={preset} onPreset={applyPreset} bs={bs} minBs={minBs} maxBs={maxBs}
         onBs={handleBsChange} cols={cols} rows={rows} fw={fw} fh={fh}/>
     );
-    if (id === 'help') return <QuiltHelpPanel isMobile={isMobile}/>;
+    if (id === 'help') return <QuiltHelpPanel isMobile={isMobile} showTips={showTips} setShowTips={setShowTips}/>;
     if (id === 'menu') {
       const items = [
         ...(currentQuilt
@@ -8488,7 +8578,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
           {isCoasterKit && (
             <CoasterTabs active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}/>
           )}
-          <div className="ed-stage">
+          <div className={`ed-stage${!isMobile && showTips ? ' has-hint' : ''}`}>
             <div className="ed-canvas">
               <GridCanvas cols={cols} rows={rows} shapes={shapes} setShapes={setShapes}
                 selIds={selIds} setSelIds={setSelIds}
@@ -8502,14 +8592,19 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={setTool}/>}
             {!isMobile && (
               <div className="ed-palette-pill ed-float ed-keep-sel">
-                <div className="ed-swatches">{paletteSwatches}</div>
-                <button ref={pillAddRef} type="button" className="ed-swatch ed-swatch-add"
-                  onClick={() => openLibrary(pillAddRef, 'bottom-center')} title="Add fabrics from the library" aria-label="Add fabrics">
-                  <IcPlus size={12}/>
-                </button>
-                <span className="ed-hint">{toolHint}</span>
+                <EdMenuButton btnRef={pillAddRef} label={color ? `Fabric: ${color.name}` : 'Fabric'} menuLabel="Fabrics" width={256}
+                  trigger={<span className="ed-menu-swatch" style={edSwatchStyle(color)}/>}>
+                  <div className="ed-menu-swatches">
+                    {paletteSwatches}
+                    <button type="button" className="ed-swatch ed-swatch-add"
+                      onClick={() => openLibrary(pillAddRef, 'bottom-center')} title="Add fabrics from the library" aria-label="Add fabrics">
+                      <IcPlus size={12}/>
+                    </button>
+                  </div>
+                </EdMenuButton>
               </div>
             )}
+            {!isMobile && hintBubble && <div className="ed-bottom-stack">{hintBubble}</div>}
 
             {isMobile && (
               <div className="ed-canvas-head">
@@ -8518,6 +8613,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
             )}
             {isMobile && !panel && (
               <div className="ed-tray" ref={trayRef}>
+                {hintBubble}
                 {painting && (
                   <div className="ed-strip ed-float ed-keep-sel">
                     {paletteSwatches}
@@ -8530,7 +8626,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 <div className="ed-tray-card">
                   <div className="ed-handle"/>
                   <EdTools className="ed-tray-tools" tools={tools} tool={tool} onTool={setTool}/>
-                  <span className="ed-hint">{toolHint}</span>
                 </div>
               </div>
             )}
@@ -12651,7 +12746,7 @@ function StitchSizePanel({ cfg, current, onPick, W, H, finishedDims }) {
   );
 }
 
-function StitchHelpPanel({ cfg, isMobile }) {
+function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
   const v = isMobile ? 'Tap' : 'Click';
   const tips = [
     { Ic: IcPen, t: 'Pencil & eraser', k: 'P · E', d: `Drag to draw or remove ${cfg.unitPlural}. The size buttons draw ${cfg.unitPlural} up to 5 wide${isMobile ? '' : ', and [ and ] step through them'}.` },
@@ -12666,6 +12761,7 @@ function StitchHelpPanel({ cfg, isMobile }) {
   ];
   return (
     <div className="ed-tips">
+      <EdTipsSwitch checked={showTips} onChange={setShowTips}/>
       {tips.map(({ Ic, t, k, d }) => (
         <div key={t} className="ed-tip">
           <span className="ed-tip-ic"><Ic size={16}/></span>
@@ -14063,6 +14159,10 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
 
   const toolDef = STITCH_TOOLS.find(t => t.id === tool) || STITCH_TOOLS[2];
   const toolHint = toolDef.hint(isMobile ? 'Tap' : 'Click', CFG);
+  const [showTips, setShowTips] = useShowTips();
+  const hintBubble = showTips && (
+    <EdHintBubble text={toolHint} onHide={() => { setShowTips(false); showToast('Tips hidden. Turn them back on in Help.'); }}/>
+  );
   const tools = STITCH_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
   const painting = STITCH_COLOR_TOOLS.has(tool);
   const nibbed = tool === 'pen' || tool === 'eraser';
@@ -14118,7 +14218,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
         <p className="ed-note" style={{ marginTop: 6 }}>{isMobile ? 'Close this, then tap' : 'Click'} the canvas to place your words in the current color.</p>
       </div>
     );
-    if (id === 'help') return <StitchHelpPanel cfg={CFG} isMobile={isMobile}/>;
+    if (id === 'help') return <StitchHelpPanel cfg={CFG} isMobile={isMobile} showTips={showTips} setShowTips={setShowTips}/>;
     if (id === 'menu') {
       const items = [
         ...(currentStitch
@@ -14173,7 +14273,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
   );
   const coasterStrip = isCoasterKit && coasterPages && (
     <StitchCoasterStrip pages={coasterPages} active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}
-      w={W} h={H} bg={fabric.hex} className={isMobile ? '' : 'is-floating'}/>
+      w={W} h={H} bg={fabric.hex}/>
   );
   const sel = hasSel ? selRef.current : null;
   const selInfo = sel && (() => {
@@ -14253,7 +14353,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
 
       <div className="ed-main">
         <div className="ed-stage-col">
-          <div className="ed-stage">
+          <div className={`ed-stage${!isMobile && showTips ? ' has-hint' : ''}`}>
             <div className={`xs-canvas-wrap${tool === 'pan' ? ' is-panning' : ''}${isCoasterKit ? ' has-coasters' : ''}`} ref={wrapRef}>
               <canvas ref={canvasRef} className="xs-canvas"
                 width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
@@ -14262,20 +14362,37 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
             </div>
 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={chooseTool}/>}
-            {!isMobile && (selBar || (
+            {!isMobile && (selBar || ((nibbed || painting) && (
               <div className="ed-palette-pill ed-float ed-keep-sel">
-                {nibs}
-                {nibs && painting && <span className="ed-strip-sep"/>}
-                {painting && (
-                  <>
-                    <div className="ed-swatches">{paletteSwatches}</div>
-                    {addSwatch(pillAddRef, 'bottom-center', 12)}
-                  </>
+                {nibbed && (
+                  <EdMenuButton label={`${tool === 'eraser' ? 'Eraser' : 'Pencil'} size: ${nib} × ${nib}`}
+                    menuLabel={`${tool === 'eraser' ? 'Eraser' : 'Pencil'} size`} width={206}
+                    trigger={<span className="ed-menu-nib"><span className="ed-nib-chip" style={{ width: 3 + nib * 2, height: 3 + nib * 2 }}/></span>}>
+                    {nibs}
+                  </EdMenuButton>
                 )}
-                <span className="ed-hint">{toolHint}</span>
+                {nibbed && painting && <span className="ed-strip-sep"/>}
+                {painting && (
+                  <EdMenuButton btnRef={pillAddRef} label={color ? `${CFG.threadLabel}: ${color.name}` : CFG.threadLabel}
+                    menuLabel={CFG.threadLabel} width={256}
+                    trigger={<span className="ed-menu-swatch" style={edSwatchStyle(color)}/>}>
+                    <div className="ed-menu-swatches">
+                      {paletteSwatches}
+                      <button type="button" className="ed-swatch ed-swatch-add"
+                        onClick={() => openLibrary(pillAddRef, 'bottom-center')} title={`Add ${threadWord} from the library`} aria-label={`Add ${threadWord}`}>
+                        <IcPlus size={12}/>
+                      </button>
+                    </div>
+                  </EdMenuButton>
+                )}
               </div>
-            ))}
-            {!isMobile && coasterStrip}
+            )))}
+            {!isMobile && (hintBubble || coasterStrip) && (
+              <div className="ed-bottom-stack">
+                {hintBubble}
+                {coasterStrip}
+              </div>
+            )}
 
             {isMobile && (
               <div className="ed-canvas-head">
@@ -14287,6 +14404,7 @@ function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, 
             )}
             {isMobile && !panel && (
               <div className="ed-tray" ref={trayRef}>
+                {hintBubble}
                 {coasterStrip}
                 {selBar || ((nibbed || painting) && (
                   <div className="ed-strip ed-float ed-keep-sel">
