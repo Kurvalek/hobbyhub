@@ -1,3 +1,19 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  apiSafeDesign, canonicalPresetName, formatKitPrice, KIT_INFO, kitInchBox, kitIncludes,
+  kitSupplyRows, kitSupplyRowsLocal, useDesignBom, useKitPrice,
+} from './services.jsx';
+import {
+  cachedMockup, cacheMockup, designToPng, generateKitMockup, mockupCacheKey, startKitCheckout,
+} from './kit-checkout.jsx';
+import { deserializeGrid } from './design-model.jsx';
+import { fmtY } from './catalog.jsx';
+import {
+  BRAND_CRAFT_LABEL, BrandBack, BrandEyebrow, BrandFooter, BrandHead, BrandNav, BrandSpecs,
+  SavedQuiltThumb,
+} from './landing.jsx';
+import { CRAFT_STUDIO, StitchThumb } from './stitch-studio.jsx';
+
 // The finished-product preview for one design: whether the service is up, the
 // image once there is one, and the one call that makes it.
 //
@@ -64,7 +80,7 @@ function useKitMockup(type, record, designId) {
 // also means their window-level key handlers are still listening. Those have to
 // sit out while something else owns the screen: Cmd+Z would otherwise undo work
 // the maker can't currently see.
-function studioCovered() {
+export function studioCovered() {
   return typeof document !== "undefined" && !!document.querySelector(".kit-layer");
 }
 
@@ -78,7 +94,7 @@ function studioCovered() {
 // pick-list. Until it answers (or if it never does) the list falls back to what
 // the design already carries, which is the same colours minus the skein counts.
 // Nothing here blocks Checkout.
-function KitReviewPage({ type, record, designId, onBack }) {
+export function KitReviewPage({ type, record, designId, onBack }) {
   const bom = useDesignBom(type, record);
   const mockup = useKitMockup(type, record, designId);
   const price = formatKitPrice(useKitPrice(type, record));
@@ -231,7 +247,7 @@ function KitReviewPage({ type, record, designId, onBack }) {
 // The wait while a design is read back from the store, after the browser rebuilt
 // the document on the review step. Not the review page with empty rows: a kit
 // list that's still filling in reads like a kit that's missing things.
-function KitReviewLoading() {
+export function KitReviewLoading() {
   return (
     <div className="kit-page brand-shell">
       <BrandNav/>

@@ -4,6 +4,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import * as esbuild from 'esbuild';
+import { BUILD_OPTIONS } from './build.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const MIME = {
@@ -13,10 +15,48 @@ const MIME = {
   '.woff2': 'font/woff2', '.woff': 'font/woff',
 };
 
-export function serve() {
+// The app bundle as the checks see it: built fresh from src/ on every run, and
+// with each file's top-level names (plus React and ReactDOM) copied onto
+// window, so page.evaluate can still call kitHandle(), sb() and the rest the
+// way it could when every file was a global script. Names the browser already
+// defines are left alone.
+const TOP_LEVEL = /^(?:export\s+)?(?:async\s+)?(?:function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm;
+const exposeGlobals = {
+  name: 'expose-globals',
+  setup(b) {
+    b.onLoad({ filter: /[\\/](src[\\/].*\.jsx|assets[\\/]color-catalogs\.js)$/ }, (args) => {
+      const src = fs.readFileSync(args.path, 'utf8');
+      const names = [...new Set([...src.matchAll(TOP_LEVEL)].map(m => m[1]))];
+      const expose = `\n;{ const g = { ${names.join(', ')} }; for (const k in g) if (!(k in window)) window[k] = g[k]; }\n`;
+      return { contents: src + expose, loader: 'jsx' };
+    });
+  },
+};
+const CHECK_ENTRY = `
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import './src/root.jsx';
+window.React = React;
+window.ReactDOM = { ...ReactDOM, createRoot, hydrateRoot };
+`;
+export async function buildForChecks() {
+  const { entryPoints, ...opts } = BUILD_OPTIONS;
+  const r = await esbuild.build({
+    ...opts, stdin: { contents: CHECK_ENTRY, resolveDir: ROOT, loader: 'js' },
+    sourcemap: false, write: false, plugins: [exposeGlobals],
+  });
+  return r.outputFiles.find(f => f.path.endsWith('.js')).text;
+}
+
+export async function serve() {
+  const app = await buildForChecks();
   const server = http.createServer((req, res) => {
     let p = decodeURIComponent(req.url.split('?')[0]);
     if (p === '/') p = '/index.html';
+    if (p === '/dist/app.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(app); return;
+    }
     const f = path.join(ROOT, p);
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       res.writeHead(404); res.end('nope'); return;

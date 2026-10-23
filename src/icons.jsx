@@ -62,54 +62,54 @@ const Icon = ({ name, size = 16 }) => (
     {ICONS[name]}
   </svg>
 );
-const IcSearch  = ({ size=14 }) => <Icon name="search" size={size}/>;
-const IcX       = ({ size=14 }) => <Icon name="close" size={size}/>;
-const IcPlus    = ({ size=14 }) => <Icon name="plus" size={size}/>;
-const IcCaretL  = ({ size=14 }) => <Icon name="chevronLeft" size={size}/>;
-const IcCaretR  = ({ size=14 }) => <Icon name="chevronRight" size={size}/>;
-const IcTrash   = ({ size=14 }) => <Icon name="trash" size={size}/>;
-const IcCopy    = ({ size=14 }) => <Icon name="copy" size={size}/>;
-const IcPaste   = ({ size=16 }) => <Icon name="paste" size={size}/>;
-const IcErase   = ({ size=18 }) => <Icon name="eraser" size={size}/>;
+export const IcSearch  = ({ size=14 }) => <Icon name="search" size={size}/>;
+export const IcX       = ({ size=14 }) => <Icon name="close" size={size}/>;
+export const IcPlus    = ({ size=14 }) => <Icon name="plus" size={size}/>;
+export const IcCaretL  = ({ size=14 }) => <Icon name="chevronLeft" size={size}/>;
+export const IcCaretR  = ({ size=14 }) => <Icon name="chevronRight" size={size}/>;
+export const IcTrash   = ({ size=14 }) => <Icon name="trash" size={size}/>;
+export const IcCopy    = ({ size=14 }) => <Icon name="copy" size={size}/>;
+export const IcPaste   = ({ size=16 }) => <Icon name="paste" size={size}/>;
+export const IcErase   = ({ size=18 }) => <Icon name="eraser" size={size}/>;
 const IcEye     = ({ off, size=14 }) => <Icon name={off ? 'eyeOff' : 'eye'} size={size}/>;
-const IcGrid    = ({ size=14 }) => <Icon name="grid" size={size}/>;
-const IcCursor  = ({ size=18 }) => <Icon name="pointer" size={size}/>;
-const IcMarquee = ({ size=18 }) => <Icon name="marquee" size={size}/>;
+export const IcGrid    = ({ size=14 }) => <Icon name="grid" size={size}/>;
+export const IcCursor  = ({ size=18 }) => <Icon name="pointer" size={size}/>;
+export const IcMarquee = ({ size=18 }) => <Icon name="marquee" size={size}/>;
 const IcSpool   = ({ size=18 }) => <Icon name="spool" size={size}/>;
-const IcHand    = ({ size=18 }) => <Icon name="move" size={size}/>;
-const IcSquare  = ({ size=18 }) => <Icon name="patch" size={size}/>;
-const IcTri     = ({ size=18 }) => <Icon name="triangle" size={size}/>;
-const IcHelp    = ({ size=18 }) => <Icon name="help" size={size}/>;
-const IcUndo    = ({ size=18 }) => <Icon name="undo" size={size}/>;
-const IcRedo    = ({ size=18 }) => <Icon name="redo" size={size}/>;
-const IcRotate  = ({ size=16 }) => <Icon name="rotate" size={size}/>;
-const IcSaved   = ({ size=16 }) => <Icon name="tiles" size={size}/>;
+export const IcHand    = ({ size=18 }) => <Icon name="move" size={size}/>;
+export const IcSquare  = ({ size=18 }) => <Icon name="patch" size={size}/>;
+export const IcTri     = ({ size=18 }) => <Icon name="triangle" size={size}/>;
+export const IcHelp    = ({ size=18 }) => <Icon name="help" size={size}/>;
+export const IcUndo    = ({ size=18 }) => <Icon name="undo" size={size}/>;
+export const IcRedo    = ({ size=18 }) => <Icon name="redo" size={size}/>;
+export const IcRotate  = ({ size=16 }) => <Icon name="rotate" size={size}/>;
+export const IcSaved   = ({ size=16 }) => <Icon name="tiles" size={size}/>;
 const IcPanel   = ({ open, size=18 }) => <Icon name={open ? 'paneClose' : 'paneOpen'} size={size}/>;
-const IcChevR   = ({ size=12 }) => <Icon name="chevronRight" size={size}/>;
-const IcChevD   = ({ size=12 }) => <Icon name="chevronDown" size={size}/>;
-const IcSwap    = ({ size=14 }) => <Icon name="swap" size={size}/>;
+export const IcChevR   = ({ size=12 }) => <Icon name="chevronRight" size={size}/>;
+export const IcChevD   = ({ size=12 }) => <Icon name="chevronDown" size={size}/>;
+export const IcSwap    = ({ size=14 }) => <Icon name="swap" size={size}/>;
 const IcFlip    = ({ size=14 }) => <Icon name="line" size={size}/>;
-const IcShuffle = ({ size=14 }) => <Icon name="shuffle" size={size}/>;
-const IcPen     = ({ size=18 }) => <Icon name="pen" size={size}/>;
-const IcLineTool= ({ size=18 }) => <Icon name="line" size={size}/>;
-const IcCircle  = ({ size=18 }) => <Icon name="circle" size={size}/>;
-const IcImage   = ({ size=16 }) => <Icon name="image" size={size}/>;
-const IcCamera  = ({ size=16 }) => <Icon name="camera" size={size}/>;
-const IcLink    = ({ size=16 }) => <Icon name="link" size={size}/>;
-const IcText    = ({ size=18 }) => <Icon name="text" size={size}/>;
+export const IcShuffle = ({ size=14 }) => <Icon name="shuffle" size={size}/>;
+export const IcPen     = ({ size=18 }) => <Icon name="pen" size={size}/>;
+export const IcLineTool= ({ size=18 }) => <Icon name="line" size={size}/>;
+export const IcCircle  = ({ size=18 }) => <Icon name="circle" size={size}/>;
+export const IcImage   = ({ size=16 }) => <Icon name="image" size={size}/>;
+export const IcCamera  = ({ size=16 }) => <Icon name="camera" size={size}/>;
+export const IcLink    = ({ size=16 }) => <Icon name="link" size={size}/>;
+export const IcText    = ({ size=18 }) => <Icon name="text" size={size}/>;
 const IcFill    = ({ size=18 }) => <Icon name="fill" size={size}/>;
-const IcDrop    = ({ size=18 }) => <Icon name="drop" size={size}/>;
+export const IcDrop    = ({ size=18 }) => <Icon name="drop" size={size}/>;
 const IcRuler   = ({ size=18 }) => <Icon name="ruler" size={size}/>;
 const IcList    = ({ size=18 }) => <Icon name="list" size={size}/>;
-const IcMinus   = ({ size=14 }) => <Icon name="minus" size={size}/>;
-const IcCheck   = ({ size=14 }) => <Icon name="check" size={size}/>;
-const IcSave    = ({ size=16 }) => <Icon name="save" size={size}/>;
-const IcCart    = ({ size=16 }) => <Icon name="cart" size={size}/>;
-const IcMenu    = ({ size=20 }) => <Icon name="menu" size={size}/>;
-const IcProfile = ({ size=22 }) => <Icon name="profile" size={size}/>;
-const IcLogout  = ({ size=16 }) => <Icon name="logout" size={size}/>;
-const IcArrowL  = ({ size=18 }) => <Icon name="arrowLeft" size={size}/>;
-const IcArrowR  = ({ size=22 }) => <Icon name="arrowRight" size={size}/>;
+export const IcMinus   = ({ size=14 }) => <Icon name="minus" size={size}/>;
+export const IcCheck   = ({ size=14 }) => <Icon name="check" size={size}/>;
+export const IcSave    = ({ size=16 }) => <Icon name="save" size={size}/>;
+export const IcCart    = ({ size=16 }) => <Icon name="cart" size={size}/>;
+export const IcMenu    = ({ size=20 }) => <Icon name="menu" size={size}/>;
+export const IcProfile = ({ size=22 }) => <Icon name="profile" size={size}/>;
+export const IcLogout  = ({ size=16 }) => <Icon name="logout" size={size}/>;
+export const IcArrowL  = ({ size=18 }) => <Icon name="arrowLeft" size={size}/>;
+export const IcArrowR  = ({ size=22 }) => <Icon name="arrowRight" size={size}/>;
 const IcTiles   = ({ size=18 }) => <Icon name="tiles" size={size}/>;
 const IcTemplates = ({ size=18 }) => <Icon name="templates" size={size}/>;
 const IcFabrics = ({ size=18 }) => <Icon name="fabrics" size={size}/>;
@@ -119,7 +119,7 @@ const IcQuilting = ({ size=18 }) => <Icon name="quilting" size={size}/>;
 // Logotype set in "Sundae" by Taylor Penton. On quilt/cross-stitch canvas
 // pages the wide wordmark swaps for the favicon mark so Save keeps padding;
 // setup pages always show the full wordmark.
-const MetimeLogo = () => (
+export const MetimeLogo = () => (
   <>
     <img className="brand-mark" src="assets/metime-logo.png" alt="metime"/>
     <img className="brand-icon" src="assets/metime-icon.png" alt=""/>

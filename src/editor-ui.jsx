@@ -1,3 +1,12 @@
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { GROUPS, KONA } from '../assets/color-catalogs.js';
+import { useAuth } from './services.jsx';
+import { IcChevD, IcChevR, IcHelp, IcLogout, IcMinus, IcPlus, IcSearch, IcX } from './icons.jsx';
+import { PRESETS, SUGGESTED_PALETTES, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './catalog.jsx';
+import { fabricThumbFor } from './setup-steps.jsx';
+import { studioCovered } from './kit-review.jsx';
+
 // ── SuggestedPalettes ─────────────────────────────────────────────────────
 function SuggestedPalettes({ onLoad, onSelect }) {
   const lookup = name => KONA.find(c => c.name === name);
@@ -87,7 +96,7 @@ function SimpleSuggested({ palettes, onLoad, onSelect }) {
 }
 
 // ── Floating popover (positions to anchor element) ────────────────────────
-function Popover({ anchorRef, onClose, placement = 'right-bottom', children, width = 280 }) {
+export function Popover({ anchorRef, onClose, placement = 'right-bottom', children, width = 280 }) {
   const [pos, setPos] = useState(null);
   const popRef = useRef(null);
   const calcRef = useRef(null);
@@ -164,15 +173,15 @@ function useMediaQuery(query) {
   }, [query]);
   return m;
 }
-function useIsMobile(query = '(max-width: 900px)') { return useMediaQuery(query); }
+export function useIsMobile(query = '(max-width: 900px)') { return useMediaQuery(query); }
 // The stylesheet honours reduced motion for its transitions and keyframes, but
 // the photo-to-chart reveal is driven frame by frame in JS, so it has to ask
 // the same question itself.
-function usePrefersReducedMotion() { return useMediaQuery('(prefers-reduced-motion: reduce)'); }
+export function usePrefersReducedMotion() { return useMediaQuery('(prefers-reduced-motion: reduce)'); }
 
 // A sheet that slides up from the bottom. Reuses the app's card/panel styling
 // so its contents look identical to the desktop panel/popover.
-function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85, sheetClassName, elevated = false }) {
+export function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85, sheetClassName, elevated = false }) {
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -226,7 +235,7 @@ function MobileToolbar({ items }) {
 // ── PresetPill (studio header size dropdown) ──────────────────────────────
 // `dimsOf` formats a preset's finished size; `fallbackDims` covers a board
 // that isn't one of the presets (a saved custom size).
-const inchDims = (w, h) => `${w}" × ${h}"`;
+export const inchDims = (w, h) => `${w}" × ${h}"`;
 function PresetPill({ preset, presets = PRESETS, label = 'Quilt size', dimsOf = p => inchDims(p.w, p.h), fallbackDims, onApply }) {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
@@ -273,7 +282,7 @@ function PresetPill({ preset, presets = PRESETS, label = 'Quilt size', dimsOf = 
 }
 
 // ── LibraryPopover (anchored to + button on My Palette) ───────────────────
-function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
+export function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
   filtered, color, setColor, selIds, setShapes,
   customs, setCustoms, setPinned, allColors,
   pinned, showMyPalette, onPick, onClear, title,
@@ -471,7 +480,7 @@ const FabricRow = React.forwardRef(function FabricRow({ label, fabric, detail, o
   );
 });
 
-function quiltColorKey(c) {
+export function quiltColorKey(c) {
   return c ? (c.name || c.hex || '') : '';
 }
 
@@ -484,7 +493,7 @@ function quiltColorKey(c) {
 function clampZoom(z) {
   return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, +(+z).toFixed(3)));
 }
-function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart, panMode = false) {
+export function useCanvasPinchZoom(scrollRef, zoom, onZoomChange, onGestureStart, panMode = false) {
   const zoomRef = useRef(zoom);
   const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
@@ -669,7 +678,7 @@ function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
 }
 
 // ── Switch (reusable pill on/off toggle) ──────────────────────────────────
-function Switch({ checked, onChange, label, title }) {
+export function Switch({ checked, onChange, label, title }) {
   return (
     <button
       type="button"
@@ -687,13 +696,13 @@ function Switch({ checked, onChange, label, title }) {
 // ── Editor shell ──────────────────────────────────────────────────────────
 // The studio layout pieces (.ed-* in the stylesheet). None of them know what
 // craft they're editing: each studio hands in its own tools, panels and stats.
-function edSwatchStyle(c) {
+export function edSwatchStyle(c) {
   if (!c) return undefined;
   const src = c.thumb || (c.image && (fabricThumbFor(c.image) || c.image));
   return src ? { backgroundImage: `url(${src})`, backgroundColor: c.hex } : { background: c.hex };
 }
 
-function EdSwatch({ color, active = false, onClick, title, className = '' }) {
+export function EdSwatch({ color, active = false, onClick, title, className = '' }) {
   const name = title ?? color?.name;
   return (
     <button type="button" className={`ed-swatch${active ? ' is-active' : ''}${className ? ` ${className}` : ''}`}
@@ -703,13 +712,13 @@ function EdSwatch({ color, active = false, onClick, title, className = '' }) {
 }
 
 // Full-color panel icons for the rail and tab bar, drawn on a 32 grid in icons/.
-function EdNavIcon({ name, size = 28 }) {
+export function EdNavIcon({ name, size = 28 }) {
   return <img className="ed-nav-img" src={`icons/${name}.svg`} alt="" width={size} height={size} draggable="false"/>;
 }
 
 // Icon + label buttons: the desktop rail and the mobile tab bar. `{ spacer }`
 // items push the rest to the far end.
-function EdNav({ className, label, items, active, onSelect }) {
+export function EdNav({ className, label, items, active, onSelect }) {
   return (
     <nav className={className} aria-label={label}>
       {items.map(it => it.spacer ? <div key={it.id} className="ed-rail-spacer"/> : (
@@ -724,7 +733,7 @@ function EdNav({ className, label, items, active, onSelect }) {
   );
 }
 
-function EdTools({ className, tools, tool, onTool }) {
+export function EdTools({ className, tools, tool, onTool }) {
   return (
     <div className={className} role="toolbar" aria-label="Tools">
       {tools.map(t => (
@@ -770,7 +779,7 @@ function useLingeringPanel(open, props) {
 }
 
 // Desktop: a column between the canvas and the rail.
-function EdPanel({ open, id, title, onClose, children }) {
+export function EdPanel({ open, id, title, onClose, children }) {
   const p = useLingeringPanel(open, { id, title, onClose, children });
   if (!p.shown) return null;
   return (
@@ -783,7 +792,7 @@ function EdPanel({ open, id, title, onClose, children }) {
 }
 
 // Mobile: the same panel content as a sheet over the stage, above the tab bar.
-function EdSheet({ open, id, title, onClose, children }) {
+export function EdSheet({ open, id, title, onClose, children }) {
   const p = useLingeringPanel(open, { id, title, onClose, children });
   useEffect(() => {
     if (!open) return;
@@ -809,7 +818,7 @@ function EdSheet({ open, id, title, onClose, children }) {
 // Whether the studios show the current tool's tip under the design. One setting
 // for every studio, remembered on this device.
 const SHOW_TIPS_KEY = 'metime.studio.showTips';
-function useShowTips() {
+export function useShowTips() {
   const [show, setShow] = useState(() => {
     try { return localStorage.getItem(SHOW_TIPS_KEY) !== 'off'; } catch { return true; }
   });
@@ -820,7 +829,7 @@ function useShowTips() {
   return [show, update];
 }
 
-function EdHintBubble({ text, onHide }) {
+export function EdHintBubble({ text, onHide }) {
   return (
     <div className="ed-hint-bubble ed-float" role="status">
       <span className="ed-hint-ic" aria-hidden="true"><IcHelp size={14}/></span>
@@ -834,7 +843,7 @@ function EdHintBubble({ text, onHide }) {
 // A compact trigger in the palette bar that opens its choices in a menu below.
 // Any button picked in the menu closes it. The menu goes to <body> because the
 // bar is centered with a transform, which would throw off fixed positioning.
-function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, children }) {
+export function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, children }) {
   const ownRef = useRef(null);
   const ref = btnRef || ownRef;
   const [open, setOpen] = useState(false);
@@ -847,7 +856,7 @@ function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, c
         {trigger}
         <IcChevD size={10}/>
       </button>
-      {open && ReactDOM.createPortal(
+      {open && createPortal(
         <Popover anchorRef={ref} onClose={close} placement="bottom-center" width={width}>
           <div className="ed-menu-body" onClick={e => { if (e.target.closest('button')) close(); }}>
             {menuLabel && <div className="ed-menu-label">{menuLabel}</div>}
@@ -859,7 +868,7 @@ function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, c
   );
 }
 
-function EdTipsSwitch({ checked, onChange }) {
+export function EdTipsSwitch({ checked, onChange }) {
   return (
     <div className="ed-tips-switch">
       <Switch checked={checked} onChange={onChange} label="Show tips under the design"/>
@@ -868,7 +877,7 @@ function EdTipsSwitch({ checked, onChange }) {
 }
 
 // Zoom 1 means "fit": the whole design in view.
-function EdZoomPill({ zoom, onStep, onFit }) {
+export function EdZoomPill({ zoom, onStep, onFit }) {
   return (
     <div className="ed-zoom-pill">
       <button type="button" onClick={() => onStep(-ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} aria-label="Zoom out" title="Zoom out"><IcMinus/></button>
@@ -878,7 +887,7 @@ function EdZoomPill({ zoom, onStep, onFit }) {
   );
 }
 
-function EdZoomControls({ zoom, onZoom, onStep, onFit }) {
+export function EdZoomControls({ zoom, onZoom, onStep, onFit }) {
   return (
     <div className="ed-zoom">
       <button type="button" className="icon-btn" onClick={() => onStep(-ZOOM_STEP)} disabled={zoom <= ZOOM_MIN}
@@ -894,7 +903,7 @@ function EdZoomControls({ zoom, onZoom, onStep, onFit }) {
 }
 
 // A tappable list row: swatch, title, detail line, value on the right.
-const EdRow = React.forwardRef(function EdRow({ swatch, title, name, sub, value, action, onClick, onSwatchClick, expanded }, ref) {
+export const EdRow = React.forwardRef(function EdRow({ swatch, title, name, sub, value, action, onClick, onSwatchClick, expanded }, ref) {
   return (
     <button ref={ref} type="button" className="ed-row" onClick={onClick} aria-expanded={expanded}>
       <span className={`ed-row-sw${swatch ? '' : ' is-empty'}`} style={edSwatchStyle(swatch)}
@@ -910,7 +919,7 @@ const EdRow = React.forwardRef(function EdRow({ swatch, title, name, sub, value,
   );
 });
 
-function EdSlider({ label, display, value, min, max, step = 1, onChange }) {
+export function EdSlider({ label, display, value, min, max, step = 1, onChange }) {
   return (
     <div>
       <div className="ed-slider-head">
@@ -925,7 +934,7 @@ function EdSlider({ label, display, value, min, max, step = 1, onChange }) {
 
 // The mobile ⋯ sheet: studio actions, then the account. Items close the sheet
 // unless they set `keepOpen` (Help swaps the sheet's content instead).
-function EdMenu({ items, onClose }) {
+export function EdMenu({ items, onClose }) {
   const auth = useAuth();
   const user = auth && auth.user;
   return (
@@ -955,7 +964,7 @@ function EdMenu({ items, onClose }) {
 }
 
 // Palette swatches with an Edit mode for removing them, and a + into the library.
-function EdPaletteEditor({ pinned, setPinned, isActive, onPick, onAdd, addLabel }) {
+export function EdPaletteEditor({ pinned, setPinned, isActive, onPick, onAdd, addLabel }) {
   const [editing, setEditing] = useState(false);
   const addRef = useRef(null);
   useEffect(() => { if (!pinned.length) setEditing(false); }, [pinned.length]);
@@ -989,7 +998,7 @@ function EdPaletteEditor({ pinned, setPinned, isActive, onPick, onAdd, addLabel 
   );
 }
 
-function EdStatCards({ items }) {
+export function EdStatCards({ items }) {
   return (
     <div className="ed-statcards">
       {items.map(it => (

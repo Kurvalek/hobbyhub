@@ -1,3 +1,6 @@
+import { KONA } from '../assets/color-catalogs.js';
+import { DMC, konaByName } from './catalog.jsx';
+
 // ── Setup: templates + shared photo uploader ───────────────────────────────
 // Split a length into `n` near-equal integer segments → [[start,size],…].
 function tplSegments(total, n) {
@@ -22,7 +25,7 @@ function tplSwatches(palette, fallbacks) {
   if (palette && palette.length) return palette;
   return fallbacks.map(tplKona);
 }
-function tplTriPoints(s) {
+export function tplTriPoints(s) {
   const { r, c, w, h } = s;
   if (s.dir === '/') return s.half === 'a'
     ? `${c},${r} ${c + w},${r} ${c},${r + h}`
@@ -70,7 +73,7 @@ function lilyBands(bands, total, native) {
 // preset. When `palette` (the colors picked on the palette step) is supplied,
 // each layout colors its patches from it; otherwise it uses sensible defaults.
 // There's no "Blank" card in the grid — "Skip for now" is the empty-canvas route.
-const QUILT_TEMPLATES = [
+export const QUILT_TEMPLATES = [
   {
     id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating squares in two or more fabrics.',
     build: ({ cols, rows, palette }) => {
@@ -292,9 +295,9 @@ function xsBuildTemplates(data) {
 }
 const CROSS_STITCH_TEMPLATES = xsBuildTemplates(window.STITCH_TEMPLATE_DATA);
 const PUNCH_TEMPLATES = xsBuildTemplates(window.PUNCH_TEMPLATE_DATA);
-const GRID_TEMPLATES = { 'cross-stitch': CROSS_STITCH_TEMPLATES, 'punch-needle': PUNCH_TEMPLATES };
+export const GRID_TEMPLATES = { 'cross-stitch': CROSS_STITCH_TEMPLATES, 'punch-needle': PUNCH_TEMPLATES };
 // Size-catered charts offered for a given preset.
-function stitchTemplatesFor(preset, craft = 'cross-stitch') {
+export function stitchTemplatesFor(preset, craft = 'cross-stitch') {
   const name = preset && preset.name;
   return (GRID_TEMPLATES[craft] || []).filter(t => !t.presets || t.presets.includes(name));
 }
@@ -358,7 +361,7 @@ function xsRecolorGrid(grid, palette) {
 // for a set — one grid per coaster page. Both the template step and the palette
 // step go through here, so stepping back and picking a different palette
 // re-dresses the original chart rather than a recolored copy of it.
-function gridSeedFromTemplate(tpl, preset, palette) {
+export function gridSeedFromTemplate(tpl, preset, palette) {
   const chart = tpl.build(preset);
   const dressed = palette ? xsRecolorGrid(chart, palette) : chart;
   if (!dressed || !dressed.some(Boolean)) return { autoGrid: null, autoPages: null };

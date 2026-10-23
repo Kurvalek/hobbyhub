@@ -6,15 +6,20 @@
     "node": "22.x"
   },
   "scripts": {
-    "start": "vercel dev",
+    "start": "node tools/build.mjs --watch & vercel dev",
+    "build": "node tools/build.mjs",
+    "watch": "node tools/build.mjs --watch",
     "gen:fabric-thumbs": "node tools/gen-fabric-thumbs.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/supabase-js": "^2.112.3",
-    "puppeteer-core": "^25.5.0"
+    "puppeteer-core": "^25.5.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "esbuild": "^0.27.7",
     "pngjs": "^7.0.0",
     "vercel": "^59.25.4"
   }

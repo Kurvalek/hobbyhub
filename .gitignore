@@ -1,5 +1,7 @@
 .vercel
 node_modules/
+# The app bundle, built from src/ by `npm run build` (Vercel runs it on deploy).
+dist/
 .env
 .env.local
 .DS_Store

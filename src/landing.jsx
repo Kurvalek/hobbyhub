@@ -1,3 +1,13 @@
+import { useMemo, useState } from 'react';
+import {
+  formatKitPrice, loadSavedPunch, loadSavedQuilts, loadSavedStitches, useAuth, useKitPrices,
+} from './services.jsx';
+import { deserializeGrid } from './design-model.jsx';
+import { IcArrowL, IcArrowR, IcChevD } from './icons.jsx';
+import { PRESETS } from './catalog.jsx';
+import { CRAFTS, LandingAuth, ProjectCard } from './account.jsx';
+import { StitchThumb } from './stitch-studio.jsx';
+
 // ── Brand system ───────────────────────────────────────────────────────────
 // Shared presentation furniture for the setup flow (craft → size → backing →
 // template → palette). All of it is styled by the `.brand-shell` layer at the
@@ -8,8 +18,8 @@
 const BRAND_NOTE = 'Craft design, made material';
 // Step numbering for the eyebrow labels. Quilting carries an extra backing step,
 // so the two grid crafts and the quilt count differently.
-const BRAND_STEPS = { 'cross-stitch': 3, 'punch-needle': 3, quilt: 4 };
-const BRAND_CRAFT_LABEL = { 'cross-stitch': 'Cross-stitch', 'punch-needle': 'Punch needle', quilt: 'Quilting' };
+export const BRAND_STEPS = { 'cross-stitch': 3, 'punch-needle': 3, quilt: 4 };
+export const BRAND_CRAFT_LABEL = { 'cross-stitch': 'Cross-stitch', 'punch-needle': 'Punch needle', quilt: 'Quilting' };
 // metime's wiggle: the thread mark carried under the wordmark. Built from
 // alternating quadratic arcs rather than shipped as a fixed file so one
 // component covers any width — pass the cycle count and let CSS set the height.
@@ -46,7 +56,7 @@ function BrandXRule({ count = 3, size = 11 }) {
 
 // Shared nav. The wordmark is the shipped asset used unmodified — its own
 // tomato wiggle is the mark's thread, so no extra wiggle is added beside it.
-function BrandNav() {
+export function BrandNav() {
   return (
     <header className="brand-nav brand-bleed">
       <a className="brand-nav-logo" href="/" aria-label="metime home">
@@ -61,7 +71,7 @@ function BrandNav() {
 
 // "QUILTING · STEP 2 OF 4" — the small craft + step label above each heading.
 // The numeric prefix (01/02) was dropped; the label already includes the step.
-function BrandEyebrow({ step, label, plain }) {
+export function BrandEyebrow({ step, label, plain }) {
   return (
     <p className={`brand-eyebrow${plain ? ' is-plain' : ''}`}>
       <span>{label}</span>
@@ -75,7 +85,7 @@ function BrandEyebrow({ step, label, plain }) {
 // `compact` folds the whole thing onto one line, for a screen where the heading
 // is orientation rather than the point and every pixel it takes is a pixel off
 // the content below.
-function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actions, cycles = 5, wide, compact }) {
+export function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actions, cycles = 5, wide, compact }) {
   return (
     <section className={`brand-head brand-bleed tone-${tone}${compact ? ' is-compact' : ''}`}>
       {(back || actions) && (
@@ -102,7 +112,7 @@ function BrandHead({ eyebrow, title, xl, sub, aside, tone = 'cream', back, actio
 }
 
 // Standard back control for the heading band.
-function BrandBack({ onBack }) {
+export function BrandBack({ onBack }) {
   if (!onBack) return null;
   return (
     <button className="size-back" type="button" onClick={onBack}>
@@ -116,7 +126,7 @@ function BrandBack({ onBack }) {
 
 // A titled content band with its own hairline — used to keep distinct jobs on
 // one screen visually separate (e.g. conversion controls vs suggested palettes).
-function BrandSection({ title, note, quiet, actions, children }) {
+export function BrandSection({ title, note, quiet, actions, children }) {
   const headOnly = !children;
   return (
     <section className={`brand-section brand-bleed${quiet ? ' is-quiet' : ''}${headOnly ? ' is-head-only' : ''}`}>
@@ -134,7 +144,7 @@ function BrandSection({ title, note, quiet, actions, children }) {
 
 // Label / value rows under hairlines. Rows whose value is missing are dropped
 // rather than rendered as an em dash, so a card only ever states real data.
-function BrandSpecs({ rows }) {
+export function BrandSpecs({ rows }) {
   const real = (rows || []).filter(r => r && r.v !== null && r.v !== undefined && r.v !== '');
   if (!real.length) return null;
   // Spans, not divs: these rows render inside <button> product cards, whose
@@ -154,12 +164,12 @@ function BrandSpecs({ rows }) {
 // Flexible paper spacer plus the footer rule. The spacer takes over the job the
 // golden band used to do — absorbing leftover viewport height — without
 // pretending to be content.
-function BrandFooter() {
+export function BrandFooter() {
   return <div className="brand-spacer" aria-hidden="true"/>;
 }
 
 // Tiny SVG preview of a saved quilt (same shape rendering as the "My quilts" list).
-function SavedQuiltThumb({ q }) {
+export function SavedQuiltThumb({ q }) {
   return (
     <svg viewBox={`0 0 ${q.cols} ${q.rows}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
       {(q.shapes || []).map((s, i) => s.type === 'tri' ? (
@@ -244,7 +254,7 @@ function SavedDesigns({ onOpen }) {
   );
 }
 
-function CraftSelector({ onSelect, onOpenSaved }) {
+export function CraftSelector({ onSelect, onOpenSaved }) {
   return (
     <div className="land-page brand-shell">
       <div className="land-fill">
@@ -291,7 +301,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
   );
 }
 
-function ProjectSelector({ onSelect, onBack }) {
+export function ProjectSelector({ onSelect, onBack }) {
   const prices = useKitPrices("quilt");
   return (
     <div className="size-page brand-shell">

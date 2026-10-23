@@ -1,6 +1,9 @@
-const { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback, useId, createContext, useContext } = React;
-const AuthContext = createContext(null);
-function useAuth() {
+import { createContext, useContext, useEffect, useState } from 'react';
+import { fmtY, refreshQuiltColors } from './catalog.jsx';
+import { CRAFT_STUDIO } from './stitch-studio.jsx';
+
+export const AuthContext = createContext(null);
+export function useAuth() {
   return useContext(AuthContext);
 }
 
@@ -9,7 +12,7 @@ function useAuth() {
 // check below because the two failures deserve very different treatment: never
 // filling these in is a choice, whereas filling them in and getting local-only
 // saves anyway is a bug the person can't see.
-function supabaseKeysPresent() {
+export function supabaseKeysPresent() {
   return (
     !!SUPABASE_URL && !SUPABASE_URL.includes("YOUR-PROJECT-REF") &&
     !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")
@@ -31,20 +34,20 @@ function supabaseClientLoaded() {
 // Same defensive pattern as shopifyConfigured(): with Supabase unconfigured the
 // studio keeps working exactly as it did before accounts existed — designs save
 // to this device's localStorage and nothing ever asks for an email.
-function supabaseConfigured() {
+export function supabaseConfigured() {
   return supabaseKeysPresent() && supabaseClientLoaded();
 }
 
 // How long to keep looking for the CDN global before calling it a loss. Only
 // reached when the keys are real, so the wait costs nothing for a studio that
 // was never wired up to Supabase.
-const SUPABASE_LOAD_GRACE_MS = 5000;
+export const SUPABASE_LOAD_GRACE_MS = 5000;
 
 // Said once, loudly, and only when the keys are real: a studio with a working
 // config that quietly saves local-only is indistinguishable from a Save button
 // that does nothing, which is the worst way for this to fail.
 let _warnedNoClient = false;
-function warnSupabaseUnreachable() {
+export function warnSupabaseUnreachable() {
   if (_warnedNoClient) return;
   _warnedNoClient = true;
   console.error(
@@ -56,7 +59,7 @@ function warnSupabaseUnreachable() {
 
 // What the library drawer shows after a save that had to stay on this device
 // because the client never loaded (AccountsOfflineNote says it up front).
-const ACCOUNTS_OFFLINE_SAVE_MSG =
+export const ACCOUNTS_OFFLINE_SAVE_MSG =
   "Accounts couldn't load. Saved to this device only. Reload to try again.";
 
 // Lazily created singleton. supabase-js owns the session: it persists the
@@ -64,7 +67,7 @@ const ACCOUNTS_OFFLINE_SAVE_MSG =
 // which is what makes "reopen on any device with the same email" work without
 // us managing a cookie.
 let _sb = null;
-function sb() {
+export function sb() {
   if (!supabaseConfigured()) return null;
   if (!_sb) {
     _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -118,7 +121,7 @@ const SHOPIFY_KITS = {
 const LEGACY_PRESET_NAMES = {
   "punch-needle": { "Wall Hanging": "Large Hoop" },
 };
-function canonicalPresetName(type, name) {
+export function canonicalPresetName(type, name) {
   return (LEGACY_PRESET_NAMES[type] || {})[name] || name;
 }
 // Line-item property carried into the Shopify order; the fulfillment backend
@@ -135,7 +138,7 @@ const DESIGN_ID_ATTRIBUTE = "_design_id";
 // kit rather than by design — api/_lib/bom.js leaves these out of the BOM on
 // purpose, because the packer takes them from the order's SKU. `yourOwn` is the
 // tools a maker needs to have already.
-const KIT_INFO = {
+export const KIT_INFO = {
   "quilt": {
     included: [
       "Printed cutting and assembly guide matched to your design",
@@ -182,7 +185,7 @@ const KIT_INFO = {
 
 // The "in your kit" extras for a design's size, plus the printed matter that
 // comes with every kit of that craft.
-function kitIncludes(type, design) {
+export function kitIncludes(type, design) {
   const info = KIT_INFO[type];
   if (!info) return [];
   const extras = (info.extras && info.extras[kitPresetName(type, design)]) || [];
@@ -191,14 +194,14 @@ function kitIncludes(type, design) {
 
 // Quilts store the chosen preset as `preset`; the grid crafts store it as
 // `presetName`. Callers shouldn't have to know which, so both go through here.
-function kitPresetName(type, design) {
+export function kitPresetName(type, design) {
   if (!design) return null;
   return canonicalPresetName(type, type === "quilt" ? design.preset : design.presetName);
 }
 
 // The Shopify product handle for a design's size, or null when that size isn't
 // sold yet (punch needle "Small Hoop", or a design saved as "Custom").
-function kitHandle(type, design) {
+export function kitHandle(type, design) {
   const forType = SHOPIFY_KITS[type];
   if (!forType) return null;
   return forType[kitPresetName(type, design)] || null;
@@ -216,7 +219,7 @@ function shopifyStoreConfigured() {
 // Whether this specific design can be bought: the store has to be wired up and
 // its size has to map to a product. When false the checkout button falls back
 // to the save-only behavior so the app keeps working regardless.
-function shopifyConfigured(type, design) {
+export function shopifyConfigured(type, design) {
   return shopifyStoreConfigured() && !!kitHandle(type, design);
 }
 
@@ -301,7 +304,7 @@ async function resolveKits(handles) {
 
 // Single-handle convenience used at checkout. Throws with a clear reason so the
 // button can surface why a kit couldn't be added, rather than failing silently.
-async function resolveKit(handle) {
+export async function resolveKit(handle) {
   if (!handle) throw new Error("This size isn't available as a kit yet");
   const kit = (await resolveKits([handle])).get(handle);
   if (!kit) {
@@ -314,7 +317,7 @@ async function resolveKit(handle) {
 
 // Formats a Storefront money amount for display. Whole-dollar kit prices show
 // without cents ("$38"), anything else keeps them ("$38.50").
-function formatKitPrice(kit) {
+export function formatKitPrice(kit) {
   if (!kit || kit.amount == null || !Number.isFinite(kit.amount)) return null;
   try {
     return new Intl.NumberFormat(undefined, {
@@ -335,7 +338,7 @@ function formatKitPrice(kit) {
 // every failure mode (store not configured, offline, product unpublished, size
 // not sold) resolves to "no price for that preset" and the cards just render
 // without one. Nothing here can block a buyer from designing.
-function useKitPrices(type) {
+export function useKitPrices(type) {
   const [prices, setPrices] = useState({});
   useEffect(() => {
     if (!type || !shopifyStoreConfigured()) return;
@@ -360,7 +363,7 @@ function useKitPrices(type) {
 
 // The price of the one kit a saved design maps to, for the checkout button.
 // Resolves to null when that size isn't sold.
-function useKitPrice(type, design) {
+export function useKitPrice(type, design) {
   const handle = kitHandle(type, design);
   const [kit, setKit] = useState(() => (handle ? shopifyKitCache.get(handle) || null : null));
   useEffect(() => {
@@ -378,7 +381,7 @@ function useKitPrice(type, design) {
 // design id as a line-item attribute, and resolves to the hosted checkout URL.
 // Throws on userErrors or network/HTTP failure so callers can surface a clear
 // inline error instead of silently dropping the design link.
-async function addKitToShopifyCart({ variantId, designId }) {
+export async function addKitToShopifyCart({ variantId, designId }) {
   const query = `
     mutation cartCreate($input: CartInput!) {
       cartCreate(input: $input) {
@@ -411,7 +414,7 @@ async function addKitToShopifyCart({ variantId, designId }) {
 // configured. Guests who never Save never create an account. Anything a guest
 // left here gets claimed into their account on first sign-in (claimLocalDesigns).
 const QUILTS_KEY = "metime.savedQuilts.v1";
-function loadSavedQuilts() {
+export function loadSavedQuilts() {
   try {
     const raw = localStorage.getItem(QUILTS_KEY);
     if (!raw) return [];
@@ -422,7 +425,7 @@ function loadSavedQuilts() {
     return [];
   }
 }
-function persistSavedQuilts(quilts) {
+export function persistSavedQuilts(quilts) {
   try {
     localStorage.setItem(QUILTS_KEY, JSON.stringify(quilts));
     return true;
@@ -434,7 +437,7 @@ function persistSavedQuilts(quilts) {
 }
 // Cross-stitch designs use the same on-device persistence pattern as quilts.
 const STITCHES_KEY = "metime.savedStitches.v1";
-function loadSavedStitches() {
+export function loadSavedStitches() {
   try {
     const raw = localStorage.getItem(STITCHES_KEY);
     if (!raw) return [];
@@ -445,7 +448,7 @@ function loadSavedStitches() {
     return [];
   }
 }
-function persistSavedStitches(designs) {
+export function persistSavedStitches(designs) {
   try {
     localStorage.setItem(STITCHES_KEY, JSON.stringify(designs));
     return true;
@@ -458,7 +461,7 @@ function persistSavedStitches(designs) {
 // the two crafts have different color libraries and gauges, so a design saved
 // from one would reopen in the other with the wrong yarn list and finished size.
 const PUNCH_KEY = "metime.savedPunch.v1";
-function loadSavedPunch() {
+export function loadSavedPunch() {
   try {
     const raw = localStorage.getItem(PUNCH_KEY);
     if (!raw) return [];
@@ -469,7 +472,7 @@ function loadSavedPunch() {
     return [];
   }
 }
-function persistSavedPunch(designs) {
+export function persistSavedPunch(designs) {
   try {
     localStorage.setItem(PUNCH_KEY, JSON.stringify(designs));
     return true;
@@ -487,7 +490,7 @@ function persistSavedPunch(designs) {
 // No account needed: a guest's design lands unowned, which is what lets kit
 // checkout work without signing in. If they happen to be signed in the access
 // token attaches and the row is theirs.
-async function saveDesignToApi(type, data) {
+export async function saveDesignToApi(type, data) {
   const res = await fetch("/api/designs", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(await authHeader()) },
@@ -527,12 +530,12 @@ async function apiJson(url, opts) {
 
 // Flattens a Supabase user into the little shape the UI needs (the account chip
 // shows the email; stripeCustomerId is reserved for when Stripe is built).
-function toStudioUser(user) {
+export function toStudioUser(user) {
   if (!user) return null;
   return { id: user.id, email: user.email || null };
 }
 
-async function fetchMe() {
+export async function fetchMe() {
   const client = sb();
   if (!client) return null;
   const { data, error } = await client.auth.getSession();
@@ -544,7 +547,7 @@ async function fetchMe() {
 // makes this one flow serve both new and returning people — no separate signup.
 // Requires the Magic Link email template to include {{ .Token }}, otherwise
 // Supabase only sends a link and there's no code to type (see SUPABASE_SETUP.md).
-async function requestAuthCode(email) {
+export async function requestAuthCode(email) {
   const client = sb();
   if (!client) return { ok: false, error: "not_configured" };
   try {
@@ -563,7 +566,7 @@ async function requestAuthCode(email) {
 
 // Step 2: exchange the typed code for a session. On success supabase-js stores
 // the session, so the next page load on this device is already signed in.
-async function verifyAuthCode(email, code) {
+export async function verifyAuthCode(email, code) {
   const client = sb();
   if (!client) return { ok: false, error: "not_configured" };
   try {
@@ -619,20 +622,20 @@ function logAuthError(step, error) {
   );
 }
 
-async function logoutUser() {
+export async function logoutUser() {
   const client = sb();
   if (!client) return;
   try { await client.auth.signOut(); } catch (e) { /* local session is cleared regardless */ }
 }
 
-async function listCloudDesigns() {
+export async function listCloudDesigns() {
   if (!supabaseConfigured()) return [];
   const { ok, body } = await apiJson("/api/designs");
   if (!ok || !body || !Array.isArray(body.designs)) return [];
   return body.designs;
 }
 
-async function upsertCloudDesign(type, design) {
+export async function upsertCloudDesign(type, design) {
   const data = apiSafeDesign(design);
   if (design.apiId) {
     const { ok, status } = await apiJson("/api/designs/" + encodeURIComponent(design.apiId), {
@@ -659,7 +662,7 @@ async function createCloudDesign(type, data) {
   return body.id;
 }
 
-async function deleteCloudDesign(apiId) {
+export async function deleteCloudDesign(apiId) {
   if (!apiId || !supabaseConfigured()) return;
   await apiJson("/api/designs/" + encodeURIComponent(apiId), { method: "DELETE" });
 }
@@ -681,7 +684,7 @@ const LOCAL_DRAWERS = [
 // local-only leftovers that must survive — a guest draft, or an upload that
 // failed while offline — since the cloud list is authoritative only for the
 // designs it actually knows about.
-function hydrateLocalLibrary(records, keep) {
+export function hydrateLocalLibrary(records, keep) {
   const buckets = { "quilt": [], "cross-stitch": [], "punch-needle": [] };
   const push = (type, design) => (buckets[type] || buckets["cross-stitch"]).push(design);
   for (const rec of records) push(rec.type, cloudToLocal(rec));
@@ -697,7 +700,7 @@ function hydrateLocalLibrary(records, keep) {
 //
 // Must run BEFORE hydrateLocalLibrary, which overwrites the local cache.
 const CLAIMED_KEY_PREFIX = "metime.claimed.";
-async function claimLocalDesigns(userId, skipId) {
+export async function claimLocalDesigns(userId, skipId) {
   const empty = { claimed: 0, keep: [] };
   if (!userId || !supabaseConfigured()) return empty;
   const flag = CLAIMED_KEY_PREFIX + userId;
@@ -740,10 +743,10 @@ async function claimLocalDesigns(userId, skipId) {
   return { claimed, keep };
 }
 
-function stashPendingSave(payload) {
+export function stashPendingSave(payload) {
   try { sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify(payload)); } catch (e) { /* ignore */ }
 }
-function readPendingSave() {
+export function readPendingSave() {
   try {
     const raw = sessionStorage.getItem(PENDING_SAVE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -755,7 +758,7 @@ function clearPendingSave() {
 
 // Finishes the save the person clicked before they had an account. Hydration is
 // the caller's job so it can run after claimLocalDesigns too, in one pass.
-async function flushPendingSave() {
+export async function flushPendingSave() {
   const pending = readPendingSave();
   if (!pending || !pending.record || !pending.type) return null;
   const apiId = await upsertCloudDesign(pending.type, pending.record);
@@ -771,7 +774,7 @@ async function flushPendingSave() {
 // URLs, which pass through untouched). `id` stays so a signed-in library
 // can update the same row after a refresh. Returns a fresh object; the saved
 // design is never mutated.
-function apiSafeDesign(design) {
+export function apiSafeDesign(design) {
   const { apiId: _apiId, bgImage: _bgImage, ...data } = design;
   const stripPhoto = (o) => {
     if (!o || typeof o !== "object") return o;
@@ -791,7 +794,7 @@ function apiSafeDesign(design) {
 // download in the browser. `doc` is "chart" (quilt: template + per-piece cut
 // list) or "instructions" (assembly steps). No upload/storage round-trip —
 // the design travels in the request body.
-async function downloadDesignPdf(type, design, doc) {
+export async function downloadDesignPdf(type, design, doc) {
   const data = apiSafeDesign(design);
   const res = await fetch("/api/render", {
     method: "POST",
@@ -817,7 +820,7 @@ async function downloadDesignPdf(type, design, doc) {
 // the capability, which is what lets a guest return to their own kit. Used when
 // the browser rebuilt the document on the review step — the design is far too big
 // to have travelled in the history entry, so only its id did.
-async function fetchDesignRecord(id) {
+export async function fetchDesignRecord(id) {
   const res = await fetch(`/api/designs/${encodeURIComponent(id)}`);
   if (!res.ok) throw new Error(`design fetch failed (HTTP ${res.status})`);
   const body = await res.json();
@@ -848,7 +851,7 @@ async function fetchDesignBom(type, design) {
 // A failure is never surfaced as an error: the review page has a local fallback
 // that lists the same colours without the skein counts, and a supply list that
 // can't be fetched is no reason to stop someone buying.
-function useDesignBom(type, design) {
+export function useDesignBom(type, design) {
   const [bom, setBom] = useState(null);
   const key = design ? JSON.stringify(apiSafeDesign(design)) : null;
   useEffect(() => {
@@ -866,7 +869,7 @@ function kitSkeinLabel(n) {
   return `${n} skein${n === 1 ? "" : "s"}`;
 }
 
-function kitInchBox(o) {
+export function kitInchBox(o) {
   return `${o.w}" × ${o.h}"`;
 }
 
@@ -874,7 +877,7 @@ function kitInchBox(o) {
 // label, and how much of it comes in the box. Labels match the ones on the
 // printed sheet (api/_lib/render/instructions.js) so the page, the paperwork and
 // the packer's list all name the same thing the same way.
-function kitSupplyRows(type, bom) {
+export function kitSupplyRows(type, bom) {
   if (!bom) return null;
   const rows = [];
   const named = (code, name) => (code ? `DMC ${code} · ${name}` : name);
@@ -910,7 +913,7 @@ function kitSupplyRows(type, bom) {
 // The same list built from what the design already carries, for the moment before
 // /api/bom answers and for the case where it never does. Quantities that are the
 // server's to work out (skeins, cut sizes) are left off rather than guessed.
-function kitSupplyRowsLocal(type, record) {
+export function kitSupplyRowsLocal(type, record) {
   if (!record) return [];
   if (type === "quilt") {
     const rows = ((record.materials && record.materials.items) || []).map((m) => ({

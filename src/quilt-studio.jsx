@@ -1,3 +1,36 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { KONA } from '../assets/color-catalogs.js';
+import {
+  ACCOUNTS_OFFLINE_SAVE_MSG, deleteCloudDesign, loadSavedQuilts, persistSavedQuilts,
+  stashPendingSave, upsertCloudDesign, useAuth,
+} from './services.jsx';
+import { BuyKitButton, KitCheckoutButton, QuiltPdfButtons } from './kit-checkout.jsx';
+import {
+  cloneQuiltShapes, COASTER_COUNT, CoasterTabs, isCoasterSize, quiltAddVisibleArea,
+  quiltOverlapCells, seedCoasterUnits,
+} from './design-model.jsx';
+import {
+  IcArrowL, IcCheck, IcCopy, IcCursor, IcDrop, IcHand, IcHelp, IcPlus, IcRedo, IcSave, IcSaved,
+  IcSquare, IcTrash, IcTri, IcUndo, IcX, MetimeLogo,
+} from './icons.jsx';
+import {
+  calcBacking, calcBinding, calcYardage, fmtY, MAX, PRESETS, QUILT_PATTERNS, SEAM, ZOOM_MAX,
+  ZOOM_MIN, ZOOM_STEP,
+} from './catalog.jsx';
+import { GridCanvas, QuiltOverlay } from './quilt-canvas.jsx';
+import {
+  EdHintBubble, EdMenu, EdNav, EdNavIcon, EdPanel, EdRow, EdSheet, EdSlider, EdStatCards,
+  EdSwatch, edSwatchStyle, EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, LibraryPopover,
+  Popover, quiltColorKey, Switch, useIsMobile, useShowTips,
+} from './editor-ui.jsx';
+import { AccountChip, AccountsOfflineNote } from './account.jsx';
+import { QUILT_TEMPLATES } from './templates.jsx';
+import {
+  BackingPickerOverlay, FabricEnlargeOverlay, fabricFullSrc, QuiltTemplateThumb,
+} from './setup-steps.jsx';
+import { studioCovered } from './kit-review.jsx';
+
 // ── Quilt studio: tools + panels ──────────────────────────────────────────
 // `hint(verb)` gets 'Tap' or 'Click' so the line reads right on each device.
 const QUILT_TOOLS = [
@@ -71,7 +104,7 @@ function QuiltFabricRow({ row, active, onPick, onSwap, onSelectAll, onRemove }) 
         title={`More for ${fabric.name}`} aria-label={`More for ${fabric.name}`} onClick={() => setMenuOpen(v => !v)}>
         <span className="ed-more-dots" aria-hidden="true"><span/><span/><span/></span>
       </button>
-      {menuOpen && ReactDOM.createPortal(
+      {menuOpen && createPortal(
         <Popover anchorRef={moreRef} onClose={() => setMenuOpen(false)} placement="bottom-end" width={232}>
           <div className="studio-menu ed-fab-menu" role="menu">
             {items.map(it => (
@@ -258,7 +291,7 @@ function quiltGridForPreset(p, preferredBs = 3) {
   };
 }
 
-function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack, onReview = null }) {
+export function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, onBack, onReview = null }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
   const _initGrid = quiltGridForPreset(_initP, 3);
   const _initBs = _initGrid.bs;

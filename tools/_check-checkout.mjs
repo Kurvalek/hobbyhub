@@ -12,7 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
-import { chromePath } from './_verify.mjs';
+import { chromePath, buildForChecks } from './_verify.mjs';
 // The real BOM function, so "what the review page lists" is checked against the
 // same arithmetic the packer's pick-list comes from rather than a copy of it.
 import { designToBom } from '../api/_lib/bom.js';
@@ -57,11 +57,15 @@ const MIME = {
 
 // Same static server as _verify.mjs, except index.html gets the stand-in token
 // so shopifyStoreConfigured() is true and the price lookups actually fire.
-function servePatched() {
+async function servePatched() {
+  const app = await buildForChecks();
   const server = http.createServer((req, res) => {
     const [rawPath, query = ''] = req.url.split('?');
     let p = decodeURIComponent(rawPath);
     if (p === '/') p = '/index.html';
+    if (p === '/dist/app.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(app); return;
+    }
     const f = path.join(ROOT, p);
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       res.writeHead(404); res.end('nope'); return;

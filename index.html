@@ -15,9 +15,6 @@
 <meta name="twitter:image" content="TODO: assets/og-share.png"/>
 <link rel="icon" type="image/png" href="assets/metime-icon.png"/>
 <link rel="apple-touch-icon" href="assets/metime-icon.png"/>
-<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <!-- Supabase client (accounts + saved designs). UMD build, so it lands on
      window.supabase; the studio degrades to local-only saves if it fails to
      load or isn't configured. -->
@@ -73,29 +70,13 @@ const SHOPIFY_STORE_DOMAIN = "shop.makemetime.com";
 const SHOPIFY_STOREFRONT_TOKEN = "bfff7cb8fba2b3d0cc0359fc5e38d859";
 const SHOPIFY_STOREFRONT_API_VERSION = "2025-07";
 </script>
-<script src="assets/color-catalogs.js"></script>
 <script src="assets/fabrics-manifest.js"></script>
 <script src="assets/stitch-templates-data.js"></script>
 <script src="assets/tapestry-wool.js"></script>
 <script src="assets/punch-templates-data.js"></script>
-<!-- The app, compiled in the browser by Babel. The files run in this order and
-     share one global scope, so anything a file uses while loading (not just
-     inside functions) has to come from a file above it. -->
-<script type="text/babel" src="src/services.jsx"></script>
-<script type="text/babel" src="src/kit-checkout.jsx"></script>
-<script type="text/babel" src="src/design-model.jsx"></script>
-<script type="text/babel" src="src/icons.jsx"></script>
-<script type="text/babel" src="src/catalog.jsx"></script>
-<script type="text/babel" src="src/quilt-canvas.jsx"></script>
-<script type="text/babel" src="src/editor-ui.jsx"></script>
-<script type="text/babel" src="src/quilt-studio.jsx"></script>
-<script type="text/babel" src="src/account.jsx"></script>
-<script type="text/babel" src="src/landing.jsx"></script>
-<script type="text/babel" src="src/templates.jsx"></script>
-<script type="text/babel" src="src/photo.jsx"></script>
-<script type="text/babel" src="src/setup-steps.jsx"></script>
-<script type="text/babel" src="src/stitch-studio.jsx"></script>
-<script type="text/babel" src="src/kit-review.jsx"></script>
-<script type="text/babel" src="src/root.jsx"></script>
+<!-- The app: src/*.jsx bundled with React by tools/build.mjs (`npm run build`,
+     which Vercel runs on deploy). A module script runs after the classic
+     scripts above, so the config constants and window.* data are in place. -->
+<script type="module" src="dist/app.js"></script>
 </body>
 </html>

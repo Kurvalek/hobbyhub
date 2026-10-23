@@ -1,3 +1,14 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AuthContext, claimLocalDesigns, fetchMe, flushPendingSave, hydrateLocalLibrary,
+  listCloudDesigns, logoutUser, persistSavedPunch, persistSavedQuilts, persistSavedStitches,
+  readPendingSave, requestAuthCode, sb, SUPABASE_LOAD_GRACE_MS, supabaseConfigured,
+  supabaseKeysPresent, toStudioUser, useAuth, verifyAuthCode, warnSupabaseUnreachable,
+} from './services.jsx';
+import { IcArrowR, IcCheck, IcLogout, IcMenu, IcProfile } from './icons.jsx';
+import { PRESET_IMAGES, PRESET_THEMES, presetDims } from './catalog.jsx';
+import { Popover } from './editor-ui.jsx';
+
 // ── Tweaks ────────────────────────────────────────────────────────────────
 // These are applied as inline custom properties on :root at startup, so they beat
 // the stylesheet — which makes them the real source of the app ground, the panel
@@ -26,7 +37,7 @@ function applyTweaks(t) {
   s.textContent = `input[type=text], input[type=email], select, .chip { border-radius: ${t.radius}px !important; } body { background: ${t.appBg}; }`;
 }
 
-function TweaksPanel() {
+export function TweaksPanel() {
   const [open, setOpen] = React.useState(false);
   const [t, setT] = React.useState(TWEAK_DEFAULTS);
 
@@ -144,7 +155,7 @@ function QuiltThumb({ preset }) {
   );
 }
 
-function ProjectCard({ preset, onSelect, price }) {
+export function ProjectCard({ preset, onSelect, price }) {
   const art = PRESET_IMAGES[preset.name];
   const label = preset.label || preset.name;
   return (
@@ -169,7 +180,7 @@ function ProjectCard({ preset, onSelect, price }) {
   );
 }
 
-const CRAFTS = [
+export const CRAFTS = [
   { id: "cross-stitch", name: "Cross-stitch", ready: true,
     desc: "Turn an image into a stitchable grid, with thread counts included.",
     image: "assets/landing/craft-cross-stitch.png", imgW: 256, imgH: 256 },
@@ -218,7 +229,7 @@ function AccountMenu() {
   );
 }
 
-function AccountChip() {
+export function AccountChip() {
   return <AccountMenu/>;
 }
 
@@ -270,7 +281,7 @@ function StudioMenu({ items, saved = false, children }) {
   );
 }
 
-function LandingAuth() {
+export function LandingAuth() {
   const auth = useAuth();
   if (!auth || !auth.cloudEnabled) return null;
   if (auth.user) return <AccountMenu/>;
@@ -423,7 +434,7 @@ function AuthOverlay() {
 // Sits at the top of the Save overlays, and only when the config is real but
 // the client never loaded. Nothing to say when Supabase was never set up: that
 // studio is local-only on purpose and shouldn't be pestered about it.
-function AccountsOfflineNote() {
+export function AccountsOfflineNote() {
   const auth = useAuth();
   if (!auth || !auth.cloudBlocked) return null;
   return (
@@ -434,7 +445,7 @@ function AccountsOfflineNote() {
   );
 }
 
-function AuthProvider({ children }) {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined);
   const [authOpen, setAuthOpen] = useState(false);
   const [libraryTick, setLibraryTick] = useState(0);

@@ -1,5 +1,9 @@
+import { useRef, useState } from 'react';
+import { IcCheck } from './icons.jsx';
+import { DMC } from './catalog.jsx';
+
 // Compact, run-length-encoded grid so saved designs stay small in localStorage.
-function serializeGrid(cells) {
+export function serializeGrid(cells) {
   const colors = [], cidx = new Map(), vals = new Array(cells.length);
   for (let i = 0; i < cells.length; i++) {
     const h = cells[i];
@@ -13,7 +17,7 @@ function serializeGrid(cells) {
   while (i < vals.length) { let j = i + 1; while (j < vals.length && vals[j] === vals[i]) j++; runs.push((j - i) + '.' + vals[i]); i = j; }
   return { colors, rle: runs.join('|') };
 }
-function deserializeGrid(g, len) {
+export function deserializeGrid(g, len) {
   const cells = new Array(len).fill(null);
   if (!g || !g.rle) return cells;
   let i = 0;
@@ -27,7 +31,7 @@ function deserializeGrid(g, len) {
 // Tally filled cells per thread color for the materials readout. `library` is
 // the craft's thread catalog (floss or yarn), used to name colors that are on
 // the board but not in the working palette.
-function computeStitchStats(cells, W, H, pal, library) {
+export function computeStitchStats(cells, W, H, pal, library) {
   const map = new Map();
   let total = 0;
   for (const h of cells) {
@@ -44,11 +48,11 @@ function computeStitchStats(cells, W, H, pal, library) {
 }
 
 // A coaster order is always a set of 4, across quilt / cross-stitch / punch.
-const COASTER_COUNT = 4;
-const isCoasterSize = name => name === 'Coaster' || name === 'Coaster Set';
+export const COASTER_COUNT = 4;
+export const isCoasterSize = name => name === 'Coaster' || name === 'Coaster Set';
 let _shapeIdSeq = 1;
-function nextShapeId() { return 's' + (_shapeIdSeq++) + '-' + Math.random().toString(36).slice(2, 8); }
-function cloneQuiltShapes(shapes) {
+export function nextShapeId() { return 's' + (_shapeIdSeq++) + '-' + Math.random().toString(36).slice(2, 8); }
+export function cloneQuiltShapes(shapes) {
   const pairMap = new Map();
   const pairFor = pid => {
     if (pid == null) return undefined;
@@ -120,7 +124,7 @@ function quiltVisibleShapes(shapes) {
     return hits === 0;
   });
 }
-function quiltAddVisibleArea(shapes, add) {
+export function quiltAddVisibleArea(shapes, add) {
   const cells = new Set();
   for (const s of shapes) {
     if (!s) continue;
@@ -146,7 +150,7 @@ function quiltAddVisibleArea(shapes, add) {
     }
   }
 }
-function quiltOverlapCells(shapes) {
+export function quiltOverlapCells(shapes) {
   const list = Array.isArray(shapes) ? shapes : [];
   const byCell = new Map();
   for (const s of list) {
@@ -170,7 +174,7 @@ function quiltOverlapCells(shapes) {
 }
 // Keep a duplicated group together and on the board. Prefer one cell down-right
 // so the copy is visible; if that walks off an edge, slide along it or reverse.
-function quiltDuplicateOffset(shapes, rows, cols) {
+export function quiltDuplicateOffset(shapes, rows, cols) {
   if (!shapes || !shapes.length) return null;
   let minR = Infinity, minC = Infinity, maxR = -Infinity, maxC = -Infinity;
   for (const s of shapes) {
@@ -185,12 +189,12 @@ function quiltDuplicateOffset(shapes, rows, cols) {
   for (const [dr, dc] of tries) if (fits(dr, dc)) return { dr, dc };
   return null;
 }
-function seedCoasterUnits(shapes) {
+export function seedCoasterUnits(shapes) {
   return Array.from({ length: COASTER_COUNT }, () => cloneQuiltShapes(shapes));
 }
 // Four copies of the one design — unless a set template supplied four different
 // ones, in which case each coaster opens on its own.
-function seedCoasterPages(cells, len, pages = null) {
+export function seedCoasterPages(cells, len, pages = null) {
   if (pages && pages.length === COASTER_COUNT && pages.every(p => p && p.length === len)) {
     return pages.map(p => p.slice());
   }
@@ -200,7 +204,7 @@ function seedCoasterPages(cells, len, pages = null) {
 // Move a w×h stitch grid onto an nw×nh board at the same scale, centering the
 // stitched area (not the old board) so off-center work survives a smaller
 // size. Whatever still falls outside the new board is cropped.
-function refitGrid(cells, w, h, nw, nh) {
+export function refitGrid(cells, w, h, nw, nh) {
   const out = new Array(nw * nh).fill(null);
   let x0 = w, y0 = h, x1 = -1, y1 = -1;
   for (let i = 0; i < w * h; i++) {
@@ -222,7 +226,7 @@ function refitGrid(cells, w, h, nw, nh) {
   return out;
 }
 
-function CoasterTabs({ active, onSelect, onCopyAll }) {
+export function CoasterTabs({ active, onSelect, onCopyAll }) {
   const [copied, setCopied] = useState(false);
   const tRef = useRef(null);
   const copy = () => {

@@ -1,3 +1,11 @@
+import { useRef, useState } from 'react';
+import {
+  addKitToShopifyCart, apiSafeDesign, downloadDesignPdf, formatKitPrice, kitHandle,
+  kitPresetName, resolveKit, saveDesignToApi, shopifyConfigured, useKitPrice,
+} from './services.jsx';
+import { deserializeGrid } from './design-model.jsx';
+import { IcCart, IcCheck } from './icons.jsx';
+
 // ── Finished-product preview ───────────────────────────────────────────────
 // Draws a design to a flat PNG for an image model to work from. The model needs
 // to see the actual layout — a written description would produce a picture of
@@ -34,7 +42,7 @@ function drawQuiltToCanvas(ctx, record, scale) {
 // A PNG data URL of the design, letterboxed into a square at its own proportions
 // so a bookmark doesn't arrive stretched. Returns null for a record with nothing
 // in it, which is what keeps a blank board from being sent off to be rendered.
-function designToPng(type, record) {
+export function designToPng(type, record) {
   if (!record) return null;
   const cv = document.createElement('canvas');
   cv.width = MOCKUP_INPUT_PX;
@@ -86,7 +94,7 @@ const MOCKUP_TIMEOUT_MS = 90000;
 // `image` is the raster from designToPng. Taken as an argument rather than drawn
 // here because the caller has already drawn it to work out the cache key, and the
 // two must be the same picture for that key to mean anything.
-async function generateKitMockup(type, record, image) {
+export async function generateKitMockup(type, record, image) {
   if (!image) throw new Error('nothing on the canvas to render');
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), MOCKUP_TIMEOUT_MS);
@@ -139,7 +147,7 @@ function fnv1a(text) {
 // rebuilds it from its history snapshot and the result stringifies differently while
 // describing the same piece. Hashing the image we would send makes the key mean what
 // we actually want it to mean — same picture, same entry.
-function mockupCacheKey(designId, raster) {
+export function mockupCacheKey(designId, raster) {
   if (!designId || !raster) return null;
   return MOCKUP_CACHE_PREFIX + designId + '.' + fnv1a(raster);
 }
@@ -153,7 +161,7 @@ function mockupCacheEntries() {
   return keys;
 }
 
-function cachedMockup(key) {
+export function cachedMockup(key) {
   if (!key || typeof localStorage === 'undefined') return null;
   try {
     return localStorage.getItem(key) || null;
@@ -162,7 +170,7 @@ function cachedMockup(key) {
   }
 }
 
-function cacheMockup(key, image) {
+export function cacheMockup(key, image) {
   if (!key || typeof localStorage === 'undefined') return;
   // Written youngest-first with the oldest dropped, because the alternative is a
   // full store that silently refuses every write — which would look like working
@@ -186,7 +194,7 @@ function cacheMockup(key, image) {
 // Resolve the kit for a design's size, create the cart, and hand off to Shopify's
 // hosted checkout. Split out of the save step so the review page can run just
 // this half for a design that's already uploaded.
-async function startKitCheckout(type, design, designId) {
+export async function startKitCheckout(type, design, designId) {
   // Each kit is a single-variant product, so resolving the handle its size maps
   // to gives us the exact variant to buy.
   const { variantId } = await resolveKit(kitHandle(type, design));
@@ -276,7 +284,7 @@ function useKitPurchase({ type, design, getDesign, savedId, onSaved, onReview })
 // Checkout button in the saved-design preview modals — the re-order path for
 // something already in the library. The editor header is where a design is
 // bought the first time (see BuyKitButton). Both land on the same review page.
-function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
+export function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
   const { status, message, busy, price, sellable, submit } =
     useKitPurchase({ type, design, savedId, onSaved, onReview });
   const label = status === "saving" ? "Saving…"
@@ -312,7 +320,7 @@ function KitCheckoutButton({ type, design, savedId, onSaved, onReview }) {
 // used for a canvas with nothing stitched on it yet. A size with no kit product
 // behind it disables the same way rather than disappearing, so the header
 // doesn't reflow between sizes.
-function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onReview }) {
+export function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onReview }) {
   const { status, message, busy, price, sellable, submit } =
     useKitPurchase({ type, design, getDesign, onSaved, onReview });
   // Not being sold outranks an empty canvas: telling someone to add stitches
@@ -343,7 +351,7 @@ function BuyKitButton({ type, design, getDesign, blockedReason, onSaved, onRevie
 // Two "Download PDF" buttons for a quilt: the cut list & template, and the
 // assembly instructions. Both hit /api/render (server-side HTML → PDF); each
 // manages its own busy state so a slow render doesn't block the other.
-function QuiltPdfButtons({ design }) {
+export function QuiltPdfButtons({ design }) {
   const [busy, setBusy] = useState(null); // "chart" | "instructions" | null
   const [error, setError] = useState(null);
   const go = async (doc) => {

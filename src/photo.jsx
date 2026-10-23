@@ -1,3 +1,9 @@
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { IcCamera, IcImage, IcLink, IcPaste, IcShuffle } from './icons.jsx';
+import { extractColors, hexToRgb, nearestInList } from './catalog.jsx';
+import { BottomSheet, Switch, useIsMobile } from './editor-ui.jsx';
+import { BrandSpecs } from './landing.jsx';
+
 // ── Fitting an uploaded photo onto a stitch canvas ─────────────────────────
 // A photo almost never shares its proportions with the canvas it lands on (a
 // heart dropped on a 30×120 bookmark), so filling the grid would stretch the
@@ -92,7 +98,7 @@ function xsTrimRect(img) {
 // wildly letterboxed source (a panorama on a bookmark) would still land as a
 // hairline, so the fit may grow past contain, cropping the long axis from the
 // centre, until the short side covers XS_FIT_MIN_SHARE of the grid's short side.
-function xsFitImageToGrid(img, W, H) {
+export function xsFitImageToGrid(img, W, H) {
   const src = xsTrimRect(img);
   if (!src.w || !src.h) return null;
   let scale = Math.min(W / src.w, H / src.h);
@@ -151,7 +157,7 @@ function xsClearGroundField(grid, isField, W, H, fit) {
 // slider. `blur` is 3×3 averaging passes over the sampled color, `smooth` is
 // majority passes on the finished grid, `speck` is the smallest island kept
 // (in stitches, on a 70×70 chart — scaled to the motif below).
-const XS_SIMPLIFY = [
+export const XS_SIMPLIFY = [
   { id: 'detailed', label: 'Detailed', blur: 0, smooth: 0, speck: 0,
     note: 'Every shade the palette can hold. Busiest to stitch.' },
   { id: 'soft',     label: 'Soft',     blur: 1, smooth: 1, speck: 3,
@@ -161,8 +167,8 @@ const XS_SIMPLIFY = [
   { id: 'flat',     label: 'Flat',     blur: 3, smooth: 3, speck: 20,
     note: 'Poster-like. Shapes only, almost no shading.' },
 ];
-const XS_SIMPLIFY_DEFAULT = 'simple';
-const xsSimplifySpec = id => XS_SIMPLIFY.find(s => s.id === id) || XS_SIMPLIFY.find(s => s.id === XS_SIMPLIFY_DEFAULT);
+export const XS_SIMPLIFY_DEFAULT = 'simple';
+export const xsSimplifySpec = id => XS_SIMPLIFY.find(s => s.id === id) || XS_SIMPLIFY.find(s => s.id === XS_SIMPLIFY_DEFAULT);
 
 // Drawing the motif a few times larger than the grid and averaging each cell's
 // own block gives a true area mean, so a busy patch resolves to the color it
@@ -354,7 +360,7 @@ function xsClearEdgeBackground(grid, W, H, fit) {
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
 // color → a ready-to-stitch design (shared by the cross-stitch template step).
 // Cells outside the fitted motif are left null: unstitched fabric.
-function buildGridFromImage(img, chosen, W, H, { simplify = XS_SIMPLIFY_DEFAULT, removeBg = true } = {}) {
+export function buildGridFromImage(img, chosen, W, H, { simplify = XS_SIMPLIFY_DEFAULT, removeBg = true } = {}) {
   if (!img || !chosen || !chosen.length) return null;
   const fit = xsFitImageToGrid(img, W, H);
   if (!fit) return null;
@@ -1032,7 +1038,7 @@ function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, app
 // Upload-only photo picker for the cross-stitch template step. It just captures
 // the image (as a data URL) and hands it forward — NO color extraction here.
 // All color work (suggested palette, swapping) happens on the palette step.
-function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout, extra }) {
+export function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout, extra }) {
   const [imgSrc, setImgSrc] = useState(null);
   const [fileName, setFileName] = useState('image');
   const [fileDims, setFileDims] = useState(null);

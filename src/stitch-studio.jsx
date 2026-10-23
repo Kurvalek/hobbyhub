@@ -1,9 +1,43 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { AIDA_FABRICS } from '../assets/color-catalogs.js';
+import {
+  ACCOUNTS_OFFLINE_SAVE_MSG, canonicalPresetName, deleteCloudDesign, loadSavedPunch,
+  loadSavedStitches, persistSavedPunch, persistSavedStitches, stashPendingSave,
+  upsertCloudDesign, useAuth,
+} from './services.jsx';
+import { BuyKitButton, KitCheckoutButton } from './kit-checkout.jsx';
+import {
+  COASTER_COUNT, computeStitchStats, deserializeGrid, isCoasterSize, refitGrid,
+  seedCoasterPages, serializeGrid,
+} from './design-model.jsx';
+import {
+  IcArrowL, IcCheck, IcCircle, IcCopy, IcDrop, IcErase, IcGrid, IcHand, IcHelp, IcLineTool,
+  IcMarquee, IcPen, IcPlus, IcRedo, IcSave, IcSaved, IcSquare, IcText, IcTrash, IcUndo, IcX,
+  MetimeLogo,
+} from './icons.jsx';
+import {
+  DMC, DMC_PALETTES, dmcByCode, nearestDMC, nearestWool, NIB_SIZES, PN_DEFAULT_CODES,
+  PUNCH_CLOTHS, PUNCH_NEEDLE_PALETTE_MAX, PUNCH_PRESETS, resolveDmcPalette, resolveWoolPalette,
+  STITCH_PRESETS, WOOL, WOOL_PALETTES, woolByCode, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP,
+} from './catalog.jsx';
+import {
+  EdHintBubble, EdMenu, EdMenuButton, EdNav, EdNavIcon, EdPaletteEditor, EdPanel, EdRow,
+  EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle, EdTipsSwitch, EdTools,
+  EdZoomControls, EdZoomPill, inchDims, LibraryPopover, Switch, useCanvasPinchZoom,
+  useIsMobile, usePrefersReducedMotion, useShowTips,
+} from './editor-ui.jsx';
+import { AccountChip, AccountsOfflineNote } from './account.jsx';
+import { gridSeedFromTemplate, stitchTemplatesFor } from './templates.jsx';
+import { xsFitImageToGrid } from './photo.jsx';
+import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './setup-steps.jsx';
+import { studioCovered } from './kit-review.jsx';
+
 // ── Cross-stitch: canvas editor ────────────────────────────────────────────
 const XS_DEFAULT_CODES = ["310","B5200","666","797","700","726","435","3806","3846","971"];
 // Everything the grid studio needs to know about the craft it is editing.
 // The editor itself is craft-agnostic — cell grid, tools, selection, undo —
 // so a craft is just a thread library, a ground fabric, a gauge and wording.
-const CRAFT_STUDIO = {
+export const CRAFT_STUDIO = {
   'cross-stitch': {
     label: 'Cross-stitch',
     unit: 'stitch', unitPlural: 'stitches', unitTitle: 'Stitches',
@@ -118,7 +152,7 @@ function StitchTextControls({ text, setText, textFont, setTextFont, textSize, se
   );
 }
 // Small canvas preview of a stitch grid (used in the saved-designs list/preview).
-function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
+export function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   const ref = useRef(null);
   // Fit the grid inside a size x size box at its own aspect ratio, so tall
   // strips (30x120 bookmarks) and wide grids are contained rather than cropped
@@ -160,7 +194,7 @@ const XS_REVEAL_GRID_AT = 0.55;  // point in the run the counting grid starts to
 const XS_REVEAL_GRID_MIN = 3.5;  // px per stitch under which grid lines are just noise
 // Matches --art-stagger, so the palette lifting in and the card art rising on
 // the steps behind it are visibly the same gesture.
-const XS_SWATCH_STAGGER_MS = 55;
+export const XS_SWATCH_STAGGER_MS = 55;
 // Each cell's place in the sweep. The cells are ranked along the diagonal
 // rather than ordered by it: (x + y) is triangular over a rectangle, so a raw
 // diagonal hands half the chart over in the middle of the run and leaves the
@@ -187,7 +221,7 @@ const xsSmoothStep = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
-function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFFFFF', label = 'Your photo as a chart' }) {
+export function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFFFFF', label = 'Your photo as a chart' }) {
   const ref = useRef(null);
   const rafRef = useRef(0);
   const runningRef = useRef(false);
@@ -530,7 +564,7 @@ function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
   );
 }
 
-function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
+export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   // Board dimensions are stateful (not fixed to the initial preset) so a saved
   // design opened via loadDesign can restore the exact size it was made at,

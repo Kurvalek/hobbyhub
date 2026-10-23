@@ -1,5 +1,12 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { KONA } from '../assets/color-catalogs.js';
+import { nextShapeId, quiltDuplicateOffset, quiltOverlapCells } from './design-model.jsx';
+import { IcCopy, IcPlus, IcRotate, IcSwap, IcTrash } from './icons.jsx';
+import { EdMenuButton, EdSwatch, edSwatchStyle, useCanvasPinchZoom } from './editor-ui.jsx';
+import { studioCovered } from './kit-review.jsx';
+
 // ── Quilting overlay ──────────────────────────────────────────────────────
-function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
+export function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
   if (pattern==="none") return null;
   const lines=[], s=Math.max(1,spacing);
   if (pattern==="ditch") {
@@ -48,7 +55,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // triangle pair, tap a pair to turn it) and replace (tap a patch to swap its
 // fabric everywhere via onReplaceColor). One drag is one undo step: follow-up
 // updates in the same gesture pass { merge: true } to setShapes.
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onPickFabric, onAddFabric }) {
+export function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onPickFabric, onAddFabric }) {
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const toolbarRef = useRef(null);

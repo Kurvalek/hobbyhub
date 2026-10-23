@@ -1,3 +1,17 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { canonicalPresetName, fetchDesignRecord } from './services.jsx';
+import { App } from './quilt-studio.jsx';
+import { AuthProvider, TweaksPanel } from './account.jsx';
+import { CraftSelector, ProjectSelector } from './landing.jsx';
+import { GRID_TEMPLATES, gridSeedFromTemplate, QUILT_TEMPLATES } from './templates.jsx';
+import {
+  CrossStitchPaletteSelector, CrossStitchSizeSelector, CrossStitchTemplateSelector,
+  PaletteSelector, QuiltBackingSelector, TemplateSelector,
+} from './setup-steps.jsx';
+import { CRAFT_STUDIO, CrossStitchApp } from './stitch-studio.jsx';
+import { KitReviewLoading, KitReviewPage } from './kit-review.jsx';
+
 // Depth of each step in the setup flow, so the History integration can tell a
 // forward move (push a new entry) from a backward move (reverse one step).
 // The review page sits past every editor, so Back from it always returns to the
@@ -409,4 +423,4 @@ function Root() {
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<AuthProvider><Root/></AuthProvider>);
+createRoot(document.getElementById("root")).render(<AuthProvider><Root/></AuthProvider>);
