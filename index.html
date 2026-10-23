@@ -692,30 +692,25 @@
   .chip:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
   .chip.selected { outline: 2pt solid var(--metime-black); outline-offset: 0; box-shadow: none; position: relative; z-index: 2; }
 
-  /* Filter pills — metime design system V1 (Figma 2190:1646). Each filter row
-     takes one brand accent, set on the row with a .pills-<accent> class so all
-     of its pills always match. Default: accent outline, dark-shade label.
+  /* Filter pills — metime design system V1 (Figma 2190:1646). Every filter row
+     uses the ice accent. Default: accent outline, dark-shade label.
      Hover: accent fill. Selected: accent fill with a dark-shade outline. The
      outline sits inside the 9/18 padding, as Figma's inside stroke does, and
      thins from 2px to 1.5px when selected without changing the pill's size. */
-  .pills-tomato     { --pill: var(--color-tomato);     --pill-dark: var(--color-tomato-dark); }
-  .pills-avocado    { --pill: var(--color-avocado);    --pill-dark: var(--color-avocado-dark); }
-  .pills-grapefruit { --pill: var(--color-grapefruit); --pill-dark: var(--color-grapefruit-dark); }
-  .pills-ice        { --pill: var(--color-ice);        --pill-dark: var(--color-ice-dark); }
-  .pills-golden     { --pill: var(--color-golden);     --pill-dark: var(--color-golden-dark); }
   .filter-pill {
+    --pill: var(--color-ice); --pill-dark: var(--color-ice-dark);
     --pill-bw: 2px; --pill-py: 9px; --pill-px: 18px;
     display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
     padding: calc(var(--pill-py) - var(--pill-bw)) calc(var(--pill-px) - var(--pill-bw));
-    border: var(--pill-bw) solid var(--pill, var(--color-tomato)); border-radius: var(--pill-radius);
-    background: transparent; color: var(--pill-dark, var(--color-tomato-dark));
+    border: var(--pill-bw) solid var(--pill); border-radius: var(--pill-radius);
+    background: transparent; color: var(--pill-dark);
     font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap;
     cursor: pointer; transition: background .12s, border-color .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out);
   }
-  .filter-pill:hover { background: var(--pill, var(--color-tomato)); }
+  .filter-pill:hover { background: var(--pill); }
   .filter-pill:is([aria-selected="true"], [aria-pressed="true"]) {
     --pill-bw: 1.5px;
-    background: var(--pill, var(--color-tomato)); border-color: var(--pill-dark, var(--color-tomato-dark));
+    background: var(--pill); border-color: var(--pill-dark);
   }
   .filter-pill:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
   .filter-pill.is-compact { --pill-py: 5px; --pill-px: 12px; }
@@ -3038,7 +3033,7 @@
     text-transform: none;
     color: var(--brand-ink);
   }
-  .brand-shell .saved-count { font-weight: 400; opacity: 0.55; margin-left: 2px; }
+  .brand-shell .saved-count { font-weight: 400; margin-left: 2px; }
   .brand-shell .saved-filter { font-family: var(--brand-font); }
   .brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
   .brand-shell .saved-card {
@@ -7041,7 +7036,7 @@ function LibraryPopover({ anchorRef, onClose, search, setSearch, grp, setGrp,
           </span>
           <input type="text" placeholder="Search colors…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:30 }}/>
         </div>
-        <div className="pills-golden" style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
           {groups.map(g => (
             <button key={g} type="button" className={`filter-pill is-compact${grp===g?' active':''}`}
               aria-pressed={grp===g} onClick={()=>setGrp(g)}>{g}</button>
@@ -9765,7 +9760,7 @@ function savedMetaLine(it) {
 function SavedDesigns({ onOpen }) {
   const auth = useAuth();
   const libraryOn = !!(auth && auth.libraryOn);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('all');
   const items = useMemo(() => {
     if (!libraryOn) return [];
@@ -9784,7 +9779,7 @@ function SavedDesigns({ onOpen }) {
           <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><IcChevD size={14}/></span>
         </button>
         {open && (
-          <div className="saved-filters pills-tomato" role="tablist" aria-label="Filter saved designs">
+          <div className="saved-filters" role="tablist" aria-label="Filter saved designs">
             {SAVED_FILTERS.map(f => (
               <button key={f.id} type="button" role="tab" aria-selected={filter === f.id}
                 className={`saved-filter filter-pill${filter === f.id ? ' is-on' : ''}`}
@@ -9834,7 +9829,7 @@ function CraftSelector({ onSelect, onOpenSaved }) {
         xl
         wide
         cycles={6}
-        eyebrow={<BrandEyebrow plain label="Design a kit. We cut and pack it."/>}
+        eyebrow={<BrandEyebrow plain label="Design your craft. We send the materials. You make it."/>}
         title="What are you making?"
         sub="Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making."/>
       <div className="land-main">
@@ -11809,7 +11804,7 @@ function BackingFabricPicker({ onPickFab, onPickUpload, current, uploadHint, upl
   const page = layout === 'page';
   return (
     <>
-      <div className={`${page ? 'back-filters' : 'fabric-filters'} pills-ice`} role="tablist" aria-label="Fabric category">
+      <div className={page ? 'back-filters' : 'fabric-filters'} role="tablist" aria-label="Fabric category">
         {cats.map(c => (
           <button
             key={c.id}
