@@ -3147,7 +3147,9 @@
      as the same product. Everything is scoped under .ed-app.
      ═════════════════════════════════════════════════════════════════════════ */
   .ed-app {
-    --ed-stage-bg: var(--warm-hover);
+    --app-bg: #FDFCF7;
+    --surface-card: #FDFCF7;
+    --ed-stage-bg: #EEE9E0;
     --ed-float-shadow: 0 4px 16px rgba(23, 23, 23, 0.10);
     --ed-ring: 0 0 0 2px var(--app-bg), 0 0 0 4px var(--metime-black);
     --ed-rail-active-bg: #EFE7DA;
@@ -3295,9 +3297,25 @@
   .ed-row-action { font-size: 12px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; white-space: nowrap; }
   .ed-list > * { border-bottom: 1px solid var(--warm-divider-soft); }
   .ed-list.is-plain > * { border-bottom: none; }
-  .ed-row-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 12px 52px; }
-  .ed-row-more-label { width: 100%; font-size: 11px; color: var(--warm-muted); }
-  .ed-row-more .ed-swatch { width: 32px; height: 32px; }
+  .ed-fab-list { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+  .ed-fab-row { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 8px; border-radius: var(--btn-radius); }
+  .ed-fab-row .ed-row { flex: 1; min-width: 0; padding: 8px 0; }
+  .ed-fab-row.is-active { background: var(--warm-hover); }
+  .ed-fab-row.is-active .ed-row-sw { border-color: var(--metime-black); box-shadow: 0 0 0 1px var(--metime-black); }
+  .ed-app .ed-fab-more { width: 28px; height: 28px; flex: none; color: var(--warm-fg-2); opacity: 0; }
+  .ed-fab-row:hover .ed-fab-more, .ed-fab-row.is-menu .ed-fab-more, .ed-fab-more:focus-visible { opacity: 1; }
+  .ed-app .ed-sheet .ed-fab-more { opacity: 1; }
+  @media (hover: none) { .ed-app .ed-fab-more { opacity: 1; } }
+  .ed-fab-add { padding-right: 32px; }
+  .ed-fab-add .ed-row-sw { display: flex; align-items: center; justify-content: center; color: var(--warm-muted); }
+  .ed-fab-add:not(:disabled):hover .ed-row-sw { border-color: var(--metime-black); color: var(--metime-black); }
+  .ed-fab-add:disabled { cursor: default; opacity: 0.55; }
+  .ed-fab-menu { padding: 4px 0; }
+  .ed-fab-menu .studio-menu-item { min-height: 38px; padding: 0 14px; font-size: 13px; }
+  .ed-fab-menu .studio-menu-item:disabled { color: var(--warm-muted); background: none; cursor: default; }
+  .ed-tool-slot { position: relative; display: inline-flex; }
+  .ed-tool-badge { position: absolute; right: 8px; bottom: 8px; width: 10px; height: 10px; padding: 0; border-radius: 3px; border: 1px solid rgba(0,0,0,0.25); box-shadow: 0 0 0 1.5px var(--app-bg); background-size: cover; background-position: center; cursor: pointer; }
+  .ed-tray-tools .ed-tool-badge { right: 14px; bottom: 10px; }
   .ed-note { font-size: 11px; color: var(--warm-muted); line-height: 1.6; margin-top: 14px; }
 
   .ed-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
@@ -6008,7 +6026,7 @@ function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
 // triangle pair, tap a pair to turn it) and replace (tap a patch to swap its
 // fabric everywhere via onReplaceColor). One drag is one undo step: follow-up
 // updates in the same gesture pass { merge: true } to setShapes.
-function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onOpenLibrary }) {
+function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, selectedColor, quiltPattern, quiltSpacing, quiltColor, showQuilting, zoom = 1, onZoomChange, pinned = [], isMobile = false, onReplaceColor, onPickFabric }) {
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -6017,7 +6035,6 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
   const [marquee, setMarquee] = useState(null);
   const [cur, setCur] = useState('default');
   const [tbPos, setTbPos] = useState(null);
-  const libAddRef = useRef(null);
   const [triSlot, setTriSlot] = useState('a');
   const sRef = useRef(shapes); useEffect(()=>{sRef.current=shapes;},[shapes]);
   const selRef = useRef(selIds); useEffect(()=>{selRef.current=selIds;},[selIds]);
@@ -6654,14 +6671,8 @@ function GridCanvas({ cols, rows, shapes, setShapes, selIds, setSelIds, tool, se
             {pinned.map((c, i) => (
               <EdSwatch key={`${c.name}-${i}`} color={c}
                 active={!!paletteCurrentColor && paletteCurrentColor.hex === c.hex && paletteCurrentColor.name === c.name}
-                onClick={() => handleRecolor(c, paletteTargetIds)}/>
+                onClick={() => { handleRecolor(c, paletteTargetIds); onPickFabric?.(c); }}/>
             ))}
-            {onOpenLibrary && (
-              <button ref={libAddRef} type="button" className="ed-swatch ed-swatch-add"
-                onClick={() => onOpenLibrary(libAddRef)} title="More fabrics" aria-label="More fabrics">
-                <IcPlus size={12}/>
-              </button>
-            )}
           </div>
           <span className="selection-toolbar-divider"/>
           {hasTri && <>
@@ -7392,16 +7403,28 @@ function EdNav({ className, label, items, active, onSelect }) {
   );
 }
 
+// A tool can carry a `badge` ({ color, label, onClick }): a small swatch in the
+// button's corner, its own button so it can't nest inside the tool's.
 function EdTools({ className, tools, tool, onTool }) {
   return (
     <div className={className} role="toolbar" aria-label="Tools">
-      {tools.map(t => (
-        <button key={t.id} type="button" className="icon-btn" aria-pressed={tool === t.id}
-          data-ed-tool={t.id} title={t.key ? `${t.label} (${t.key})` : t.label} aria-label={t.label}
-          onClick={() => onTool(t.id)}>
-          {t.icon}
-        </button>
-      ))}
+      {tools.map(t => {
+        const btn = (
+          <button key={t.id} type="button" className="icon-btn" aria-pressed={tool === t.id}
+            data-ed-tool={t.id} title={t.key ? `${t.label} (${t.key})` : t.label} aria-label={t.label}
+            onClick={() => onTool(t.id)}>
+            {t.icon}
+          </button>
+        );
+        if (!t.badge) return btn;
+        return (
+          <span key={t.id} className="ed-tool-slot">
+            {btn}
+            <button type="button" className="ed-tool-badge" style={edSwatchStyle(t.badge.color)}
+              title={t.badge.label} aria-label={t.badge.label} onClick={t.badge.onClick}/>
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -7522,7 +7545,7 @@ function EdMenuButton({ trigger, label, title, menuLabel, width = 240, btnRef, c
             {children}
           </div>
         </Popover>,
-        document.body)}
+        ref.current?.closest('.ed-app') || document.body)}
     </>
   );
 }
@@ -7711,16 +7734,81 @@ function QuiltTemplatesPanel({ templates, palette, dims, isCoaster, onApply }) {
   );
 }
 
-function QuiltFabricsPanel({ pinned, setPinned, color, onPickColor, onOpenLibrary,
-  backing, backCalc, onBacking, onBackingView, binding, bindCalc, onBinding,
-  items, yards, stacked, onReplace, onReplaceMore }) {
-  const [openItem, setOpenItem] = useState(null);
+// Largest palette a quilt kit can hold. Infinity means no cap yet.
+const MAX_PALETTE_FABRICS = Infinity;
+
+// One fabric in "Your fabrics": tapping the row picks it (see pickColor), the
+// ⋯ menu holds the actions that touch the whole quilt.
+function QuiltFabricRow({ row, active, onPick, onSwap, onSelectAll, onRemove }) {
+  const { fabric, count, strips, yards } = row;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const moreRef = useRef(null);
+  const rowRef = useRef(null);
+  const used = count > 0;
+  const items = [
+    { id: 'swap', label: 'Swap for another fabric…', onClick: () => onSwap(fabric, rowRef.current) },
+    { id: 'select', label: 'Select all patches', disabled: !used, onClick: () => onSelectAll(fabric) },
+    { id: 'remove', label: 'Remove from kit', disabled: used, meta: used ? 'Swap it first' : null, onClick: () => onRemove(fabric) },
+  ];
+  return (
+    <div ref={rowRef} className={`ed-fab-row${active ? ' is-active' : ''}${menuOpen ? ' is-menu' : ''}`} data-ed-fabric={fabric.name}>
+      <button type="button" className="ed-row" aria-pressed={active} onClick={() => onPick(fabric)}>
+        <span className="ed-row-sw" style={edSwatchStyle(fabric)}/>
+        <span className="ed-row-main">
+          <span className="ed-row-title">{fabric.name}</span>
+          <span className="ed-row-sub">
+            {used ? `${count} pcs · ${strips} strip${strips !== 1 ? 's' : ''}` : 'In your kit · not used yet'}
+          </span>
+        </span>
+        <span className="ed-row-value">{fmtY(yards)}</span>
+      </button>
+      <button ref={moreRef} type="button" className="icon-btn ed-fab-more" aria-haspopup="menu" aria-expanded={menuOpen}
+        title={`More for ${fabric.name}`} aria-label={`More for ${fabric.name}`} onClick={() => setMenuOpen(v => !v)}>
+        <span className="ed-more-dots" aria-hidden="true"><span/><span/><span/></span>
+      </button>
+      {menuOpen && ReactDOM.createPortal(
+        <Popover anchorRef={moreRef} onClose={() => setMenuOpen(false)} placement="bottom-end" width={232}>
+          <div className="studio-menu ed-fab-menu" role="menu">
+            {items.map(it => (
+              <button key={it.id} type="button" className="studio-menu-item" role="menuitem" disabled={it.disabled}
+                onClick={() => { setMenuOpen(false); it.onClick(); }}>
+                <span className="studio-menu-label">{it.label}</span>
+                {it.meta && <span className="studio-menu-meta">{it.meta}</span>}
+              </button>
+            ))}
+          </div>
+        </Popover>,
+        moreRef.current?.closest('.ed-app') || document.body)}
+    </div>
+  );
+}
+
+function QuiltFabricsPanel({ rows, yards, isActive, onPick, onAdd, canAdd, onSwap, onSelectAll, onRemove,
+  backing, backCalc, onBacking, onBackingView, binding, bindCalc, onBinding, stacked }) {
   const bindRef = useRef(null);
+  const addRef = useRef(null);
   return (
     <>
-      <EdPaletteEditor pinned={pinned} setPinned={setPinned}
-        isActive={c => !!color && color.name === c.name && color.hex === c.hex}
-        onPick={onPickColor} onAdd={onOpenLibrary} addLabel="Add fabrics"/>
+      <div className="ed-label">
+        <span>Your fabrics</span>
+        {yards > 0 && <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11 }}>{fmtY(yards)}</span>}
+      </div>
+      <div className="ed-list is-plain ed-fab-list ed-keep-sel">
+        {rows.map(row => (
+          <QuiltFabricRow key={quiltColorKey(row.fabric)} row={row} active={isActive(row.fabric)}
+            onPick={onPick} onSwap={onSwap} onSelectAll={onSelectAll} onRemove={onRemove}/>
+        ))}
+        <div className="ed-fab-row">
+          <button ref={addRef} type="button" className="ed-row ed-fab-add" disabled={!canAdd}
+            onClick={() => onAdd(addRef)}>
+            <span className="ed-row-sw is-empty"><IcPlus/></span>
+            <span className="ed-row-main">
+              <span className="ed-row-title">Add fabric</span>
+              {!canAdd && <span className="ed-row-sub">Your kit holds up to {MAX_PALETTE_FABRICS} fabrics</span>}
+            </span>
+          </button>
+        </div>
+      </div>
 
       <div className="ed-hr"/>
       <div className="ed-label">Backing &amp; binding</div>
@@ -7734,43 +7822,6 @@ function QuiltFabricsPanel({ pinned, setPinned, color, onPickColor, onOpenLibrar
           value={binding ? fmtY(bindCalc.yards) : null} action={binding ? null : 'Add'}
           onClick={() => onBinding(bindRef)}/>
       </div>
-
-      <div className="ed-hr"/>
-      <div className="ed-label">
-        <span>Quilt top by color</span>
-        {items.length > 0 && <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11 }}>{fmtY(yards)}</span>}
-      </div>
-      {items.length === 0 ? (
-        <p className="ed-intro">Add patches to see how much of each fabric you need.</p>
-      ) : (
-        <>
-          <p className="ed-intro" style={{ marginBottom: 2 }}>Tap a fabric to replace it everywhere.</p>
-          <div className="ed-list">
-            {items.map(item => {
-              const open = openItem === item.name;
-              return (
-                <div key={item.name} data-ed-item={item.name}>
-                  <EdRow swatch={item} title={item.name} expanded={open}
-                    sub={`${item.count} pcs · ${item.strips} strip${item.strips !== 1 ? 's' : ''}`}
-                    value={fmtY(item.yards)} onClick={() => setOpenItem(open ? null : item.name)}/>
-                  {open && (
-                    <div className="ed-row-more">
-                      <span className="ed-row-more-label">Replace with</span>
-                      {pinned.filter(c => quiltColorKey(c) !== quiltColorKey(item)).map((c, i) => (
-                        <EdSwatch key={`${c.name}-${i}`} color={c} onClick={() => { onReplace(item, c); setOpenItem(null); }}/>
-                      ))}
-                      <button type="button" className="ed-link"
-                        onClick={e => { onReplaceMore(item, e.currentTarget.closest('[data-ed-item]')); setOpenItem(null); }}>
-                        More fabrics…
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
       <p className="ed-note">
         {stacked > 0 && <>Stacked patches are hatched on the canvas and left out of the cut list. </>}
         Assumes 40" WOF, ¼" seam allowance. Backing adds 4" per side. Binding: 2.5" double-fold strips. Add 10 to 15% for shrinkage.
@@ -7947,6 +7998,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     }
     return seed;
   });
+  const shapesRef = useRef(shapes);
+  shapesRef.current = shapes;
+  // Undo steps are usually the previous shapes array. Fabric actions that also
+  // change the palette (or every coaster in a set) push a `{ shapes, pinned,
+  // units }` snapshot instead, so they undo in one go too.
   const historyRef = useRef([]);
   const futureRef = useRef([]);
   // `{ merge: true }` folds this update into the previous undo step, so one
@@ -7963,18 +8019,35 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       return next;
     });
   }, []);
-  const undo = useCallback(() => {
-    if (historyRef.current.length === 0) return;
-    const prev = historyRef.current.pop();
-    _setShapes(cur => { futureRef.current.push(cur); return prev; });
-    setSelIds(new Set());
+  const snapshotStep = () => ({
+    shapes: shapesRef.current, pinned: pinnedRef.current, color: colorRef.current,
+    units: coasterUnitsRef.current ? coasterUnitsRef.current.slice() : null,
+  });
+  const pushStep = useCallback(() => {
+    historyRef.current.push(snapshotStep());
+    if (historyRef.current.length > 100) historyRef.current.shift();
+    futureRef.current = [];
   }, []);
-  const redo = useCallback(() => {
-    if (futureRef.current.length === 0) return;
-    const next = futureRef.current.pop();
-    _setShapes(cur => { historyRef.current.push(cur); return next; });
+  // Moves one step from `from` to `to`, leaving the current state behind in `to`.
+  const stepHistory = (from, to) => {
+    if (from.current.length === 0) return;
+    const step = from.current.pop();
+    if (Array.isArray(step)) {
+      _setShapes(cur => { to.current.push(cur); return step; });
+    } else {
+      to.current.push(snapshotStep());
+      _setShapes(step.shapes);
+      setPinned(step.pinned);
+      if (step.color) setColor(step.color);
+      if (step.units && coasterUnitsRef.current) {
+        coasterUnitsRef.current = step.units.slice();
+        setCoasterRev(n => n + 1);
+      }
+    }
     setSelIds(new Set());
-  }, []);
+  };
+  const undo = useCallback(() => stepHistory(historyRef, futureRef), []);
+  const redo = useCallback(() => stepHistory(futureRef, historyRef), []);
   const [selIds, setSelIds] = useState(new Set());
   const [color, setColor] = useState(
     (initialPalette && initialPalette[0]) || KONA.find(c=>c.name==="Navy") || KONA[0]
@@ -7990,6 +8063,10 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       KONA.find(c=>c.name==="Rich Red"), KONA.find(c=>c.name==="Mustard"),
     ].filter(Boolean)
   );
+  const pinnedRef = useRef(pinned);
+  pinnedRef.current = pinned;
+  const colorRef = useRef(color);
+  colorRef.current = color;
   const [preset, setPreset] = useState(initialPreset);
   const [backing, setBacking] = useState(initialBacking);
   const [binding, setBinding] = useState(null);
@@ -8184,13 +8261,16 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
 
   const closePicker = useCallback(() => setPicker(null), []);
 
-  // Replace every patch of one fabric with another — used by the materials
-  // list so a color can be swapped across the whole quilt top at once.
-  const recolorAllMatching = useCallback((fromColor, toColor) => {
+  // Replace every patch of one fabric with another, across every coaster in a
+  // set, as one undo step. `swapInPalette` also puts the new fabric in the old
+  // one's place in the palette (the row menu's Swap); the Replace tool leaves
+  // the old fabric in the palette.
+  const recolorAllMatching = useCallback((fromColor, toColor, { swapInPalette = false } = {}) => {
     if (!fromColor || !toColor || quiltColorKey(fromColor) === quiltColorKey(toColor)) return;
     const matches = c => c && quiltColorKey(c) === quiltColorKey(fromColor);
     const recolor = list => list.map(s => matches(s.color) ? { ...s, color: toColor } : s);
-    setShapes(prev => recolor(prev));
+    pushStep();
+    _setShapes(prev => recolor(prev));
     if (coasterUnitsRef.current) {
       let changed = false;
       coasterUnitsRef.current = coasterUnitsRef.current.map((u, i) => {
@@ -8202,18 +8282,46 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
       if (changed) setCoasterRev(n => n + 1);
     }
     setColor(c => matches(c) ? toColor : c);
-    setPinned(p => p.find(x => x.name === toColor.name) ? p : [...p, toColor]);
-  }, [setShapes, activeCoaster]);
+    setPinned(p => {
+      const has = p.some(x => quiltColorKey(x) === quiltColorKey(toColor));
+      const at = swapInPalette ? p.findIndex(matches) : -1;
+      if (at < 0) return has ? p : [...p, toColor];
+      return has ? p.filter((_, j) => j !== at) : p.map((x, j) => j === at ? toColor : x);
+    });
+  }, [pushStep, activeCoaster]);
 
-  const openMaterialRecolor = useCallback((item, el) => {
+  const openFabricSwap = useCallback((fabric, el) => {
     if (el) libraryAnchorRef.current = el;
     setPicker({
-      onPick: c => recolorAllMatching(item, c),
+      onPick: c => {
+        if (quiltColorKey(c) === quiltColorKey(fabric)) return;
+        recolorAllMatching(fabric, c, { swapInPalette: true });
+        showToast(`Swapped ${fabric.name} for ${c.name}`);
+      },
       showMyPalette: true,
-      title: `Replace ${item.name}`,
-      fromColor: item,
+      title: `Swap ${fabric.name} for…`,
+      fromColor: fabric,
     });
-  }, [recolorAllMatching]);
+  }, [recolorAllMatching, showToast]);
+
+  const removeFromKit = useCallback(fabric => {
+    const key = quiltColorKey(fabric);
+    const rest = pinnedRef.current.filter(x => quiltColorKey(x) !== key);
+    pushStep();
+    setPinned(rest);
+    setColor(c => quiltColorKey(c) === key && rest.length ? rest[0] : c);
+    showToast(`Removed ${fabric.name} from your kit`);
+  }, [pushStep, showToast]);
+
+  // Selection only lives under the Select tool, so switch to it first.
+  const selectAllOfFabric = useCallback(fabric => {
+    const key = quiltColorKey(fabric);
+    const ids = new Set(shapesRef.current.filter(s => quiltColorKey(s.color) === key).map(s => s.id));
+    if (!ids.size) return;
+    setTool('select');
+    setSelIds(ids);
+    if (isMobile) setPanel(null);
+  }, [isMobile]);
 
   const handleSwapTriColors = useCallback(() => {
     const sel = shapes.filter(s => selIds.has(s.id));
@@ -8371,6 +8479,27 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const bindCalc=useMemo(()=>calcBinding(fw,fh,kitQty),[fw,fh,kitQty]);
   const grandTotal=materials.yards+(backing?backCalc.yards:0)+(binding?bindCalc.yards:0);
 
+  // "Your fabrics": every palette fabric (plus any fabric on the quilt that has
+  // dropped out of the palette), most pieces first, unused ones last in
+  // palette order. The selection toolbar shows the same list.
+  const fabricRows = useMemo(() => {
+    const used = new Map(materials.items.map(({ count, yards, cutSize, strips, ...fabric }) =>
+      [quiltColorKey(fabric), { fabric, count, strips, yards }]));
+    const seen = new Set();
+    const rows = [];
+    const add = (fabric, stats) => {
+      const key = quiltColorKey(fabric);
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(stats || used.get(key) || { fabric, count: 0, strips: 0, yards: 0 });
+    };
+    for (const c of pinned) if (c) add(c, used.has(quiltColorKey(c)) ? { ...used.get(quiltColorKey(c)), fabric: c } : null);
+    for (const [, stats] of used) add(stats.fabric, stats);
+    return rows.map((r, i) => [r, i]).sort((a, b) => b[0].count - a[0].count || a[1] - b[1]).map(([r]) => r);
+  }, [pinned, materials.items]);
+  const fabricOrder = useMemo(() => fabricRows.map(r => r.fabric), [fabricRows]);
+  const canAddFabric = pinned.length < MAX_PALETTE_FABRICS;
+
   // Smallest allowed block size. Most quilts stop at 2" blocks, but Coasters
   // are small enough that 1" blocks are useful, so we relax the floor there.
   const minBsFor = name => (name === 'Coaster' ? 1 : 2);
@@ -8430,14 +8559,18 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
   const hintBubble = showTips && (
     <EdHintBubble text={toolHint} onHide={() => { setShowTips(false); showToast('Tips hidden. Turn them back on in Help.'); }}/>
   );
-  const tools = QUILT_TOOLS.map(t => ({ ...t, icon: <t.Ic size={isMobile ? 20 : 18}/> }));
+  const tools = QUILT_TOOLS.map(t => ({
+    ...t, icon: <t.Ic size={isMobile ? 20 : 18}/>,
+    badge: t.id === 'replace' && color
+      ? { color, label: `Current fabric: ${color.name}. Open Fabrics`, onClick: () => setPanel('fabrics') }
+      : null,
+  }));
   const painting = QUILT_PAINT_TOOLS.has(tool);
   const isColorActive = c => !!color && color.name === c.name && color.hex === c.hex;
   const canUndo = historyRef.current.length > 0;
   const canRedo = futureRef.current.length > 0;
   const openSave = () => { setSaveName(''); setShowSave(true); };
   const openSaveAs = () => { setSaveName(((currentQuilt && currentQuilt.name) || '') + ' copy'); setShowSave(true); };
-  const pillAddRef = useRef(null);
   const trayRef = useRef(null);
   const [trayH, setTrayH] = useState(0);
   useLayoutEffect(() => {
@@ -8457,15 +8590,14 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
         isCoaster={isCoasterKit} onApply={applyTemplate}/>
     );
     if (id === 'fabrics') return (
-      <QuiltFabricsPanel pinned={pinned} setPinned={setPinned} color={color} onPickColor={pickColor}
-        onOpenLibrary={ref => openLibrary(ref)}
+      <QuiltFabricsPanel rows={fabricRows} yards={materials.yards} isActive={isColorActive} onPick={pickColor}
+        onAdd={ref => openLibrary(ref)} canAdd={canAddFabric}
+        onSwap={openFabricSwap} onSelectAll={selectAllOfFabric} onRemove={removeFromKit}
         backing={backing} backCalc={backCalc} onBacking={() => setShowBackingPicker(true)}
         onBackingView={fabricFullSrc(backing) ? () => setInspectBacking(backing) : null}
         binding={binding} bindCalc={bindCalc}
         onBinding={ref => openColorPicker(ref, setBinding, binding ? () => setBinding(null) : null, 'Binding fabric')}
-        items={materials.items} yards={materials.yards} stacked={materials.stacked}
-        onReplace={(item, c) => { recolorAllMatching(item, c); showToast(`Replaced ${item.name} with ${c.name}`); }}
-        onReplaceMore={(item, el) => openMaterialRecolor(item, el)}/>
+        stacked={materials.stacked}/>
     );
     if (id === 'quilting') return (
       <QuiltQuiltingPanel qPattern={qPattern} setQPattern={setQPattern} qSpacing={qSpacing} setQSpacing={setQSpacing}
@@ -8510,7 +8642,7 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
     { id: 'size', label: 'Size', icon: <EdNavIcon name="size" size={26}/> },
     { id: 'quilting', label: 'Quilting', icon: <EdNavIcon name="quilting" size={26}/> },
   ];
-  const paletteSwatches = pinned.map((c, i) => (
+  const paletteSwatches = fabricOrder.map((c, i) => (
     <EdSwatch key={`${c.name}-${i}`} color={c} active={isColorActive(c)} onClick={() => pickColor(c)}/>
   ));
 
@@ -8583,26 +8715,11 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 selIds={selIds} setSelIds={setSelIds}
                 tool={tool} selectedColor={color}
                 quiltPattern={qPattern} quiltSpacing={qSpacing} quiltColor={qColor} showQuilting={showQ}
-                zoom={zoom} onZoomChange={setZoom} pinned={pinned} isMobile={isMobile}
-                onReplaceColor={replaceEverywhere}
-                onOpenLibrary={ref => openLibrary(ref, 'bottom-start')}/>
+                zoom={zoom} onZoomChange={setZoom} pinned={fabricOrder} isMobile={isMobile}
+                onReplaceColor={replaceEverywhere} onPickFabric={setColor}/>
             </div>
 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={setTool}/>}
-            {!isMobile && (
-              <div className="ed-palette-pill ed-float ed-keep-sel">
-                <EdMenuButton btnRef={pillAddRef} label={color ? `Fabric: ${color.name}` : 'Fabric'} menuLabel="Fabrics" width={256}
-                  trigger={<span className="ed-menu-swatch" style={edSwatchStyle(color)}/>}>
-                  <div className="ed-menu-swatches">
-                    {paletteSwatches}
-                    <button type="button" className="ed-swatch ed-swatch-add"
-                      onClick={() => openLibrary(pillAddRef, 'bottom-center')} title="Add fabrics from the library" aria-label="Add fabrics">
-                      <IcPlus size={12}/>
-                    </button>
-                  </div>
-                </EdMenuButton>
-              </div>
-            )}
             {!isMobile && hintBubble && <div className="ed-bottom-stack">{hintBubble}</div>}
 
             {isMobile && (
@@ -8616,10 +8733,6 @@ function App({ initialPreset = "Throw", initialPalette = null, initialBacking = 
                 {painting && (
                   <div className="ed-strip ed-float ed-keep-sel">
                     {paletteSwatches}
-                    <button ref={pillAddRef} type="button" className="ed-swatch ed-swatch-add"
-                      onClick={() => openLibrary(pillAddRef)} title="Add fabrics from the library" aria-label="Add fabrics">
-                      <IcPlus/>
-                    </button>
                   </div>
                 )}
                 <div className="ed-tray-card">
