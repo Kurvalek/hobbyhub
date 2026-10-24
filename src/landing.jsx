@@ -1,24 +1,18 @@
 import { useMemo, useState } from 'react';
-import {
-  formatKitPrice, loadSavedPunch, loadSavedQuilts, loadSavedStitches, useAuth, useKitPrices,
-} from './services.jsx';
+import { loadSavedPunch, loadSavedQuilts, loadSavedStitches, useAuth } from './services.jsx';
 import { deserializeGrid } from './design-model.jsx';
 import { IcArrowL, IcArrowR, IcChevD } from './icons.jsx';
-import { PRESETS } from './catalog.jsx';
-import { CRAFTS, LandingAuth, ProjectCard } from './account.jsx';
+import { CRAFTS, LandingAuth } from './account.jsx';
 import { StitchThumb } from './stitch-studio.jsx';
 
 // ── Brand system ───────────────────────────────────────────────────────────
-// Shared presentation furniture for the setup flow (craft → size → backing →
-// template → palette). All of it is styled by the `.brand-shell` layer at the
-// end of the stylesheet, and a screen opts in by putting `brand-shell` on its
+// Shared presentation furniture for the pages outside the studios (the craft
+// picker and the kit review). All of it is styled by the `.brand-shell` layer at
+// the end of the stylesheet, and a screen opts in by putting `brand-shell` on its
 // page root. The two studios never do, which is what keeps the editor's type,
 // density and controls out of reach of these styles.
 
 const BRAND_NOTE = 'Craft design, made material';
-// Step numbering for the eyebrow labels. Quilting carries an extra backing step,
-// so the two grid crafts and the quilt count differently.
-export const BRAND_STEPS = { 'cross-stitch': 3, 'punch-needle': 3, quilt: 4 };
 export const BRAND_CRAFT_LABEL = { 'cross-stitch': 'Cross-stitch', 'punch-needle': 'Punch needle', quilt: 'Quilting' };
 // metime's wiggle: the thread mark carried under the wordmark. Built from
 // alternating quadratic arcs rather than shipped as a fixed file so one
@@ -121,24 +115,6 @@ export function BrandBack({ onBack }) {
       </span>
       <span className="size-back-label">Back</span>
     </button>
-  );
-}
-
-// A titled content band with its own hairline — used to keep distinct jobs on
-// one screen visually separate (e.g. conversion controls vs suggested palettes).
-export function BrandSection({ title, note, quiet, actions, children }) {
-  const headOnly = !children;
-  return (
-    <section className={`brand-section brand-bleed${quiet ? ' is-quiet' : ''}${headOnly ? ' is-head-only' : ''}`}>
-      <div className="brand-section-head">
-        <div className="brand-section-head-text">
-          <h2 className="brand-section-title">{title}</h2>
-          {note && <p className="brand-section-note">{note}</p>}
-        </div>
-        {actions && <div className="brand-section-actions">{actions}</div>}
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -297,28 +273,6 @@ export function CraftSelector({ onSelect, onOpenSaved }) {
       <SavedDesigns onOpen={onOpenSaved}/>
       <BrandFooter/>
       </div>
-    </div>
-  );
-}
-
-export function ProjectSelector({ onSelect, onBack }) {
-  const prices = useKitPrices("quilt");
-  return (
-    <div className="size-page brand-shell">
-      <BrandNav/>
-      <BrandHead
-        tone="butter"
-        back={<BrandBack onBack={onBack}/>}
-        eyebrow={<BrandEyebrow step={1} label={`Quilting · Step 1 of ${BRAND_STEPS.quilt}`}/>}
-        title="What size?"
-        sub="Every size is a real finished quilt, so we calculate the piecing and yardage from here."/>
-      <div className="size-row">
-        {PRESETS.map((p) => (
-          <ProjectCard key={p.name} preset={p} onSelect={onSelect}
-            price={formatKitPrice(prices[p.name])}/>
-        ))}
-      </div>
-      <BrandFooter note="Quilting · choose a finished size"/>
     </div>
   );
 }

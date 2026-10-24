@@ -59,20 +59,6 @@ export const STITCH_PRESETS = [
   { name:"Small Hoop", w:70, h:70, desc:"70 × 70 stitches · fits a 5\" hoop" },
   { name:"Medium Hoop", w:120, h:120, desc:"120 × 120 stitches · fits an 8\" hoop" },
 ];
-export const STITCH_THEMES = {
-  "Coaster Set":  { c1:"#C83A2C", c2:"#F5D89A", desc:"40 × 40 stitches · set of 4" },
-  "Bookmark":     { c1:"#2C5080", c2:"#97B5D4", desc:"30 × 120 stitches" },
-  "Small Hoop":   { c1:"#E8A0B0", c2:"#B8D4E0", desc:"70 × 70 stitches · fits a 5\" hoop" },
-  "Medium Hoop":  { c1:"#2C4A30", c2:"#7AAA80", desc:"120 × 120 stitches · fits an 8\" hoop" },
-};
-// Product photos shown on the cross-stitch "What size?" cards, keyed by preset
-// name. Missing entries fall back to the plain colored thumb so nothing breaks.
-export const STITCH_IMAGES = {
-  "Coaster Set": "assets/products/cross-stitch-coasters.png",
-  "Bookmark":    "assets/products/cross-stitch-bookmark.png?v=2",
-  "Small Hoop":  "assets/products/cross-stitch-small-hoop.png?v=2",
-  "Medium Hoop": "assets/products/cross-stitch-medium-hoop.png",
-};
 // Curated DMC starter palettes (referenced by floss code). Tuned to a muted,
 // earthy vibe — soft blues, terracotta, peach, sage, and warm neutrals —
 // matching the sample moodboards used for cross-stitch starters.
@@ -108,22 +94,6 @@ export const PUNCH_PRESETS = [
   { name:"Large Hoop", w:40, h:50, desc:"40 × 50 loops · fits an 8\" hoop" },
   { name:"Pillow", w:70, h:70, desc:"70 × 70 loops · cushion front" },
 ];
-export const PUNCH_THEMES = {
-  "Coaster":      { c1:"#E8583A", c2:"#F5D89A", desc:"20 × 20 loops · set of 4" },
-  "Small Hoop":   { c1:"#707F87", c2:"#CCD6EB", desc:"30 × 30 loops · fits a 6\" hoop" },
-  "Large Hoop":   { c1:"#B5BB46", c2:"#D8E498", desc:"40 × 50 loops · fits an 8\" hoop" },
-  "Pillow":       { c1:"#FBBB3F", c2:"#E7D6C1", desc:"70 × 70 loops · cushion front" },
-};
-// A photograph of the finished thing for every size, so the choice is made on
-// what you end up holding rather than on a rectangle scaled to the loop count.
-// With all four present the drawn GridSizeThumb fallback no longer renders for
-// punch needle; it still covers cross-stitch and any size added later.
-export const PUNCH_IMAGES = {
-  "Coaster":    "assets/landing/craft-punch-needle-coasters.png",
-  "Small Hoop": "assets/landing/craft-punch-needle-small.png",
-  "Large Hoop": "assets/landing/craft-punch-needle-wall.png",
-  "Pillow":     "assets/landing/craft-punch-needle-pillow.png",
-};
 // Monk's cloth is the standard punch needle ground — a loose, even-weave
 // cotton. Unlike Aida it mostly comes undyed, so the range is natural tones
 // plus a handful of piece-dyed colors. The ground shows through wherever the
@@ -154,15 +124,14 @@ export const PUNCH_NEEDLE_PALETTE_MAX = 8;
 export const PN_DEFAULT_CODES = ["NOIR", "BLANC", "7666", "7433", "7996", "7362", "7946", "7840"];
 
 // `name` is the identity used everywhere downstream (saved designs, step state,
-// the studio's size dropdown), so it stays put; `label` / `note` only feed the
-// "What size?" cards, where the design words things a little differently.
+// the studio's size panel), so it stays put; `label` / `note` are only how the
+// size panel words it.
 export const PRESETS = [
   { name:"Coaster", label:"Coasters", note:"4 coasters", w:5, h:5, kitQty:4 },
   { name:"Wall hanging", label:"Wall Hanging", w:24, h:36 },
   { name:"Baby blanket", label:"Baby Blanket", w:30, h:36 },
   { name:"Throw", label:"Throw Blanket", w:52, h:65 },
 ];
-export const presetDims = p => `${p.w}" × ${p.h}"` + (p.note ? ` · ${p.note}` : "");
 export const QUILT_PATTERNS = [
   { id:"none", label:"None" },
   { id:"ditch", label:"Stitch in the Ditch" },
@@ -232,16 +201,6 @@ export function rgbToHex(r, g, b) {
   const c = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
   return `#${c(r)}${c(g)}${c(b)}`.toUpperCase();
 }
-// Closest fabric in the KONA library to an arbitrary RGB color.
-export function nearestKona({ r, g, b }) {
-  let best = null, bd = Infinity;
-  for (const c of KONA) {
-    const k = hexToRgb(c.hex);
-    const d = (r - k.r) ** 2 + (g - k.g) ** 2 + (b - k.b) ** 2;
-    if (d < bd) { bd = d; best = c; }
-  }
-  return best;
-}
 // Median-cut color quantization → top `count` colors, sorted by population.
 export function extractColors(imageData, count) {
   const data = imageData.data, pixels = [];
@@ -278,24 +237,6 @@ export function extractColors(imageData, count) {
     return { r: r / n, g: g / n, b: bl / n, hex: rgbToHex(r / n, g / n, bl / n), pop: n };
   }).sort((a, b) => b.pop - a.pop);
 }
-
-// c1 / c2 are the two patch colors of the generated QuiltThumb, pulled from the
-// metime accent palette so a thumb reads as a sibling of the photographed quilts.
-export const PRESET_THEMES = {
-  "Coaster":        { c1:"#FBBB3F", c2:"#F9FBFE", desc:"A set of 4. Start from one design, then edit each." },
-  "Wall hanging":   { c1:"#FDA198", c2:"#F9FBFE", desc:"24\" × 36\"" },
-  "Baby blanket":   { c1:"#E8A0C8", c2:"#F9FBFE", desc:"30\" × 36\"" },
-  "Throw":          { c1:"#B9B74B", c2:"#F9FBFE", desc:"52\" × 65\"" },
-};
-
-// Cut-out product shots for the quilt "What size?" cards, keyed by preset name.
-// Missing entries fall back to the generated QuiltThumb.
-export const PRESET_IMAGES = {
-  "Coaster":      { src:"assets/landing/quilt-coasters.png",      w:540, h:534 },
-  "Wall hanging": { src:"assets/landing/quilt-wallhanging.png",   w:360, h:540 },
-  "Baby blanket": { src:"assets/setup/size-baby-blanket.png",     w:432, h:540 },
-  "Throw":        { src:"assets/landing/quilt-throw.png",         w:493, h:540 },
-};
 
 // Quilt-top yardage. `qty` is the kit multiplier (e.g. a Coaster kit makes 4):
 // we scale the patch COUNT and let the strip-nesting pack the extra pieces

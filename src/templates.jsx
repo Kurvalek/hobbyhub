@@ -70,9 +70,8 @@ function lilyBands(bands, total, native) {
 
 // Size-adaptive quilt starter layouts. build({cols,rows,palette}) → shapes[]
 // (same shape objects the editor paints), so they tile/scale to any chosen
-// preset. When `palette` (the colors picked on the palette step) is supplied,
-// each layout colors its patches from it; otherwise it uses sensible defaults.
-// There's no "Blank" card in the grid — "Skip for now" is the empty-canvas route.
+// preset. When `palette` (the studio's current fabrics) is supplied, each
+// layout colors its patches from it; otherwise it uses sensible defaults.
 export const QUILT_TEMPLATES = [
   {
     id: 'checkerboard', name: 'Checkerboard', desc: 'Alternating squares in two or more fabrics.',
@@ -233,7 +232,7 @@ function xsResampleGrid(src, sw, sh, dw, dh) {
 // (see `set` in assets/punch-templates-data.js).
 //
 // Everything downstream still works on the mosaic: the picker previews it whole,
-// the way the set is photographed, and the palette step re-dresses it in one
+// the way the set is photographed, and a palette re-dresses it in one
 // pass, which is what keeps all four coasters agreeing on which palette color
 // took which role. The mosaic is only split into pages on the way into the
 // studio.
@@ -356,11 +355,11 @@ function xsRecolorGrid(grid, palette) {
   return grid.map(hex => hex ? (map.get(hex) || hex) : null);
 }
 
-// What the studio should open on for a chosen template: the chart dressed in the
-// picked palette (or its own colors, when the palette step was skipped), plus —
-// for a set — one grid per coaster page. Both the template step and the palette
-// step go through here, so stepping back and picking a different palette
-// re-dresses the original chart rather than a recolored copy of it.
+// What the board should hold for a chosen template: the chart dressed in the
+// given palette (or its own colors, without one), plus — for a set — one grid
+// per coaster page. Picking a chart and re-dressing it in a palette both go
+// through here, so a new palette re-dresses the original chart rather than a
+// recolored copy of it.
 export function gridSeedFromTemplate(tpl, preset, palette) {
   const chart = tpl.build(preset);
   const dressed = palette ? xsRecolorGrid(chart, palette) : chart;

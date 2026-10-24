@@ -4,81 +4,26 @@ import { canonicalPresetName, fetchDesignRecord } from './services.jsx';
 import { resolvePalette, SUGGESTED_PALETTES } from './catalog.jsx';
 import { App } from './quilt-studio.jsx';
 import { AuthProvider, TweaksPanel } from './account.jsx';
-import { CraftSelector, ProjectSelector } from './landing.jsx';
-import { GRID_TEMPLATES, gridSeedFromTemplate, QUILT_TEMPLATES } from './templates.jsx';
-import {
-  CrossStitchPaletteSelector, CrossStitchSizeSelector, CrossStitchTemplateSelector,
-  PaletteSelector, QuiltBackingSelector, TemplateSelector,
-} from './setup-steps.jsx';
+import { CraftSelector } from './landing.jsx';
 import { CRAFT_STUDIO, CrossStitchApp } from './stitch-studio.jsx';
 import { KitReviewLoading, KitReviewPage } from './kit-review.jsx';
 
-// Depth of each step in the setup flow, so the History integration can tell a
-// forward move (push a new entry) from a backward move (reverse one step).
-// The review page sits past every editor, so Back from it always returns to the
+// Depth of each screen, so the History integration can tell a forward move
+// (push a new entry) from a backward move (reverse one step). Picking a craft
+// opens its studio, which runs the rest of the setup in its own panels. The
+// review page sits past the studios, so Back from it always returns to the
 // canvas the design came from.
-const STEP_DEPTH = {
-  'craft': 0,
-  'q-size': 1, 'q-backing': 2, 'q-palette': 3, 'q-template': 4, 'q-editor': 5,
-  'q-guided': 1, 'xs-guided': 1, 'pn-guided': 1,
-  'xs-size': 1, 'xs-template': 2, 'xs-palette': 3, 'xs-editor': 4,
-  'pn-size': 1, 'pn-template': 2, 'pn-palette': 3, 'pn-editor': 4,
-  'saved': 1,
-  'cart': 6,
-};
-// Crafts that run on the shared grid studio, and the prefix their setup steps
-// use. Both walk the same size → template → palette → editor chain, so they
-// share one set of flow state and one set of step components.
-const GRID_CRAFTS = { 'cross-stitch': 'xs', 'punch-needle': 'pn' };
+const STEP_DEPTH = { 'craft': 0, 'studio': 1, 'saved': 1, 'cart': 2 };
+// Crafts that run on the shared grid studio.
+const GRID_CRAFTS = new Set(['cross-stitch', 'punch-needle']);
 
-// Which onboarding this device gets. 'classic' walks the setup screens; 'guided'
-// skips them and steps through the studio's own panels instead, for every craft.
-// `?onboarding=guided` or `?onboarding=classic` switches it and is remembered.
-const ONBOARDING_KEY = 'metime.onboarding';
-function readOnboarding() {
-  if (typeof window === 'undefined') return 'classic';
-  try {
-    const asked = new URLSearchParams(window.location.search).get('onboarding');
-    if (asked === 'guided' || asked === 'classic') {
-      localStorage.setItem(ONBOARDING_KEY, asked);
-      return asked;
-    }
-    return localStorage.getItem(ONBOARDING_KEY) === 'guided' ? 'guided' : 'classic';
-  } catch {
-    return 'classic';
-  }
-}
-const GUIDED = readOnboarding() === 'guided';
-const GUIDED_START_PALETTE = resolvePalette(SUGGESTED_PALETTES[0]);
-// The size a guided grid studio opens on, before the maker picks one.
-function guidedGridPreset(craft) {
+// What a new design starts from before the studio's guide has the maker choose.
+const QUILT_START_PALETTE = resolvePalette(SUGGESTED_PALETTES[0]);
+function startingGridPreset(craft) {
   const presets = CRAFT_STUDIO[craft].presets;
   return presets.find(p => p.name === 'Small Hoop') || presets[0];
 }
 
-// ── Restoring a step from its history entry ────────────────────────────────
-// Each entry carries a snapshot of the choices that identify its step (see
-// `snapshot` in Root). These rebuild the parts that aren't themselves
-// serializable: templates are stored by id and their chart is rebuilt.
-function findQuiltTemplate(id) {
-  return id ? QUILT_TEMPLATES.find(t => t.id === id) || null : null;
-}
-function findGridTemplate(craft, id) {
-  return id ? (GRID_TEMPLATES[craft] || []).find(t => t.id === id) || null : null;
-}
-// An uploaded photo only ever lived in memory, so a traced design can't come
-// back. Those steps hand the maker back to the template picker instead of a
-// palette step with nothing to trace.
-function gridStepsRestorable(s) {
-  return !s.hadPhoto || !!s.gridTemplateId;
-}
-// Re-dress the template's own chart exactly as the palette step does, so a
-// restored grid craft opens on its design rather than an empty board.
-function restoredGridOpts(s) {
-  const t = findGridTemplate(s.craft, s.gridTemplateId);
-  if (!t || !s.gridPreset) return {};
-  return { bgImage: null, ...gridSeedFromTemplate(t, s.gridPreset, s.gridPalette || null) };
-}
 // The review page an entry points at, as { type, designId }. The design itself is
 // orders of magnitude too big for a history entry, so only its stored id travels
 // and the record is read back from the API.
@@ -89,7 +34,8 @@ function snapshotCart(s) {
 }
 // The snapshot this document loaded into, when the browser kept one for the
 // entry. 'craft' needs nothing restored, and 'saved' can't be (it points at a
-// library item this render knows nothing about), so both start clean.
+// library item this render knows nothing about), so both start clean. Entries
+// from the old setup screens carry a craft too, so they reopen its studio.
 function landedSnapshot() {
   if (typeof window === 'undefined') return null;
   const s = window.history.state;
@@ -101,26 +47,8 @@ function Root() {
   // Seeded during the first render rather than in an effect, so a restored step
   // is what actually paints — an effect would flash the craft picker first.
   const landed = React.useRef(landedSnapshot()).current;
-  const gridOk = !!landed && gridStepsRestorable(landed);
 
   const [craft, setCraft] = React.useState(landed ? landed.craft || null : null);
-  const [selectedPreset, setSelectedPreset] = React.useState(landed ? landed.preset || null : null);
-  const [templateDone, setTemplateDone] = React.useState(!!landed && !!landed.templateDone);
-  const [quiltTemplate, setQuiltTemplate] = React.useState(landed ? findQuiltTemplate(landed.quiltTemplateId) : null);
-  const [paletteDone, setPaletteDone] = React.useState(!!landed && !!landed.paletteDone);
-  const [palette, setPalette] = React.useState(landed ? landed.palette || null : null);
-  const [backingFabric, setBackingFabric] = React.useState(landed ? landed.backingFabric || null : null);
-  const [quiltBackingDone, setQuiltBackingDone] = React.useState(!!landed && !!landed.quiltBackingDone);
-  // Grid-craft flow state, shared by cross-stitch and punch needle — only one
-  // craft is ever mid-flow, and their steps are the same shape.
-  const [gridPreset, setGridPreset] = React.useState(landed ? landed.gridPreset || null : null);
-  const [gridTemplateDone, setGridTemplateDone] = React.useState(gridOk && !!landed.gridTemplateDone);
-  const [gridTemplate, setGridTemplate] = React.useState(landed ? findGridTemplate(landed.craft, landed.gridTemplateId) : null);
-  const [gridPhoto, setGridPhoto] = React.useState(null);
-  const [gridRemoveBg, setGridRemoveBg] = React.useState(landed ? landed.gridRemoveBg !== false : true);
-  const [gridDone, setGridDone] = React.useState(gridOk && !!landed.gridDone);
-  const [gridPalette, setGridPalette] = React.useState(landed ? landed.gridPalette || null : null);
-  const [gridOpts, setGridOpts] = React.useState(landed ? restoredGridOpts(landed) : {});
   // A saved item opened straight from the landing page: { type, item }.
   const [openSaved, setOpenSaved] = React.useState(null);
   // The kit review page, once a buy button has uploaded the design it's for:
@@ -133,16 +61,12 @@ function Root() {
   const [cartPending, setCartPending] = React.useState(() => snapshotCart(landed));
 
   const resetAll = () => {
-    setCraft(null); setSelectedPreset(null); setTemplateDone(false); setQuiltTemplate(null);
-    setPaletteDone(false); setPalette(null); setBackingFabric(null); setQuiltBackingDone(false);
-    setGridPreset(null); setGridTemplateDone(false); setGridTemplate(null); setGridPhoto(null);
-    setGridRemoveBg(true); setGridDone(false); setGridPalette(null); setGridOpts({});
-    setOpenSaved(null); setCartKit(null); setCartPending(null);
+    setCraft(null); setOpenSaved(null); setCartKit(null); setCartPending(null);
   };
 
   // Read the design back for a review page the browser rebuilt. On failure the
-  // pending state simply clears, which drops the maker onto the editor step the
-  // same snapshot already restored — a canvas beats an error page.
+  // pending state simply clears, which drops the maker onto the studio the same
+  // snapshot already restored — a canvas beats an error page.
   React.useEffect(() => {
     if (!cartPending) return;
     let alive = true;
@@ -159,60 +83,28 @@ function Root() {
     return () => { alive = false; };
   }, [cartPending]);
 
-  // ── Browser Back = previous step ──────────────────────────────────────────
-  // The screens above are a plain state machine with no URL, so the browser's
-  // Back button used to leave the app entirely. We mirror the current step into
-  // the History API: push an entry when the maker moves forward, and put the
-  // screen back from the entry's own snapshot on `popstate`. The in-app "Back"
-  // links route through history.back() too, so both paths behave identically.
+  // ── Browser Back = previous screen ────────────────────────────────────────
+  // The screens are a plain state machine with no URL, so the browser's Back
+  // button used to leave the app entirely. We mirror the current screen into the
+  // History API: push an entry when the maker moves forward, and put the screen
+  // back from the entry's own snapshot on `popstate`.
   const stepKey = React.useMemo(() => {
-    // Ahead of everything else: the review page is reached from inside an editor,
-    // so the state that decides which editor is still set underneath it.
+    // Ahead of everything else: the review page is reached from inside a studio,
+    // so the state that decides which studio is still set underneath it.
     if (cartKit || cartPending) return 'cart';
     if (openSaved) return 'saved';
-    if (!craft) return 'craft';
-    const p = GRID_CRAFTS[craft];
-    if (p && GUIDED) return `${p}-guided`;
-    if (p) {
-      if (!gridPreset) return `${p}-size`;
-      if (!gridTemplateDone) return `${p}-template`;
-      if (!gridDone) return `${p}-palette`;
-      return `${p}-editor`;
-    }
-    if (GUIDED) return 'q-guided';
-    if (!selectedPreset) return 'q-size';
-    if (!quiltBackingDone) return 'q-backing';
-    if (!paletteDone) return 'q-palette';
-    if (!templateDone) return 'q-template';
-    return 'q-editor';
-  }, [cartKit, cartPending, openSaved, craft, gridPreset, gridTemplateDone, gridDone, selectedPreset, quiltBackingDone, paletteDone, templateDone]);
+    return craft ? 'studio' : 'craft';
+  }, [cartKit, cartPending, openSaved, craft]);
 
   const prevStepRef = React.useRef(stepKey);
 
-  // What goes into a history entry. Everything here has to survive being
-  // serialized by the browser and stored for the life of the entry, so it holds
-  // only small, rebuildable things: templates by id, never the uploaded photo or
-  // the built chart. `hadPhoto` is kept so a restore knows the difference between
-  // "no template" and "traced from a photo we can no longer produce".
+  // What goes into a history entry: only small things that survive being
+  // serialized by the browser — never the design, only a stored id for it.
   const snapshot = () => {
-    // Only the stored id, never the record. The rest of the flow state still goes
-    // in, so an entry that can't produce its design falls back to the editor it
-    // was bought from rather than the craft picker.
     const cart = cartKit || cartPending;
     return {
       step: stepKey,
       craft,
-      preset: selectedPreset,
-      backingFabric,
-      palette,
-      quiltTemplateId: quiltTemplate ? quiltTemplate.id : null,
-      quiltBackingDone, paletteDone, templateDone,
-      gridPreset,
-      gridPalette,
-      gridRemoveBg,
-      gridTemplateId: gridTemplate ? gridTemplate.id : null,
-      gridTemplateDone, gridDone,
-      hadPhoto: !!gridPhoto,
       cartType: cart ? cart.type : null,
       cartDesignId: cart ? cart.designId : null,
     };
@@ -222,28 +114,10 @@ function Root() {
   // document is still alive; a document that was thrown away and rebuilt seeds
   // the same values through useState above instead.
   const applySnapshot = (s) => {
-    if (!s || !s.step || s.step === 'craft' || s.step === 'saved') { resetAll(); return; }
-    const ok = gridStepsRestorable(s);
-    setOpenSaved(null);
-    setCraft(s.craft || null);
-    setSelectedPreset(s.preset || null);
-    setBackingFabric(s.backingFabric || null);
-    setPalette(s.palette || null);
-    setQuiltTemplate(findQuiltTemplate(s.quiltTemplateId));
-    setQuiltBackingDone(!!s.quiltBackingDone);
-    setPaletteDone(!!s.paletteDone);
-    setTemplateDone(!!s.templateDone);
-    setGridPreset(s.gridPreset || null);
-    setGridPalette(s.gridPalette || null);
-    setGridRemoveBg(s.gridRemoveBg !== false);
-    setGridTemplate(findGridTemplate(s.craft, s.gridTemplateId));
-    setGridPhoto(null);
-    setGridOpts(restoredGridOpts(s));
-    setGridTemplateDone(ok && !!s.gridTemplateDone);
-    setGridDone(ok && !!s.gridDone);
-    // Going back past the review page clears it, revealing the editor restored
-    // above. Arriving on it (forward, after a Back) re-fetches unless the design
-    // in hand is already the right one.
+    if (!s || !s.step || s.step === 'craft') { resetAll(); return; }
+    // Going back past the review page clears it, revealing the studio still
+    // mounted underneath. Arriving on it (forward, after a Back) re-fetches
+    // unless the design in hand is already the right one.
     const cart = snapshotCart(s);
     if (!cart) {
       setCartKit(null);
@@ -252,6 +126,13 @@ function Root() {
       setCartKit(null);
       setCartPending(cart);
     }
+    // A saved design can't be rebuilt from an entry, but one still open is
+    // exactly the screen the entry means.
+    if (openSaved && (s.step === 'saved' || cart)) return;
+    if (s.step === 'saved') { resetAll(); return; }
+    if (cart && craft) return;
+    setOpenSaved(null);
+    setCraft(s.craft || null);
   };
 
   const snapshotRef = React.useRef(snapshot); snapshotRef.current = snapshot;
@@ -259,7 +140,7 @@ function Root() {
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Every entry describes its own step, so a pop is applied directly rather
+    // Every entry describes its own screen, so a pop is applied directly rather
     // than reversed one step at a time. That keeps a multi-entry jump — a
     // long-press on Back, or several presses before React catches up — landing
     // exactly where the browser actually went.
@@ -271,7 +152,7 @@ function Root() {
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const cur = window.history.state;
-    // Already sitting on this step's entry: we just popped onto it, or this is
+    // Already sitting on this screen's entry: we just popped onto it, or this is
     // the first render. Refresh its snapshot rather than adding a duplicate.
     if (cur && cur.step === stepKey) {
       window.history.replaceState(snapshotRef.current(), '');
@@ -316,8 +197,7 @@ function Root() {
   // Hoisted, so it can be called above while the screens themselves stay in the
   // reading order of the flow.
   function studioScreen() {
-    // Opening a saved design bypasses the craft/size/palette steps and drops the
-    // user straight onto the matching editor with that design loaded.
+    // A saved design opens straight into editing, with that design loaded.
     if (openSaved) {
       if (openSaved.type === 'quilt') {
         return (
@@ -342,122 +222,15 @@ function Root() {
       return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
     }
 
-    if (GRID_CRAFTS[craft] && GUIDED) {
-      return <CrossStitchApp key={craft} guided craft={craft} preset={guidedGridPreset(craft)} palette={null}
+    // A new design: the studio opens on its Size panel and guides the maker
+    // through size, starting point, colors and fabric before free editing.
+    if (GRID_CRAFTS.has(craft)) {
+      return <CrossStitchApp key={craft} guided craft={craft} preset={startingGridPreset(craft)} palette={null}
         onBack={resetAll} onReview={openCart}/>;
-    }
-    if (GRID_CRAFTS[craft]) {
-      const cfg = CRAFT_STUDIO[craft];
-      if (!gridPreset) {
-        return <CrossStitchSizeSelector craft={craft} onBack={() => window.history.back()}
-          onSelect={name => setGridPreset(cfg.presets.find(p => p.name === name))}/>;
-      }
-      if (!gridTemplateDone) {
-        return (
-          <CrossStitchTemplateSelector
-            preset={gridPreset}
-            craft={craft}
-            onBack={() => window.history.back()}
-            onChoose={({ template, photo, removeBg }) => {
-              setGridTemplate(template);
-              setGridPhoto(photo || null);
-              setGridRemoveBg(removeBg !== false);
-              if (template) {
-                // Seed the design from the template chart; color work is next.
-                setGridOpts({ bgImage: null, ...gridSeedFromTemplate(template, gridPreset, null) });
-              } else {
-                // Photo (or nothing yet): the design + trace are built on the palette step.
-                setGridOpts({});
-              }
-              setGridTemplateDone(true);
-            }}
-            onSkip={() => { setGridTemplate(null); setGridPhoto(null); setGridRemoveBg(true); setGridOpts({}); setGridTemplateDone(true); }}/>
-        );
-      }
-      if (!gridDone) {
-        return (
-          <CrossStitchPaletteSelector
-            preset={gridPreset}
-            photo={gridPhoto}
-            template={gridTemplate}
-            removeBgDefault={gridRemoveBg}
-            craft={craft}
-            onBack={() => window.history.back()}
-            onChoose={(pal, extra) => {
-              const colors = pal && pal.length ? pal : null;
-              setGridPalette(colors);
-              setGridOpts(o => {
-                const next = { ...o, ...(extra || null) };
-                // A chosen palette overrides the template's default brand colors.
-                // (A photo-traced design is already built from the palette.)
-                if (gridTemplate) Object.assign(next, gridSeedFromTemplate(gridTemplate, gridPreset, colors));
-                return next;
-              });
-              setGridDone(true);
-            }}
-            onSkip={() => {
-              setGridPalette(null);
-              setGridOpts(o => {
-                const next = { ...o };
-                if (gridPhoto) next.bgImage = gridPhoto;
-                // No palette — back to the template's brand colors.
-                if (gridTemplate) Object.assign(next, gridSeedFromTemplate(gridTemplate, gridPreset, null));
-                return next;
-              });
-              setGridDone(true);
-            }}/>
-        );
-      }
-      return (
-        <CrossStitchApp preset={gridPreset} palette={gridPalette} craft={craft}
-          bgImage={gridOpts.bgImage} autoGrid={gridOpts.autoGrid} autoPages={gridOpts.autoPages}
-          seedText={gridTemplate && gridTemplate.seedText} onBack={resetAll} onReview={openCart}/>
-      );
-    }
-
-    if (GUIDED) {
-      return (
-        <>
-          <App guided initialPalette={GUIDED_START_PALETTE} onBack={resetAll} onReview={openCart}/>
-          <TweaksPanel/>
-        </>
-      );
-    }
-    if (!selectedPreset) {
-      return <ProjectSelector onSelect={setSelectedPreset} onBack={() => window.history.back()}/>;
-    }
-    if (!quiltBackingDone) {
-      return (
-        <QuiltBackingSelector
-          preset={selectedPreset}
-          onBack={() => window.history.back()}
-          onChoose={b => { setBackingFabric(b); setQuiltBackingDone(true); }}
-          onSkip={() => { setBackingFabric(null); setQuiltBackingDone(true); }}/>
-      );
-    }
-    if (!paletteDone) {
-      return (
-        <PaletteSelector
-          presetName={selectedPreset}
-          backing={backingFabric}
-          onBack={() => window.history.back()}
-          onChoose={pal => { setPalette(pal); setPaletteDone(true); }}
-          onSkip={() => { setPalette(null); setPaletteDone(true); }}/>
-      );
-    }
-    if (!templateDone) {
-      return (
-        <TemplateSelector
-          preset={selectedPreset}
-          palette={palette}
-          onBack={() => window.history.back()}
-          onChoose={t => { setQuiltTemplate(t); setTemplateDone(true); }}
-          onSkip={() => { setQuiltTemplate(null); setTemplateDone(true); }}/>
-      );
     }
     return (
       <>
-        <App initialPreset={selectedPreset} initialPalette={palette} initialBacking={backingFabric} initialTemplate={quiltTemplate} onBack={resetAll} onReview={openCart}/>
+        <App guided initialPalette={QUILT_START_PALETTE} onBack={resetAll} onReview={openCart}/>
         <TweaksPanel/>
       </>
     );

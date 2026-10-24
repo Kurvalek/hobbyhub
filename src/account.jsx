@@ -5,8 +5,7 @@ import {
   readPendingSave, requestAuthCode, sb, SUPABASE_LOAD_GRACE_MS, supabaseConfigured,
   supabaseKeysPresent, toStudioUser, useAuth, verifyAuthCode, warnSupabaseUnreachable,
 } from './services.jsx';
-import { IcArrowR, IcCheck, IcLogout, IcMenu, IcProfile } from './icons.jsx';
-import { PRESET_IMAGES, PRESET_THEMES, presetDims } from './catalog.jsx';
+import { IcCheck, IcLogout, IcMenu, IcProfile } from './icons.jsx';
 import { Popover } from './editor-ui.jsx';
 
 // ── Tweaks ────────────────────────────────────────────────────────────────
@@ -123,60 +122,6 @@ export function TweaksPanel() {
         Reset defaults
       </button>
     </div>
-  );
-}
-
-function QuiltThumb({ preset }) {
-  const theme = PRESET_THEMES[preset.name] || { c1:"#2C3E50", c2:"#8FAABF" };
-  const aspect = preset.h / preset.w;
-  const W = 200, H = Math.round(W * aspect);
-  // Five patches across, matching the block scale of the photographed quilts —
-  // any finer and the thumb reads as gingham rather than as a quilt.
-  const cellSize = W / 5;
-  const cols = Math.ceil(W / cellSize);
-  const rows = Math.ceil(H / cellSize);
-  const cells = [];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const even = (r + c) % 2 === 0;
-      cells.push(
-        <rect key={`${r}-${c}`}
-          x={c * cellSize} y={r * cellSize}
-          width={cellSize} height={cellSize}
-          fill={even ? theme.c1 : theme.c2}/>
-      );
-    }
-  }
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      {cells}
-      <rect width={W} height={H} fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1"/>
-    </svg>
-  );
-}
-
-export function ProjectCard({ preset, onSelect, price }) {
-  const art = PRESET_IMAGES[preset.name];
-  const label = preset.label || preset.name;
-  return (
-    <button type="button" className="size-card" onClick={() => onSelect(preset.name)}
-      aria-label={[label, presetDims(preset), price && `kit ${price}`].filter(Boolean).join(", ")}>
-      <span className="size-card-visual">
-        {art
-          ? <img src={art.src} alt="" width={art.w} height={art.h} loading="eager" decoding="async" fetchPriority="high"/>
-          : <QuiltThumb preset={preset}/>}
-      </span>
-      <span className="size-card-copy">
-        <span className="size-card-text">
-          <span className="size-card-name">{label}</span>
-          <span className="size-card-dims">{presetDims(preset)}</span>
-          {price && <span className="size-card-price">Kit {price}</span>}
-        </span>
-        <span className="size-card-arrow" aria-hidden="true">
-          <IcArrowR size={26}/>
-        </span>
-      </span>
-    </button>
   );
 }
 

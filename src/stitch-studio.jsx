@@ -24,7 +24,7 @@ import {
   EdGuideFooter, EdHintBubble, EdMenu, EdMenuButton, EdNav, EdNavIcon, EdPaletteEditor,
   EdPaletteStarters, EdPanel, EdRow, EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle,
   EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, inchDims, LibraryPopover, Switch,
-  useCanvasPinchZoom, useEdGuide, useIsMobile, usePrefersReducedMotion, useShowTips,
+  useCanvasPinchZoom, useEdGuide, useIsMobile, useShowTips,
 } from './editor-ui.jsx';
 import { AccountChip, AccountsOfflineNote } from './account.jsx';
 import { gridSeedFromTemplate, stitchTemplatesFor } from './templates.jsx';
@@ -32,7 +32,7 @@ import {
   buildGridFromImage, punchImageBackground, xsFitImageToGrid, XS_SIMPLIFY, XS_SIMPLIFY_DEFAULT,
   xsSimplifySpec,
 } from './photo.jsx';
-import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './setup-steps.jsx';
+import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './studio-shared.jsx';
 import { studioCovered } from './kit-review.jsx';
 
 // ── Cross-stitch: canvas editor ────────────────────────────────────────────
@@ -177,167 +177,6 @@ export function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   return <canvas ref={ref} style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated', borderRadius: 4 }}/>;
 }
 
-// ── Photo → chart reveal ───────────────────────────────────────────────────
-// Where the flattening stops being an abstraction. The uploaded photo dissolves
-// into the stitches it will actually be made of, arriving across the diagonal,
-// and the counting grid draws itself in behind them.
-//
-// The photo underneath is placed with the same xsFitImageToGrid() rect the
-// chart was built from, so each stitch lands on the pixels it came from. Drawn
-// stretched to the canvas instead, the two layers slide against each other and
-// the whole thing reads as a glitch rather than a resolve.
-//
-// Only the first arrival animates. A detail level, the background checkbox, a
-// swapped floss all repaint on the spot: those are judgement calls that want an
-// answer, not a second of theatre every time.
-const XS_REVEAL_MS = 1400;
-const XS_REVEAL_FADE = 0.22;     // fraction of the run a single stitch fades over
-const XS_REVEAL_JITTER = 0.12;   // roughens the diagonal so it isn't a hard wipe
-const XS_REVEAL_GRID_AT = 0.55;  // point in the run the counting grid starts to arrive
-const XS_REVEAL_GRID_MIN = 3.5;  // px per stitch under which grid lines are just noise
-// Matches --art-stagger, so the palette lifting in and the card art rising on
-// the steps behind it are visibly the same gesture.
-export const XS_SWATCH_STAGGER_MS = 55;
-// Each cell's place in the sweep. The cells are ranked along the diagonal
-// rather than ordered by it: (x + y) is triangular over a rectangle, so a raw
-// diagonal hands half the chart over in the middle of the run and leaves the
-// tail with nothing to deliver — the build looks finished long before it is.
-// Ranking spends the run at a steady number of stitches per frame instead.
-// Only stitched cells get a place, so a motif on bare fabric is paced by its
-// own size and not by the empty margin around it.
-function xsSweepOrder(w, h, cells) {
-  const n = w * h, key = new Float32Array(n), span = Math.max(1, w + h - 2), stitched = [];
-  for (let i = 0; i < n; i++) {
-    // A little jitter, so the leading edge frays instead of ruling a line.
-    const t = ((i % w) + ((i / w) | 0)) / span + (Math.random() - 0.5) * XS_REVEAL_JITTER;
-    key[i] = t < 0 ? 0 : t > 1 ? 1 : t;
-    if (!cells || cells[i]) stitched.push(i);
-  }
-  stitched.sort((a, b) => key[a] - key[b]);
-  const out = new Float32Array(n), last = Math.max(1, stitched.length - 1);
-  for (let r = 0; r < stitched.length; r++) out[stitched[r]] = r / last;
-  return out;
-}
-const xsEaseOut = t => 1 - Math.pow(1 - t, 3);
-const xsSmoothStep = (a, b, x) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
-
-export function StitchReveal({ w, h, cells, img, size = 240, majorGrid = 10, bg = '#FFFFFF', label = 'Your photo as a chart' }) {
-  const ref = useRef(null);
-  const rafRef = useRef(0);
-  const runningRef = useRef(false);
-  const reduced = usePrefersReducedMotion();
-  // Same containment rule as StitchThumb: fit the grid in the box at its own
-  // aspect ratio rather than cropping a tall strip to a square.
-  const scale = Math.min(size / w, size / h);
-  const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
-
-  // Fixed on the first paint: a setting changed mid-reveal must not reshuffle
-  // the sweep under the stitches that have already landed.
-  const orderRef = useRef(null);
-  if (!orderRef.current || orderRef.current.w !== w || orderRef.current.h !== h) {
-    orderRef.current = { w, h, a: xsSweepOrder(w, h, cells) };
-  }
-  const order = orderRef.current.a;
-  const fit = useMemo(() => (img ? xsFitImageToGrid(img, w, h) : null), [img, w, h]);
-
-  // The loop reads the latest chart through refs, so a setting changed while it
-  // is still running is picked up on the next frame instead of being lost.
-  const cellsRef = useRef(cells); cellsRef.current = cells;
-
-  const draw = useCallback(p => {
-    const cv = ref.current; if (!cv) return;
-    const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-    const pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
-    if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
-    const ctx = cv.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cw, ch);
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, cw, ch);
-
-    // The photo lets go of its detail on the way out — blurring as it dims —
-    // rather than simply getting fainter.
-    const photoAlpha = 1 - xsSmoothStep(0.04, 0.62, p);
-    if (img && fit && photoAlpha > 0.004) {
-      ctx.save();
-      ctx.globalAlpha = photoAlpha;
-      if (p > 0.02) ctx.filter = `blur(${(p * 2.2).toFixed(2)}px)`;
-      ctx.drawImage(img, fit.sx, fit.sy, fit.sw, fit.sh,
-        fit.dx * scale, fit.dy * scale, fit.dw * scale, fit.dh * scale);
-      ctx.restore();
-    }
-
-    const grid = cellsRef.current || [];
-    const reach = 1 - XS_REVEAL_FADE;
-    const solid = Math.ceil(scale);
-    for (let i = 0; i < grid.length; i++) {
-      const hex = grid[i]; if (!hex) continue;
-      const local = p >= 1 ? 1 : (p - order[i] * reach) / XS_REVEAL_FADE;
-      if (local <= 0) continue;
-      const x = (i % w) * scale, y = ((i / w) | 0) * scale;
-      ctx.fillStyle = hex;
-      if (local >= 1) { ctx.globalAlpha = 1; ctx.fillRect(x, y, solid, solid); continue; }
-      // Growing out of its own centre makes a stitch land rather than blink. It
-      // grows into exactly the rect the finished branch above paints, so there
-      // is no jump in size or position on the frame a stitch completes.
-      const e = xsEaseOut(local), s = Math.max(1, (0.45 + 0.55 * e) * solid), inset = (solid - s) / 2;
-      ctx.globalAlpha = e;
-      ctx.fillRect(x + inset, y + inset, s, s);
-    }
-    ctx.globalAlpha = 1;
-
-    // The grid is what turns a picture into something countable, so it arrives
-    // last — but only where a cell is big enough to be worth ruling.
-    const ga = scale >= XS_REVEAL_GRID_MIN ? xsSmoothStep(XS_REVEAL_GRID_AT, 1, p) : 0;
-    if (ga > 0.01) {
-      ctx.save();
-      ctx.strokeStyle = '#000';
-      const rule = (n, span, vertical) => {
-        for (let k = 0; k <= n; k++) {
-          const heavy = majorGrid && k % majorGrid === 0;
-          ctx.globalAlpha = ga * (heavy ? 0.26 : 0.09);
-          ctx.lineWidth = heavy ? 1 : 0.5;
-          const at = Math.round(k * scale) + 0.5;
-          ctx.beginPath();
-          if (vertical) { ctx.moveTo(at, 0); ctx.lineTo(at, span); } else { ctx.moveTo(0, at); ctx.lineTo(span, at); }
-          ctx.stroke();
-        }
-      };
-      rule(w, ch, true);
-      rule(h, cw, false);
-      ctx.restore();
-    }
-  }, [cw, ch, scale, w, h, order, fit, img, bg, majorGrid]);
-
-  const drawRef = useRef(draw); drawRef.current = draw;
-
-  // Mount is the first arrival, and the only time the reveal plays.
-  useEffect(() => {
-    if (reduced) { drawRef.current(1); return undefined; }
-    runningRef.current = true;
-    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    const loop = now => {
-      const p = Math.min(1, (now - t0) / XS_REVEAL_MS);
-      drawRef.current(p);
-      if (p < 1) { rafRef.current = requestAnimationFrame(loop); return; }
-      runningRef.current = false;
-    };
-    rafRef.current = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(rafRef.current); runningRef.current = false; };
-  }, []);
-
-  // Every later change lands finished. Skipped while the reveal owns the canvas,
-  // since it is already painting each frame from the live chart.
-  useEffect(() => {
-    if (!runningRef.current) drawRef.current(1);
-  }, [cells, cw, ch, scale, bg, majorGrid, img, reduced]);
-
-  return <canvas ref={ref} role="img" aria-label={label}
-    style={{ width: cw, height: ch, maxWidth: '100%', maxHeight: '100%', display: 'block', margin: '0 auto', imageRendering: 'pixelated' }}/>;
-}
-
 // ── Grid studio: tools + panels (cross-stitch and punch needle) ────────────
 // `hint(verb, cfg)` gets 'Tap' or 'Click' and the craft's wording.
 const STITCH_TOOLS = [
@@ -440,8 +279,8 @@ function readImageFile(file) {
 }
 
 // Guided setup's own-image source, at the top of the Templates panel. Before an
-// image: a drop target (click, drop or paste). After: the image and the two
-// conversion settings the classic palette step offers.
+// image: a drop target (click, drop or paste). After: the image and its two
+// conversion settings, detail and background removal.
 function StitchPhotoSource({ cfg, photo, busy, error, onFile, onDetail, onRemoveBg, onRemove }) {
   const fileRef = useRef(null);
   const [drag, setDrag] = useState(false);
@@ -661,9 +500,10 @@ function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
   );
 }
 
-// `guided` replaces the setup screens: the studio opens on Size and steps
+// `guided` is how a new design starts: the studio opens on Size and steps
 // through the guide (size, starting point, colors, fabric) before free editing.
-export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages = null, initialDesign = null, onBack, craft = 'cross-stitch', seedText = null, guided = false, onReview = null }) {
+// A saved design opens without it, straight into editing.
+export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, craft = 'cross-stitch', guided = false, onReview = null }) {
   const CFG = CRAFT_STUDIO[craft] || CRAFT_STUDIO['cross-stitch'];
   const GUIDE = useMemo(() => [
     { id: 'size', title: 'Choose a size', next: 'Next: Starting point' },
@@ -678,9 +518,9 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
   const W = dims.w, H = dims.h;
   const isMobile = useIsMobile();
   // The open panel: the desktop side panel, or the mobile sheet (null shows the
-  // tools tray). A lettering template opens on Text, so there's somewhere to type.
+  // tools tray).
   const restingPanel = mobile => (mobile ? null : 'floss');
-  const [panel, setPanel] = useState(() => guided ? 'size' : seedText ? 'text'
+  const [panel, setPanel] = useState(() => guided ? 'size'
     : restingPanel(typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches));
   const guideCtl = useEdGuide({ steps: GUIDE, enabled: guided, panel, setPanel });
   const guide = guideCtl.on;
@@ -703,27 +543,13 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
     toastTimerRef.current = setTimeout(() => setToast(null), 2200);
   }, []);
   const defaultPalette = useMemo(() => CFG.defaultCodes.map(CFG.byCode).filter(Boolean), [CFG]);
-  const initPalette = useMemo(() => {
-    const base = (palette && palette.length) ? palette.slice() : defaultPalette.slice();
-    // Make sure every color present in an auto-generated design is selectable.
-    // A coaster set's four pages don't share a palette — the ginger cat has
-    // colors the tuxedo doesn't — so every page gets a look in, not just the one
-    // the studio opens on.
-    const seeded = autoPages && autoPages.length ? autoPages : (autoGrid ? [autoGrid] : []);
-    const have = new Set(base.map(c => c.hex));
-    for (const page of seeded) {
-      for (const hex of page) {
-        if (hex && !have.has(hex)) { const d = CFG.library.find(c => c.hex === hex); if (d) { have.add(hex); base.push(d); } }
-      }
-    }
-    return base;
-  }, [palette, autoGrid, autoPages, defaultPalette, CFG]);
+  const initPalette = useMemo(
+    () => ((palette && palette.length) ? palette.slice() : defaultPalette.slice()),
+    [palette, defaultPalette]);
 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
-  // A template built around lettering opens on the text tool, so the font and
-  // height that suit the chart are already chosen and typing is the next step.
-  const [tool, setTool] = useState(seedText ? "text" : "pen");
+  const [tool, setTool] = useState("pen");
   // Text has its own panel, so picking it opens the panel and leaving it
   // returns to the resting one.
   const chooseTool = useCallback((id) => {
@@ -736,8 +562,8 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
   const [penNib, setPenNib] = useState(1);
   const [eraserNib, setEraserNib] = useState(1);
   const nib = tool === 'eraser' ? eraserNib : penNib;
-  const [bg, setBg] = useState(bgImage || null);
-  const [showBg, setShowBg] = useState(!!bgImage);
+  const [bg, setBg] = useState(null);
+  const [showBg, setShowBg] = useState(false);
   const [bgOpacity, setBgOpacity] = useState(0.5);
   const [showGrid, setShowGrid] = useState(true);
   const [cellSize, setCellSize] = useState(12);
@@ -752,11 +578,9 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
   }, []);
   const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(CFG.fabrics[0]);
-  // A seed usually carries only a font and height; words are optional, and an
-  // absent one has to land as "" or the textarea goes uncontrolled.
-  const [text, setText] = useState(seedText && seedText.text ? seedText.text : "");
-  const [textFont, setTextFont] = useState(seedText && seedText.font ? seedText.font : "sans");
-  const [textSize, setTextSize] = useState(seedText && seedText.size ? seedText.size : 14);
+  const [text, setText] = useState("");
+  const [textFont, setTextFont] = useState("sans");
+  const [textSize, setTextSize] = useState(14);
   // Canvas falls back to a generic face without complaint when a webfont hasn't
   // arrived yet, so early in a session the script and sampler styles rasterized
   // as plain serif — same cell count as Serif, wrong letterforms. Wait for the
@@ -847,9 +671,9 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
   // blank coasters and drop whatever had been stitched on them.
   const cellsRef = useRef(null);
   if (cellsRef.current === null) {
-    const seed = autoGrid ? autoGrid.slice() : new Array(W * H).fill(null);
+    const seed = new Array(W * H).fill(null);
     if (!initialDesign && isCoasterSize(preset.name)) {
-      const pages = seedCoasterPages(seed, W * H, autoPages);
+      const pages = seedCoasterPages(seed, W * H, null);
       pagesRef.current = pages;
       undoPagesRef.current = Array.from({ length: COASTER_COUNT }, () => []);
       cellsRef.current = pages[0];
@@ -2093,7 +1917,7 @@ export function CrossStitchApp({ preset, palette, bgImage, autoGrid, autoPages =
     return out;
   };
   // Lays a seed on the board as one undo step. A coaster set takes it on every
-  // coaster (its own four pages for a set chart), as the classic setup does.
+  // coaster (its own four pages for a set chart).
   const layGuided = (seed) => {
     const len = W * H;
     commitFloat();

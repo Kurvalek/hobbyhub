@@ -4,7 +4,7 @@ import { GROUPS, KONA } from '../assets/color-catalogs.js';
 import { useAuth } from './services.jsx';
 import { IcChevD, IcChevR, IcHelp, IcLogout, IcMinus, IcPlus, IcSearch, IcX } from './icons.jsx';
 import { PRESETS, SUGGESTED_PALETTES, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './catalog.jsx';
-import { fabricThumbFor } from './setup-steps.jsx';
+import { fabricThumbFor } from './studio-shared.jsx';
 import { studioCovered } from './kit-review.jsx';
 
 // ── SuggestedPalettes ─────────────────────────────────────────────────────

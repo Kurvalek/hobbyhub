@@ -29,7 +29,7 @@ import { AccountChip, AccountsOfflineNote } from './account.jsx';
 import { QUILT_TEMPLATES } from './templates.jsx';
 import {
   BackingPickerOverlay, FabricEnlargeOverlay, fabricFullSrc, QuiltTemplateThumb,
-} from './setup-steps.jsx';
+} from './studio-shared.jsx';
 import { studioCovered } from './kit-review.jsx';
 
 // ── Quilt studio: tools + panels ──────────────────────────────────────────
@@ -302,9 +302,10 @@ function quiltGridForPreset(p, preferredBs = 3) {
   };
 }
 
-// `guided` replaces the setup screens: the studio opens straight onto the Size
-// panel and steps through QUILT_GUIDE before handing over to free editing.
-export function App({ initialPreset = "Throw", initialPalette = null, initialBacking = null, initialQuilt = null, initialTemplate = null, guided = false, onBack, onReview = null }) {
+// `guided` is how a new quilt starts: the studio opens straight onto the Size
+// panel and steps through QUILT_GUIDE before handing over to free editing. A
+// saved quilt opens without it, straight into editing.
+export function App({ initialPreset = "Throw", initialPalette = null, initialQuilt = null, guided = false, onBack, onReview = null }) {
   const _initP = PRESETS.find(x => x.name === initialPreset) || PRESETS.find(x => x.name === "Throw") || PRESETS[0];
   const _initGrid = quiltGridForPreset(_initP, 3);
   const _initBs = _initGrid.bs;
@@ -347,15 +348,12 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
   const activeCoasterRef = useRef(0);
   activeCoasterRef.current = activeCoaster;
   const [shapes, _setShapes] = useState(() => {
-    const seed = (initialTemplate && typeof initialTemplate.build === 'function')
-      ? initialTemplate.build({ cols: _initCols, rows: _initRows, palette: initialPalette })
-      : [];
     if (!initialQuilt && isCoasterSize(initialPreset)) {
-      const units = seedCoasterUnits(seed);
+      const units = seedCoasterUnits([]);
       coasterUnitsRef.current = units;
       return units[0];
     }
-    return seed;
+    return [];
   });
   const shapesRef = useRef(shapes);
   shapesRef.current = shapes;
@@ -442,7 +440,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
     return built;
   };
   const [preset, setPreset] = useState(initialPreset);
-  const [backing, setBacking] = useState(initialBacking);
+  const [backing, setBacking] = useState(null);
   const [binding, setBinding] = useState(null);
   const [qPattern, setQPattern] = useState("none");
   const [qSpacing, setQSpacing] = useState(2);
@@ -924,8 +922,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialBac
 
   // Templates replace the canvas (the active coaster, for a set) and stay
   // undoable, so trying one costs nothing.
-  // During the guided setup a coaster set takes the layout on every coaster, as
-  // the template step does in the classic flow.
+  // During the guided setup a coaster set takes the layout on every coaster.
   const applyTemplate = tpl => {
     const all = guide && !!coasterUnitsRef.current;
     if (all) pushStep();

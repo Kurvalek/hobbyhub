@@ -34,7 +34,7 @@ html, body, #root { height: 100%; }
 
   /* metime base palette.
      The studio reads the brand's warm grounds and ink directly, so the editor
-     sits in the same room as the setup flow and the kit review page instead of
+     sits in the same room as the craft picker and the kit review page instead of
      the cool near-white it used to. The ice scale below stays exactly as it is:
      it still carries selection, focus and the interaction states, where a cool
      tone is genuinely useful for standing apart from warm fabric and thread. */
@@ -150,8 +150,8 @@ html, body, #root { height: 100%; }
   --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.14);
 
   /* Motion — one easing and two press depths, so every tap and every step
-     change moves the same way. Cards get the shallower dip: the setup steps
-     lay them out edge to edge with 1px dividers, and a deep dip pulls a
+     change moves the same way. Cards get the shallower dip: the craft picker
+     lays them out edge to edge with 1px dividers, and a deep dip pulls a
      visible gap open between neighbours. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --press-scale: 0.96;
@@ -585,11 +585,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 
 /* Info text */
 .muted { color: var(--warm-muted); }
-/* auto-fit (not auto-fill) collapses empty trailing tracks so the cards
-   stretch to fill the row on desktop; at narrow widths it still resolves to a
-   single column, so mobile stacking is unchanged. max-width keeps cards sane
-   on very wide screens. Shared by the craft picker and both size selectors. */
-
 /* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards.
    Lives as a sibling of .land-main so the viewport-locked landing flex
    cannot clip the grid under the golden footer. */
@@ -690,11 +685,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   .land-craft-visual img { max-height: 180px; }
 }
 
-/* Quilt "What size?" step (Figma Desktop - 2, node 5:3).
-   Continues the landing page: same olive header, same 1px black rules, same
-   hover-reveal arrow. The size cards are one edge-to-edge band of white
-   columns divided by hairlines, sitting on the golden footer. */
-.size-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
+/* Brand page heading title and its back link (Figma Desktop - 2, node 5:3). */
 .size-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 4.44vw, 64px); line-height: 1.1; color: var(--metime-white); text-align: center; }
 .size-back { position: absolute; left: 41px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 2px; background: none; border: none; padding: 0; cursor: pointer; color: var(--color-taupe-900); }
 .size-back:hover { opacity: 0.7; }
@@ -704,396 +695,24 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .size-back-icon .ic { display: block; width: 14px; height: 14px; }
 .size-back-label { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 24px; border-bottom: 1px solid currentColor; }
 
-.size-row { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--metime-black); }
-/* Grid, not flex: iPad Safari shrinks flex children of <button> to content
-   width, which left-aligns the photo and parks the arrow next to the title. */
-.size-card {
-  display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
-  width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
-  background: none; border: none; border-left: 1px solid var(--metime-black);
-  text-align: left; font: inherit; color: inherit; cursor: pointer;
-  outline: none; -webkit-appearance: none; appearance: none;
-}
-.size-card:first-child { border-left: none; }
-.size-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-.size-card-visual {
-  justify-self: stretch; width: 100%; min-width: 0;
-  display: flex; align-items: center; justify-content: center;
-  height: clamp(140px, 21.6vh, 221px); overflow: hidden;
-  background: transparent;
-}
-.size-card-visual img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0 auto; object-fit: contain; }
-.size-card-visual svg { display: block; height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
-.size-card-copy {
-  display: flex; align-items: center; justify-content: space-between;
-  justify-self: stretch; width: 100%; min-width: 0;
-  gap: 12px; margin-top: 24px;
-}
-.size-card-text { min-width: 0; }
-.size-card-name { display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 1.2; color: var(--metime-black); }
-.size-card-dims { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.3; color: var(--metime-black); margin-top: 6px; }
-/* Kit price, fetched live from Shopify. Absent for sizes we don't sell yet. */
-.size-card-price { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--metime-black); margin-top: 6px; font-variant-numeric: tabular-nums; }
-.size-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; margin-left: auto; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
-.size-card:hover .size-card-arrow,
-.size-card:focus-visible .size-card-arrow,
-.pal-page .pal-card:hover .size-card-arrow,
-.pal-page .pal-card:focus-visible .size-card-arrow,
-.tmpl-page .tmpl-card:hover .size-card-arrow,
-.tmpl-page .tmpl-card:focus-visible .size-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
-.size-card-arrow .ic { display: block; width: 26px; height: 26px; }
-@media (prefers-reduced-motion: reduce) {
-  .size-card:hover .size-card-arrow,
-  .size-card:focus-visible .size-card-arrow,
-  .pal-page .pal-card:hover .size-card-arrow,
-  .pal-page .pal-card:focus-visible .size-card-arrow,
-  .tmpl-page .tmpl-card:hover .size-card-arrow,
-  .tmpl-page .tmpl-card:focus-visible .size-card-arrow { animation: none; }
-}
-
 /* Phones have no hover, so the product-block arrows stay visible. */
 @media (hover: none), (max-width: 900px) {
   .land-craft-arrow,
-  .size-card-arrow,
-  .saved-card-arrow,
-  .pal-page .pal-card .size-card-arrow,
-  .tmpl-page .tmpl-card .size-card-arrow {
+  .saved-card-arrow {
     opacity: 1;
     visibility: visible;
     animation: none;
   }
 }
 
-/* Two-across before one-across: four 20px names in a row need ~230px each. */
-@media (max-width: 1080px) {
-  .size-row { grid-template-columns: 1fr 1fr; }
-  .size-card:nth-child(odd) { border-left: none; }
-  .size-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
-}
 @media (max-width: 900px) {
   .size-back { left: 20px; }
-  .size-card { padding: 24px 28px; }
-  .size-card-visual { height: clamp(120px, 18vh, 200px); }
-}
-@media (max-width: 600px) {
-  .size-row { grid-template-columns: 1fr; }
-  .size-card { border-left: none; }
-  .size-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
 }
 
-/* Quilt backing step (Figma Desktop - 5, node 13:1260). */
-.back-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
-.back-skip {
-  position: absolute; right: 41px; top: 50%; transform: translateY(-50%);
-  display: inline-flex; align-items: center; justify-content: center;
-  box-sizing: border-box; min-width: 0; height: 36px; padding: 0 18px;
-  background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
-  font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1;
-  color: var(--btn-secondary-fg); cursor: pointer;
-}
-.back-skip:hover { background: var(--btn-secondary-bg-hover); }
-.back-skip:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
-.back-filters {
-  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 10px; flex: 0 0 auto; min-height: 130px; padding: 24px 40px;
-  background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
-}
-.back-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0; flex: 0 0 auto; }
-.back-grid .fabric-card {
-  border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
-  border-radius: 0; box-shadow: none; transform: none;
-}
-.back-grid .fabric-card:hover { box-shadow: none; transform: none; }
-.back-grid .fabric-card:nth-child(8n) { border-right: none; }
-.back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--metime-black); }
-.back-grid .fabric-thumb { aspect-ratio: 180 / 192; }
-@media (max-width: 1080px) {
-  .back-grid { grid-template-columns: repeat(4, 1fr); }
-  .back-grid .fabric-card:nth-child(8n) { border-right: 1px solid var(--metime-black); }
-  .back-grid .fabric-card:nth-child(4n) { border-right: none; }
-}
 @media (max-width: 900px) {
-  .back-skip { right: 20px; min-width: 0; height: 36px; padding: 0 12px; font-size: 13px; }
-  .back-filters { min-height: 0; padding: 16px 20px; }
-}
-@media (max-width: 600px) {
-  .back-grid { grid-template-columns: repeat(2, 1fr); }
-  .back-grid .fabric-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
-  .back-grid .fabric-card:nth-child(2n) { border-right: none; }
-}
 
-/* Quilt palette step (Figma Desktop - 6, node 18:1425). */
-.pal-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
-.pal-suggest-bar {
-  display: flex; align-items: center; flex: 0 0 auto; min-height: 173px; padding: 24px 40px;
-  background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
-}
-.pal-page .pal-from-image {
-  display: flex; align-items: center; gap: 24px;
-  width: 100%; max-width: none; padding: 0; border: none; border-radius: 0; background: none;
-}
-.pal-page .pal-from-image-preview {
-  width: 97px; height: 97px; outline: none; border: 1px solid var(--metime-black);
-}
-.pal-page .pal-from-image-preview-btn {
-  padding: 0; margin: 0; background: none; border: none; cursor: zoom-in;
-  flex-shrink: 0; line-height: 0;
-}
-.pal-page .pal-from-image-preview-btn:focus-visible {
-  outline: none; box-shadow: 0 0 0 3px var(--btn-focus-ring);
-}
-.pal-page .pal-from-image-main {
-  flex: 1; flex-direction: row; align-items: center; gap: 24px; min-width: 0;
-}
-.pal-page .pal-from-image-swatches { gap: 8px; flex: 1 1 auto; min-width: 0; }
-.pal-page .pal-from-image-swatch { width: 64px; height: 64px; }
-.pal-page .pal-from-image-add {
-  width: 64px; height: 64px; border-radius: 32px;
-  border: 1px solid rgba(0, 0, 0, 0.5); background: #F5F5F5;
-  color: var(--metime-black); font-size: 0;
-}
-.pal-page .pal-from-image-add:hover { background: var(--metime-cream); }
-.pal-page .pal-from-image-use {
-  flex: 0 0 auto; min-width: 160px; height: 44px; padding: 0 22px; margin-left: auto;
-  border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
-  background: var(--btn-primary-bg); color: var(--btn-primary-fg);
-  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
-  cursor: pointer;
-}
-.pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-.pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
-.pal-page .pal-from-image-use:disabled { background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default; }
-/* Photo → chart flattening. Sits under the palette bar because it shapes the
-   same generated design, and carries a live chart preview: the setting means
-   nothing until you can see what it does to your own photo. */
-.xs-flatten {
-  display: flex; align-items: center; gap: 24px; flex: 0 0 auto;
-  padding: 20px 40px; background: var(--metime-white); border-bottom: 1px solid var(--metime-black);
-}
-.xs-flatten-main { flex: 1; min-width: 0; }
-.xs-flatten-row {
-  display: flex; width: fit-content; margin-top: 12px;
-  border: 1px solid var(--metime-black); border-radius: 4px; overflow: hidden;
-}
-.xs-flatten-btn {
-  height: 34px; padding: 0 16px; border: none; border-left: 1px solid var(--metime-black);
-  background: var(--metime-white); color: var(--metime-black);
-  font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1;
-  cursor: pointer; transition: background .12s, color .12s;
-}
-.xs-flatten-btn:first-child { border-left: none; }
-.xs-flatten-btn:hover:not(.active) { background: var(--metime-cream); }
-.xs-flatten-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--btn-focus-ring); }
-.xs-flatten-btn.active { background: var(--ice-500); color: var(--metime-white); border-color: var(--metime-black); }
-.xs-flatten-note { margin-top: 8px; font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); }
-.xs-flatten-check {
-  display: flex; align-items: baseline; gap: 8px; margin-top: 12px;
-  font-family: var(--font-sans); font-size: 13px; font-weight: 500; cursor: pointer; user-select: none;
-}
-.xs-flatten-check input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; accent-color: var(--color-taupe-900); cursor: pointer; }
-.xs-flatten-check-note { font-weight: 400; color: var(--warm-muted); }
-/* Sized for the photo-to-chart reveal rather than for a thumbnail. At the old
-   140px a Medium Hoop chart was about one pixel per stitch, so stitches
-   arriving one after another read as nothing at all; this also puts the
-   smaller presets over the threshold where their counting grid is worth
-   drawing (see XS_REVEAL_GRID_MIN). */
-.xs-flatten-preview {
-  display: flex; align-items: center; justify-content: center;
-  flex: 0 0 auto; width: 264px; min-height: 264px; padding: 8px; box-sizing: border-box;
-  background: var(--metime-cream); border: 1px solid var(--metime-black);
-}
-.xs-flatten-empty { font-family: var(--font-sans); font-size: 11px; line-height: 1.35; text-align: center; color: var(--warm-muted); }
-.pal-page .pal-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto;
-  gap: 0; width: 100%; flex: 0 0 auto;
-}
-.pal-page .pal-card {
-  display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between;
-  align-items: stretch; width: 100%; min-height: 230px; padding: 32px; gap: 0;
-  box-sizing: border-box;
-  border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
-  border-radius: 0; box-shadow: none; transform: none;
-}
-.pal-page .pal-card:hover { box-shadow: none; transform: none; }
-.pal-page .pal-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-.pal-page .pal-card:nth-child(4n) { border-right: none; }
-.pal-page .pal-swatches { height: auto; min-height: 48px; flex-wrap: nowrap; }
-.pal-page .pal-swatch { width: 48px; height: 48px; margin-left: -10px; flex-shrink: 0; }
-.pal-page .pal-card-body {
-  display: flex; align-items: center; justify-content: space-between;
-  justify-self: stretch; width: 100%; min-width: 0; gap: 12px; padding: 0;
-}
-.pal-page .pal-card-text { min-width: 0; }
-.pal-page .pal-card-name { font-size: 20px; font-weight: 500; color: var(--metime-black); }
-.pal-page .pal-card-meta { font-size: 16px; font-weight: 300; color: var(--metime-black); margin-top: 5px; }
-@media (max-width: 1080px) {
-  .pal-page .pal-grid { grid-template-columns: repeat(2, 1fr); }
-  .pal-page .pal-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
-  .pal-page .pal-card:nth-child(2n) { border-right: none; }
-}
-@media (max-width: 900px) {
-  .pal-suggest-bar { min-height: 0; padding: 16px 20px; }
-  .pal-page .pal-from-image,
-  .pal-page .pal-from-image-main { flex-wrap: wrap; }
-  .pal-page .pal-from-image-use { margin-left: 0; }
-  .pal-page .pal-card { min-height: 0; padding: 24px; }
-  .xs-flatten { padding: 16px 20px; gap: 16px; }
-}
-@media (max-width: 600px) {
-  .xs-flatten { flex-direction: column; align-items: stretch; }
-  .xs-flatten-row { width: 100%; }
-  .xs-flatten-btn { flex: 1; padding: 0 8px; }
-  .xs-flatten-preview { width: 100%; }
-  .pal-page .pal-grid { grid-template-columns: 1fr; }
-  .pal-page .pal-card { border-right: none; }
-  .pal-page .pal-card:nth-child(2n) { border-right: none; }
-  .pal-page .pal-from-image-swatch,
-  .pal-page .pal-from-image-add { width: 48px; height: 48px; }
-  .pal-page .pal-from-image-add { border-radius: 24px; }
-  .pal-page .pal-swatch { width: 48px; height: 48px; }
-}
-
-/* Template step — same shell as size / backing / palette. */
-.tmpl-page { display: flex; flex-direction: column; min-height: 100%; height: 100%; background: var(--metime-white); color: var(--metime-black); overflow: auto; }
-.tmpl-page .tmpl-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-  width: 100%; flex: 0 0 auto;
-}
-.tmpl-page .tmpl-card {
-  display: grid; grid-template-columns: minmax(0, 1fr); align-content: start;
-  width: 100%; padding: 32px 36px 33px; min-width: 0; box-sizing: border-box;
-  background: none; border: none; border-right: 1px solid var(--metime-black); border-bottom: 1px solid var(--metime-black);
-  border-radius: 0; box-shadow: none; transform: none;
-  text-align: left; font: inherit; color: inherit; cursor: pointer;
-  outline: none; -webkit-appearance: none; appearance: none;
-}
-.tmpl-page .tmpl-card:nth-child(4n) { border-right: none; }
-.tmpl-page .tmpl-card:hover { box-shadow: none; transform: none; }
-.tmpl-page .tmpl-card:active { transform: none; }
-.tmpl-page .tmpl-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-.tmpl-page .tmpl-card-thumb {
-  flex: 0 0 auto; align-self: stretch; width: 100%; min-width: 0;
-  display: flex; align-items: center; justify-content: center;
-  height: clamp(140px, 21.6vh, 221px); overflow: hidden; background: var(--metime-cream); padding: 0;
-}
-.tmpl-page .tmpl-card-thumb svg {
-  display: block; height: 100%; width: auto; max-width: 100%;
-}
-.tmpl-page .tmpl-card-thumb.is-ratio { height: clamp(140px, 21.6vh, 221px); background: var(--metime-cream); }
-.tmpl-page .tmpl-card-thumb.is-ratio svg {
-  width: auto; height: 100%; max-width: 100%;
-  aspect-ratio: var(--tmpl-ar);
-}
-.tmpl-page .tmpl-card-body {
-  display: flex; align-items: center; justify-content: space-between;
-  align-self: stretch; width: 100%; min-width: 0;
-  gap: 12px; margin-top: 24px; padding: 0;
-}
-.tmpl-page .tmpl-card-text { min-width: 0; }
-.tmpl-page .tmpl-card-name {
-  display: block; font-family: var(--font-sans); font-size: 20px; font-weight: 500;
-  line-height: 1.2; color: var(--metime-black); margin-bottom: 0;
-}
-.tmpl-page .tmpl-card-desc {
-  display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 300;
-  line-height: 1.3; color: var(--metime-black); margin-top: 6px;
-}
-.tmpl-upload-bar {
-  display: flex; align-items: center; justify-content: center;
-  flex: 0 0 auto; min-height: 0; padding: 24px;
-  background: #EDF2FC; border-bottom: 1px solid var(--metime-black);
-}
-.tmpl-upload {
-  display: flex; flex-direction: column; align-items: center;
-  width: 100%; cursor: default; text-align: center; gap: 16px;
-}
-.tmpl-upload-heading {
-  font-family: var(--font-sans); font-size: 20px; font-weight: 500;
-  line-height: normal; color: var(--metime-black);
-}
-.tmpl-upload-drop {
-  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
-  padding: 0; border: none; background: transparent;
-  cursor: pointer; text-align: left;
-}
-.tmpl-upload-drop:hover, .tmpl-upload-drop.drag { color: var(--color-taupe-700); }
-.tmpl-upload-title { font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.2; color: var(--metime-black); }
-.tmpl-upload .pal-upload-pills { justify-content: center; }
-.tmpl-upload .pal-upload-url {
-  width: 486px; max-width: 100%; padding: 0; background: transparent; border-radius: 0;
-}
-.tmpl-upload .pal-upload-url-row input {
-  height: 40px; padding: 8px; font-size: 16px; border-color: #1F1E1D;
-}
-.tmpl-upload .pal-upload-url-row input::placeholder { color: #7D7A7A; }
-.tmpl-upload .pal-upload-url-row button { height: 40px; font-size: 14px; }
-.tmpl-upload .pal-upload-error { width: 486px; max-width: 100%; }
-.tmpl-upload-result {
-  display: flex; align-items: center; justify-content: center; gap: 24px;
-  width: 100%; min-width: 0;
-}
-.tmpl-upload-file { display: flex; align-items: stretch; gap: 24px; min-width: 0; }
-.tmpl-upload-preview {
-  width: 130px; height: 130px; object-fit: cover; flex-shrink: 0;
-  border: 1px solid #1F1E1D; display: block; background: var(--metime-white);
-}
-.tmpl-upload-preview.is-cutout {
-  object-fit: contain;
-  background-color: var(--ice-100);
-  background-image:
-    linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-}
-.tmpl-upload-file-meta { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; }
-.tmpl-upload-file-name { font-family: var(--font-sans); font-size: 20px; font-weight: 500; line-height: 24px; color: var(--metime-black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
-.tmpl-upload-file-dims { font-family: var(--font-sans); font-size: 14px; font-weight: 300; line-height: 24px; color: var(--metime-black); }
-.tmpl-upload-result .switch { gap: 16px; font-size: 16px; color: var(--metime-black); }
-.tmpl-upload-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.tmpl-upload-use {
-  display: inline-flex; align-items: center; justify-content: center;
-  box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
-  border-radius: var(--pill-radius); border: var(--btn-stroke-w) solid var(--btn-stroke);
-  background: var(--btn-primary-bg); color: var(--btn-primary-fg);
-  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
-  cursor: pointer;
-}
-.tmpl-upload-use:hover { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-.tmpl-upload-use:active { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
-.tmpl-upload-another {
-  display: inline-flex; align-items: center; justify-content: center;
-  box-sizing: border-box; min-width: 128px; height: 44px; padding: 0 22px;
-  background: var(--btn-secondary-bg); border: var(--btn-stroke-w) solid var(--btn-secondary-border); border-radius: var(--pill-radius);
-  font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1;
-  color: var(--btn-secondary-fg); cursor: pointer;
-}
-.tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
-.tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
-.tmpl-upload-use:focus-visible, .tmpl-upload-another:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
-@media (max-width: 1080px) {
-  .tmpl-page .tmpl-grid { grid-template-columns: repeat(2, 1fr); }
-  .tmpl-page .tmpl-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
-  .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
-}
-@media (max-width: 900px) {
-  .tmpl-page .tmpl-card { padding: 24px 28px; }
-  .tmpl-upload-bar { min-height: 0; padding: 16px 20px; }
-  .tmpl-upload { align-items: stretch; }
-  .tmpl-upload-heading { text-align: left; }
-  .tmpl-upload-result { flex-wrap: wrap; justify-content: flex-start; }
-  .tmpl-upload-file { width: 100%; }
-  .tmpl-upload-file-name { max-width: none; }
-  .tmpl-upload-actions { margin-left: 0; }
-  .pal-upload-drop, .tmpl-upload-drop, .pal-upload-pills { display: none; }
+  .pal-upload-drop, .pal-upload-pills { display: none; }
   .pal-upload { width: 100%; max-width: none; }
-}
-@media (max-width: 600px) {
-  .tmpl-page .tmpl-grid { grid-template-columns: 1fr; }
-  .tmpl-page .tmpl-card { border-right: none; }
-  .tmpl-page .tmpl-card:nth-child(2n) { border-right: none; }
 }
 
 /* Cross-stitch editor */
@@ -1136,53 +755,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 /* Palette-step section labels — Söhne Kräftig 20 / Buch 13 (Figma 2151:261) */
 .pal-section-title { font-size: 20px; font-weight: 500; letter-spacing: 0; color: #000000; }
 .pal-section-sub { font-size: 13px; font-weight: 400; color: #3D4E70; margin-top: 3px; }
-/* Even rows that divide both 6 (DMC) and 12 (Kona) sample counts:
-   6 / 4 / 3 / 2 columns. minmax(0,1fr) lets cards share space equally and grow. */
-.pal-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 14px;
-  width: 100%;
-}
-@media (min-width: 1800px) {
-  .pal-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-}
-@media (max-width: 1200px) {
-  .pal-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@media (max-width: 900px) {
-  .pal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 480px) {
-  .pal-grid { grid-template-columns: 1fr; }
-}
-/* Sample palette card — Figma metime design system node 2151:47.
-   Sized for up to 8 overlapping 32px swatches plus padding.
-   Box border #707F87; swatch stroke = 1pt inset black @ 50%. */
-.pal-card {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  width: 100%; height: 100%; min-width: 0; box-sizing: border-box;
-  padding: 16px 12px 12px; background: var(--metime-white);
-  border: 1px solid #707F87; border-radius: 4px;
-  cursor: pointer; transition: box-shadow 0.15s, transform 0.12s;
-  text-align: left; font: inherit; color: inherit;
-}
-.pal-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
-.pal-card:active { transform: translateY(0); }
-.pal-card.selected { box-shadow: 0 0 0 2px #707F87; }
-.pal-swatches { display: flex; align-items: center; height: 32px; width: 100%; }
-.pal-swatch {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box; margin-left: -6px; display: block; position: relative;
-}
-.pal-swatch:first-child { margin-left: 0; }
-.pal-card-body { padding: 10px 0 0; min-width: 0; width: 100%; }
-/* Figma: Söhne Kräftig 14 / Buch 13 */
-.pal-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; }
-.pal-card-meta { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; margin-top: 4px; }
-
 /* Upload */
 .pal-upload {
   display: flex; flex-direction: column; align-items: stretch; gap: 10px;
@@ -1283,69 +855,10 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 /* outline (not a border) so the stroke paints over the image content */
 .pal-result-preview { width: 120px; height: 120px; object-fit: cover; flex-shrink: 0; display: block; box-sizing: border-box; border: none; outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px; }
 .pal-result-main { flex: 1; min-width: 0; }
-.pal-result-swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
 
-/* Suggested palette from image — Figma metime design system node 2151:24 */
-.pal-from-image {
-  display: flex; gap: 20px; align-items: flex-start;
-  background: var(--metime-white); border: 1px solid #707F87;
-  border-radius: 4px; padding: 25px 16px 16px; box-sizing: border-box;
-  width: fit-content; max-width: 100%;
-}
-.pal-from-image-preview {
-  width: 100px; height: 100px; object-fit: cover; flex-shrink: 0;
-  border: none; display: block; box-sizing: border-box;
-  background-color: var(--ice-100);
-  background-image:
-    linear-gradient(45deg, var(--ice-200) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--ice-200) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--ice-200) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--ice-200) 75%);
-  background-size: 12px 12px;
-  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
-  /* outline (not inset box-shadow) so the stroke paints over the image content */
-  outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: -1px;
-}
-.pal-from-image-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
-.pal-from-image-swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.pal-from-image-swatch {
-  position: relative; width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
-  border: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box; padding: 0; cursor: pointer; overflow: hidden;
-  transition: opacity var(--art-dur) var(--ease-out), transform var(--art-dur) var(--ease-out);
-}
 /* Held under the row until its turn comes, so the colors lift out of the
    photo one after another instead of all appearing at once. */
-.pal-from-image-swatch.rising { opacity: 0; transform: translateY(10px) scale(0.86); }
-.pal-from-image-x {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(245, 243, 238, 0.72); color: var(--metime-almost-black);
-  opacity: 0; transition: opacity .12s; pointer-events: none;
-}
-.pal-from-image-x svg { width: 22px; height: 22px; }
-@media (hover: hover) and (pointer: fine) {
-  .pal-from-image-swatch:hover .pal-from-image-x { opacity: 1; }
-}
-.pal-from-image-swatch.armed .pal-from-image-x { opacity: 1; }
-.pal-from-image-add {
-  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-  border: 1px dashed var(--ice-400); background: var(--metime-white);
-  color: #3D4E70; font-size: 20px; line-height: 1; font-weight: 400;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  padding: 0; font-family: inherit;
-}
-.pal-from-image-add:hover { background: var(--warm-hover); }
-.pal-from-image-use {
-  box-sizing: border-box; min-height: 44px; padding: 0 22px; border-radius: var(--pill-radius); font-size: 16px; font-weight: 500; line-height: normal;
-}
-.pal-chip { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
-.pal-chip-check { width: 14px; height: 14px; accent-color: var(--color-taupe-900); cursor: pointer; margin: 0; }
-.pal-chip-color { width: 34px; height: 34px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.12); transition: box-shadow 0.12s, border-color 0.12s; }
-.pal-chip.locked .pal-chip-color { border-color: var(--metime-almost-black); box-shadow: 0 0 0 2px var(--metime-almost-black); }
-.pal-chip-label { font-size: 10px; color: var(--warm-muted); font-family: var(--font-sans); }
-.pal-chip.locked .pal-chip-label { color: var(--warm-fg); font-weight: 500; }
-.pal-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warm-fg); cursor: pointer; margin-bottom: 14px; user-select: none; }
-.pal-check input { width: 15px; height: 15px; accent-color: var(--color-taupe-900); cursor: pointer; }
+
 .pal-actions { display: flex; gap: 10px; align-items: center; }
 /* Setup-flow buttons — Medium size (36px). .pal-btn is Primary, .pal-btn.secondary
    and .pal-skip-btn are Secondary. */
@@ -1358,28 +871,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .pal-btn.secondary:hover { background: var(--btn-secondary-bg-hover); }
 .pal-btn.secondary:active { background: var(--btn-secondary-bg-active); }
 .pal-btn.secondary:disabled { background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); }
-.pal-busy { font-size: 13px; color: var(--warm-muted); padding: 8px 0; }
-
-/* Template selector */
-.tmpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-@media (max-width: 900px) { .tmpl-grid { grid-template-columns: repeat(2, 1fr); } }
-.tmpl-card { background: var(--metime-white); border: 1px solid #707F87; border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; text-align: left; font: inherit; color: inherit; padding: 0; }
-.tmpl-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.13); transform: translateY(-2px); }
-.tmpl-card:active { transform: translateY(0); }
-.tmpl-card-thumb { background: var(--metime-cream); height: 230px; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; }
-.tmpl-card-thumb svg { display: block; width: 100%; height: 100%; }
-/* Templates that know their own grid size (--tmpl-ar = width/height, set per
-   card) preview at that proportion instead of inside a fixed box, so a 30x120
-   bookmark chart reads as a tall strip. Height is capped at --tmpl-thumb-h and
-   the strip is centered, keeping cards a sane size; no plate behind the art. */
-.tmpl-card-thumb.is-ratio { background: var(--metime-cream); height: auto; }
-.tmpl-card-thumb.is-ratio svg { width: min(100%, calc(var(--tmpl-thumb-h, 300px) * var(--tmpl-ar))); height: auto; aspect-ratio: var(--tmpl-ar); }
-.tmpl-card-body { padding: 12px 15px 15px; }
-.tmpl-card-name { font-size: 14px; font-weight: 500; color: #000000; line-height: normal; margin-bottom: 4px; }
-.tmpl-card-desc { font-size: 13px; font-weight: 400; color: #3D4E70; line-height: normal; }
-
-/* Editable "suggested palette" (photo → palette step): swap or remove each floss. */
-.pal-suggest { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
 
 /* Backing-fabric picker: Ice filter pills + dense swatch grid. */
 .fabric-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
@@ -1451,25 +942,18 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .fabric-row-swatch.can-enlarge { cursor: zoom-in; }
 .fabric-row-swatch.can-enlarge:hover { outline: 2px solid var(--selection); outline-offset: 1px; }
 
-/* Mobile-friendly project setup screens (size / template / palette steps). */
+/* Phones: the fabric picker and photo upload. */
 @media (max-width: 640px) {
   .fabric-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
   .fabric-filters { gap: 8px; }
   .pal-section { margin-bottom: 28px; }
   .pal-section-title { font-size: 18px; }
   .pal-upload { width: 100%; max-width: none; }
-  .tmpl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; --tmpl-thumb-h: 240px; }
-  .tmpl-page .tmpl-grid { gap: 0; }
-  .pal-grid { gap: 12px; }
+
   .pal-result { flex-direction: column; gap: 14px; }
   .pal-result-preview { width: 100%; height: 160px; }
   .pal-actions { flex-wrap: wrap; }
-  .pal-from-image { flex-direction: column; gap: 16px; padding: 14px; width: 100%; }
-  .pal-from-image-preview { width: 100%; height: auto; aspect-ratio: 1; max-width: 220px; }
-  .pal-from-image-main { gap: 20px; width: 100%; }
-  .pal-from-image-swatch, .pal-from-image-add { width: 48px; height: 48px; }
-  .pal-from-image-add { font-size: 20px; }
-  .pal-from-image-use { width: 100%; justify-content: center; }
+
   .backing-current-img { height: 160px; }
   .fabric-enlarge-name, .backing-picker-title { font-size: 22px; }
 }
@@ -1480,42 +964,34 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
    purpose: the band-card steps flatten the boxed-card hover lift with
    `transform: none`, and the dip has to land after that to win. Cards
    marked "coming soon" aren't pickable, so they stay put. */
-.size-card, .land-craft, .saved-card {
+.land-craft, .saved-card {
   transition: transform var(--press-dur) var(--ease-out);
 }
-.back-skip { transition: background .12s, box-shadow .12s, transform var(--press-dur) var(--ease-out); }
+
 .btn:active, .icon-btn:active, .filter-pill:active, .chip:active,
 .fabric-row:active,
 .pal-btn:active {
   transform: scale(var(--press-scale));
 }
-/* Already centered on its own transform, so the dip has to compose with it. */
-.back-skip:active { transform: translateY(-50%) scale(var(--press-scale)); }
-
 /* On the boxed cards the dip replaces the hover lift rather than stacking on
    it, since a bare scale() drops the hover's translateY. */
-.pal-card:active, .tmpl-card:active, .fabric-card:active,
-.size-card:active, .land-craft:not(.is-soon):active, .saved-card:active,
-.pal-page .pal-card:active, .tmpl-page .tmpl-card:active, .back-grid .fabric-card:active {
+.fabric-card:active, .land-craft:not(.is-soon):active, .saved-card:active {
   transform: scale(var(--press-scale-card));
 }
 
-/* ── Step-to-step transitions ──────────────────────────────────────────────
-   Every setup step is its own component, so React remounts the page root on
-   each move and these enter animations run once per screen. The steps all
-   share the same furniture though — olive header, grapefruit hero, golden
-   footer — so animating the whole page made identical pixels flicker every
-   time, which is what read as a jump. Only what actually changes moves: the
-   step title crossfades and the card artwork drifts up into place. The
-   studios are a genuinely different screen, so those fade in whole. */
+/* ── Screen transitions ────────────────────────────────────────────────────
+   Each screen is its own component, so React remounts the page root on each
+   move and these enter animations run once per screen. On the brand pages
+   only what changes moves: the title drifts in and the card artwork rises
+   into place, rather than the whole page flickering. The studios are a
+   genuinely different screen, so those fade in whole. */
 .app {
   animation: step-fade var(--step-dur) var(--ease-out) both;
 }
 .brand-head-text {
   animation: head-enter var(--step-dur) var(--ease-out) both;
 }
-.land-craft-visual, .size-card-visual,
-.tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches {
+.land-craft-visual {
   animation: art-rise var(--art-dur) var(--ease-out) both;
   animation-delay: calc(var(--art-i, 0) * var(--art-stagger));
 }
@@ -1523,10 +999,10 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
    card after the next rather than landing as a single block. Anything past
    the first row shares the last delay — the stagger is there to soften the
    arrival, not to march down a long grid. */
-:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(2) { --art-i: 1; }
-:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(3) { --art-i: 2; }
-:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(4) { --art-i: 3; }
-:is(.land-crafts, .size-row, .tmpl-page .tmpl-grid, .pal-page .pal-grid) > :nth-child(n+5) { --art-i: 4; }
+.land-crafts > :nth-child(2) { --art-i: 1; }
+.land-crafts > :nth-child(3) { --art-i: 2; }
+.land-crafts > :nth-child(4) { --art-i: 3; }
+.land-crafts > :nth-child(n+5) { --art-i: 4; }
 
 @keyframes step-fade {
   from { opacity: 0; }
@@ -1543,23 +1019,18 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 
 @media (prefers-reduced-motion: reduce) {
   :root { --press-scale: 1; --press-scale-card: 1; }
-  .app, .brand-head-text, .land-craft-visual, .size-card-visual,
-  .tmpl-page .tmpl-card-thumb, .pal-page .pal-swatches { animation: none; }
+  .app, .brand-head-text, .land-craft-visual { animation: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BRAND LAYER
    ───────────────────────────────────────────────────────────────────────────
    STUDIO BOUNDARY: every selector below is nested under .brand-shell, which
-   only the presentation page roots carry (craft picker, size, backing,
-   template, palette). The studios mount as .app / .xs-app and never get it,
-   so nothing here — type, buttons, spacing, colour — can reach the canvas,
-   the tool rails or the panels. Add the class to a new screen to opt in; it
-   is never applied globally.
-
-   Note the near-miss this protects against: .size-hero / .size-card are setup
-   furniture but .size-bar is the studio's block-size slider. Scoping by
-   ancestor rather than by prefix keeps those apart.
+   only the presentation page roots carry (the craft picker and the kit
+   review). The studios mount as .app / .xs-app and never get it, so nothing
+   here — type, buttons, spacing, colour — can reach the canvas, the tool
+   rails or the panels. Add the class to a new screen to opt in; it is never
+   applied globally.
 
    STRUCTURE: flat panels, hairline rules, inset colour fields, no drop
    shadows, square-to-2px corners. One colour field per screen (the heading
@@ -1584,7 +1055,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   line-height: var(--brand-leading-display);
   color: var(--brand-ink);
 }
-/* Setup screens are edge-to-edge bands, so the shell itself owns no padding;
+/* Brand pages are edge-to-edge bands, so the shell itself owns no padding;
    each band pulls the shared gutter instead. */
 .brand-shell .brand-bleed { padding-inline: var(--brand-gutter); }
 
@@ -1849,13 +1320,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 /* ── Controls ─────────────────────────────────────────────────────────────
    Design system V1 buttons at Large (44px): fully rounded, 1px outline,
    black and neutral. No offset shadows anywhere. */
-.brand-shell .brand-btn,
-.brand-shell .back-skip,
-.brand-shell .tmpl-upload-use,
-.brand-shell .tmpl-upload-another,
-.brand-shell .pal-page .pal-from-image-use {
-  /* .back-skip is absolutely placed in the pre-brand hero; pin it back into
-     the heading's flex row so it cannot sit on top of the title. */
+.brand-shell .brand-btn {
   position: static;
   transform: none;
   display: inline-flex;
@@ -1880,31 +1345,20 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   cursor: pointer;
   transition: background 0.14s, border-color 0.14s, color 0.14s, box-shadow 0.12s;
 }
-.brand-shell .brand-btn:hover,
-.brand-shell .back-skip:hover,
-.brand-shell .tmpl-upload-another:hover { background: var(--btn-secondary-bg-hover); }
-.brand-shell .brand-btn:active,
-.brand-shell .back-skip:active,
-.brand-shell .tmpl-upload-another:active { background: var(--btn-secondary-bg-active); }
-.brand-shell .back-skip:active { transform: none; }
-.brand-shell .brand-btn.is-primary,
-.brand-shell .tmpl-upload-use,
-.brand-shell .pal-page .pal-from-image-use {
+.brand-shell .brand-btn:hover { background: var(--btn-secondary-bg-hover); }
+.brand-shell .brand-btn:active { background: var(--btn-secondary-bg-active); }
+
+.brand-shell .brand-btn.is-primary {
   background: var(--btn-primary-bg);
   border-color: var(--btn-primary-bg);
   color: var(--btn-primary-fg);
 }
-.brand-shell .brand-btn.is-primary:hover:not(:disabled),
-.brand-shell .tmpl-upload-use:hover:not(:disabled),
-.brand-shell .pal-page .pal-from-image-use:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
-.brand-shell .brand-btn.is-primary:active:not(:disabled),
-.brand-shell .tmpl-upload-use:active:not(:disabled),
-.brand-shell .pal-page .pal-from-image-use:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
+.brand-shell .brand-btn.is-primary:hover:not(:disabled) { background: var(--btn-primary-bg-hover); border-color: var(--btn-primary-bg-hover); }
+.brand-shell .brand-btn.is-primary:active:not(:disabled) { background: var(--btn-primary-bg-active); border-color: var(--btn-primary-bg-active); }
 .brand-shell .brand-btn:disabled {
   background: transparent; border-color: var(--btn-disabled-border); color: var(--btn-disabled-fg); cursor: default;
 }
-.brand-shell .brand-btn.is-primary:disabled,
-.brand-shell .pal-page .pal-from-image-use:disabled {
+.brand-shell .brand-btn.is-primary:disabled {
   background: var(--btn-primary-bg-disabled); border-color: var(--btn-primary-bg-disabled); color: var(--btn-disabled-fg); cursor: default;
 }
 
@@ -1916,36 +1370,33 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   box-shadow: none;
 }
 .brand-shell .land-craft:focus-visible,
-.brand-shell .size-card:focus-visible,
-.brand-shell .tmpl-card:focus-visible,
-.brand-shell .pal-card:focus-visible,
 .brand-shell .saved-card:focus-visible {
   outline: 2px solid var(--brand-ink);
   outline-offset: -4px;
   box-shadow: none;
 }
 /* Buttons and filter pills keep the design system's tomato focus ring. */
-.brand-shell :is(.btn, .brand-btn, .back-skip, .tmpl-upload-use, .tmpl-upload-another, .pal-from-image-use, .pal-btn, .pal-skip-btn, .pal-upload-pill, .filter-pill):focus-visible {
+.brand-shell :is(.btn, .brand-btn, .pal-btn, .pal-upload-pill, .filter-pill):focus-visible {
   outline: none;
   box-shadow: var(--btn-focus-shadow);
 }
 
-/* ── Product bands (shared by craft / size / template / palette) ──────────
+/* ── Product band ─────────────────────────────────────────────────────────
    Edge-to-edge columns split by hairlines. Flat, no lift on hover; hover
    just warms the cell so the artwork stays the thing you look at. */
-.brand-shell :is(.land-crafts, .size-row, .tmpl-grid, .pal-grid) { background: var(--brand-paper); }
-.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card) {
+.brand-shell .land-crafts { background: var(--brand-paper); }
+.brand-shell .land-craft {
   background: var(--brand-paper);
   border-radius: 0;
   box-shadow: none;
   transform: none;
   transition: background 0.16s;
 }
-.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card):hover { background: var(--brand-cream); box-shadow: none; transform: none; }
-.brand-shell :is(.land-craft, .size-card, .tmpl-card, .pal-card).is-soon:hover { background: var(--brand-paper); }
+.brand-shell .land-craft:hover { background: var(--brand-cream); box-shadow: none; transform: none; }
+.brand-shell .land-craft.is-soon:hover { background: var(--brand-paper); }
 
 /* Card copy: bold grotesk name, comfortable description, numbered label. */
-.brand-shell :is(.land-craft-name, .size-card-name, .tmpl-card-name, .pal-card-name) {
+.brand-shell .land-craft-name {
   font-family: var(--brand-font);
   font-size: var(--brand-display-s);
   font-weight: 700;
@@ -1953,20 +1404,15 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   letter-spacing: -0.018em;
   color: var(--brand-ink);
 }
-.brand-shell :is(.land-craft-desc, .size-card-dims, .tmpl-card-desc, .pal-card-meta) {
+.brand-shell .land-craft-desc {
   font-family: var(--brand-font);
   font-size: var(--brand-body-s);
   font-weight: 400;
   line-height: 1.4;
   color: var(--brand-muted);
 }
-/* `order` only applies to flex/grid children. .land-craft, .size-card and
-   .pal-card are already one or the other; .tmpl-card is a plain button, so
-   give it a column so its label can be hoisted too. */
-.brand-shell .tmpl-card { display: flex; flex-direction: column; }
-
 /* Hover arrow: keep the existing affordance, just quieter and ink-coloured. */
-.brand-shell :is(.land-craft-arrow, .size-card-arrow, .saved-card-arrow) .ic { opacity: 0.85; }
+.brand-shell :is(.land-craft-arrow, .saved-card-arrow) .ic { opacity: 0.85; }
 
 /* ── Craft selection ─────────────────────────────────────────────────────
    The olive heading band is this screen's colour moment, so the craft cells
@@ -2002,102 +1448,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .brand-shell .land-craft-arrow { width: 36px; height: 36px; margin-top: 0; }
 .brand-shell .land-craft-arrow .ic { width: 20px; height: 20px; }
 
-/* ── Size band ───────────────────────────────────────────────────────────── */
-.brand-shell.size-page { background: var(--brand-paper); }
-.brand-shell .size-row { border-bottom: 1px solid var(--brand-ink); }
-.brand-shell .size-card {
-  padding: clamp(22px, 2.2vw, 30px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
-  border-left: 1px solid var(--brand-ink);
-}
-.brand-shell .size-card:first-child { border-left: none; }
-.brand-shell .size-card-visual {
-  padding: 0;
-  background: none;
-  border: none;
-  height: clamp(120px, 18vh, 190px);
-}
-.brand-shell .size-card-visual img,
-.brand-shell .size-card-visual svg { max-height: 100%; max-width: 100%; }
-.brand-shell .size-card-copy { margin-top: clamp(18px, 2vw, 26px); align-items: flex-start; }
-.brand-shell .size-card-dims { margin-top: 7px; }
-.brand-shell .size-card-price { font-family: var(--brand-font); font-size: var(--brand-body-s); font-weight: 500; line-height: 1.4; color: var(--brand-ink); margin-top: 7px; }
-.brand-shell .size-card-arrow { width: 36px; height: 36px; }
-.brand-shell .size-card-arrow .ic { width: 20px; height: 20px; }
-
-/* ── Utility strip ───────────────────────────────────────────────────────
-   One compact row for the secondary actions a step supports (image import,
-   blank canvas). Cream so it reads as a tool shelf, not as content. */
-.brand-shell .brand-utility {
-  display: block;
-  flex: 0 0 auto;
-  padding-block: 16px;
-  background: var(--brand-cream);
-  border-bottom: 1px solid var(--brand-ink);
-}
-.brand-shell .brand-utility-intake,
-.brand-shell .brand-utility-result {
-  display: flex;
-  align-items: center;
-  gap: clamp(14px, 2vw, 28px);
-  flex-wrap: wrap;
-}
-/* The URL field and any error open on their own line rather than squeezing
-   the source buttons. */
-.brand-shell .brand-utility-url,
-.brand-shell .brand-utility-intake .err-msg { flex: 1 0 100%; }
-.brand-shell .brand-utility-url .pal-upload-url-row { max-width: 520px; }
-.brand-shell .brand-utility-intake .err-msg {
-  background: var(--brand-tomato);
-  color: #fff;
-  border-radius: 2px;
-  font-family: var(--brand-font);
-  font-size: 13px;
-}
-.brand-shell .brand-utility-result .tmpl-upload-preview {
-  width: 96px;
-  height: 96px;
-  border: 1px solid var(--brand-ink);
-}
-.brand-shell .brand-utility-result-meta { flex: 1 1 220px; min-width: 0; }
-.brand-shell .brand-utility-result-meta .tmpl-upload-file-name {
-  font-family: var(--brand-font);
-  font-size: var(--brand-label);
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--brand-ink);
-  max-width: none;
-}
-.brand-shell .brand-utility-result-meta .brand-specs { margin-top: 8px; max-width: 280px; }
-.brand-shell .brand-utility-result-meta .switch {
-  gap: 10px;
-  margin-top: 12px;
-  font-family: var(--brand-font);
-  font-size: 13px;
-  color: var(--brand-ink);
-}
-.brand-shell .brand-utility-text { min-width: 0; flex: 0 1 auto; }
-.brand-shell .brand-utility-title {
-  font-size: var(--brand-label);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0.01em;
-  color: var(--brand-ink);
-}
-/* Label-sized rather than body-sized: this is a hint attached to the adjacent
-   controls, and the strip has to stay compact next to the template grid. */
-.brand-shell .brand-utility-sub {
-  margin-top: 3px;
-  font-size: var(--brand-label);
-  line-height: 1.4;
-  color: var(--brand-muted);
-}
-.brand-shell .brand-utility-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
 /* Import actions are Secondary buttons (Small) beside the heading. */
 .brand-shell .pal-upload-pill {
   height: 30px;
@@ -2124,105 +1474,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   font-family: var(--brand-font);
   font-size: 13px;
   font-weight: 500;
-}
-.brand-shell .tmpl-upload-drop { gap: 10px; }
-.brand-shell .tmpl-upload-title { font-size: var(--brand-label); font-weight: 500; color: var(--brand-ink); }
-
-/* ── Template step ───────────────────────────────────────────────────────
-   Bigger, quieter thumbs on a cream plate; metadata only where it exists. */
-.brand-shell.tmpl-page { background: var(--brand-paper); }
-.brand-shell .tmpl-page .tmpl-grid,
-.brand-shell .tmpl-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
-.brand-shell .tmpl-page .tmpl-card,
-.brand-shell .tmpl-card {
-  padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
-  border-right: 1px solid var(--brand-ink);
-  /* Rows close themselves, so a part-filled last row reads as a short row in
-     a ruled table rather than as a staircase of dangling column rules. The
-     grid's own bottom border completes that last rule across the full width. */
-  border-bottom: 1px solid var(--brand-ink);
-  overflow: visible;
-}
-.brand-shell .tmpl-page .tmpl-card-thumb,
-.brand-shell .tmpl-card-thumb {
-  height: clamp(190px, 27vh, 280px);
-  padding: 0;
-  box-sizing: border-box;
-  background: var(--brand-cream);
-  border: none;
-}
-.brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
-.brand-shell .tmpl-card-thumb.is-ratio {
-  height: clamp(190px, 27vh, 280px);
-  background: var(--brand-cream);
-}
-.brand-shell .tmpl-page .tmpl-card-body,
-.brand-shell .tmpl-card-body {
-  display: block;
-  margin-top: clamp(18px, 2vw, 26px);
-  padding: 0;
-}
-.brand-shell .tmpl-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-.brand-shell .tmpl-page .tmpl-card-desc,
-.brand-shell .tmpl-card-desc { margin-top: 7px; }
-.brand-shell .tmpl-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
-.brand-shell .tmpl-card .size-card-arrow .ic { width: 19px; height: 19px; }
-
-/* ── Palette step ────────────────────────────────────────────────────────
-   Two clearly separated zones: what you're making (preview + chosen colours)
-   and how it converts. Suggested palettes come last, under their own rule. */
-.brand-shell.pal-page { background: var(--brand-paper); }
-.brand-shell .brand-section {
-  flex: 0 0 auto;
-  padding-block: clamp(22px, 2.6vw, 38px);
-  background: var(--brand-paper);
-  border-bottom: 1px solid var(--brand-ink);
-}
-.brand-shell .brand-section.is-quiet { background: var(--brand-cream); }
-.brand-shell .brand-section-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 24px;
-  flex-wrap: wrap;
-  margin-bottom: clamp(16px, 2vw, 26px);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--brand-rule);
-}
-.brand-shell .brand-section-head-text { min-width: 0; }
-.brand-shell .brand-section-head-text .brand-section-note { margin-top: 6px; }
-.brand-shell .brand-section-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-/* A section with no children is a labelled header for the full-bleed band
-   that follows it (the palette grid), so its own rule becomes that band's
-   top edge and the inner divider is redundant. */
-.brand-shell .brand-section.is-head-only { padding-bottom: clamp(16px, 1.8vw, 24px); }
-.brand-shell .brand-section.is-head-only .brand-section-head {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-/* Project focus pair: the live chart beside the colours going into it. */
-.brand-shell .brand-project {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(20px, 3vw, 40px);
-}
-@media (max-width: 900px) {
-  .brand-shell .brand-project { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ── Kit review ───────────────────────────────────────────────────────────
@@ -2468,155 +1719,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   line-height: 1.5;
   color: #B3261E;
 }
-.brand-shell .brand-section-title {
-  font-size: var(--brand-display-m);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: var(--brand-ink);
-}
-.brand-shell .brand-section-note {
-  font-size: var(--brand-body-s);
-  line-height: var(--brand-leading-body);
-  color: var(--brand-muted);
-  max-width: 58ch;
-}
-/* Selected-colour row and photo preview become the focal pair. */
-.brand-shell .pal-suggest-bar {
-  display: block;
-  min-height: 0;
-  padding: 0;
-  background: none;
-  border-bottom: none;
-}
-.brand-shell .pal-page .pal-from-image {
-  align-items: center;
-  gap: clamp(18px, 2.4vw, 32px);
-  flex-wrap: wrap;
-}
-.brand-shell .pal-page .pal-from-image-preview {
-  width: clamp(120px, 13vw, 164px);
-  height: clamp(120px, 13vw, 164px);
-  border: 1px solid var(--brand-ink);
-  outline: none;
-}
-.brand-shell .pal-page .pal-from-image-main { gap: clamp(18px, 2.4vw, 32px); flex-wrap: wrap; }
-.brand-shell .pal-page .pal-from-image-swatches { gap: 10px; }
-.brand-shell .pal-page .pal-from-image-swatch {
-  width: clamp(52px, 4.6vw, 66px);
-  height: clamp(52px, 4.6vw, 66px);
-  box-shadow: inset 0 0 0 1px var(--brand-rule);
-}
-.brand-shell .pal-page .pal-from-image-add {
-  width: clamp(52px, 4.6vw, 66px);
-  height: clamp(52px, 4.6vw, 66px);
-  background: var(--brand-paper);
-  border: 1px dashed var(--brand-rule);
-  color: var(--brand-ink);
-}
-.brand-shell .pal-page .pal-from-image-add:hover { background: var(--brand-cream); }
-.brand-shell .pal-busy { font-size: var(--brand-body-s); color: var(--brand-muted); padding: 4px 0; }
-
-/* Conversion controls: same content, presented as a tool block rather than
-   as another band of product. */
-.brand-shell .xs-flatten {
-  gap: clamp(20px, 2.6vw, 36px);
-  padding: 0;
-  background: none;
-  border-bottom: none;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-.brand-shell .xs-flatten-row { border: 1px solid var(--brand-ink); border-radius: 2px; }
-.brand-shell .xs-flatten-btn {
-  height: 36px;
-  padding: 0 16px;
-  background: var(--brand-paper);
-  border-left-color: var(--brand-ink);
-  font-family: var(--brand-font);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--brand-ink);
-}
-.brand-shell .xs-flatten-btn:hover:not(.active) { background: var(--brand-cream); }
-.brand-shell .xs-flatten-btn.active { background: var(--brand-ink); color: var(--brand-paper); }
-.brand-shell .xs-flatten-note {
-  font-family: var(--brand-font);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: var(--brand-muted-2);
-}
-.brand-shell .xs-flatten-check {
-  font-family: var(--brand-font);
-  font-size: var(--brand-body-s);
-  font-weight: 500;
-  color: var(--brand-ink);
-  flex-wrap: wrap;
-}
-.brand-shell .xs-flatten-check-note { font-weight: 400; color: var(--brand-muted); }
-.brand-shell .xs-flatten-preview {
-  background: var(--brand-cream);
-  border: 1px solid var(--brand-ink);
-  border-radius: 0;
-}
-.brand-shell .xs-flatten-empty {
-  font-family: var(--brand-font);
-  font-size: 13px;
-  color: var(--brand-muted);
-}
-
-/* Suggested palettes: swatches stay the largest thing in the cell. */
-.brand-shell .pal-page .pal-grid,
-.brand-shell .pal-grid { border-bottom: 1px solid var(--brand-ink); gap: 0; }
-.brand-shell .pal-page .pal-card,
-.brand-shell .pal-card {
-  align-content: start;
-  min-height: 0;
-  padding: clamp(22px, 2.2vw, 32px) clamp(20px, 2.2vw, 32px) clamp(24px, 2.4vw, 32px);
-  border-right: 1px solid var(--brand-ink);
-  border-bottom: 1px solid var(--brand-ink);  /* see .tmpl-card */
-  border-radius: 0;
-}
-.brand-shell .pal-page .pal-swatches,
-.brand-shell .pal-swatches {
-  height: auto;
-  min-height: 0;
-  margin-bottom: clamp(18px, 2vw, 26px);
-}
-.brand-shell .pal-page .pal-swatch,
-.brand-shell .pal-swatch {
-  width: clamp(46px, 4vw, 60px);
-  height: clamp(46px, 4vw, 60px);
-  margin-left: -8px;
-  box-shadow: inset 0 0 0 1px var(--brand-rule);
-}
-.brand-shell .pal-swatch:first-child { margin-left: 0; }
-.brand-shell .pal-page .pal-card-body,
-.brand-shell .pal-card-body { display: block; padding: 0; }
-.brand-shell .pal-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-.brand-shell .pal-page .pal-card-meta,
-.brand-shell .pal-card-meta { margin-top: 7px; }
-.brand-shell .pal-card .size-card-arrow { width: 32px; height: 32px; margin-top: 2px; }
-.brand-shell .pal-card .size-card-arrow .ic { width: 19px; height: 19px; }
-
-/* ── Backing step ────────────────────────────────────────────────────────── */
-.brand-shell.back-page { background: var(--brand-paper); }
-.brand-shell .back-filters {
-  justify-content: flex-start;
-  min-height: 0;
-  padding-block: 16px;
-  background: var(--brand-cream);
-  border-bottom: 1px solid var(--brand-ink);
-}
-.brand-shell .back-filters .filter-pill { font-family: var(--brand-font); }
-.brand-shell .back-grid .fabric-card { border-color: var(--brand-rule); box-shadow: none; }
-.brand-shell .back-grid .fabric-card.selected { box-shadow: inset 0 0 0 3px var(--brand-ink); }
 
 /* ── Saved designs ───────────────────────────────────────────────────────
    Kept in place and fully functional; restyled to the same editorial grid. */
@@ -2694,25 +1796,15 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   .brand-shell .brand-head { padding-block: 24px; }
   .brand-shell .brand-head-text,
   .brand-shell .brand-head-text.is-wide { max-width: none; }
-  .brand-shell .brand-utility { align-items: stretch; flex-direction: column; }
-  .brand-shell .brand-utility-actions { margin-left: 0; }
-  .brand-shell .xs-flatten { gap: 20px; }
+
   .brand-shell .land-craft-visual img { max-height: 190px; }
-  .brand-shell .tmpl-page .tmpl-card-thumb,
-  .brand-shell .tmpl-card-thumb,
-  .brand-shell .tmpl-page .tmpl-card-thumb.is-ratio,
-  .brand-shell .tmpl-card-thumb.is-ratio { height: clamp(170px, 24vh, 230px); }
+
 }
 @media (max-width: 600px) {
   .brand-shell .brand-head-top { flex-wrap: nowrap; justify-content: space-between; }
   .brand-shell .land-craft { border-left: none; border-top: 1px solid var(--brand-ink); }
   .brand-shell .land-craft:first-child { border-top: none; }
-  .brand-shell .size-card { border-left: none; }
-  .brand-shell .tmpl-page .tmpl-card,
-  .brand-shell .tmpl-card,
-  .brand-shell .pal-page .pal-card,
-  .brand-shell .pal-card { border-right: none; border-bottom: 1px solid var(--brand-ink); }
-  .brand-shell .xs-flatten-preview { width: 100%; }
+
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

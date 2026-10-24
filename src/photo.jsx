@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { IcCamera, IcImage, IcLink, IcPaste, IcShuffle } from './icons.jsx';
+import { IcCamera, IcImage, IcLink, IcPaste } from './icons.jsx';
 import { extractColors, hexToRgb, nearestInList } from './catalog.jsx';
-import { BottomSheet, Switch, useIsMobile } from './editor-ui.jsx';
-import { BrandSpecs } from './landing.jsx';
+import { BottomSheet, useIsMobile } from './editor-ui.jsx';
 
 // ── Fitting an uploaded photo onto a stitch canvas ─────────────────────────
 // A photo almost never shares its proportions with the canvas it lands on (a
@@ -358,7 +357,7 @@ function xsClearEdgeBackground(grid, W, H, fit) {
 }
 
 // Sample an <img> into a W×H grid, snapping each cell to the nearest chosen
-// color → a ready-to-stitch design (shared by the cross-stitch template step).
+// color → a ready-to-stitch design.
 // Cells outside the fitted motif are left null: unstitched fabric.
 export function buildGridFromImage(img, chosen, W, H, { simplify = XS_SIMPLIFY_DEFAULT, removeBg = true } = {}) {
   if (!img || !chosen || !chosen.length) return null;
@@ -614,13 +613,10 @@ export function punchImageBackground(img, { maxDim = 720 } = {}) {
   return cv.toDataURL('image/png');
 }
 
-// Drop zone + optional URL field used by PhotoDrop and PhotoUpload so paste/URL
-// land in one place. Calls onSrc(dataUrl) — same path as a chosen file.
+// Drop zone + optional URL field, so paste/URL land in the same place as a
+// chosen file. Calls onSrc(dataUrl).
 // Desktop: slim dashed drop row + pills. Mobile: "+ add image" opens a sheet.
-// `utility` is the brand shell's compact form: one row of label + source
-// buttons, with the whole strip still acting as the drop target. Same handlers
-// and same sources as the other variants — only the layout differs.
-function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = false, workingLabel, extra }) {
+function PhotoIntakeZone({ title, onSrc, working = false, workingLabel }) {
   const isMobile = useIsMobile();
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState('');
@@ -635,13 +631,8 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
   const busy = loading || working;
   const shownTitle = busy
     ? ((working && workingLabel) ? workingLabel : 'Loading…')
-    : (variant === 'tmpl' ? 'Drop an image in this area, or' : 'Drop an image here');
+    : 'Drop an image here';
   const ariaLabel = title || shownTitle;
-  const isUtility = variant === 'utility';
-  const heading = variant === 'tmpl' ? 'Create a design from an image' : null;
-  // The utility strip reuses the tmpl drop/pill boxes (and its whole-strip drop
-  // handlers), so it counts as `isTmpl` for everything except the heading.
-  const isTmpl = variant === 'tmpl' || isUtility;
 
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
@@ -841,54 +832,9 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
     </BottomSheet>
   ) : null;
 
-  if (isUtility) {
-    const label = (
-      <div className="brand-utility-text">
-        <div className="brand-utility-title">{title || 'Start from your own image'}</div>
-        <div className="brand-utility-sub">
-          {busy ? (workingLabel || 'Loading…') : (subtitle || 'JPG, PNG or WebP.')}
-        </div>
-      </div>
-    );
-    if (isMobile) {
-      return (
-        <div className="brand-utility-intake">
-          {label}
-          <div className="brand-utility-actions">
-            <button
-              type="button"
-              className="brand-btn"
-              onClick={() => { setError(''); setShowUrl(false); setMenuOpen(true); }}
-              disabled={busy}
-              aria-haspopup="dialog"
-              aria-expanded={menuOpen}>
-              Add an image
-            </button>
-            {extra}
-          </div>
-          {menu}
-          {fileInputs}
-        </div>
-      );
-    }
-    return (
-      <div className="brand-utility-intake" {...dropProps}>
-        {label}
-        <div className="brand-utility-actions">
-          {pills}
-          {extra}
-        </div>
-        {showUrl && <div className="brand-utility-url">{urlRow}</div>}
-        {errNode}
-        {fileInputs}
-      </div>
-    );
-  }
-
   if (isMobile) {
     return (
-      <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'}>
-        {heading && <div className="tmpl-upload-heading">{heading}</div>}
+      <div className="pal-upload">
         <button
           type="button"
           className="pal-btn secondary pal-upload-add"
@@ -906,231 +852,34 @@ function PhotoIntakeZone({ variant = 'pal', title, subtitle, onSrc, working = fa
 
   const drop = (
     <div
-      className={`${isTmpl ? 'tmpl-upload-drop' : 'pal-upload-drop'} pal-upload-hit${drag ? ' drag' : ''}`}
+      className={`pal-upload-drop pal-upload-hit${drag ? ' drag' : ''}`}
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}
       onClick={openPicker}
       onKeyDown={onHitKey}
       {...dropProps}>
-      <div className="pal-upload-icon"><IcImage size={isTmpl ? 24 : 18}/></div>
-      <div className={isTmpl ? 'tmpl-upload-title' : 'pal-upload-title'}>{shownTitle}</div>
+      <div className="pal-upload-icon"><IcImage size={18}/></div>
+      <div className="pal-upload-title">{shownTitle}</div>
     </div>
   );
 
   return (
-    <div className={isTmpl ? 'tmpl-upload' : 'pal-upload'} {...(isTmpl ? dropProps : {})}>
-      {heading && <div className="tmpl-upload-heading">{heading}</div>}
-      {isTmpl && showUrl ? urlRow : drop}
+    <div className="pal-upload">
+      {drop}
       {pills}
-      {!(isTmpl && showUrl) && urlRow}
+      {urlRow}
       {errNode}
       {fileInputs}
     </div>
   );
 }
 
-// Reusable photo → palette uploader. Manages its own file/extraction state and
-// reports the kept colors + image (+ any option toggles) via onApply. Used by
-// the quilt palette page (Kona) and the cross-stitch template page (DMC).
-function PhotoUpload({ nearest, idKey = 'name', paletteSize = 8, count = 32, applyLabel = 'Use these colors', hint, options = [], onApply }) {
+// Upload-only photo picker: captures the image as a data URL and hands it to
+// onChoose once confirmed.
+export function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose }) {
   const [imgSrc, setImgSrc] = useState(null);
-  const [extracted, setExtracted] = useState(null);
-  const [pool, setPool] = useState([]);
-  const [locked, setLocked] = useState(() => new Set());
-  const [busy, setBusy] = useState(false);
-  const [opts, setOpts] = useState(() => { const o = {}; options.forEach(d => o[d.key] = d.default ?? false); return o; });
-  const imgElRef = useRef(null);
-  const idOf = c => c[idKey];
-
-  const ingestSrc = useCallback(src => {
-    setBusy(true);
-    const img = new Image();
-    img.onload = () => {
-      imgElRef.current = img;
-      const maxDim = 160, scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
-      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-      const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-      let pixels; try { pixels = ctx.getImageData(0, 0, w, h); } catch (e) { setBusy(false); return; }
-      const raw = extractColors(pixels, count), seen = new Set(), colors = [];
-      for (const c of raw) { const k = nearest(c); if (k && !seen.has(k[idKey])) { seen.add(k[idKey]); colors.push(k); } }
-      setImgSrc(src); setPool(colors); setLocked(new Set());
-      setExtracted(colors.slice(0, Math.min(paletteSize, colors.length))); setBusy(false);
-    };
-    img.onerror = () => setBusy(false);
-    img.src = src;
-  }, [nearest, idKey, paletteSize, count]);
-
-  const toggleLock = useCallback(id => { setLocked(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }, []);
-  const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const regenerate = useCallback(() => {
-    if (!pool.length) return;
-    setExtracted(prev => {
-      if (!prev) return prev;
-      const lk = new Set(prev.filter(c => locked.has(idOf(c))).map(idOf));
-      const fill = shuffle(pool.filter(c => !lk.has(idOf(c)))); let fi = 0;
-      return prev.map(c => lk.has(idOf(c)) ? c : (fill[fi++] || c));
-    });
-  }, [pool, locked]);
-  const resetUpload = () => { setImgSrc(null); setExtracted(null); setPool([]); setLocked(new Set()); imgElRef.current = null; };
-  const apply = () => {
-    if (!extracted || !extracted.length) return;
-    const kept = extracted.filter(c => locked.has(idOf(c)));
-    const chosen = kept.length ? kept : extracted;
-    onApply(chosen, { imgSrc, imgEl: imgElRef.current, options: opts });
-  };
-
-  return (
-    <section className="pal-section">
-      <div className="pal-section-head">
-        <div className="pal-section-title">Upload an image</div>
-        {hint && <div className="pal-section-sub">{hint}</div>}
-      </div>
-      {!extracted && (
-        <PhotoIntakeZone
-          title="Drop an image here or click to browse"
-          subtitle="JPG, PNG, or WebP, or paste an image"
-          onSrc={ingestSrc}
-          working={busy}
-          workingLabel="Reading colors…"/>
-      )}
-      {extracted && (
-        <div className="pal-result">
-          <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
-          <div className="pal-result-main">
-            <div className="pal-section-sub" style={{ marginBottom: 6 }}>{extracted.length} colors found. Check the ones you want to keep (they stay when you regenerate and are the only colors added). Leave all unchecked to use them all.</div>
-            <div className="pal-result-swatches">
-              {extracted.map(c => {
-                const isLocked = locked.has(idOf(c));
-                return (
-                  <label key={idOf(c)} className={`pal-chip${isLocked ? ' locked' : ''}`} title={c.code ? `DMC ${c.code} · ${c.name}` : `${c.name} ${c.hex}`}>
-                    <input type="checkbox" className="pal-chip-check" checked={isLocked} onChange={() => toggleLock(idOf(c))}/>
-                    <span className="pal-chip-color" style={{ background: c.hex }}/>
-                    <span className="pal-chip-label">{c.code ? `${c.code} ${c.name}` : c.name}</span>
-                  </label>
-                );
-              })}
-            </div>
-            {options.map(d => (
-              <label key={d.key} className="pal-check">
-                <input type="checkbox" checked={!!opts[d.key]} onChange={e => setOpts(o => ({ ...o, [d.key]: e.target.checked }))}/>
-                {d.label}
-              </label>
-            ))}
-            <div className="pal-actions">
-              <button className="pal-btn" onClick={apply}>{applyLabel}</button>
-              {pool.length > 1 && (
-                <button className="pal-btn secondary" onClick={regenerate} title="Shuffle the palette">
-                  <IcShuffle/>
-                  Regenerate
-                </button>
-              )}
-              <button className="pal-btn secondary" onClick={resetUpload}>Choose another</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// Upload-only photo picker for the cross-stitch template step. It just captures
-// the image (as a data URL) and hands it forward — NO color extraction here.
-// All color work (suggested palette, swapping) happens on the palette step.
-export function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onChoose, layout, extra }) {
-  const [imgSrc, setImgSrc] = useState(null);
-  const [fileName, setFileName] = useState('image');
-  const [fileDims, setFileDims] = useState(null);
-  const [removeBg, setRemoveBg] = useState(true);
-  const [cutoutSrc, setCutoutSrc] = useState(null);
-  const punchGen = useRef(0);
-  const ingestSrc = useCallback((src, meta) => {
-    const gen = ++punchGen.current;
-    setImgSrc(src);
-    setFileName((meta && meta.name) || 'image');
-    setFileDims(null);
-    setCutoutSrc(null);
-    const img = new Image();
-    img.onload = () => {
-      if (gen !== punchGen.current) return;
-      setFileDims({ w: img.naturalWidth, h: img.naturalHeight });
-      requestAnimationFrame(() => {
-        if (gen !== punchGen.current) return;
-        setCutoutSrc(punchImageBackground(img));
-      });
-    };
-    img.src = src;
-  }, []);
-  const reset = () => {
-    punchGen.current++;
-    setImgSrc(null); setFileName('image'); setFileDims(null); setRemoveBg(true); setCutoutSrc(null);
-  };
-  const resultCopy = resultHint || "We'll suggest a palette from this photo on the next step and use it to guide your design.";
-  const displaySrc = removeBg && cutoutSrc ? cutoutSrc : imgSrc;
-  const confirm = () => onChoose(displaySrc || imgSrc, { removeBg, name: fileName });
-  // Brand shell: one compact strip. Empty state offers the sources; once an
-  // image is in, the same strip becomes the confirm row. Same actions as the
-  // `bar` layout, just folded into a single line of furniture.
-  if (layout === 'utility') {
-    return (
-      <section className="brand-utility brand-bleed">
-        {!imgSrc ? (
-          <PhotoIntakeZone
-            variant="utility"
-            title="Start from your own image"
-            subtitle={hint}
-            extra={extra}
-            onSrc={ingestSrc}/>
-        ) : (
-          <div className="brand-utility-result">
-            <img className={`tmpl-upload-preview${removeBg && cutoutSrc ? ' is-cutout' : ''}`}
-              src={displaySrc} alt="Uploaded reference"/>
-            <div className="brand-utility-result-meta">
-              <div className="tmpl-upload-file-name">{fileName}</div>
-              <BrandSpecs rows={[{ k: 'Source', v: fileDims ? `${fileDims.w} × ${fileDims.h} px` : null }]}/>
-              <Switch checked={removeBg} onChange={setRemoveBg} label="Remove background"/>
-            </div>
-            <div className="brand-utility-actions">
-              <button type="button" className="tmpl-upload-use" onClick={confirm}>{useLabel}</button>
-              <button type="button" className="tmpl-upload-another" onClick={reset}>Choose another</button>
-            </div>
-          </div>
-        )}
-      </section>
-    );
-  }
-  if (layout === 'bar') {
-    return (
-      <section className="tmpl-upload-bar">
-        {!imgSrc ? (
-          <PhotoIntakeZone
-            variant="tmpl"
-            title="Drop an image in this area, or"
-            subtitle={hint || 'JPG, PNG, or WebP, or paste an image'}
-            onSrc={ingestSrc}/>
-        ) : (
-          <div className="tmpl-upload-result">
-            <div className="tmpl-upload-file">
-              <img className={`tmpl-upload-preview${removeBg && cutoutSrc ? ' is-cutout' : ''}`}
-                src={displaySrc} alt="Uploaded reference"/>
-              <div className="tmpl-upload-file-meta">
-                <div>
-                  <div className="tmpl-upload-file-name">{fileName}</div>
-                  <div className="tmpl-upload-file-dims">{fileDims ? `${fileDims.w}px × ${fileDims.h}px` : ''}</div>
-                </div>
-                <Switch checked={removeBg} onChange={setRemoveBg} label="Remove background"/>
-              </div>
-            </div>
-            <div className="tmpl-upload-actions">
-              <button type="button" className="tmpl-upload-use" onClick={confirm}>{useLabel}</button>
-              <button type="button" className="tmpl-upload-another" onClick={reset}>Choose another</button>
-            </div>
-          </div>
-        )}
-      </section>
-    );
-  }
+  const reset = () => setImgSrc(null);
   return (
     <section className="pal-section">
       <div className="pal-section-head">
@@ -1140,13 +889,12 @@ export function PhotoDrop({ hint, resultHint, useLabel = 'Use this photo', onCho
       {!imgSrc ? (
         <PhotoIntakeZone
           title="Drop a photo here or click to browse"
-          subtitle="JPG, PNG, or WebP, or paste an image"
-          onSrc={ingestSrc}/>
+          onSrc={setImgSrc}/>
       ) : (
         <div className="pal-result">
           <img className="pal-result-preview" src={imgSrc} alt="Uploaded reference"/>
           <div className="pal-result-main">
-            <div className="pal-section-sub" style={{ marginBottom: 12 }}>{resultCopy}</div>
+            {resultHint && <div className="pal-section-sub" style={{ marginBottom: 12 }}>{resultHint}</div>}
             <div className="pal-actions">
               <button className="pal-btn" onClick={() => onChoose(imgSrc)}>{useLabel}</button>
               <button className="pal-btn secondary" onClick={reset}>Choose another</button>

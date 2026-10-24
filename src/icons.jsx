@@ -15,7 +15,6 @@ const ICONS = {
   undo: <><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></>,
   redo: <><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></>,
   rotate: <><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></>,
-  shuffle: <><path d="M4 17h2.5c1.6 0 2.6-.7 3.5-2l4-6c.9-1.3 1.9-2 3.5-2H20"/><path d="M4 7h2.5c1.3 0 2.2.5 3 1.4M20 17h-2.5c-1.3 0-2.2-.5-3-1.4"/><path d="m17 4 3 3-3 3M17 14l3 3-3 3"/></>,
   swap: <path d="M20 8H4m3-3L4 8l3 3M4 16h16m-3-3 3 3-3 3"/>,
   chevronLeft: <path d="m15 6-6 6 6 6"/>,
   chevronRight: <path d="m9 6 6 6-6 6"/>,
@@ -89,7 +88,6 @@ export const IcChevR   = ({ size=12 }) => <Icon name="chevronRight" size={size}/
 export const IcChevD   = ({ size=12 }) => <Icon name="chevronDown" size={size}/>;
 export const IcSwap    = ({ size=14 }) => <Icon name="swap" size={size}/>;
 const IcFlip    = ({ size=14 }) => <Icon name="line" size={size}/>;
-export const IcShuffle = ({ size=14 }) => <Icon name="shuffle" size={size}/>;
 export const IcPen     = ({ size=18 }) => <Icon name="pen" size={size}/>;
 export const IcLineTool= ({ size=18 }) => <Icon name="line" size={size}/>;
 export const IcCircle  = ({ size=18 }) => <Icon name="circle" size={size}/>;
