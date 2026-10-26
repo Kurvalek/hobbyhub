@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { AIDA_FABRICS } from '../assets/color-catalogs.js';
 import {
   ACCOUNTS_OFFLINE_SAVE_MSG, canonicalPresetName, deleteCloudDesign, loadSavedPunch,
-  loadSavedStitches, persistSavedPunch, persistSavedStitches, stashPendingSave,
-  upsertCloudDesign, useAuth,
+  formatKitPrice, loadSavedStitches, persistSavedPunch, persistSavedStitches, stashPendingSave,
+  upsertCloudDesign, useAuth, useKitPrices,
 } from './services.jsx';
 import { BuyKitButton, KitCheckoutButton } from './kit-checkout.jsx';
 import {
@@ -448,6 +448,7 @@ function StitchFabricPanel({ cfg, fabric, setFabric, finished, bg, showBg, setSh
 }
 
 function StitchSizePanel({ cfg, current, onPick, W, H, finishedDims }) {
+  const prices = useKitPrices(cfg.checkoutType);
   return (
     <>
       <div className="ed-label">Finished size</div>
@@ -458,6 +459,7 @@ function StitchSizePanel({ cfg, current, onPick, W, H, finishedDims }) {
             <span className="ed-choice-name">{p.name}</span>
             <span className="ed-choice-sub">{finishedDims(p)}</span>
             <span className="ed-choice-sub">{p.w} × {p.h}{isCoasterSize(p.name) ? ' · set of 4' : ''}</span>
+            {prices[p.name] && <span className="ed-choice-price">{formatKitPrice(prices[p.name])}</span>}
           </button>
         ))}
       </div>

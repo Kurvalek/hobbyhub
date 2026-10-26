@@ -130,7 +130,7 @@ export const CRAFTS = [
     desc: "Turn an image into a stitchable grid, with thread counts included.",
     image: "assets/landing/craft-cross-stitch.webp", imgW: 440, imgH: 440 },
   { id: "quilt", name: "Quilt", ready: true,
-    desc: "Compose with squares and half-square triangles, then get the yardage.",
+    desc: "Piece squares and triangles, with fabric yardage included.",
     image: "assets/landing/craft-quilt.png", imgW: 208, imgH: 260 },
   { id: "punch-needle", name: "Punch Needle", ready: true,
     desc: "Punch a design in loops, with yarn quantities listed for the kit.",

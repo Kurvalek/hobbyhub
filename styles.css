@@ -648,6 +648,12 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .land-craft:focus-visible .land-craft-visual img { transform: rotate(calc(var(--tilt) * -1)); }
 .land-page .land-craft-name { margin-top: 22px; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
 .land-page .land-craft-desc { margin-top: 10px; max-width: 30ch; font-size: 15px; line-height: 1.45; color: var(--brand-muted); text-wrap: pretty; }
+/* The kit price range: a quiet pill on the card's colour field. */
+.land-craft-price {
+  margin-top: 14px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.5);
+  font-size: 14px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.land-craft-cta-price { display: none; }
 .land-craft-cta { display: flex; flex-direction: column; align-self: stretch; margin: auto -24px 0; padding-top: 24px; }
 .land-craft-wave {
   display: block; height: 14px; margin-bottom: -1px; background: var(--tone-dark);
@@ -684,13 +690,22 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   .land-page .land-craft-desc { grid-column: 2; align-self: start; margin-top: 4px; max-width: 44ch; font-size: 14px; line-height: 1.35; }
   .land-craft-cta { grid-column: 1 / -1; margin: 10px -16px 0; padding-top: 0; }
   .land-craft-wave { height: 10px; -webkit-mask-size: 32px 10px; mask-size: 32px 10px; }
-  .land-craft-cta-bar { justify-content: space-between; height: 38px; padding: 0 16px; font-size: 15px; }
+  .land-craft-cta-bar { justify-content: flex-start; height: 38px; padding: 0 16px; font-size: 15px; }
+  .land-craft-price { display: none; }
+  .land-craft-cta-price { display: inline; margin-left: auto; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .land-craft-arrow { margin-left: auto; }
+  .land-craft-cta-price + .land-craft-arrow { margin-left: 0; }
 }
-/* Phones: the hero gives up its sub-line and most of its padding so the
-   craft cards are what fills the first screen. */
+/* Phones: the hero gives up its sub-line so the craft cards are what fills
+   the first screen. --hero-air is the room left over once all three cards
+   fit (none on a 629px-tall screen), spent as spacing around the hero. */
 @media (max-width: 600px) {
   .land-page .brand-nav.tone-olive { min-height: 56px; padding-block: 8px; }
-  .land-page .land-hero { gap: 6px; padding: 14px 0 14px; }
+  .land-page .land-hero {
+    --hero-air: clamp(0px, (100svh - 630px) * 0.55, 48px);
+    gap: calc(6px + var(--hero-air) * 0.15);
+    padding: calc(14px + var(--hero-air) * 0.45) 0 calc(14px + var(--hero-air) * 0.4);
+  }
   .land-page .land-hero .brand-eyebrow.is-plain { font-size: clamp(13px, 3.75vw, 18px); white-space: nowrap; }
   .land-page .land-title { font-size: clamp(36px, 10.4vw, 52px); }
   .land-page .land-sub { display: none; }
@@ -2049,6 +2064,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .ed-choice:focus-visible { outline: none; box-shadow: var(--btn-focus-shadow); }
 .ed-choice-name { font-size: 14px; font-weight: 500; }
 .ed-choice-sub { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); margin-top: 3px; }
+.ed-choice-price { margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--warm-fg); font-variant-numeric: tabular-nums; }
 
 .ed-slider-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
 .ed-slider-head .ed-label { margin: 0; font-size: 12px; color: var(--warm-muted); }
@@ -2083,7 +2099,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .ed-app .selection-toolbar .ed-sel-swatches { max-width: 240px; }
 .ed-app .selection-toolbar .ed-swatch-add { width: 28px; height: 28px; flex: none; }
 .ed-app .selection-swatch-meta { font-family: var(--font-sans); font-size: 11px; color: var(--warm-muted); padding: 0 2px 0 4px; }
-.ed-row-title, .ed-row-sub, .ed-choice-name, .ed-choice-sub { display: block; }
+.ed-row-title, .ed-row-sub, .ed-choice-name, .ed-choice-sub, .ed-choice-price { display: block; }
 .ed-row[aria-expanded="true"] .ed-row-value { color: var(--warm-muted); }
 .ed-palette-pill .ed-swatch-add { width: 30px; height: 30px; flex: none; }
 .ed-palette-pill .ed-swatches { flex: 0 1 auto; min-width: 72px; }

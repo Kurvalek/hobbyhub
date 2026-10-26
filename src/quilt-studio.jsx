@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom';
 import { KONA } from '../assets/color-catalogs.js';
 import {
-  ACCOUNTS_OFFLINE_SAVE_MSG, deleteCloudDesign, loadSavedQuilts, persistSavedQuilts,
-  stashPendingSave, upsertCloudDesign, useAuth,
+  ACCOUNTS_OFFLINE_SAVE_MSG, deleteCloudDesign, formatKitPrice, loadSavedQuilts,
+  persistSavedQuilts, stashPendingSave, upsertCloudDesign, useAuth, useKitPrices,
 } from './services.jsx';
 import { BuyKitButton, KitCheckoutButton, QuiltPdfButtons } from './kit-checkout.jsx';
 import {
@@ -230,6 +230,7 @@ function QuiltQuiltingPanel({ qPattern, setQPattern, qSpacing, setQSpacing, qCol
 }
 
 function QuiltSizePanel({ preset, onPreset, bs, minBs, maxBs, onBs, cols, rows, fw, fh }) {
+  const prices = useKitPrices('quilt');
   return (
     <>
       <div className="ed-label">Finished size</div>
@@ -239,6 +240,7 @@ function QuiltSizePanel({ preset, onPreset, bs, minBs, maxBs, onBs, cols, rows, 
             aria-pressed={preset === p.name} data-ed-size={p.name} onClick={() => onPreset(p.name)}>
             <span className="ed-choice-name">{p.label || p.name}</span>
             <span className="ed-choice-sub">{p.w}" × {p.h}"{p.note ? ` · ${p.note}` : ''}</span>
+            {prices[p.name] && <span className="ed-choice-price">{formatKitPrice(prices[p.name])}</span>}
           </button>
         ))}
       </div>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  deleteCloudDesign, loadSavedPunch, loadSavedQuilts, loadSavedStitches, persistSavedPunch,
-  persistSavedQuilts, persistSavedStitches, upsertCloudDesign, useAuth,
+  deleteCloudDesign, formatKitPrice, loadSavedPunch, loadSavedQuilts, loadSavedStitches,
+  persistSavedPunch, persistSavedQuilts, persistSavedStitches, upsertCloudDesign, useAuth,
+  useKitPrices,
 } from './services.jsx';
 import { deserializeGrid } from './design-model.jsx';
 import { IcArrowL, IcArrowR, IcChevD, IcSearch, IcSwap } from './icons.jsx';
@@ -354,6 +355,47 @@ const FOOTER_LINKS = [
 // Each craft card carries its own colour field: grapefruit, golden and ice.
 const CRAFT_TONE = { 'cross-stitch': 'grapefruit', quilt: 'golden', 'punch-needle': 'ice' };
 
+// "$26 – $52": the cheapest and dearest kit of a craft, or one price when
+// they're the same. Null until the store answers, or when it can't.
+function kitPriceRange(prices) {
+  const kits = Object.values(prices).filter(k => k && Number.isFinite(k.amount));
+  if (!kits.length) return null;
+  const lo = kits.reduce((a, k) => (k.amount < a.amount ? k : a));
+  const hi = kits.reduce((a, k) => (k.amount > a.amount ? k : a));
+  return lo.amount === hi.amount ? formatKitPrice(lo) : `${formatKitPrice(lo)} – ${formatKitPrice(hi)}`;
+}
+
+// The range shows as a pill under the description, and on phones moves into
+// the Start designing band so the horizontal cards don't grow taller.
+function CraftCard({ c, onSelect }) {
+  const range = kitPriceRange(useKitPrices(c.ready ? c.id : null));
+  return (
+    <div
+      className={`land-craft tone-${CRAFT_TONE[c.id] || 'cream'}${c.ready ? '' : ' is-soon'}`}
+      role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
+      aria-label={c.ready ? `Start ${c.name}${range ? `, kits ${range}` : ''}` : `${c.name}, coming soon`}
+      onClick={() => c.ready && onSelect(c.id)}
+      onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && c.ready) { e.preventDefault(); onSelect(c.id); } }}>
+      <div className="land-craft-visual">
+        <img src={c.image} alt="" width={c.imgW} height={c.imgH} loading="eager" decoding="async" fetchpriority="high"/>
+      </div>
+      <div className="land-craft-name">{c.name}</div>
+      <div className="land-craft-desc">{c.ready ? c.desc : 'Coming soon'}</div>
+      {range && <div className="land-craft-price">{range}</div>}
+      {c.ready && (
+        <div className="land-craft-cta">
+          <span className="land-craft-wave" aria-hidden="true"/>
+          <span className="land-craft-cta-bar">
+            Start designing
+            {range && <span className="land-craft-cta-price">{range}</span>}
+            <span className="land-craft-arrow" aria-hidden="true"><IcArrowR size={20}/></span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CraftSelector({ onSelect, onOpenSaved }) {
   const auth = useAuth();
   const [savedOpen, setSavedOpenState] = useState(readSavedOpen);
@@ -383,29 +425,7 @@ export function CraftSelector({ onSelect, onOpenSaved }) {
           <p className="land-sub">Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making.</p>
         </div>
         <div className="land-crafts">
-          {CRAFTS.map(c => (
-            <div key={c.id}
-              className={`land-craft tone-${CRAFT_TONE[c.id] || 'cream'}${c.ready ? '' : ' is-soon'}`}
-              role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
-              aria-label={c.ready ? `Start ${c.name}` : `${c.name}, coming soon`}
-              onClick={() => c.ready && onSelect(c.id)}
-              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && c.ready) { e.preventDefault(); onSelect(c.id); } }}>
-              <div className="land-craft-visual">
-                <img src={c.image} alt="" width={c.imgW} height={c.imgH} loading="eager" decoding="async" fetchpriority="high"/>
-              </div>
-              <div className="land-craft-name">{c.name}</div>
-              <div className="land-craft-desc">{c.ready ? c.desc : 'Coming soon'}</div>
-              {c.ready && (
-                <div className="land-craft-cta">
-                  <span className="land-craft-wave" aria-hidden="true"/>
-                  <span className="land-craft-cta-bar">
-                    Start designing
-                    <span className="land-craft-arrow" aria-hidden="true"><IcArrowR size={20}/></span>
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
+          {CRAFTS.map(c => <CraftCard key={c.id} c={c} onSelect={onSelect}/>)}
         </div>
       </main>
       <SavedDesigns onOpen={onOpenSaved} open={savedOpen} setOpen={setSavedOpen} sectionRef={savedRef}/>
