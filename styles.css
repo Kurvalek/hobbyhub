@@ -585,104 +585,231 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 
 /* Info text */
 .muted { color: var(--warm-muted); }
-/* Saved designs (Figma Desktop - 4, node 7:1111) — full-bleed bar + 4-col cards.
-   Lives as a sibling of .land-main so the viewport-locked landing flex
-   cannot clip the grid under the golden footer. */
-.saved-sec { flex: 0 0 auto; background: var(--metime-white); border-top: 1px solid var(--metime-black); }
-.saved-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; padding: 16px 40px; }
-.saved-head { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; cursor: pointer; color: var(--metime-black); }
-.saved-head:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
-.saved-head-title { font-family: var(--font-sans); font-size: 16px; font-weight: 700; line-height: 1.2; color: var(--metime-black); }
-.saved-count { font-weight: 400; }
-.saved-chev { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; color: var(--metime-black); transition: transform 0.15s; }
-.saved-chev.is-open { transform: rotate(180deg); }
-.saved-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.saved-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--metime-black); }
-.saved-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px 28px; background: var(--metime-white); border: none; border-right: 1px solid var(--metime-black); text-align: left; font: inherit; color: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; }
-.saved-card:nth-child(4n) { border-right: none; }
-.saved-card:nth-child(n+5) { border-top: 1px solid var(--metime-black); }
-.saved-card:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-.saved-thumb { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 317 / 263; overflow: hidden; background: var(--metime-cream); }
-.saved-thumb svg, .saved-thumb canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
-.saved-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
-.saved-card-text { min-width: 0; }
-.saved-name { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.2; color: var(--metime-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.saved-meta { font-family: var(--font-sans); font-size: 13px; font-weight: 300; line-height: 1.3; color: var(--metime-black); margin-top: 4px; }
-.saved-card-arrow { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; overflow: visible; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
-.saved-card:hover .saved-card-arrow,
-.saved-card:focus-visible .saved-card-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
-.saved-card-arrow .ic { display: block; width: 22px; height: 22px; }
-.saved-empty { grid-column: 1 / -1; padding: 36px 40px; font-family: var(--font-sans); font-size: 14px; color: var(--warm-muted); }
-@media (max-width: 1080px) {
-  .saved-grid { grid-template-columns: 1fr 1fr; }
-  .saved-card:nth-child(4n) { border-right: 1px solid var(--metime-black); }
-  .saved-card:nth-child(2n) { border-right: none; }
-  .saved-card:nth-child(n+5) { border-top: none; }
-  .saved-card:nth-child(n+3) { border-top: 1px solid var(--metime-black); }
-}
-@media (max-width: 900px) {
-  .saved-toolbar { padding: 14px 20px; }
-  .saved-card { padding: 20px; gap: 12px; }
-}
-@media (max-width: 600px) {
-  .saved-grid { grid-template-columns: 1fr; }
-  .saved-card { border-right: none; }
-  .saved-card:nth-child(2n) { border-right: none; }
-  .saved-card:nth-child(n+3) { border-top: none; }
-  .saved-card:nth-child(n+2) { border-top: 1px solid var(--metime-black); }
-}
-
-/* Landing page (Figma Desktop - 1, node 1:4).
-   .land-page is the scrollport; .land-fill is at least one viewport tall so
-   the golden footer sits under the content instead of pinning over it. */
-.land-page { height: 100%; overflow: auto; background: var(--metime-white); color: var(--metime-black); }
+/* Landing page: the craft picker. .land-page is the scrollport and the olive
+   nav sticks to its top; .land-fill is at least one viewport tall so the
+   footer sits at the bottom even with no saved designs. Selectors carry
+   .land-page so they outrank the brand layer's heading defaults. */
+.land-page { height: 100%; overflow: auto; background: var(--brand-paper); color: var(--brand-ink); }
 .land-fill { display: flex; flex-direction: column; min-height: 100%; }
 .land-login { background: none; border: none; padding: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: normal; color: var(--metime-black); cursor: pointer; }
 .land-login:hover { opacity: 0.7; }
 .land-login:focus-visible { outline: 2px solid var(--metime-black); outline-offset: 4px; }
-.land-craft + .land-craft::before {
-  content: ""; position: absolute; pointer-events: none; z-index: 4; background: var(--metime-black);
+
+.land-page .brand-nav.tone-olive {
+  position: sticky; top: 0; z-index: 10;
+  min-height: 68px; padding-block: 10px;
+  background: var(--brand-olive); border-bottom: none;
+}
+.land-page .land-nav-link {
+  padding: 6px 2px; border-bottom: 2px solid var(--brand-tomato);
+  font-size: 16px; font-weight: 600; line-height: 1.2; color: var(--brand-ink); text-decoration: none;
+}
+.land-page .land-nav-link:hover { border-bottom-color: var(--brand-ink); }
+.land-page .land-nav-link:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 4px; }
+
+.land-page .land-main,
+.land-page .saved-sec { width: 100%; max-width: 1280px; margin-inline: auto; box-sizing: border-box; }
+.land-page .land-main { flex: 1 0 auto; padding-bottom: clamp(48px, 7vw, 80px); }
+.land-page .land-hero {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding: clamp(48px, 8vw, 104px) 0 clamp(32px, 5vw, 56px); text-align: center;
+}
+.land-page .land-hero .brand-eyebrow { justify-content: center; margin: 0; font-size: clamp(19px, 1.8vw, 24px); color: var(--brand-muted); }
+.land-page .land-title {
+  margin: 0; font-size: clamp(44px, 7.6vw, 104px); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 0.95; text-wrap: balance;
+}
+.land-page .land-sub { margin: 0; max-width: 52ch; font-size: var(--brand-body-s); line-height: var(--brand-leading-body); color: var(--brand-muted); text-wrap: pretty; }
+
+/* Craft cards: one colour field each, the product photo tilted on it, and a
+   darker "Start designing" band with a wavy top edge along the bottom. On
+   hover the photo tips the other way and the wave runs. */
+/* Three across or one per row, never a two-and-one split. */
+.land-page .land-crafts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 860px) {
+  .land-page .land-crafts { grid-template-columns: 1fr; }
+}
+.land-craft {
+  --tone: var(--brand-cream); --tone-dark: color-mix(in srgb, var(--tone) 88%, #000); --tilt: 0deg;
+  position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0;
+  padding: 28px 24px 0; border-radius: 12px; overflow: hidden;
+  background: var(--tone); color: var(--brand-ink); text-align: center; cursor: pointer; outline: none;
+}
+.land-craft.tone-grapefruit { --tone: var(--metime-grapefruit); --tilt: -4deg; }
+.land-craft.tone-golden { --tone: var(--metime-golden); --tilt: 4deg; }
+.land-craft.tone-ice { --tone: var(--metime-ice); --tone-dark: var(--ice-300); --tilt: -3deg; }
+.land-craft.is-soon { opacity: 0.55; cursor: default; padding-bottom: 28px; }
+.land-craft-visual { position: relative; width: min(220px, 70%); aspect-ratio: 1; }
+.land-craft-visual img {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain;
+  transform: rotate(var(--tilt)); transition: transform 350ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.land-craft:not(.is-soon):hover .land-craft-visual img,
+.land-craft:focus-visible .land-craft-visual img { transform: rotate(calc(var(--tilt) * -1)); }
+.land-page .land-craft-name { margin-top: 22px; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+.land-page .land-craft-desc { margin-top: 10px; max-width: 30ch; font-size: 15px; line-height: 1.45; color: var(--brand-muted); text-wrap: pretty; }
+.land-craft-cta { display: flex; flex-direction: column; align-self: stretch; margin: auto -24px 0; padding-top: 24px; }
+.land-craft-wave {
+  display: block; height: 14px; margin-bottom: -1px; background: var(--tone-dark);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='14'%3E%3Cpath d='M0 7 Q10 0 20 7 T40 7 V14 H0Z'/%3E%3C/svg%3E") 0 0 / 40px 14px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='14'%3E%3Cpath d='M0 7 Q10 0 20 7 T40 7 V14 H0Z'/%3E%3C/svg%3E") 0 0 / 40px 14px repeat-x;
+  animation: land-wave 900ms linear infinite paused;
+}
+.land-craft:hover .land-craft-wave,
+.land-craft:focus-visible .land-craft-wave { animation-play-state: running; }
+.land-craft-cta-bar {
+  display: flex; align-items: center; justify-content: center; gap: 12px; height: 60px;
+  background: var(--tone-dark); font-size: 16px; font-weight: 600;
+}
+.land-craft-arrow { display: inline-flex; transition: transform 200ms var(--ease-out); }
+.land-craft-arrow .ic { display: block; width: 20px; height: 20px; }
+.land-craft:hover .land-craft-arrow,
+.land-craft:focus-visible .land-craft-arrow { transform: translateX(4px); }
+@keyframes land-wave {
+  from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+  to { -webkit-mask-position: 40px 0; mask-position: 40px 0; }
 }
 
-.land-main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: min(360px, 40vh); background: var(--metime-white); }
-.land-crafts { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: min(360px, 40vh); }
-.land-craft { position: relative; display: flex; flex-direction: column; padding: 28px 40px 36px; cursor: pointer; min-width: 0; min-height: 0; outline: none; }
-.land-craft:focus-visible { box-shadow: inset 0 0 0 3px var(--btn-focus-ring); }
-.land-craft.is-soon { opacity: 0.55; cursor: default; }
-.land-craft + .land-craft::before { left: 0; top: 0; bottom: 0; width: 1px; }
-.land-craft-visual { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; padding: 8px 0 20px; }
-.land-craft-visual img { display: block; width: auto; height: auto; max-width: min(320px, 100%); max-height: 100%; object-fit: contain; }
-.land-craft-copy { flex: 0 0 auto; min-width: 0; }
-.land-craft-name { font-family: var(--font-sans); font-size: 24px; font-weight: 500; line-height: 1.2; color: var(--metime-black); margin-bottom: 6px; }
-.land-craft-desc-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
-.land-craft-desc { flex: 1 1 auto; font-family: var(--font-sans); font-size: 20px; font-weight: 400; line-height: 1.3; color: var(--metime-black); min-width: 0; }
-.land-craft-arrow { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0; overflow: visible; margin-top: -4px; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
-.land-craft:hover .land-craft-arrow,
-.land-craft:focus-visible .land-craft-arrow { opacity: 1; visibility: visible; animation: land-craft-arrow-nudge 0.6s ease-in-out infinite alternate; }
-.land-craft-arrow .ic { display: block; width: 26px; height: 26px; }
-@keyframes land-craft-arrow-nudge {
-  from { transform: translateX(0); }
-  to { transform: translateX(8px); }
+/* Stacked, the cards turn horizontal — photo left, copy right, a slim band
+   underneath — so all three crafts fit on a phone screen without scrolling. */
+@media (max-width: 860px) {
+  .land-page .land-crafts { gap: 8px; }
+  .land-craft {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto;
+    column-gap: 14px; align-items: center; padding: 14px 16px 0; text-align: left;
+  }
+  .land-craft.is-soon { padding-bottom: 14px; }
+  .land-craft-visual { grid-row: 1 / span 2; width: clamp(66px, 18vw, 110px); }
+  .land-page .land-craft-name { grid-column: 2; align-self: end; margin-top: 0; font-size: clamp(22px, 5.6vw, 28px); }
+  .land-page .land-craft-desc { grid-column: 2; align-self: start; margin-top: 4px; max-width: 44ch; font-size: 14px; line-height: 1.35; }
+  .land-craft-cta { grid-column: 1 / -1; margin: 10px -16px 0; padding-top: 0; }
+  .land-craft-wave { height: 10px; -webkit-mask-size: 32px 10px; mask-size: 32px 10px; }
+  .land-craft-cta-bar { justify-content: space-between; height: 38px; padding: 0 16px; font-size: 15px; }
+}
+/* Phones: the hero gives up its sub-line and most of its padding so the
+   craft cards are what fills the first screen. */
+@media (max-width: 600px) {
+  .land-page .brand-nav.tone-olive { min-height: 56px; padding-block: 8px; }
+  .land-page .land-hero { gap: 6px; padding: 14px 0 14px; }
+  .land-page .land-hero .brand-eyebrow.is-plain { font-size: clamp(13px, 3.75vw, 18px); white-space: nowrap; }
+  .land-page .land-title { font-size: clamp(36px, 10.4vw, 52px); }
+  .land-page .land-sub { display: none; }
+}
+
+/* Saved designs: a collapsible library under the craft cards. */
+.land-page .saved-sec { padding-bottom: clamp(40px, 5vw, 56px); }
+.saved-head {
+  display: inline-flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 20px;
+  border: none; background: none; color: var(--brand-ink); text-align: left; cursor: pointer;
+}
+.saved-head:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 4px; }
+.land-page .saved-head-title { margin: 0; font-size: clamp(30px, 3.6vw, 44px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.saved-count { align-self: flex-end; font-size: 16px; font-weight: 500; color: var(--brand-muted); }
+.saved-chev {
+  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border: 1px solid var(--brand-rule); border-radius: 50%; transform: rotate(-90deg); transition: transform 200ms ease;
+}
+.saved-chev.is-open { transform: none; }
+.saved-chev .ic { display: block; width: 16px; height: 16px; }
+
+.saved-toolbar { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 28px; border-bottom: 1px solid var(--brand-rule); }
+.saved-tabs { flex: 1; min-width: 0; display: flex; gap: 24px; margin-bottom: -1px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.saved-tabs::-webkit-scrollbar { display: none; }
+.saved-tab {
+  height: 48px; padding: 0; border: none; border-bottom: 2px solid transparent; background: none;
+  font-family: inherit; font-size: 16px; font-weight: 600; color: var(--brand-muted); white-space: nowrap; cursor: pointer;
+}
+.saved-tab:hover, .saved-tab.is-on { color: var(--brand-ink); }
+.saved-tab.is-on { border-bottom-color: var(--brand-ink); }
+.saved-tab:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: -2px; }
+.saved-tools { flex: none; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; }
+.saved-search, .saved-sort {
+  height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 12px; box-sizing: border-box;
+  border: 1px solid var(--brand-rule); border-radius: 19px; background: var(--metime-white); color: var(--brand-ink);
+}
+.saved-search { width: 200px; cursor: text; }
+.saved-search:focus-within { border-color: var(--brand-ink); }
+.saved-search .ic { flex: none; width: 15px; height: 15px; color: var(--brand-muted); }
+.saved-search input {
+  flex: 1; min-width: 0; padding: 0; border: none; outline: none; background: none;
+  font-family: inherit; font-size: 14px; color: inherit; -webkit-appearance: none; appearance: none;
+}
+.saved-search input::placeholder { color: var(--brand-muted); }
+.saved-search input::-webkit-search-cancel-button { display: none; }
+.saved-sort { font-family: inherit; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.saved-sort:hover { background: var(--brand-cream); }
+.saved-sort:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
+.saved-sort-icon { display: inline-flex; transform: rotate(90deg); }
+.saved-sort-icon .ic { display: block; width: 15px; height: 15px; }
+
+.saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 30px 18px; }
+.saved-item { position: relative; min-width: 0; }
+.saved-card {
+  display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; padding: 0;
+  border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.saved-thumb {
+  display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1; overflow: hidden;
+  border-radius: 4px; background: color-mix(in srgb, var(--brand-cream) 90%, var(--brand-ink));
+  transition: transform 200ms ease;
+}
+.saved-card:hover .saved-thumb { transform: translateY(-3px); }
+.saved-art { display: flex; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 6px 16px rgba(0, 0, 0, 0.1); }
+.saved-art svg, .saved-art canvas { display: block; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; border-radius: 0 !important; }
+.saved-card-text { display: block; min-width: 0; padding-right: 38px; }
+.saved-name { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-meta { display: block; margin-top: 2px; font-size: 13px; line-height: 1.3; color: var(--brand-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-more {
+  position: absolute; right: 0; bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 2.5px;
+  width: 30px; height: 30px; padding: 0; border: none; border-radius: 50%; background: none; cursor: pointer;
+}
+.saved-more span { width: 3.5px; height: 3.5px; border-radius: 50%; background: var(--brand-ink); }
+.saved-more:hover, .saved-more[aria-expanded="true"] { background: var(--brand-cream); }
+.saved-more:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 1px; }
+.saved-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; min-width: 170px; padding: 6px;
+  border: 1px solid var(--brand-rule-2); border-radius: 14px; background: var(--metime-white);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+}
+.saved-menu-note { padding: 8px 12px 6px; font-size: 13px; line-height: 1.35; color: var(--brand-muted); }
+.saved-menu-item {
+  display: flex; align-items: center; width: 100%; height: 38px; padding: 0 12px; border: none; border-radius: 9px;
+  background: none; font-family: inherit; font-size: 14px; color: var(--brand-ink); text-align: left; cursor: pointer;
+}
+.saved-menu-item:hover, .saved-menu-item:focus-visible { background: var(--brand-cream); outline: none; }
+/* Darker than tomato: menu text is 14px, and tomato on white misses 4.5:1. */
+.saved-menu-item.is-danger { color: #B42318; }
+.saved-menu-item.is-danger:hover, .saved-menu-item.is-danger:focus-visible { background: #FCEDEA; }
+.saved-empty { padding: 8px 0 24px; font-size: 16px; color: var(--brand-muted); text-align: center; }
+.saved-error { margin: -12px 0 20px; font-size: 14px; color: #B42318; }
+
+.land-footer {
+  display: flex; flex-direction: column; gap: 20px; padding-block: 32px 28px;
+  background: var(--ds-gray-100); color: var(--brand-ink); border-top: 1px solid var(--brand-rule-2);
+}
+.land-footer-top, .land-footer-bottom { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
+.land-footer-bottom { padding-top: 18px; border-top: 1px solid var(--brand-rule-2); }
+.land-footer-logo { display: block; width: 72px; height: auto; }
+.land-footer-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.land-footer-links a { font-size: 14px; color: var(--brand-muted); text-decoration: none; }
+.land-footer-links a:hover { color: var(--brand-ink); text-decoration: underline; text-underline-offset: 3px; }
+.land-footer-copy { margin-left: auto; font-size: 14px; color: var(--brand-muted); }
+@media (max-width: 600px) {
+  .land-footer-links { gap: 8px 18px; }
+  .land-footer-copy { margin-left: 0; width: 100%; }
+}
+
+@media (max-width: 700px) {
+  .saved-toolbar { flex-wrap: wrap; gap: 0; }
+  .saved-tools { order: -1; width: 100%; padding-bottom: 12px; }
+  .saved-tabs { flex-basis: 100%; }
+  .saved-search { flex: 1; width: auto; }
+  .saved-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 24px 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .land-craft:hover .land-craft-arrow,
-  .land-craft:focus-visible .land-craft-arrow,
-  .saved-card:hover .saved-card-arrow,
-  .saved-card:focus-visible .saved-card-arrow { animation: none; }
-}
-
-@media (max-height: 900px) {
-  .land-craft { padding: 20px 32px 24px; }
-  .land-craft-visual { padding: 4px 0 12px; }
-  .land-craft-name { font-size: 22px; }
-  .land-craft-desc { font-size: 18px; }
-}
-
-@media (max-width: 900px) {
-  .land-crafts { grid-template-columns: 1fr; }
-  .land-craft { padding: 24px 28px; }
-  .land-craft + .land-craft::before { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 1px; }
-  .land-craft-visual img { max-height: 180px; }
+  .land-craft-visual img, .land-craft-arrow, .saved-thumb { transition: none; }
+  .land-craft:hover .land-craft-wave, .land-craft:focus-visible .land-craft-wave { animation-play-state: paused; }
 }
 
 /* Brand page heading title and its back link (Figma Desktop - 2, node 5:3). */
@@ -694,16 +821,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .size-back-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
 .size-back-icon .ic { display: block; width: 14px; height: 14px; }
 .size-back-label { font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 24px; border-bottom: 1px solid currentColor; }
-
-/* Phones have no hover, so the product-block arrows stay visible. */
-@media (hover: none), (max-width: 900px) {
-  .land-craft-arrow,
-  .saved-card-arrow {
-    opacity: 1;
-    visibility: visible;
-    animation: none;
-  }
-}
 
 @media (max-width: 900px) {
   .size-back { left: 20px; }
@@ -1369,84 +1486,11 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   outline-offset: 2px;
   box-shadow: none;
 }
-.brand-shell .land-craft:focus-visible,
-.brand-shell .saved-card:focus-visible {
-  outline: 2px solid var(--brand-ink);
-  outline-offset: -4px;
-  box-shadow: none;
-}
 /* Buttons and filter pills keep the design system's tomato focus ring. */
 .brand-shell :is(.btn, .brand-btn, .pal-btn, .pal-upload-pill, .filter-pill):focus-visible {
   outline: none;
   box-shadow: var(--btn-focus-shadow);
 }
-
-/* ── Product band ─────────────────────────────────────────────────────────
-   Edge-to-edge columns split by hairlines. Flat, no lift on hover; hover
-   just warms the cell so the artwork stays the thing you look at. */
-.brand-shell .land-crafts { background: var(--brand-paper); }
-.brand-shell .land-craft {
-  background: var(--brand-paper);
-  border-radius: 0;
-  box-shadow: none;
-  transform: none;
-  transition: background 0.16s;
-}
-.brand-shell .land-craft:hover { background: var(--brand-cream); box-shadow: none; transform: none; }
-.brand-shell .land-craft.is-soon:hover { background: var(--brand-paper); }
-
-/* Card copy: bold grotesk name, comfortable description, numbered label. */
-.brand-shell .land-craft-name {
-  font-family: var(--brand-font);
-  font-size: var(--brand-display-s);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.018em;
-  color: var(--brand-ink);
-}
-.brand-shell .land-craft-desc {
-  font-family: var(--brand-font);
-  font-size: var(--brand-body-s);
-  font-weight: 400;
-  line-height: 1.4;
-  color: var(--brand-muted);
-}
-/* Hover arrow: keep the existing affordance, just quieter and ink-coloured. */
-.brand-shell :is(.land-craft-arrow, .saved-card-arrow) .ic { opacity: 0.85; }
-
-/* ── Craft selection ─────────────────────────────────────────────────────
-   The olive heading band is this screen's colour moment, so the craft cells
-   stay paper and the project photography does the talking. */
-.brand-shell.land-page { background: var(--brand-paper); }
-/* Drop the old 360px floor — with the taller heading it pushes the page a
-   sliver past the viewport and you get a dead 80–160px scroll. */
-.brand-shell .land-main,
-.brand-shell .land-crafts { min-height: 0; }
-.brand-shell .land-crafts { border-bottom: 1px solid var(--brand-ink); }
-.brand-shell .land-craft {
-  padding: clamp(22px, 2.4vw, 34px) var(--brand-gutter) clamp(26px, 2.6vw, 36px);
-  border-left: 1px solid var(--brand-ink);
-}
-.brand-shell .land-craft:first-child { border-left: none; }
-/* The old 1px pseudo-divider is replaced by a real border above. */
-.brand-shell .land-craft + .land-craft::before { display: none; }
-/* Inset field padding belongs on the plate, not the image: a max-height:100%
-   image with its own padding measures 100% + padding and overflows the box. */
-.brand-shell .land-craft-visual {
-  padding: 0;
-  margin-bottom: clamp(20px, 2.2vw, 30px);
-  background: none;
-  border: none;
-  min-height: 0;
-}
-.brand-shell .land-craft-visual img {
-  max-width: min(300px, 100%);
-  max-height: min(240px, 28vh);
-  padding: 0;
-}
-.brand-shell .land-craft-desc-row { align-items: flex-start; gap: 12px; margin-top: 8px; }
-.brand-shell .land-craft-arrow { width: 36px; height: 36px; margin-top: 0; }
-.brand-shell .land-craft-arrow .ic { width: 20px; height: 20px; }
 
 /* Import actions are Secondary buttons (Small) beside the heading. */
 .brand-shell .pal-upload-pill {
@@ -1720,50 +1764,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   color: #B3261E;
 }
 
-/* ── Saved designs ───────────────────────────────────────────────────────
-   Kept in place and fully functional; restyled to the same editorial grid. */
-/* The craft band already draws the rule above this section — don't add another. */
-.brand-shell .saved-sec { background: var(--brand-paper); border-top: none; }
-.brand-shell .saved-toolbar { padding: 16px var(--brand-gutter); }
-.brand-shell .saved-head-title {
-  font-family: var(--brand-font);
-  font-style: normal;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--brand-ink);
-}
-.brand-shell .saved-count { font-weight: 400; margin-left: 2px; }
-.brand-shell .saved-filter { font-family: var(--brand-font); }
-.brand-shell .saved-grid { border-top: 1px solid var(--brand-ink); }
-.brand-shell .saved-card {
-  gap: 14px;
-  padding: 22px var(--brand-gutter) 26px;
-  background: var(--brand-paper);
-  border-right-color: var(--brand-ink);
-  transition: background 0.16s;
-}
-.brand-shell .saved-card:hover { background: var(--brand-cream); }
-.brand-shell .saved-card:nth-child(n+5) { border-top-color: var(--brand-ink); }
-.brand-shell .saved-thumb { background: var(--brand-cream); border: none; }
-.brand-shell .saved-name {
-  font-family: var(--brand-font);
-  font-size: var(--brand-body-s);
-  font-weight: 700;
-  letter-spacing: -0.008em;
-  color: var(--brand-ink);
-}
-.brand-shell .saved-meta {
-  font-family: var(--brand-font);
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--brand-muted);
-}
-.brand-shell .saved-empty { font-family: var(--brand-font); font-size: var(--brand-body-s); color: var(--brand-muted); padding: 30px var(--brand-gutter); }
-@media (max-width: 1080px) { .brand-shell .saved-card:nth-child(n+3) { border-top-color: var(--brand-ink); } }
-@media (max-width: 600px) { .brand-shell .saved-card:nth-child(n+2) { border-top-color: var(--brand-ink); } }
-
 /* ── Footer ──────────────────────────────────────────────────────────────
    Replaces the golden dead band: a flexible paper spacer that absorbs the
    leftover viewport height, then a hairline strip carrying a factual caption
@@ -1781,9 +1781,6 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   .brand-shell .brand-head { padding-block: 16px; }
   .brand-shell .brand-head-wiggle { margin-top: 10px; }
   .brand-shell .brand-head-sub { margin-top: 10px; }
-  .brand-shell .land-craft { padding-block: 16px; }
-  .brand-shell .land-craft-visual { margin-bottom: 14px; }
-  .brand-shell .land-craft-visual img { max-height: min(200px, 24vh); }
 }
 @media (max-width: 1080px) {
   .brand-shell .brand-head-main { display: block; }
@@ -1797,13 +1794,9 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   .brand-shell .brand-head-text,
   .brand-shell .brand-head-text.is-wide { max-width: none; }
 
-  .brand-shell .land-craft-visual img { max-height: 190px; }
-
 }
 @media (max-width: 600px) {
   .brand-shell .brand-head-top { flex-wrap: nowrap; justify-content: space-between; }
-  .brand-shell .land-craft { border-left: none; border-top: 1px solid var(--brand-ink); }
-  .brand-shell .land-craft:first-child { border-top: none; }
 
 }
 

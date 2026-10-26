@@ -128,13 +128,13 @@ export function TweaksPanel() {
 export const CRAFTS = [
   { id: "cross-stitch", name: "Cross-stitch", ready: true,
     desc: "Turn an image into a stitchable grid, with thread counts included.",
-    image: "assets/landing/craft-cross-stitch.png", imgW: 256, imgH: 256 },
+    image: "assets/landing/craft-cross-stitch.webp", imgW: 440, imgH: 440 },
   { id: "quilt", name: "Quilt", ready: true,
     desc: "Compose with squares and half-square triangles, then get the yardage.",
     image: "assets/landing/craft-quilt.png", imgW: 208, imgH: 260 },
   { id: "punch-needle", name: "Punch Needle", ready: true,
     desc: "Punch a design in loops, with yarn quantities listed for the kit.",
-    image: "assets/landing/craft-punch-needle-wall.png", imgW: 246, imgH: 269 },
+    image: "assets/landing/craft-punch-needle-small.webp", imgW: 440, imgH: 528 },
 ];
 
 function AccountMenu() {

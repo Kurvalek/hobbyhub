@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react';
-import { loadSavedPunch, loadSavedQuilts, loadSavedStitches, useAuth } from './services.jsx';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  deleteCloudDesign, loadSavedPunch, loadSavedQuilts, loadSavedStitches, persistSavedPunch,
+  persistSavedQuilts, persistSavedStitches, upsertCloudDesign, useAuth,
+} from './services.jsx';
 import { deserializeGrid } from './design-model.jsx';
-import { IcArrowL, IcArrowR, IcChevD } from './icons.jsx';
+import { IcArrowL, IcArrowR, IcChevD, IcSearch, IcSwap } from './icons.jsx';
 import { CRAFTS, LandingAuth } from './account.jsx';
 import { StitchThumb } from './stitch-studio.jsx';
 
@@ -50,13 +53,16 @@ function BrandXRule({ count = 3, size = 11 }) {
 
 // Shared nav. The wordmark is the shipped asset used unmodified — its own
 // tomato wiggle is the mark's thread, so no extra wiggle is added beside it.
-export function BrandNav() {
+// `tone="olive"` is the landing page's sticky colour bar; `children` sit
+// before the account control.
+export function BrandNav({ tone, children }) {
   return (
-    <header className="brand-nav brand-bleed">
+    <header className={`brand-nav brand-bleed${tone ? ` tone-${tone}` : ''}`}>
       <a className="brand-nav-logo" href="/" aria-label="metime home">
         <img src="assets/metime-logo.svg" alt="metime" width="104" height="35"/>
       </a>
       <div className="brand-nav-right">
+        {children}
         <LandingAuth/>
       </div>
     </header>
@@ -155,7 +161,8 @@ export function SavedQuiltThumb({ q }) {
   );
 }
 
-// Collapsible saved-designs band on the landing page (Figma 7:1111).
+// Saved designs on the landing page: a collapsible library with craft tabs,
+// search and sort, laid out as a grid of tiles.
 const SAVED_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'quilt', label: 'Quilts' },
@@ -163,115 +170,256 @@ const SAVED_FILTERS = [
   { id: 'punch', label: 'Punch needle' },
 ];
 const SAVED_META = { quilt: 'Quilt', stitch: 'Cross-stitch', punch: 'Punch needle' };
+const SAVED_DRAWERS = {
+  quilt: { type: 'quilt', load: loadSavedQuilts, persist: persistSavedQuilts },
+  stitch: { type: 'cross-stitch', load: loadSavedStitches, persist: persistSavedStitches },
+  punch: { type: 'punch-needle', load: loadSavedPunch, persist: persistSavedPunch },
+};
+const SAVED_SORT_LABEL = { recent: 'Last edited', name: 'Name A–Z' };
+const SAVED_OPEN_KEY = 'metime.savedOpen';
 function savedMetaLine(it) {
   if (it._type === 'quilt') return `Quilt · ${it.fw}" × ${it.fh}"`;
   const n = it.colorsUsed;
   return `${SAVED_META[it._type]} · ${n} color${n !== 1 ? 's' : ''}`;
 }
-function SavedDesigns({ onOpen }) {
-  const auth = useAuth();
-  const libraryOn = !!(auth && auth.libraryOn);
-  const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const items = useMemo(() => {
-    if (!libraryOn) return [];
-    const quilts = loadSavedQuilts().map(q => ({ ...q, _type: 'quilt' }));
-    const stitches = loadSavedStitches().map(d => ({ ...d, _type: 'stitch' }));
-    const punch = loadSavedPunch().map(d => ({ ...d, _type: 'punch' }));
-    return [...quilts, ...stitches, ...punch].sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
-  }, [libraryOn, auth && auth.libraryTick]);
-  const visible = filter === 'all' ? items : items.filter(it => it._type === filter);
-  if (!libraryOn || !items.length) return null;
+function readSavedOpen() {
+  try { return localStorage.getItem(SAVED_OPEN_KEY) !== '0'; } catch (e) { return true; }
+}
+
+// The design sits on a cream tile at its own aspect ratio, filling at most 72%
+// of the tile either way.
+function SavedArt({ it }) {
+  const cells = useMemo(() => it._type === 'quilt' ? null : deserializeGrid(it.grid, it.w * it.h), [it]);
+  const cols = it._type === 'quilt' ? it.cols : it.w, rows = it._type === 'quilt' ? it.rows : it.h;
+  const ar = cols / rows;
+  const size = { width: `${ar >= 1 ? 72 : 72 * ar}%`, height: `${ar >= 1 ? 72 / ar : 72}%` };
   return (
-    <div className="saved-sec">
-      <div className="saved-toolbar">
-        <button className="saved-head" type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-          <span className="saved-head-title">Saved Designs <span className="saved-count">{items.length}</span></span>
-          <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><IcChevD size={14}/></span>
-        </button>
-        {open && (
-          <div className="saved-filters" role="tablist" aria-label="Filter saved designs">
-            {SAVED_FILTERS.map(f => (
-              <button key={f.id} type="button" role="tab" aria-selected={filter === f.id}
-                className={`saved-filter filter-pill${filter === f.id ? ' is-on' : ''}`}
-                onClick={() => setFilter(f.id)}>{f.label}</button>
-            ))}
-          </div>
-        )}
-      </div>
-      {open && (
-        <div className="saved-grid">
-          {visible.length === 0 && (
-            <div className="saved-empty">No {SAVED_FILTERS.find(f => f.id === filter).label.toLowerCase()} saved yet.</div>
-          )}
-          {visible.map(it => (
-            <button key={it._type + '-' + it.id} className="saved-card" type="button"
-              title="Open on canvas"
-              onClick={() => onOpen(it._type, it)}>
-              <div className="saved-thumb">
-                {it._type === 'quilt'
-                  ? <SavedQuiltThumb q={it}/>
-                  : <StitchThumb w={it.w} h={it.h} cells={deserializeGrid(it.grid, it.w * it.h)} size={260} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
-              </div>
-              <div className="saved-copy">
-                <div className="saved-card-text">
-                  <div className="saved-name">{it.name}</div>
-                  <div className="saved-meta">{savedMetaLine(it)}</div>
-                </div>
-                <span className="saved-card-arrow" aria-hidden="true">
-                  <IcArrowR/>
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
+    <span className="saved-art" style={size}>
+      {it._type === 'quilt'
+        ? <SavedQuiltThumb q={it}/>
+        : <StitchThumb w={it.w} h={it.h} cells={cells} size={260} bg={(it.fabric && it.fabric.hex) || '#FFFFFF'}/>}
+    </span>
+  );
+}
+
+function SavedTileMenu({ onOpen, onCopy, onDelete, onClose }) {
+  const ref = useRef(null);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    const onDoc = e => { if (ref.current && !ref.current.parentNode.contains(e.target)) onClose(); };
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('pointerdown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [onClose]);
+  return (
+    <div className="saved-menu" role="menu" ref={ref}>
+      {confirming ? (
+        <>
+          <div className="saved-menu-note">Delete this design for good?</div>
+          <button type="button" role="menuitem" className="saved-menu-item" onClick={() => setConfirming(false)}>Cancel</button>
+          <button type="button" role="menuitem" className="saved-menu-item is-danger" onClick={onDelete}>Delete</button>
+        </>
+      ) : (
+        <>
+          <button type="button" role="menuitem" className="saved-menu-item" onClick={onOpen}>Open</button>
+          <button type="button" role="menuitem" className="saved-menu-item" onClick={onCopy}>Make a copy</button>
+          <button type="button" role="menuitem" className="saved-menu-item is-danger" onClick={() => setConfirming(true)}>Delete</button>
+        </>
       )}
     </div>
   );
 }
 
+function SavedDesigns({ onOpen, open, setOpen, sectionRef }) {
+  const auth = useAuth();
+  const libraryOn = !!(auth && auth.libraryOn);
+  const cloudOn = !!(auth && auth.cloudEnabled && auth.user);
+  const [filter, setFilter] = useState('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('recent');
+  const [menuFor, setMenuFor] = useState(null);
+  const [edits, setEdits] = useState(0);
+  const [error, setError] = useState('');
+  const items = useMemo(() => {
+    if (!libraryOn) return [];
+    return Object.entries(SAVED_DRAWERS)
+      .flatMap(([key, d]) => d.load().map(it => ({ ...it, _type: key })))
+      .sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
+  }, [libraryOn, auth && auth.libraryTick, edits]);
+  if (!libraryOn || !items.length) return null;
+
+  const q = query.trim().toLowerCase();
+  let visible = items.filter(it => (filter === 'all' || it._type === filter) && (!q || (it.name || '').toLowerCase().includes(q)));
+  if (sort === 'name') visible = visible.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const keyOf = it => it._type + '-' + it.id;
+
+  const remove = it => {
+    const d = SAVED_DRAWERS[it._type];
+    d.persist(d.load().filter(x => x.id !== it.id));
+    if (cloudOn && it.apiId) deleteCloudDesign(it.apiId).catch(e => console.warn('Could not delete from your account:', e));
+    setMenuFor(null); setEdits(n => n + 1);
+  };
+  // A copy goes to the account first when there is one, the same order the
+  // studios save in, so it never exists only on this device by accident.
+  const copy = async it => {
+    setMenuFor(null); setError('');
+    const d = SAVED_DRAWERS[it._type];
+    const { _type, apiId, ...rest } = it;
+    const now = Date.now();
+    let record = { ...rest, id: now, name: `${it.name || 'Untitled'} copy` };
+    if (cloudOn) {
+      try { record = { ...record, apiId: await upsertCloudDesign(d.type, record) }; }
+      catch (e) {
+        console.warn('Could not copy to your account:', e);
+        setError("Couldn't make a copy in your account. Check your connection and try again.");
+        return;
+      }
+    }
+    d.persist([record, ...d.load()]);
+    setEdits(n => n + 1);
+  };
+
+  return (
+    <section className="saved-sec brand-bleed" id="saved" ref={sectionRef}>
+      <button className="saved-head" type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <h2 className="saved-head-title">Saved Designs</h2>
+        <span className="saved-count">{items.length}</span>
+        <span className={`saved-chev${open ? ' is-open' : ''}`} aria-hidden="true"><IcChevD size={16}/></span>
+      </button>
+      {open && (
+        <>
+          <div className="saved-toolbar">
+            <div className="saved-tabs" role="tablist" aria-label="Filter saved designs">
+              {SAVED_FILTERS.map(f => (
+                <button key={f.id} type="button" role="tab" aria-selected={filter === f.id}
+                  className={`saved-tab${filter === f.id ? ' is-on' : ''}`}
+                  onClick={() => setFilter(f.id)}>{f.label}</button>
+              ))}
+            </div>
+            <div className="saved-tools">
+              <label className="saved-search">
+                <IcSearch size={15}/>
+                <input type="search" value={query} onChange={e => setQuery(e.target.value)}
+                  placeholder="Search designs" aria-label="Search designs"/>
+              </label>
+              <button type="button" className="saved-sort" onClick={() => setSort(s => s === 'recent' ? 'name' : 'recent')}>
+                <span className="saved-sort-icon" aria-hidden="true"><IcSwap size={15}/></span>
+                {SAVED_SORT_LABEL[sort]}
+              </button>
+            </div>
+          </div>
+          {error && <div className="saved-error" role="alert">{error}</div>}
+          <div className="saved-grid">
+            {visible.map(it => (
+              <div key={keyOf(it)} className="saved-item">
+                <button className="saved-card" type="button" title="Open on canvas" onClick={() => onOpen(it._type, it)}>
+                  <span className="saved-thumb"><SavedArt it={it}/></span>
+                  <span className="saved-card-text">
+                    <span className="saved-name">{it.name}</span>
+                    <span className="saved-meta">{savedMetaLine(it)}</span>
+                  </span>
+                </button>
+                <button type="button" className="saved-more" aria-label={`More options for ${it.name}`}
+                  aria-haspopup="menu" aria-expanded={menuFor === keyOf(it)}
+                  onClick={() => setMenuFor(m => m === keyOf(it) ? null : keyOf(it))}>
+                  <span/><span/><span/>
+                </button>
+                {menuFor === keyOf(it) && (
+                  <SavedTileMenu onOpen={() => onOpen(it._type, it)} onCopy={() => copy(it)}
+                    onDelete={() => remove(it)} onClose={() => setMenuFor(null)}/>
+                )}
+              </div>
+            ))}
+          </div>
+          {visible.length === 0 && (
+            <div className="saved-empty">
+              {q ? `No designs match “${query.trim()}”.` : `No ${SAVED_FILTERS.find(f => f.id === filter).label.toLowerCase()} saved yet.`}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+// Store policies live on the Shopify storefront, at Shopify's standard paths.
+const FOOTER_LINKS = [
+  { label: 'Terms', href: 'https://shop.makemetime.com/policies/terms-of-service' },
+  { label: 'Privacy policy', href: 'https://shop.makemetime.com/policies/privacy-policy' },
+  { label: 'Shipping and returns', href: 'https://shop.makemetime.com/policies/shipping-policy' },
+  { label: 'Contact', href: 'https://shop.makemetime.com/pages/contact' },
+];
+
+// Each craft card carries its own colour field: grapefruit, golden and ice.
+const CRAFT_TONE = { 'cross-stitch': 'grapefruit', quilt: 'golden', 'punch-needle': 'ice' };
+
 export function CraftSelector({ onSelect, onOpenSaved }) {
+  const auth = useAuth();
+  const [savedOpen, setSavedOpenState] = useState(readSavedOpen);
+  const savedRef = useRef(null);
+  const setSavedOpen = v => {
+    setSavedOpenState(v);
+    try { localStorage.setItem(SAVED_OPEN_KEY, v ? '1' : '0'); } catch (e) { /* ignore */ }
+  };
+  const hasSaved = useMemo(() => !!(auth && auth.libraryOn)
+    && Object.values(SAVED_DRAWERS).some(d => d.load().length > 0),
+  [auth && auth.libraryOn, auth && auth.libraryTick]);
+  const goToSaved = e => {
+    e.preventDefault();
+    setSavedOpen(true);
+    requestAnimationFrame(() => savedRef.current && savedRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   return (
     <div className="land-page brand-shell">
       <div className="land-fill">
-      <BrandNav/>
-      <BrandHead
-        tone="olive"
-        xl
-        wide
-        cycles={6}
-        eyebrow={<BrandEyebrow plain label="Design your craft. We send the materials. You make it."/>}
-        title="What are you making?"
-        sub="Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making."/>
-      <div className="land-main">
+      <BrandNav tone="olive">
+        {hasSaved && <a className="land-nav-link" href="#saved" onClick={goToSaved}>My designs</a>}
+      </BrandNav>
+      <main className="land-main brand-bleed">
+        <div className="land-hero">
+          <BrandEyebrow plain label="Design your craft. We send the materials. You make it."/>
+          <h1 className="land-title">What are you making?</h1>
+          <p className="land-sub">Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making.</p>
+        </div>
         <div className="land-crafts">
-          {CRAFTS.map((c, i) => (
+          {CRAFTS.map(c => (
             <div key={c.id}
-              className={c.ready ? "land-craft" : "land-craft is-soon"}
+              className={`land-craft tone-${CRAFT_TONE[c.id] || 'cream'}${c.ready ? '' : ' is-soon'}`}
               role="button" tabIndex={c.ready ? 0 : -1} aria-disabled={!c.ready}
               aria-label={c.ready ? `Start ${c.name}` : `${c.name}, coming soon`}
               onClick={() => c.ready && onSelect(c.id)}
-              onKeyDown={e => e.key === "Enter" && c.ready && onSelect(c.id)}>
+              onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && c.ready) { e.preventDefault(); onSelect(c.id); } }}>
               <div className="land-craft-visual">
-                <img src={c.image} alt="" width={c.imgW} height={c.imgH} loading="eager" decoding="async" fetchPriority="high"/>
+                <img src={c.image} alt="" width={c.imgW} height={c.imgH} loading="eager" decoding="async" fetchpriority="high"/>
               </div>
-              <div className="land-craft-copy">
-                <div className="land-craft-name">{c.name}</div>
-                <div className="land-craft-desc-row">
-                  <span className="land-craft-desc">{c.ready ? c.desc : "Coming soon"}</span>
-                  {c.ready && (
-                    <span className="land-craft-arrow" aria-hidden="true">
-                      <IcArrowR size={26}/>
-                    </span>
-                  )}
+              <div className="land-craft-name">{c.name}</div>
+              <div className="land-craft-desc">{c.ready ? c.desc : 'Coming soon'}</div>
+              {c.ready && (
+                <div className="land-craft-cta">
+                  <span className="land-craft-wave" aria-hidden="true"/>
+                  <span className="land-craft-cta-bar">
+                    Start designing
+                    <span className="land-craft-arrow" aria-hidden="true"><IcArrowR size={20}/></span>
+                  </span>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
-      </div>
-      <SavedDesigns onOpen={onOpenSaved}/>
-      <BrandFooter/>
+      </main>
+      <SavedDesigns onOpen={onOpenSaved} open={savedOpen} setOpen={setSavedOpen} sectionRef={savedRef}/>
+      <footer className="land-footer brand-bleed">
+        <div className="land-footer-top">
+          <img className="land-footer-logo" src="assets/metime-logo.svg" alt="metime" width="72" height="24"/>
+        </div>
+        <div className="land-footer-bottom">
+          <nav className="land-footer-links" aria-label="Store information">
+            {FOOTER_LINKS.map(l => <a key={l.label} href={l.href}>{l.label}</a>)}
+          </nav>
+          <span className="land-footer-copy">© 2026 metime</span>
+        </div>
+      </footer>
       </div>
     </div>
   );
