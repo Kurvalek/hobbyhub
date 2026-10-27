@@ -1,6 +1,6 @@
 /* Self-hosted brand type — Söhne (sans) and BC Civitas (display).
    Trial ("TEST") cuts as supplied. The stitch text tool uses Google faces
-   instead (Arvo, Cal Sans, Meow Script, Manufacturing Consent, Oleo Script
+   instead (Arvo, Cal Sans, Jacquarda Bastarda 9, Jacquard 12, Oleo Script
    Swash Caps, plus Rye for the sampler alphabet). Rye's wedge serifs are
    the classic stitched-sampler letterforms, and they survive being
    rasterized down to ~12 stitches, which most display faces don't. */
@@ -350,6 +350,7 @@ body {
     display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
   }
   .bottom-sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--warm-hairline); margin: 8px auto 2px; flex-shrink: 0; }
+  .bottom-sheet .sheet-drag-zone { padding-bottom: 6px; }
   .bottom-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 12px 6px; flex-shrink: 0; }
   .bottom-sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
@@ -488,7 +489,44 @@ input[type=text], input[type=email], select, textarea {
 }
 input[type=text]:focus, input[type=email]:focus, select:focus, textarea:focus { border-color: var(--metime-almost-black); }
 select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='10' height='10' fill='none' stroke='%238A8580' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; cursor: pointer; }
-input[type=range] { width: 100%; accent-color: var(--metime-almost-black); cursor: pointer; }
+/* Slider — metime design system V1 has no slider of its own, so it is built
+   from the button primitives: black fill and thumb on a gray-300 pill track,
+   the primary button's hover / active / disabled greys and the shared focus
+   ring. WebKit has no progress pseudo-element, so the filled run is painted
+   from --range-fill, which callers set with rangeFill(). */
+input[type=range] {
+  --range-track: var(--ds-gray-300);
+  --range-active: var(--btn-primary-bg);
+  --range-thumb: var(--btn-primary-bg);
+  --range-thumb-size: 16px;
+  --range-track-h: 4px;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 20px; margin: 0; padding: 0; background: transparent; cursor: pointer;
+}
+input[type=range]:focus { outline: none; }
+input[type=range]:hover { --range-thumb: var(--btn-primary-bg-hover); }
+input[type=range]:active { --range-thumb: var(--btn-primary-bg-active); }
+input[type=range]:disabled { --range-track: var(--ds-gray-200); --range-active: var(--ds-gray-300); --range-thumb: var(--ds-gray-300); cursor: not-allowed; }
+input[type=range]::-webkit-slider-runnable-track {
+  height: var(--range-track-h); border-radius: var(--pill-radius);
+  background: linear-gradient(to right, var(--range-active) var(--range-fill, 0%), var(--range-track) 0);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: var(--range-thumb-size); height: var(--range-thumb-size);
+  margin-top: calc((var(--range-track-h) - var(--range-thumb-size)) / 2);
+  border: 0; border-radius: 50%; background: var(--range-thumb);
+  transition: background .14s, box-shadow .12s;
+}
+input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: var(--btn-focus-shadow); }
+input[type=range]::-moz-range-track { height: var(--range-track-h); border-radius: var(--pill-radius); background: var(--range-track); }
+input[type=range]::-moz-range-progress { height: var(--range-track-h); border-radius: var(--pill-radius); background: var(--range-active); }
+input[type=range]::-moz-range-thumb {
+  width: var(--range-thumb-size); height: var(--range-thumb-size);
+  border: 0; border-radius: 50%; background: var(--range-thumb);
+  transition: background .14s, box-shadow .12s;
+}
+input[type=range]:focus-visible::-moz-range-thumb { box-shadow: var(--btn-focus-shadow); }
 input[type=checkbox] { accent-color: var(--color-taupe-900); cursor: pointer; }
 input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid var(--warm-hairline); background: none; border-radius: 4px; cursor: pointer; }
 
@@ -924,6 +962,25 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 /* Cross-stitch tools share the .icon-btn design-system treatment so both canvases match. */
 .xs-canvas-wrap { flex: 1; overflow: auto; display: flex; padding: 24px; background: var(--metime-cream); min-width: 0; }
 .xs-canvas { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); image-rendering: pixelated; touch-action: none; margin: auto; flex-shrink: 0; }
+/* The board plus anything laid over it in board coordinates (the text box). */
+.xs-canvas-holder { position: relative; margin: auto; flex-shrink: 0; }
+/* Words typed past the edge are cut off where the stitching will be, and the
+   board doesn't scroll to chase the caret out there. `clip` (not hidden) so
+   the holder never becomes a scroller of its own. */
+.xs-canvas-holder.has-textbox { overflow: clip; overflow-clip-margin: 36px; }
+.xs-canvas-holder .xs-canvas { display: block; margin: 0; }
+.xs-textbox { position: absolute; outline: 1px dashed rgba(23, 23, 23, 0.55); outline-offset: 3px; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.55); }
+.xs-textbox-input { display: block; margin: 0; padding: 0; border: none; outline: none; background: transparent; resize: none; overflow: hidden; white-space: pre; text-align: center; transform-origin: 0 0; caret-color: var(--metime-black); }
+.xs-textbox-input::placeholder { color: currentColor; opacity: 0.35; }
+.xs-textbox.is-over { outline-color: var(--metime-tomato); outline-style: solid; }
+.xs-textbox-bar { position: absolute; bottom: calc(100% + 6px); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.xs-textbox-bar.is-below { bottom: auto; top: calc(100% + 6px); }
+.xs-textbox-grip { height: 24px; padding: 0 6px; display: inline-flex; align-items: center; border: none; border-radius: 12px; background: var(--metime-black); color: #fff; cursor: grab; touch-action: none; }
+.xs-textbox-warn { height: 24px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 12px; background: var(--metime-tomato); color: #fff; font-size: 12px; font-weight: 500; }
+.xs-textbox-grip:active { cursor: grabbing; }
+.xs-text-strip { display: flex; align-items: center; gap: 8px; flex: none; }
+.xs-text-font { height: 40px; padding: 0 10px; border: 1px solid var(--warm-muted-2); border-radius: var(--btn-radius); background: var(--ds-white); color: var(--metime-black); font-size: 16px; }
+.xs-text-size .ed-zoom-val { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; }
 /* Setup-step intro — heading row carries the top-right skip (Figma 2151:266) */
 .pal-section { margin-bottom: 36px; }
 .pal-section-head { margin-bottom: 14px; }
@@ -2112,7 +2169,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .ed-slider-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
 .ed-slider-head .ed-label { margin: 0; font-size: 12px; color: var(--warm-muted); }
 .ed-slider-val { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
-.ed-app input[type=range].ed-range { height: 28px; }
+.ed-app input[type=range].ed-range { height: 28px; --range-thumb-size: 20px; }
 .ed-statcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
 .ed-statcard { background: var(--warm-hover); border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .ed-statcard-k { font-size: 11px; color: var(--warm-muted); }
@@ -2202,9 +2259,17 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 .ed-app .ed-tray-tools .icon-btn { width: 56px; height: 48px; }
 .ed-scrim { position: absolute; inset: 0; z-index: 8; background: rgba(23,23,23,0.14); animation: ed-fade-in .28s ease-out both; }
 .ed-scrim.is-closing { animation: ed-fade-out .22s ease-in both; pointer-events: none; }
-.ed-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .32s var(--ease-out) both; }
+.ed-sheet { --sheet-top-gap: 8px; position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; max-height: min(560px, 86%); display: flex; flex-direction: column; background: var(--app-bg); border-top: var(--div-border); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px rgba(23,23,23,0.14); animation: ed-sheet-in .32s var(--ease-out) both; }
 .ed-sheet.is-closing { animation: ed-sheet-out .22s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
-.ed-sheet .ed-handle { margin: 8px auto 4px; flex: none; }
+.ed-sheet.is-expanded { height: calc(100% - var(--sheet-top-gap)); max-height: none; }
+/* The handle and header are the grab zone that drags a mobile sheet (useSheetDrag). */
+.sheet-drag-zone { flex: none; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.sheet-drag-zone:active { cursor: grabbing; }
+.sheet-grab { display: flex; justify-content: center; width: 100%; padding: 8px 0 4px; border: 0; background: none; cursor: inherit; }
+.sheet-grab .ed-handle { display: block; margin: 0; transition: background .12s, box-shadow .12s; }
+.sheet-grab:hover .ed-handle { background: var(--warm-muted-2); }
+.sheet-grab:focus-visible { outline: none; }
+.sheet-grab:focus-visible .ed-handle { box-shadow: var(--btn-focus-shadow); }
 .ed-sheet .ed-panel-head { padding: 4px 16px 6px; }
 .ed-sheet .ed-panel-body { padding: 8px 16px 20px; }
 .ed-sheet .studio-menu-item { padding: 0 4px; min-height: 52px; font-size: 15px; border-radius: var(--btn-radius); }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { AIDA_FABRICS } from '../assets/color-catalogs.js';
 import {
   ACCOUNTS_OFFLINE_SAVE_MSG, canonicalPresetName, deleteCloudDesign, loadSavedPunch,
@@ -23,7 +24,7 @@ import {
 import {
   EdGuideFooter, EdHintBubble, EdMenu, EdMenuButton, EdNav, EdNavIcon, EdPaletteEditor,
   EdPaletteStarters, EdPanel, EdRow, EdSheet, EdSlider, EdStatCards, EdSwatch, edSwatchStyle,
-  EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, inchDims, LibraryPopover, Switch,
+  EdTipsSwitch, EdTools, EdZoomControls, EdZoomPill, inchDims, LibraryPopover, rangeFill, Switch,
   useCanvasPinchZoom, useEdGuide, useIsMobile, useShowTips,
 } from './editor-ui.jsx';
 import { AccountChip, AccountsOfflineNote } from './account.jsx';
@@ -34,6 +35,7 @@ import {
 } from './photo.jsx';
 import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './studio-shared.jsx';
 import { studioCovered } from './kit-review.jsx';
+import { rasterizeText, snapTextSize, StitchTextBox, StitchTextControls, XS_FONTS, xsLineHeight } from './stitch-text.jsx';
 
 // ── Cross-stitch: canvas editor ────────────────────────────────────────────
 const XS_DEFAULT_CODES = ["310","B5200","666","797","700","726","435","3806","3846","971"];
@@ -72,88 +74,6 @@ export const CRAFT_STUDIO = {
     checkoutType: 'punch-needle',
   },
 };
-const XS_FONTS = {
-  serif:    { label: "Serif",     family: '"Arvo", serif',                         weight: 700 },
-  sans:     { label: "Sans",      family: '"Cal Sans", sans-serif',                weight: 400 },
-  script:   { label: "Script",    family: '"Meow Script", cursive',                weight: 400 },
-  sampler:  { label: "Sampler",   family: '"Rye", serif',                          weight: 400 },
-  oldstyle: { label: "Old Style", family: '"Manufacturing Consent", serif',        weight: 400 },
-  swash:    { label: "Swash",     family: '"Oleo Script Swash Caps", cursive',     weight: 700 },
-};
-// Line pitch for multi-line text, in stitches. Tighter than a typographic
-// leading would be: at this size the gap is counted in whole stitches, and
-// anything looser reads as separate blocks rather than one stitched verse.
-function xsLineHeight(sizeCells) { return Math.max(sizeCells + 2, Math.round(sizeCells * 1.35)); }
-// Render text to an offscreen canvas at 1px-per-stitch and return the list of
-// [dx,dy] cell offsets that are "on" — i.e. the text as stitches. Newlines
-// stack as centered lines, since a long phrase can't fit one line on a hoop
-// and sampler layouts read centered anyway.
-function rasterizeText(text, font, sizeCells) {
-  if (!text) return [];
-  const f = XS_FONTS[font] || XS_FONTS.sans;
-  const size = Math.max(6, sizeCells);
-  const fontStr = `${f.weight} ${size}px ${f.family}`;
-  const lines = String(text).split('\n').map(s => s.trim());
-  if (!lines.some(Boolean)) return [];
-  const cv = document.createElement('canvas');
-  let ctx = cv.getContext('2d');
-  ctx.font = fontStr;
-  const lineH = xsLineHeight(size);
-  const metrics = lines.map(ln => {
-    const m = ctx.measureText(ln || ' ');
-    return {
-      w: Math.ceil(m.width),
-      asc: Math.ceil(m.actualBoundingBoxAscent || size * 0.8),
-      desc: Math.ceil(m.actualBoundingBoxDescent || size * 0.25),
-    };
-  });
-  // Baselines march down by lineH from the first line's ascent; the canvas has
-  // to reach the lowest descender of any line, not just the last one.
-  const base0 = metrics[0].asc + 1;
-  const w = Math.max(1, Math.max(...metrics.map(m => m.w)) + 2);
-  const h = Math.max(1, Math.max(...metrics.map((m, i) => base0 + i * lineH + m.desc)) + 1);
-  cv.width = w; cv.height = h;
-  ctx = cv.getContext('2d');
-  ctx.font = fontStr;
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000';
-  lines.forEach((ln, i) => { if (ln) ctx.fillText(ln, w / 2, base0 + i * lineH); });
-  let data;
-  try { data = ctx.getImageData(0, 0, w, h).data; } catch (e) { return []; }
-  const out = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (data[(y * w + x) * 4 + 3] >= 128) out.push([x, y]); }
-  return out;
-}
-// Text tool controls, shared by the desktop panel and the mobile sheet so the
-// two can't drift apart. A textarea rather than a single-line input because
-// stitched text is stacked — a phrase long enough to be worth saying doesn't
-// fit across one hoop — so Enter starts a new centered line.
-function StitchTextControls({ text, setText, textFont, setTextFont, textSize, setTextSize, autoFocus = false }) {
-  return (
-    <>
-      {/* Four rows because the seeded verses run to four lines, and a shorter
-          box hid the last one behind a scroll. */}
-      <textarea rows={4} placeholder="Type text… Enter for a new line" value={text}
-        onChange={e => setText(e.target.value)} autoFocus={autoFocus}
-        style={{ resize: 'vertical', minHeight: 74, lineHeight: 1.35 }}/>
-      {/* Six faces don't fit one row at a readable size, so they wrap 2×3. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {Object.keys(XS_FONTS).map(id => (
-          <button key={id} className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
-            style={{ flex: '1 1 42%', fontFamily: XS_FONTS[id].family, fontSize: 14 }}
-            onClick={() => setTextFont(id)}>{XS_FONTS[id].label}</button>
-        ))}
-      </div>
-      <label className="xs-ctrl" style={{ gap: 8 }}>
-        <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
-        <input type="range" min={6} max={40} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }}/>
-        <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
-      </label>
-      <div style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Hover the canvas to place it, then click to stitch the text.</div>
-    </>
-  );
-}
 // Small canvas preview of a stitch grid (used in the saved-designs list/preview).
 export function StitchThumb({ w, h, cells, size = 64, bg = '#FFFFFF' }) {
   const ref = useRef(null);
@@ -188,7 +108,7 @@ const STITCH_TOOLS = [
   { id: 'line', label: 'Line', key: 'L', Ic: IcLineTool, hint: () => 'Drag from one end to the other' },
   { id: 'rect', label: 'Rectangle', key: 'R', Ic: IcSquare, hint: () => 'Drag to draw a rectangle' },
   { id: 'ellipse', label: 'Oval', key: 'O', Ic: IcCircle, hint: () => 'Drag to draw an oval' },
-  { id: 'text', label: 'Text', key: 'T', Ic: IcText, hint: v => `Type your words, then ${v.toLowerCase()} the canvas to place them` },
+  { id: 'text', label: 'Text', key: 'T', Ic: IcText, hint: v => `${v} the canvas and type · ${v.toLowerCase()} away to stitch it` },
 ];
 // Tools that paint with the current color, so the palette rides along with them.
 const STITCH_COLOR_TOOLS = new Set(['pen', 'fill', 'line', 'rect', 'ellipse', 'text']);
@@ -479,7 +399,7 @@ function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
     { Ic: IcPen, t: 'Pencil & eraser', k: 'P · E', d: `Drag to draw or remove ${cfg.unitPlural}. The size buttons draw ${cfg.unitPlural} up to 5 wide${isMobile ? '' : ', and [ and ] step through them'}.` },
     { Ic: IcDrop, t: 'Fill', k: 'F', d: `${v} an area to fill everything of that color that touches it.` },
     { Ic: IcSquare, t: 'Line, rectangle & oval', k: 'L · R · O', d: 'Drag from corner to corner. The shape draws in your current color.' },
-    { Ic: IcText, t: 'Text', k: 'T', d: `Type in the Text panel, pick a style and height, then ${v.toLowerCase()} the canvas to stitch it.` },
+    { Ic: IcText, t: 'Text', k: 'T', d: `${v} the canvas and type your words right there. Pick a style, height and color as you go, then ${v.toLowerCase()} away to turn them into ${cfg.unitPlural}.` },
     { Ic: IcMarquee, t: 'Select', k: 'V', d: isMobile
       ? 'Tap a shape to select it, or drag to box-select. Drag to move it, pull a handle to resize, or tap a color to recolor it.'
       : 'Click a shape or drag a box. Shift adds, ⌥-drag copies, handles resize, ⌘D duplicates and Delete removes.' },
@@ -531,7 +451,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (wasMobileRef.current === isMobile) return;
     wasMobileRef.current = isMobile;
     if (guide) return;
-    setPanel(p => (p === 'text' ? p : restingPanel(isMobile)));
+    setPanel(tool === 'text' && !isMobile ? 'text' : restingPanel(isMobile));
   }, [isMobile]);
   const togglePanel = useCallback(id => {
     guideCtl.cancel();
@@ -552,11 +472,12 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
   const [tool, setTool] = useState("pen");
-  // Text has its own panel, so picking it opens the panel and leaving it
-  // returns to the resting one.
+  // On desktop text has its own panel, so picking it opens the panel and
+  // leaving it returns to the resting one. On a phone a sheet would cover the
+  // canvas the words go on, so its controls ride in the tray instead.
   const chooseTool = useCallback((id) => {
     setTool(id);
-    if (id === 'text') setPanel('text');
+    if (id === 'text') setPanel(isMobile ? null : 'text');
     else setPanel(p => (p === 'text' ? restingPanel(isMobile) : p));
   }, [isMobile]);
   // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
@@ -580,15 +501,22 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   }, []);
   const resetZoom = useCallback(() => setZoom(1), []);
   const [fabric, setFabric] = useState(CFG.fabrics[0]);
-  const [text, setText] = useState("");
   const [textFont, setTextFont] = useState("sans");
   const [textSize, setTextSize] = useState(14);
+  // The text box open on the canvas: its top-left in stitches and the words so
+  // far. It becomes stitches when it's let go (see commitText).
+  const [textBox, setTextBox] = useState(null);
+  const textBoxRef = useRef(null);
+  textBoxRef.current = textBox;
+  const textInputRef = useRef(null);
+  const textPressRef = useRef(null);
+  // Words a lettering chart wants typed, waiting for the next box.
+  const seedWordsRef = useRef('');
   // Canvas falls back to a generic face without complaint when a webfont hasn't
-  // arrived yet, so early in a session the script and sampler styles rasterized
-  // as plain serif — same cell count as Serif, wrong letterforms. Wait for the
-  // faces, then re-rasterize. fontsReady is in the memo's deps purely to
-  // retrigger it once they land.
-  const [fontsReady, setFontsReady] = useState(() => typeof document === 'undefined' || !document.fonts);
+  // arrived yet, which would measure the box and stitch the words in the wrong
+  // face. Load them all up front, and re-render once they land so an open box
+  // re-measures.
+  const [, setFontsReady] = useState(() => typeof document === 'undefined' || !document.fonts);
   useEffect(() => {
     if (typeof document === 'undefined' || !document.fonts) return;
     let alive = true;
@@ -597,7 +525,6 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     )).then(() => { if (alive) setFontsReady(true); });
     return () => { alive = false; };
   }, []);
-  const textStamp = useMemo(() => rasterizeText(text, textFont, textSize), [text, textFont, textSize, fontsReady]);
   // Materials + save state (mirrors the quilt flow; cloud library when signed in).
   const auth = useAuth();
   const user = auth && auth.user;
@@ -953,6 +880,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     resizeRef.current = null;
     previewRef.current = null;
     nibHoverRef.current = null;
+    textPressRef.current = null;
     startRef.current = null;
     lastRef.current = null;
     scheduleRedraw();
@@ -1096,6 +1024,33 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   };
 
   const applyCells = (list, hex) => { for (const [x, y] of list) { if (x >= 0 && y >= 0 && x < W && y < H) cellsRef.current[idx(x, y)] = hex; } };
+
+  // ── Text box ──────────────────────────────────────────────────────────────
+  // A tap with the text tool opens a box there; letting go of it (clicking
+  // away, Esc, Done, another tool) stitches the words in the current face,
+  // height and color as one undo step. An empty box just closes.
+  const setBox = (next) => { textBoxRef.current = next; setTextBox(next); };
+  const openTextBox = (cell) => {
+    const tb = { x: cell[0], y: cell[1] - Math.floor(xsLineHeight(textSize) / 2), text: seedWordsRef.current };
+    seedWordsRef.current = '';
+    // Rendered synchronously so the field can take focus inside the tap —
+    // iOS only raises the keyboard for a focus the user's gesture made.
+    flushSync(() => setBox(tb));
+    textInputRef.current?.focus({ preventScroll: true });
+  };
+  const commitText = () => {
+    const tb = textBoxRef.current;
+    if (!tb) return false;
+    setBox(null);
+    const offs = rasterizeText(tb.text, textFont, textSize);
+    if (!offs.length) return false;
+    pushUndo();
+    applyCells(offs.map(([dx, dy]) => [tb.x + dx, tb.y + dy]), color.hex);
+    redraw(); bump();
+    return true;
+  };
+  const commitTextRef = useRef(commitText);
+  commitTextRef.current = commitText;
 
   // Bucket fill: flood the contiguous region of cells matching the clicked
   // cell's value (empty by default) with `hex`, bounded by differently-colored
@@ -1365,10 +1320,11 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     }
     const cell = cellFromEvent(e); if (!cell) return;
     if (tool === 'text') {
-      if (!textStamp.length) return;
-      pushUndo();
-      applyCells(textStamp.map(([dx, dy]) => [cell[0] + dx, cell[1] + dy]), color.hex);
-      previewRef.current = null; redraw(); bump();
+      // With a box open, a press on the canvas is "click away": it stitches
+      // the words and nothing more. Otherwise a tap (not a drag or a pinch)
+      // opens a new box, resolved on release.
+      if (textBoxRef.current) { commitText(); return; }
+      textPressRef.current = { cell, x: e.clientX, y: e.clientY, slop: e.pointerType === 'mouse' ? 4 : 10 };
       return;
     }
     if (tool === 'fill') {
@@ -1499,10 +1455,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       setSelCursor(over ? (e.altKey ? 'copy' : 'move') : null);
       return;
     }
-    if (tool === 'text' && !drawingRef.current) {
-      const cell = cellFromEvent(e);
-      previewRef.current = (cell && textStamp.length) ? textStamp.map(([dx, dy]) => [cell[0] + dx, cell[1] + dy]) : null;
-      scheduleRedraw();
+    if (tool === 'text') {
+      const p = textPressRef.current;
+      if (p && (Math.abs(e.clientX - p.x) > p.slop || Math.abs(e.clientY - p.y) > p.slop)) textPressRef.current = null;
       return;
     }
     if ((tool === 'pen' || tool === 'eraser') && !drawingRef.current) {
@@ -1534,6 +1489,12 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   const onPointerUp = () => {
     if (isGestureActive()) {
       cancelPointerInteraction();
+      return;
+    }
+    if (tool === 'text') {
+      const p = textPressRef.current;
+      textPressRef.current = null;
+      if (p) openTextBox(p.cell);
       return;
     }
     if (tool === 'select') {
@@ -1595,6 +1556,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     redraw(); bump();
   };
   const onPointerLeave = (e) => {
+    if (tool === 'text') { textPressRef.current = null; return; }
     if (tool === 'select') {
       if (movingRef.current || marqueeRef.current || resizeRef.current) onPointerUp(e);
       else { pressRef.current = null; setSelCursor(null); }
@@ -1605,10 +1567,13 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (nibHoverRef.current) { nibHoverRef.current = null; scheduleRedraw(); }
   };
 
-  // Switching tools ends the selection, which places any floating layer first.
+  // Switching tools ends the selection, which places any floating layer first,
+  // and stitches an open text box.
   useEffect(() => {
     previewRef.current = null;
     nibHoverRef.current = null;
+    textPressRef.current = null;
+    commitTextRef.current();
     commitFloat();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
@@ -1617,9 +1582,27 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     scheduleRedraw();
   }, [tool, scheduleRedraw]);
 
+  // Clicking away from an open text box stitches it. Presses on the box, the
+  // canvas (its own handler does the stitching), and the controls that style
+  // the words — panels, palette, menus, dialogs — leave it open.
+  const textOpen = !!textBox;
+  useEffect(() => {
+    if (!textOpen) return undefined;
+    const onDown = e => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest('.xs-textbox, .xs-canvas, .ed-keep-sel, .ed-keep-text, .ed-panel, .ed-sheet, .popover, .popover-backdrop, .overlay')) return;
+      commitTextRef.current();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [textOpen]);
+
   useEffect(() => {
     const onKey = (e) => {
       if (studioCovered()) return;
+      // The text box keeps its own keys: undo there is undoing the typing.
+      if (e.target.closest && e.target.closest('.xs-textbox')) return;
       const tag = e.target.tagName;
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
@@ -1886,8 +1869,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (isMobile) setPanel(null);
     if (tpl && tpl.seedText) {
       if (tpl.seedText.font) setTextFont(tpl.seedText.font);
-      if (tpl.seedText.size) setTextSize(tpl.seedText.size);
-      if (tpl.seedText.text) setText(tpl.seedText.text);
+      if (tpl.seedText.size) setTextSize(snapTextSize(tpl.seedText.font || textFont, tpl.seedText.size));
+      if (tpl.seedText.text) seedWordsRef.current = tpl.seedText.text;
       chooseTool('text');
     }
   };
@@ -1967,8 +1950,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     // the guide is done.
     if (tpl && tpl.seedText) {
       if (tpl.seedText.font) setTextFont(tpl.seedText.font);
-      if (tpl.seedText.size) setTextSize(tpl.seedText.size);
-      if (tpl.seedText.text) setText(tpl.seedText.text);
+      if (tpl.seedText.size) setTextSize(snapTextSize(tpl.seedText.font || textFont, tpl.seedText.size));
+      if (tpl.seedText.text) seedWordsRef.current = tpl.seedText.text;
       setTool('text');
     }
     guideCtl.advance('designs');
@@ -2090,7 +2073,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
 
   const finishGuide = () => {
     guideCtl.end();
-    setPanel(tool === 'text' ? 'text' : (isMobile ? null : 'floss'));
+    setPanel(tool === 'text' && !isMobile ? 'text' : (isMobile ? null : 'floss'));
     showToast(craft === 'punch-needle' ? 'All set · happy punching' : 'All set · happy stitching');
   };
   const guideStep = guideCtl.step;
@@ -2170,11 +2153,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
         onPick={name => { applySize(name); if (guide) guideCtl.advance('size'); }}/>
     );
     if (id === 'text') return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <StitchTextControls autoFocus={!isMobile}
-          text={text} setText={setText} textFont={textFont} setTextFont={setTextFont}
-          textSize={textSize} setTextSize={setTextSize}/>
-        <p className="ed-note" style={{ marginTop: 6 }}>{isMobile ? 'Close this, then tap' : 'Click'} the canvas to place your words in the current color.</p>
+      <div className="ed-keep-text" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <StitchTextControls cfg={CFG} textFont={textFont} setTextFont={setTextFont}
+          textSize={textSize} setTextSize={setTextSize} editing={!!textBox} onDone={commitText}/>
       </div>
     );
     if (id === 'help') return <StitchHelpPanel cfg={CFG} isMobile={isMobile} showTips={showTips} setShowTips={setShowTips}/>;
@@ -2311,7 +2292,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
           <div className="ed-buy">
             <BuyKitButton type={CFG.checkoutType} design={{ presetName: dims.name }} onReview={onReview}
               blockedReason={stats.total === 0 ? `Add some ${CFG.unitPlural} first` : null}
-              getDesign={() => { commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
+              getDesign={() => { commitTextRef.current(); commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
               onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
           </div>
         </div>
@@ -2321,10 +2302,18 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
         <div className="ed-stage-col">
           <div className={`ed-stage${!isMobile && showTips ? ' has-hint' : ''}`}>
             <div className={`xs-canvas-wrap${tool === 'pan' ? ' is-panning' : ''}${isCoasterKit ? ' has-coasters' : ''}`} ref={wrapRef}>
-              <canvas ref={canvasRef} className="xs-canvas"
-                width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
-                style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
-                onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
+              <div className={`xs-canvas-holder${textBox ? ' has-textbox' : ''}`} style={{ width: W * cellSize * zoom, height: H * cellSize * zoom }}>
+                <canvas ref={canvasRef} className="xs-canvas"
+                  width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
+                  style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : tool === 'text' ? 'text' : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+                  onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
+                {textBox && (
+                  <StitchTextBox box={textBox} font={textFont} size={textSize} color={color.hex} z={cellSize * zoom} board={{ w: W, h: H }}
+                    inputRef={textInputRef} onCommit={commitText}
+                    onChange={t => setBox({ ...textBoxRef.current, text: t })}
+                    onMove={(dx, dy) => setBox({ ...textBoxRef.current, x: textBoxRef.current.x + dx, y: textBoxRef.current.y + dy })}/>
+                )}
+              </div>
             </div>
 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={chooseTool}/>}
@@ -2372,7 +2361,15 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               <div className="ed-tray" ref={trayRef}>
                 {hintBubble}
                 {coasterStrip}
-                {selBar || ((nibbed || painting) && (
+                {selBar || (tool === 'text' ? (
+                  <div className="ed-strip ed-float ed-keep-sel xs-text-tray">
+                    <StitchTextControls compact cfg={CFG} textFont={textFont} setTextFont={setTextFont}
+                      textSize={textSize} setTextSize={setTextSize} editing={!!textBox} onDone={commitText}/>
+                    <span className="ed-strip-sep"/>
+                    {paletteSwatches}
+                    {addSwatch(pillAddRef, undefined)}
+                  </div>
+                ) : (nibbed || painting) && (
                   <div className="ed-strip ed-float ed-keep-sel">
                     {nibs}
                     {nibs && painting && <span className="ed-strip-sep"/>}

@@ -6,7 +6,7 @@ import {
   supabaseKeysPresent, toStudioUser, useAuth, verifyAuthCode, warnSupabaseUnreachable,
 } from './services.jsx';
 import { IcCheck, IcLogout, IcMenu, IcProfile } from './icons.jsx';
-import { Popover } from './editor-ui.jsx';
+import { Popover, rangeFill } from './editor-ui.jsx';
 
 // ── Tweaks ────────────────────────────────────────────────────────────────
 // These are applied as inline custom properties on :root at startup, so they beat
@@ -88,7 +88,7 @@ export function TweaksPanel() {
       <Row label="Border width">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={4} step={0.5} value={t.borderWidth} onChange={e=>set('borderWidth',e.target.value)}
-            style={{ width:80, accentColor:'#000000' }}/>
+            style={{ width:80, ...rangeFill(t.borderWidth, 0, 4) }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)', minWidth:28 }}>{t.borderWidth}px</span>
         </div>
       </Row>
@@ -96,7 +96,7 @@ export function TweaksPanel() {
       <Row label="Corner radius">
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <input type="range" min={0} max={12} step={1} value={t.radius} onChange={e=>set('radius',e.target.value)}
-            style={{ width:80, accentColor:'#000000' }}/>
+            style={{ width:80, ...rangeFill(t.radius, 0, 12) }}/>
           <span style={{ fontSize:10, fontFamily:"var(--font-sans)", color:'var(--warm-muted)', minWidth:28 }}>{t.radius}px</span>
         </div>
       </Row>

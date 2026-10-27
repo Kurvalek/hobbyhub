@@ -656,7 +656,7 @@ const DESIGNS = [
     presets: ANY_SIZE, w: 70, h: 70, colors: 6, draw: drawBlobs },
   { id: 'pn-name-daisies', name: 'Name in Daisies', desc: '6 colors · add your name',
     presets: PILLOW, w: 70, h: 70, colors: 6, draw: drawNameDaisies,
-    seedText: { font: 'script', size: 22 } },
+    seedText: { font: 'script', size: 26 } },
   { ...SET, id: 'pn-cats', name: 'Four Cats', desc: '8 colors · set of 4',
     colors: 8, ground: CATS.ground, panels: CAT_PANELS },
   { ...SET, id: 'pn-fruit', name: 'Fruit Stand', desc: '8 colors · set of 4',

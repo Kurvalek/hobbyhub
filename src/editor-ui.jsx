@@ -179,6 +179,121 @@ export function useIsMobile(query = '(max-width: 900px)') { return useMediaQuery
 // the same question itself.
 export function usePrefersReducedMotion() { return useMediaQuery('(prefers-reduced-motion: reduce)'); }
 
+// Drag a bottom sheet by its grab zone (handle + header): down past a third of
+// its height, or a downward flick, dismisses it. With `expandable` it also has
+// a tall detent — drag or flick up to reach it, tap the handle to toggle — whose
+// height is the offset parent minus the sheet's --sheet-top-gap. Pass
+// `exitAnimated` when the sheet plays its own exit animation on close: it then
+// runs on from wherever the drag let go.
+export function useSheetDrag({ onDismiss, expandable = false, exitAnimated = false }) {
+  const sheetRef = useRef(null);
+  const drag = useRef(null);
+  const restH = useRef(0);
+  const ownMaxH = useRef('');
+  const clickBlockedUntil = useRef(0);
+  const [expanded, setExpanded] = useState(false);
+  const reduced = usePrefersReducedMotion();
+
+  const takeOver = (el, h) => {
+    if (el.style.maxHeight !== 'none') ownMaxH.current = el.style.maxHeight;
+    Object.assign(el.style, { transition: 'none', maxHeight: 'none', height: `${h}px` });
+  };
+  const clear = el => { Object.assign(el.style, { transition: '', height: '', maxHeight: ownMaxH.current, transform: '' }); };
+  const settle = (el, styles, done) => {
+    if (reduced) { Object.assign(el.style, styles); done(); return; }
+    el.style.transition = 'height .28s var(--ease-out), transform .28s var(--ease-out)';
+    Object.assign(el.style, styles);
+    let finished = false;
+    const end = () => { if (finished) return; finished = true; el.removeEventListener('transitionend', end); done(); };
+    el.addEventListener('transitionend', end);
+    setTimeout(end, 340);
+  };
+  const tallH = el => {
+    const gap = parseFloat(getComputedStyle(el).getPropertyValue('--sheet-top-gap')) || 0;
+    return (el.offsetParent || document.documentElement).clientHeight - gap;
+  };
+  const snapTo = (el, tall) => settle(el, { height: `${tall ? tallH(el) : restH.current}px`, transform: '' }, () => {
+    el.classList.toggle('is-expanded', tall);
+    clear(el);
+    setExpanded(tall);
+  });
+
+  const reset = useCallback(() => {
+    drag.current = null;
+    setExpanded(false);
+    if (sheetRef.current) { sheetRef.current.classList.remove('is-expanded'); clear(sheetRef.current); }
+  }, []);
+
+  const onPointerDown = e => {
+    const el = sheetRef.current;
+    if (!el || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const ctl = e.target.closest('button, a, input, select, textarea');
+    if (ctl && !ctl.classList.contains('sheet-grab')) return;
+    const h = el.getBoundingClientRect().height;
+    if (!expanded) restH.current = h;
+    else if (!restH.current) restH.current = Math.min(560, tallH(el) * 0.86);
+    drag.current = {
+      id: e.pointerId, y0: e.clientY, h0: h, h, maxH: expandable ? Math.max(h, tallH(el)) : h,
+      floor: Math.min(restH.current, h), moved: false, lastY: e.clientY, lastT: e.timeStamp, v: 0,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = e => {
+    const d = drag.current, el = sheetRef.current;
+    if (!d || !el || e.pointerId !== d.id) return;
+    const dy = e.clientY - d.y0;
+    if (!d.moved) {
+      if (Math.abs(dy) < 5) return;
+      d.moved = true;
+      takeOver(el, d.h0);
+    }
+    const dt = e.timeStamp - d.lastT;
+    if (dt > 0) d.v = 0.7 * ((e.clientY - d.lastY) / dt) + 0.3 * d.v;
+    d.lastY = e.clientY; d.lastT = e.timeStamp;
+    let h = d.h0 - dy;
+    if (h > d.maxH) h = d.maxH + (h - d.maxH) * 0.2;
+    d.h = h;
+    el.style.height = `${Math.max(h, d.floor)}px`;
+    el.style.transform = h < d.floor ? `translateY(${d.floor - h}px)` : '';
+  };
+  const onPointerUp = e => {
+    const d = drag.current, el = sheetRef.current;
+    if (!d || e.pointerId !== d.id) return;
+    drag.current = null;
+    if (!d.moved || !el) return;
+    clickBlockedUntil.current = e.timeStamp + 400;
+    if (e.type === 'pointercancel') { snapTo(el, expanded); return; }
+    const flick = 0.5;
+    if (d.h < d.floor) {
+      if (d.floor - d.h > d.floor / 3 || d.v > flick) {
+        if (exitAnimated) onDismiss();
+        else settle(el, { transform: 'translateY(100%)' }, onDismiss);
+        return;
+      }
+      snapTo(el, false);
+      return;
+    }
+    if (!expandable) { snapTo(el, false); return; }
+    const tall = d.v < -flick || (d.v <= flick && d.h > (d.floor + d.maxH) / 2);
+    snapTo(el, tall);
+  };
+  const toggle = e => {
+    const el = sheetRef.current;
+    if (!el || !expandable || e.timeStamp < clickBlockedUntil.current) return;
+    const h = el.getBoundingClientRect().height;
+    if (!expanded) restH.current = h;
+    else if (!restH.current) restH.current = Math.min(560, tallH(el) * 0.86);
+    takeOver(el, h);
+    void el.offsetHeight;
+    snapTo(el, !expanded);
+  };
+
+  return {
+    sheetRef, expanded, reset, toggle,
+    dragProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
+  };
+}
+
 // A sheet that slides up from the bottom. Reuses the app's card/panel styling
 // so its contents look identical to the desktop panel/popover.
 export function BottomSheet({ onClose, title, showClose = true, children, maxHeightVh = 85, sheetClassName, elevated = false }) {
@@ -187,22 +302,25 @@ export function BottomSheet({ onClose, title, showClose = true, children, maxHei
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+  const { sheetRef, dragProps } = useSheetDrag({ onDismiss: onClose });
   const lift = elevated ? ' is-lift' : '';
   return (
     <>
       <div className={`bottom-sheet-backdrop${lift}`} onClick={onClose}/>
-      <div className={`bottom-sheet${lift}${sheetClassName ? ` ${sheetClassName}` : ''}`} style={{ maxHeight: `${maxHeightVh}vh` }} role="dialog" aria-modal="true">
-        <div className="bottom-sheet-handle"/>
-        {(title || showClose) && (
-          <div className="bottom-sheet-head">
-            <span className="popover-title">{title}</span>
-            {showClose && (
-              <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={onClose} title="Close" aria-label="Close">
-                <IcX/>
-              </button>
-            )}
-          </div>
-        )}
+      <div ref={sheetRef} className={`bottom-sheet${lift}${sheetClassName ? ` ${sheetClassName}` : ''}`} style={{ maxHeight: `${maxHeightVh}vh` }} role="dialog" aria-modal="true">
+        <div className="sheet-drag-zone" {...dragProps}>
+          <div className="bottom-sheet-handle"/>
+          {(title || showClose) && (
+            <div className="bottom-sheet-head">
+              <span className="popover-title">{title}</span>
+              {showClose && (
+                <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={onClose} title="Close" aria-label="Close">
+                  <IcX/>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="bottom-sheet-body">{children}</div>
       </div>
     </>
@@ -660,6 +778,7 @@ function ZoomBar({ zoom, onZoomChange, onReset, onStep }) {
         max={ZOOM_MAX}
         step={ZOOM_STEP}
         value={zoom}
+        style={rangeFill(zoom, ZOOM_MIN, ZOOM_MAX)}
         onChange={e => onZoomChange(+e.target.value)}/>
       <button
         className="icon-btn"
@@ -802,15 +921,23 @@ export function EdSheet({ open, id, title, onClose, footer, children }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+  const sheet = useSheetDrag({ onDismiss: p.onClose, expandable: true, exitAnimated: true });
+  const { reset } = sheet;
+  useLayoutEffect(() => { if (open) reset(); }, [open, reset]);
   if (!p.shown) return null;
-  const cls = p.closing ? ' is-closing' : '';
+  const cls = `${p.closing ? ' is-closing' : ''}${sheet.expanded ? ' is-expanded' : ''}`;
   return (
     <>
-      <div className={`ed-scrim${cls}`} onClick={p.onClose}/>
-      <div className={`ed-sheet${cls}`} role="dialog" aria-label={p.title}
+      <div className={`ed-scrim${p.closing ? ' is-closing' : ''}`} onClick={p.onClose}/>
+      <div ref={sheet.sheetRef} className={`ed-sheet${cls}`} role="dialog" aria-label={p.title}
         data-ed-panel={p.closing ? undefined : p.id} aria-hidden={p.closing || undefined}>
-        <div className="ed-handle"/>
-        {p.title && <EdPanelHead title={p.title} onClose={p.onClose}/>}
+        <div className="sheet-drag-zone" {...sheet.dragProps}>
+          <button type="button" className="sheet-grab" onClick={sheet.toggle}
+            aria-label={sheet.expanded ? 'Shrink panel' : 'Expand panel'} aria-expanded={sheet.expanded}>
+            <span className="ed-handle"/>
+          </button>
+          {p.title && <EdPanelHead title={p.title} onClose={p.onClose}/>}
+        </div>
         <div className="ed-panel-body" key={p.id}>{p.children}</div>
         {p.footer}
       </div>
@@ -966,7 +1093,7 @@ export function EdZoomControls({ zoom, onZoom, onStep, onFit }) {
       <button type="button" className="icon-btn" onClick={() => onStep(-ZOOM_STEP)} disabled={zoom <= ZOOM_MIN}
         title="Zoom out (⌘−)" aria-label="Zoom out"><IcMinus size={12}/></button>
       <input type="range" min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} value={zoom} aria-label="Zoom"
-        onChange={e => onZoom(+e.target.value)}/>
+        style={rangeFill(zoom, ZOOM_MIN, ZOOM_MAX)} onChange={e => onZoom(+e.target.value)}/>
       <button type="button" className="icon-btn" onClick={() => onStep(+ZOOM_STEP)} disabled={zoom >= ZOOM_MAX}
         title="Zoom in (⌘+)" aria-label="Zoom in"><IcPlus size={12}/></button>
       <span className="ed-zoom-val">{Math.round(zoom * 100)}%</span>
@@ -992,6 +1119,12 @@ export const EdRow = React.forwardRef(function EdRow({ swatch, title, name, sub,
   );
 });
 
+// Style for an <input type="range">: how far along the track to paint the fill.
+export function rangeFill(value, min, max) {
+  const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  return { '--range-fill': `${Math.min(100, Math.max(0, pct))}%` };
+}
+
 export function EdSlider({ label, display, value, min, max, step = 1, onChange }) {
   return (
     <div>
@@ -1000,7 +1133,7 @@ export function EdSlider({ label, display, value, min, max, step = 1, onChange }
         <span className="ed-slider-val">{display}</span>
       </div>
       <input type="range" className="ed-range" min={min} max={max} step={step} value={value} aria-label={label}
-        onChange={e => onChange(+e.target.value)}/>
+        style={rangeFill(value, min, max)} onChange={e => onChange(+e.target.value)}/>
     </div>
   );
 }
