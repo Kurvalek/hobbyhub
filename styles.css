@@ -609,12 +609,14 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 
 .land-page .land-main,
 .land-page .saved-sec { width: 100%; max-width: 1280px; margin-inline: auto; box-sizing: border-box; }
+.land-track { flex: 1 0 auto; display: flex; flex-direction: column; }
 .land-page .land-main { flex: 1 0 auto; padding-bottom: clamp(48px, 7vw, 80px); }
 .land-page .land-hero {
   display: flex; flex-direction: column; align-items: center; gap: 18px;
   padding: clamp(48px, 8vw, 104px) 0 clamp(32px, 5vw, 56px); text-align: center;
 }
-.land-page .land-hero .brand-eyebrow { justify-content: center; margin: 0; font-size: clamp(19px, 1.8vw, 24px); color: var(--brand-muted); }
+.land-page .land-hero .brand-eyebrow { justify-content: center; margin: 0; color: var(--brand-muted); }
+.land-page .land-hero .brand-eyebrow.is-plain { font-size: clamp(22px, 2.3vw, 30px); font-weight: 500; text-wrap: balance; }
 .land-page .land-title {
   margin: 0; font-size: clamp(44px, 7.6vw, 104px); font-weight: 700;
   letter-spacing: -0.035em; line-height: 0.95; text-wrap: balance;
@@ -698,17 +700,58 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
 }
 /* Phones: the hero gives up its sub-line so the craft cards are what fills
    the first screen. --hero-air is the room left over once all three cards
-   fit (none on a 629px-tall screen), spent as spacing around the hero. */
+   fit (none below about 640px tall), spent as spacing around the hero. */
 @media (max-width: 600px) {
   .land-page .brand-nav.tone-olive { min-height: 56px; padding-block: 8px; }
   .land-page .land-hero {
-    --hero-air: clamp(0px, (100svh - 630px) * 0.55, 48px);
-    gap: calc(6px + var(--hero-air) * 0.15);
-    padding: calc(14px + var(--hero-air) * 0.45) 0 calc(14px + var(--hero-air) * 0.4);
+    --hero-air: clamp(0px, (100svh - 640px) * 0.55, 48px);
+    gap: calc(4px + var(--hero-air) * 0.15);
+    padding: calc(10px + var(--hero-air) * 0.45) 0 calc(8px + var(--hero-air) * 0.4);
   }
-  .land-page .land-hero .brand-eyebrow.is-plain { font-size: clamp(13px, 3.75vw, 18px); white-space: nowrap; }
+  .land-page .land-hero .brand-eyebrow.is-plain { font-size: clamp(17px, 4.9vw, 22px); line-height: 1.2; }
   .land-page .land-title { font-size: clamp(36px, 10.4vw, 52px); }
   .land-page .land-sub { display: none; }
+}
+
+/* Intro: while it plays, the track is several screens tall and the hero and
+   cards are pinned under the nav as the stage; the intro field, which opens on
+   the logo, sits over everything. The script sizes the track and stage. */
+.land-page.is-intro .land-track { flex: none; display: block; overflow: clip; }
+.land-page.is-intro .land-main { position: sticky; }
+.land-title-word { display: inline-block; white-space: nowrap; }
+.land-title-letter { display: inline-block; will-change: transform; }
+/* Wheel and touch over a fixed layer scroll the window, not .land-page, so the
+   field lets them through to the page underneath; only Skip takes clicks. */
+.land-intro {
+  position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(24px, 6vw, 96px); box-sizing: border-box;
+  background: var(--brand-paper); color: var(--brand-ink);
+}
+.land-intro-lines { display: flex; flex-direction: column; align-items: center; gap: clamp(4px, 1vh, 12px); text-align: center; }
+.land-page .land-intro-line {
+  margin: 0; font-family: "Bodoni Moda", "Times New Roman", serif; font-style: italic; font-weight: 400;
+  font-size: clamp(44px, 8vw, 120px); letter-spacing: -0.02em; line-height: 1.02; text-wrap: balance;
+}
+.land-intro-hint {
+  position: absolute; left: 0; right: 0; bottom: 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 600; pointer-events: none;
+}
+.land-intro-hint-arrow { display: flex; animation: land-nudge 1.6s ease-in-out infinite; }
+.land-intro-hint-arrow .ic { transform: rotate(90deg); }
+.land-intro-skip {
+  position: absolute; top: 20px; right: clamp(16px, 3vw, 32px);
+  height: 40px; padding: 0 16px; border: 1.5px solid var(--brand-ink); border-radius: 20px;
+  background: transparent; font-family: var(--brand-font); font-size: 14px; font-weight: 600; color: var(--brand-ink); cursor: pointer;
+  pointer-events: auto;
+}
+.land-intro-skip:hover { background: var(--brand-ink); color: var(--brand-paper); }
+.land-intro-skip:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 3px; }
+.land-intro-logo { position: absolute; left: 50%; top: 50%; width: clamp(200px, 24vw, 300px); height: auto; transform: translate(-50%, -50%); }
+@keyframes land-nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
 }
 
 /* Saved designs: a collapsible library under the craft cards. */

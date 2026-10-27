@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   deleteCloudDesign, formatKitPrice, loadSavedPunch, loadSavedQuilts, loadSavedStitches,
   persistSavedPunch, persistSavedQuilts, persistSavedStitches, upsertCloudDesign, useAuth,
@@ -6,6 +6,7 @@ import {
 } from './services.jsx';
 import { deserializeGrid } from './design-model.jsx';
 import { IcArrowL, IcArrowR, IcChevD, IcSearch, IcSwap } from './icons.jsx';
+import { IntroOverlay, IntroTitle, shouldPlayIntro, useLandingIntro } from './landing-intro.jsx';
 import { CRAFTS, LandingAuth } from './account.jsx';
 import { StitchThumb } from './stitch-studio.jsx';
 
@@ -242,22 +243,37 @@ function SavedDesigns({ onOpen, open, setOpen, sectionRef }) {
   const [menuFor, setMenuFor] = useState(null);
   const [edits, setEdits] = useState(0);
   const [error, setError] = useState('');
+  // A sync can leave the same design in a drawer twice, and old designs may
+  // have no id, so tiles get their own unique _key: React reusing the wrong
+  // tile is what made the tabs and sort leave stale designs behind.
   const items = useMemo(() => {
     if (!libraryOn) return [];
-    return Object.entries(SAVED_DRAWERS)
-      .flatMap(([key, d]) => d.load().map(it => ({ ...it, _type: key })))
+    const all = Object.entries(SAVED_DRAWERS)
+      .flatMap(([type, d]) => d.load().map((it, i) => ({ ...it, _type: type, _index: i })))
       .sort((a, b) => (b.updatedAt || b.id || 0) - (a.updatedAt || a.id || 0));
+    const seen = new Set();
+    const out = [];
+    for (const it of all) {
+      const same = it.id == null ? null : `${it._type}-${it.id}-${it.apiId || ''}`;
+      if (same && seen.has(same)) continue;
+      if (same) seen.add(same);
+      out.push({ ...it, _key: same || `${it._type}-${it._index}` });
+    }
+    return out;
   }, [libraryOn, auth && auth.libraryTick, edits]);
   if (!libraryOn || !items.length) return null;
 
   const q = query.trim().toLowerCase();
   let visible = items.filter(it => (filter === 'all' || it._type === filter) && (!q || (it.name || '').toLowerCase().includes(q)));
   if (sort === 'name') visible = visible.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  const keyOf = it => it._type + '-' + it.id;
+  const keyOf = it => it._key;
+  // The tile's own entry, plus any hidden twin of it.
+  const isDesign = (x, i, it) => i === it._index
+    || (it.id != null && x.id === it.id && (x.apiId || '') === (it.apiId || ''));
 
   const remove = it => {
     const d = SAVED_DRAWERS[it._type];
-    d.persist(d.load().filter(x => x.id !== it.id));
+    d.persist(d.load().filter((x, i) => !isDesign(x, i, it)));
     if (cloudOn && it.apiId) deleteCloudDesign(it.apiId).catch(e => console.warn('Could not delete from your account:', e));
     setMenuFor(null); setEdits(n => n + 1);
   };
@@ -266,7 +282,7 @@ function SavedDesigns({ onOpen, open, setOpen, sectionRef }) {
   const copy = async it => {
     setMenuFor(null); setError('');
     const d = SAVED_DRAWERS[it._type];
-    const { _type, apiId, ...rest } = it;
+    const { _type, _index, _key, apiId, ...rest } = it;
     const now = Date.now();
     let record = { ...rest, id: now, name: `${it.name || 'Untitled'} copy` };
     if (cloudOn) {
@@ -398,6 +414,20 @@ function CraftCard({ c, onSelect }) {
 
 export function CraftSelector({ onSelect, onOpenSaved }) {
   const auth = useAuth();
+  const [intro, setIntro] = useState(shouldPlayIntro);
+  const pageRef = useRef(null), trackRef = useRef(null), stageRef = useRef(null);
+  const afterIntro = useRef(null);
+  const skipIntro = useLandingIntro({
+    active: intro, pageRef, trackRef, stageRef,
+    onDone: excess => { afterIntro.current = excess; setIntro(false); },
+  });
+  // The track is gone now, so take its height back off the scroll position and
+  // the craft picker stays exactly where it was.
+  useLayoutEffect(() => {
+    if (intro || afterIntro.current == null) return;
+    pageRef.current.scrollTop = afterIntro.current;
+    afterIntro.current = null;
+  }, [intro]);
   const [savedOpen, setSavedOpenState] = useState(readSavedOpen);
   const savedRef = useRef(null);
   const setSavedOpen = v => {
@@ -413,21 +443,24 @@ export function CraftSelector({ onSelect, onOpenSaved }) {
     requestAnimationFrame(() => savedRef.current && savedRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   return (
-    <div className="land-page brand-shell">
+    <div className={`land-page brand-shell${intro ? ' is-intro' : ''}`} ref={pageRef}>
+      {intro && <IntroOverlay onSkip={skipIntro}/>}
       <div className="land-fill">
       <BrandNav tone="olive">
         {hasSaved && <a className="land-nav-link" href="#saved" onClick={goToSaved}>My designs</a>}
       </BrandNav>
-      <main className="land-main brand-bleed">
-        <div className="land-hero">
-          <BrandEyebrow plain label="Design your craft. We send the materials. You make it."/>
-          <h1 className="land-title">What are you making?</h1>
-          <p className="land-sub">Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making.</p>
-        </div>
-        <div className="land-crafts">
-          {CRAFTS.map(c => <CraftCard key={c.id} c={c} onSelect={onSelect}/>)}
-        </div>
-      </main>
+      <div className="land-track" ref={trackRef}>
+        <main className="land-main brand-bleed" ref={stageRef}>
+          <div className="land-hero">
+            <BrandEyebrow plain label="Design your craft. We send the materials. You make it."/>
+            {intro ? <IntroTitle text="What are you making?"/> : <h1 className="land-title">What are you making?</h1>}
+            <p className="land-sub">Pick a craft and design it on screen. metime works out the colors, counts and materials, so you can get straight to making.</p>
+          </div>
+          <div className="land-crafts">
+            {CRAFTS.map(c => <CraftCard key={c.id} c={c} onSelect={onSelect}/>)}
+          </div>
+        </main>
+      </div>
       <SavedDesigns onOpen={onOpenSaved} open={savedOpen} setOpen={setSavedOpen} sectionRef={savedRef}/>
       <footer className="land-footer brand-bleed">
         <div className="land-footer-top">
