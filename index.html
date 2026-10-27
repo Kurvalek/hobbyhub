@@ -15,6 +15,26 @@
 <meta name="twitter:image" content="TODO: assets/og-share.png"/>
 <link rel="icon" type="image/png" href="assets/metime-icon.png"/>
 <link rel="apple-touch-icon" href="assets/metime-icon.png"/>
+<script>
+// ── Google Analytics 4 ─────────────────────────────────────────────────────
+// The Measurement ID comes from Google Analytics: Admin → Data streams → the
+// makemetime.com web stream.
+//
+// Only the live domain reports, so local dev and Vercel preview deploys don't
+// pollute the numbers. The app has no per-screen URLs, so the automatic page
+// view is off and src/root.jsx sends one for each screen instead.
+const GA_MEASUREMENT_ID = "G-7CKQZM6VSX";
+if (/^(www\.)?makemetime\.com$/.test(location.hostname) && GA_MEASUREMENT_ID !== "G-XXXXXXXXXX") {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', GA_MEASUREMENT_ID, { send_page_view: false });
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
+  document.head.appendChild(s);
+}
+</script>
 <!-- Supabase client (accounts + saved designs). UMD build, so it lands on
      window.supabase; the studio degrades to local-only saves if it fails to
      load or isn't configured. -->

@@ -177,6 +177,24 @@ function Root() {
     prevStepRef.current = stepKey;
   }, [stepKey]);
 
+  // ── Analytics: one page view per screen ───────────────────────────────────
+  // The URL never changes, so each screen reports under a made-up path that
+  // reads well in Google Analytics' Pages report. gtag only exists on the live
+  // domain with a Measurement ID set (see index.html).
+  const cartType = (cartKit || cartPending)?.type;
+  const screenPath =
+    stepKey === 'cart' ? `/review/${cartType}` :
+    stepKey === 'saved' ? `/my-designs/${openSaved.type}` :
+    stepKey === 'studio' ? `/${craft}` :
+    landAtSaved ? '/my-designs' : '/';
+  React.useEffect(() => {
+    if (typeof window.gtag !== 'function') return;
+    window.gtag('event', 'page_view', {
+      page_location: window.location.origin + screenPath,
+      page_title: `metime · ${screenPath}`,
+    });
+  }, [screenPath]);
+
   // What a buy button does now: the design is uploaded, and the maker gets to see
   // what's in the box before Shopify takes over.
   const openCart = (kit) => setCartKit(kit);
