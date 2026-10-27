@@ -252,3 +252,21 @@ export function CoasterTabs({ active, onSelect, onCopyAll }) {
     </div>
   );
 }
+
+// The quilting as straight runs [x1,y1,x2,y2] in block units.
+export function quiltLines(cols, rows, pattern, spacing) {
+  const lines=[], s=Math.max(1,spacing);
+  if (pattern==="ditch") {
+    for(let i=1;i<cols;i++) lines.push([i,0,i,rows]);
+    for(let i=1;i<rows;i++) lines.push([0,i,cols,i]);
+  }
+  if (pattern==="horizontal"||pattern==="crosshatch") for(let i=s;i<rows;i+=s) lines.push([0,i,cols,i]);
+  if (pattern==="vertical"||pattern==="crosshatch") for(let i=s;i<cols;i+=s) lines.push([i,0,i,rows]);
+  if (pattern==="diagonal"||pattern==="cross_diagonal") {
+    for(let k=-rows;k<=cols;k+=s){const x1=Math.max(0,k),y1=Math.max(0,-k),x2=Math.min(cols,k+rows),y2=Math.min(rows,cols-k);if(x2>x1&&y2>y1)lines.push([x1,y1,x2,y2]);}
+  }
+  if (pattern==="cross_diagonal") {
+    for(let k=0;k<=cols+rows;k+=s){const x1=Math.max(0,k-rows),y1=Math.min(rows,k),x2=Math.min(cols,k),y2=Math.max(0,k-cols);if(x2>x1&&y1>y2)lines.push([x1,y1,x2,y2]);}
+  }
+  return lines;
+}

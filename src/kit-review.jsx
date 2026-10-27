@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
-  apiSafeDesign, canonicalPresetName, formatKitPrice, KIT_INFO, kitInchBox, kitIncludes,
+  canonicalPresetName, formatKitPrice, KIT_INFO, kitInchBox, kitIncludes,
   kitSupplyRows, kitSupplyRowsLocal, useDesignBom, useKitPrice,
 } from './services.jsx';
-import {
-  cachedMockup, cacheMockup, designToPng, generateKitMockup, mockupCacheKey, startKitCheckout,
-} from './kit-checkout.jsx';
+import { startKitCheckout } from './kit-checkout.jsx';
 import { deserializeGrid } from './design-model.jsx';
 import { fmtY } from './catalog.jsx';
 import {
@@ -13,67 +11,7 @@ import {
   SavedQuiltThumb,
 } from './landing.jsx';
 import { CRAFT_STUDIO, StitchThumb } from './stitch-studio.jsx';
-
-// The finished-product preview for one design: whether the service is up, the
-// image once there is one, and the one call that makes it.
-//
-// Generating is a button rather than something that happens on arrival. Each press
-// costs a real image-model call and takes tens of seconds, and the review page is
-// reachable by anyone who clicks Buy kit — spending that on every visit, including
-// the ones that never buy, is a bill with no purchase behind it. Once generated the
-// result is kept on the device, so coming back to the same design is free.
-function useKitMockup(type, record, designId) {
-  const [available, setAvailable] = useState(null); // null until the probe answers
-  // Drawn once per design rather than per render. The stringified record is only a
-  // memo dependency, so its instability across a history rebuild costs at worst a
-  // redraw — the cache key comes from the raster itself.
-  const recordKey = record ? JSON.stringify(apiSafeDesign(record)) : null;
-  const raster = useMemo(
-    () => (record ? designToPng(type, record) : null),
-    [type, recordKey]
-  );
-  const key = mockupCacheKey(designId, raster);
-  const [state, setState] = useState(() => {
-    const hit = cachedMockup(key);
-    return hit ? { status: 'done', image: hit } : { status: 'idle' };
-  });
-
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/mockup')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((b) => { if (alive) setAvailable(!!(b && b.configured)); })
-      .catch(() => { if (alive) setAvailable(false); });
-    return () => { alive = false; };
-  }, []);
-
-  // A design swapped underneath (the library's preview, re-ordering something
-  // else), or the same one edited, has its own preview or none.
-  useEffect(() => {
-    const hit = cachedMockup(key);
-    setState(hit ? { status: 'done', image: hit } : { status: 'idle' });
-  }, [key]);
-
-  const generate = async () => {
-    if (state.status === 'working') return;
-    setState({ status: 'working' });
-    try {
-      const image = await generateKitMockup(type, record, raster);
-      cacheMockup(key, image);
-      setState({ status: 'done', image });
-    } catch (e) {
-      console.warn('Mockup failed:', e);
-      setState({
-        status: 'error',
-        message: e.message === 'blocked'
-          ? "That design couldn't be rendered — it's still fine to order"
-          : "Couldn't make the preview just now. Your kit is unaffected",
-      });
-    }
-  };
-
-  return { available, status: state.status, image: state.image, message: state.message, generate };
-}
+import { QuiltFinishedRender } from './quilt-render.jsx';
 
 // True while the kit review page is covering the studio. The editors stay mounted
 // underneath on purpose, so a Back returns an unsaved canvas untouched — which
@@ -96,7 +34,6 @@ export function studioCovered() {
 // Nothing here blocks Checkout.
 export function KitReviewPage({ type, record, designId, onBack }) {
   const bom = useDesignBom(type, record);
-  const mockup = useKitMockup(type, record, designId);
   const price = formatKitPrice(useKitPrice(type, record));
   const [state, setState] = useState({ status: "idle" });
   const cfg = CRAFT_STUDIO[type];
@@ -166,33 +103,11 @@ export function KitReviewPage({ type, record, designId, onBack }) {
                 </div>
                 <figcaption className="kit-tile-cap">Your design</figcaption>
               </figure>
-              {/* The same design as the finished object. Left out entirely unless the
-                  image service is configured, so there's never a button here that
-                  can't do anything. */}
-              {mockup.available && (
+              {isQuilt && (
                 <figure className="kit-tile">
-                  <div className="kit-tile-art">
-                    {mockup.status === 'done'
-                      ? <img src={mockup.image} alt={`${name} made up as a finished ${(BRAND_CRAFT_LABEL[type] || 'piece').toLowerCase()} piece`}/>
-                      : (
-                        <div className="kit-tile-blank">
-                          {mockup.status === 'working'
-                            ? <p className="kit-tile-msg">Making a picture of it finished. This takes up to a minute.</p>
-                            : (
-                              <>
-                                <button type="button" className="brand-btn" onClick={mockup.generate}>
-                                  See it finished
-                                </button>
-                                {mockup.status === 'error'
-                                  ? <p className="kit-tile-msg is-err">{mockup.message}</p>
-                                  : <p className="kit-tile-msg">An impression of your design made up in real materials.</p>}
-                              </>
-                            )}
-                        </div>
-                      )}
-                  </div>
+                  <div className="kit-tile-art"><QuiltFinishedRender q={record}/></div>
                   <figcaption className="kit-tile-cap">
-                    {mockup.status === 'done' ? 'Illustration, not a photo of your kit' : 'Finished piece'}
+                    Finished · front and back{!record.binding || !record.backing ? ' · natural where not chosen' : ''}
                   </figcaption>
                 </figure>
               )}

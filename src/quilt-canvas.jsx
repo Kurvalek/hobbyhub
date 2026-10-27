@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { KONA } from '../assets/color-catalogs.js';
-import { nextShapeId, quiltDuplicateOffset, quiltOverlapCells } from './design-model.jsx';
+import { nextShapeId, quiltDuplicateOffset, quiltLines, quiltOverlapCells } from './design-model.jsx';
 import { IcCopy, IcPlus, IcRotate, IcSwap, IcTrash } from './icons.jsx';
 import { EdMenuButton, EdSwatch, edSwatchStyle, useCanvasPinchZoom } from './editor-ui.jsx';
 import { studioCovered } from './kit-review.jsx';
@@ -8,19 +8,7 @@ import { studioCovered } from './kit-review.jsx';
 // ── Quilting overlay ──────────────────────────────────────────────────────
 export function QuiltOverlay({ cols, rows, pattern, spacing, color }) {
   if (pattern==="none") return null;
-  const lines=[], s=Math.max(1,spacing);
-  if (pattern==="ditch") {
-    for(let i=1;i<cols;i++) lines.push([i,0,i,rows]);
-    for(let i=1;i<rows;i++) lines.push([0,i,cols,i]);
-  }
-  if (pattern==="horizontal"||pattern==="crosshatch") for(let i=s;i<rows;i+=s) lines.push([0,i,cols,i]);
-  if (pattern==="vertical"||pattern==="crosshatch") for(let i=s;i<cols;i+=s) lines.push([i,0,i,rows]);
-  if (pattern==="diagonal"||pattern==="cross_diagonal") {
-    for(let k=-rows;k<=cols;k+=s){const x1=Math.max(0,k),y1=Math.max(0,-k),x2=Math.min(cols,k+rows),y2=Math.min(rows,cols-k);if(x2>x1&&y2>y1)lines.push([x1,y1,x2,y2]);}
-  }
-  if (pattern==="cross_diagonal") {
-    for(let k=0;k<=cols+rows;k+=s){const x1=Math.max(0,k-rows),y1=Math.min(rows,k),x2=Math.min(cols,k),y2=Math.max(0,k-cols);if(x2>x1&&y1>y2)lines.push([x1,y1,x2,y2]);}
-  }
+  const lines = quiltLines(cols, rows, pattern, spacing);
   // Stroked in screen pixels via non-scaling-stroke, the way the grid lines
   // beside them already are. Authored in cell units the same stitch renders
   // ~8px wide with a 33px dash on a wall hanging — a rope, not a stitch — and
