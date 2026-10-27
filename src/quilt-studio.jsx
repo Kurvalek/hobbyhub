@@ -52,9 +52,9 @@ const QUILT_THREADS = [
 
 // The guided setup: the studio opens on Size and walks the panels in this order.
 const QUILT_GUIDE = [
-  { id: 'size', title: 'Choose a size', next: 'Next: Template' },
-  { id: 'templates', title: 'Pick a starting layout', next: 'Next: Fabrics' },
-  { id: 'fabrics', title: 'Choose your fabrics', next: 'Next: Quilting' },
+  { id: 'size', title: 'Choose a size', next: 'Next: Fabrics' },
+  { id: 'fabrics', title: 'Choose your fabrics', next: 'Next: Template' },
+  { id: 'templates', title: 'Pick a starting layout', next: 'Next: Quilting' },
   { id: 'quilting', title: 'Choose your quilting', next: 'Start designing' },
 ];
 const STARTER_PALETTES = SUGGESTED_PALETTES.map(p => ({ name: p.name, colors: resolvePalette(p) }));
@@ -1124,7 +1124,6 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialQui
               {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save quilt'}
             </button>
           ))}
-          {!isMobile && <AccountChip/>}
           {isMobile && (
             <button type="button" className="icon-btn ed-lg ed-more-btn" aria-haspopup="menu" aria-expanded={panel === 'menu'}
               aria-label={justSaved ? 'Saved. More actions' : 'More actions'} title="More actions"
@@ -1141,6 +1140,7 @@ export function App({ initialPreset = "Throw", initialPalette = null, initialQui
               getDesign={()=>buildQuiltRecord(currentQuiltId ?? Date.now(), (currentQuilt && currentQuilt.name) || 'Untitled')}
               onSaved={id=>{ if (currentQuiltId != null) setSavedQuilts(p=>p.map(x=>x.id===currentQuiltId?{...x,apiId:id}:x)); }}/>
           </div>
+          {!isMobile && <AccountChip/>}
         </div>
       </div>
 

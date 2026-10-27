@@ -35,7 +35,9 @@ import {
 } from './photo.jsx';
 import { CROSS_STITCH_PALETTE_MAX, StitchTemplateThumb } from './studio-shared.jsx';
 import { studioCovered } from './kit-review.jsx';
-import { rasterizeText, snapTextSize, StitchTextBox, StitchTextControls, XS_FONTS, xsLineHeight } from './stitch-text.jsx';
+import {
+  layoutStitchText, packTexts, rasterizeText, snapTextSize, StitchTextBox, StitchTextMenu, textOverEdge, unpackTexts, XS_FONTS, xsLineHeight,
+} from './stitch-text.jsx';
 
 // ── Cross-stitch: canvas editor ────────────────────────────────────────────
 const XS_DEFAULT_CODES = ["310","B5200","666","797","700","726","435","3806","3846","971"];
@@ -399,7 +401,7 @@ function StitchHelpPanel({ cfg, isMobile, showTips, setShowTips }) {
     { Ic: IcPen, t: 'Pencil & eraser', k: 'P · E', d: `Drag to draw or remove ${cfg.unitPlural}. The size buttons draw ${cfg.unitPlural} up to 5 wide${isMobile ? '' : ', and [ and ] step through them'}.` },
     { Ic: IcDrop, t: 'Fill', k: 'F', d: `${v} an area to fill everything of that color that touches it.` },
     { Ic: IcSquare, t: 'Line, rectangle & oval', k: 'L · R · O', d: 'Drag from corner to corner. The shape draws in your current color.' },
-    { Ic: IcText, t: 'Text', k: 'T', d: `${v} the canvas and type your words right there. Pick a style, height and color as you go, then ${v.toLowerCase()} away to turn them into ${cfg.unitPlural}.` },
+    { Ic: IcText, t: 'Text', k: 'T', d: `${v} the canvas and type your words right there. Pick a style, height and color as you go, then ${v.toLowerCase()} away to turn them into ${cfg.unitPlural}. ${v} stitched words to change them, or drag them to move.` },
     { Ic: IcMarquee, t: 'Select', k: 'V', d: isMobile
       ? 'Tap a shape to select it, or drag to box-select. Drag to move it, pull a handle to resize, or tap a color to recolor it.'
       : 'Click a shape or drag a box. Shift adds, ⌥-drag copies, handles resize, ⌘D duplicates and Delete removes.' },
@@ -451,7 +453,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (wasMobileRef.current === isMobile) return;
     wasMobileRef.current = isMobile;
     if (guide) return;
-    setPanel(tool === 'text' && !isMobile ? 'text' : restingPanel(isMobile));
+    setPanel(restingPanel(isMobile));
   }, [isMobile]);
   const togglePanel = useCallback(id => {
     guideCtl.cancel();
@@ -472,14 +474,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   const [pal, setPal] = useState(initPalette);
   const [color, setColor] = useState(initPalette[0] || CFG.byCode(CFG.fallbackCode));
   const [tool, setTool] = useState("pen");
-  // On desktop text has its own panel, so picking it opens the panel and
-  // leaving it returns to the resting one. On a phone a sheet would cover the
-  // canvas the words go on, so its controls ride in the tray instead.
-  const chooseTool = useCallback((id) => {
-    setTool(id);
-    if (id === 'text') setPanel(isMobile ? null : 'text');
-    else setPanel(p => (p === 'text' ? restingPanel(isMobile) : p));
-  }, [isMobile]);
+  const chooseTool = useCallback((id) => setTool(id), []);
   // Nib width is remembered per tool, so a fat eraser doesn't also fatten the
   // pencil when you switch back to it.
   const [penNib, setPenNib] = useState(1);
@@ -510,6 +505,10 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   textBoxRef.current = textBox;
   const textInputRef = useRef(null);
   const textPressRef = useRef(null);
+  // Words already stitched, kept so they can be reopened or moved (see liftText).
+  const textsRef = useRef([]);
+  const textHoverRef = useRef(null);
+  const [textHover, setTextHover] = useState(false);
   // Words a lettering chart wants typed, waiting for the next box.
   const seedWordsRef = useRef('');
   // Canvas falls back to a generic face without complaint when a webfont hasn't
@@ -748,6 +747,21 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       ctx.lineWidth = hair;
       ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       ctx.strokeRect(nx, ny, ns, ns);
+      ctx.restore();
+    }
+    // Placed words under the text tool: a dashed frame says they can be
+    // reopened or moved.
+    const th = textHoverRef.current;
+    if (th) {
+      ctx.save();
+      ctx.translate(align, align);
+      ctx.lineWidth = 3 * hair;
+      ctx.strokeStyle = 'rgba(255,255,255,0.62)';
+      ctx.strokeRect(th.x * cs, th.y * cs, th.boxW * cs, th.boxH * cs);
+      ctx.lineWidth = hair;
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.setLineDash([4 * hair, 3 * hair]);
+      ctx.strokeRect(th.x * cs, th.y * cs, th.boxW * cs, th.boxH * cs);
       ctx.restore();
     }
     if (sel) {
@@ -1029,28 +1043,128 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   // A tap with the text tool opens a box there; letting go of it (clicking
   // away, Esc, Done, another tool) stitches the words in the current face,
   // height and color as one undo step. An empty box just closes.
+  //
+  // Stitched words stay text: each placement is remembered with the stitches
+  // it covered, so a tap on it reopens the box and a drag moves it — letters
+  // that ran off the board included, since the words themselves are kept. A
+  // placement only counts while all its stitches are still its color; paint
+  // over it, move it with the selection tool or undo it away and it is plain
+  // stitches (undo it back and it is text again).
   const setBox = (next) => { textBoxRef.current = next; setTextBox(next); };
+  const pageCells = (page) => (page === activeCoasterRef.current || !pagesRef.current
+    ? cellsRef.current : pagesRef.current[page]);
+  const textAlive = (r) => {
+    if (r.w !== W || r.h !== H) return false;
+    const cells = pageCells(r.page);
+    if (!cells) return false;
+    for (const k of r.cells.keys()) if (cells[k] !== r.color) return false;
+    return true;
+  };
+  const textAt = (cell) => {
+    if (!cell) return null;
+    const [x, y] = cell, k = idx(x, y);
+    const list = textsRef.current;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const r = list[i];
+      if (r.page !== activeCoasterRef.current) continue;
+      const inBox = x >= r.x && x < r.x + r.boxW && y >= r.y && y < r.y + r.boxH;
+      if ((inBox || r.cells.has(k)) && textAlive(r)) return r;
+    }
+    return null;
+  };
+  // A box can hang off the board, but never so far that it can't be grabbed
+  // and brought back: a quarter of it (three stitches at least) stays on.
+  const clampBox = (tb) => {
+    const L = layoutStitchText(tb.text || 'M', textFont, textSize);
+    const kx = Math.min(L.boxW, Math.max(3, Math.ceil(L.boxW / 4)));
+    const ky = Math.min(L.boxH, Math.max(3, Math.ceil(L.boxH / 4)));
+    return { ...tb, x: Math.max(kx - L.boxW, Math.min(W - kx, tb.x)), y: Math.max(ky - L.boxH, Math.min(H - ky, tb.y)) };
+  };
+  const setHoverText = (r) => {
+    if (textHoverRef.current === r) return;
+    textHoverRef.current = r;
+    setTextHover(!!r);
+    scheduleRedraw();
+  };
+  const focusTextInput = (atEnd) => {
+    const ta = textInputRef.current;
+    if (!ta) return;
+    ta.focus({ preventScroll: true });
+    if (atEnd) ta.setSelectionRange(ta.value.length, ta.value.length);
+  };
   const openTextBox = (cell) => {
-    const tb = { x: cell[0], y: cell[1] - Math.floor(xsLineHeight(textSize) / 2), text: seedWordsRef.current };
+    const tb = { x: cell[0], y: cell[1] - Math.floor(xsLineHeight(textSize) / 2), text: seedWordsRef.current, color: color.hex };
     seedWordsRef.current = '';
     // Rendered synchronously so the field can take focus inside the tap —
     // iOS only raises the keyboard for a focus the user's gesture made.
     flushSync(() => setBox(tb));
-    textInputRef.current?.focus({ preventScroll: true });
+    focusTextInput(false);
+  };
+  // Takes placed words back off the board and into a box, in their own face,
+  // height and color. The lift is the undo step for whatever happens next.
+  const liftText = (r) => {
+    pushUndo();
+    for (const [k, prev] of r.cells) cellsRef.current[k] = prev;
+    const thread = pal.find(c => c.hex === r.color);
+    flushSync(() => {
+      setTextFont(r.font);
+      setTextSize(r.size);
+      if (thread) setColor(thread);
+      setBox({ x: r.x, y: r.y, text: r.text, color: r.color, from: r });
+    });
+    redraw(); bump();
   };
   const commitText = () => {
     const tb = textBoxRef.current;
     if (!tb) return false;
     setBox(null);
+    const from = tb.from;
     const offs = rasterizeText(tb.text, textFont, textSize);
-    if (!offs.length) return false;
-    pushUndo();
-    applyCells(offs.map(([dx, dy]) => [tb.x + dx, tb.y + dy]), color.hex);
+    if (!offs.length) {
+      // Emptying lifted words deletes them; the lift already holds the undo.
+      if (from) { redraw(); bump(); return true; }
+      return false;
+    }
+    const L = layoutStitchText(tb.text, textFont, textSize);
+    if (from && from.text === tb.text && from.font === textFont && from.size === L.size
+      && from.color === tb.color && from.x === tb.x && from.y === tb.y) {
+      // Opened and let go untouched: put it back and forget the lift.
+      for (const k of from.cells.keys()) cellsRef.current[k] = from.color;
+      undoRef.current.pop();
+      redraw(); bump();
+      return true;
+    }
+    if (!from) pushUndo();
+    const cells = cellsRef.current, covered = new Map();
+    for (const [dx, dy] of offs) {
+      const x = tb.x + dx, y = tb.y + dy;
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const k = idx(x, y);
+      if (!covered.has(k)) covered.set(k, cells[k]);
+      cells[k] = tb.color;
+    }
+    if (covered.size) {
+      let list = [...textsRef.current, {
+        text: tb.text, font: textFont, size: L.size, color: tb.color, x: tb.x, y: tb.y,
+        boxW: L.boxW, boxH: L.boxH, page: activeCoasterRef.current, w: W, h: H, cells: covered,
+      }];
+      if (list.length > 120) list = list.filter(textAlive).slice(-120);
+      textsRef.current = list;
+    }
     redraw(); bump();
     return true;
   };
   const commitTextRef = useRef(commitText);
   commitTextRef.current = commitText;
+  const moveTextBox = (x, y) => {
+    const tb = textBoxRef.current;
+    if (tb) setBox(clampBox({ ...tb, x, y }));
+  };
+  // Picking a thread while the box is open recolors the words in it.
+  useEffect(() => {
+    const tb = textBoxRef.current;
+    if (tb && tb.color !== color.hex) setBox({ ...tb, color: color.hex });
+  }, [color]);
 
   // Bucket fill: flood the contiguous region of cells matching the clicked
   // cell's value (empty by default) with `hex`, bounded by differently-colored
@@ -1321,10 +1435,15 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     const cell = cellFromEvent(e); if (!cell) return;
     if (tool === 'text') {
       // With a box open, a press on the canvas is "click away": it stitches
-      // the words and nothing more. Otherwise a tap (not a drag or a pinch)
-      // opens a new box, resolved on release.
-      if (textBoxRef.current) { commitText(); return; }
-      textPressRef.current = { cell, x: e.clientX, y: e.clientY, slop: e.pointerType === 'mouse' ? 4 : 10 };
+      // the words, and goes no further unless it landed on placed words. On
+      // placed words a tap reopens them and a drag moves them; on bare canvas
+      // a tap (not a drag or a pinch) opens a new box. Resolved on release.
+      const wasOpen = !!textBoxRef.current;
+      if (wasOpen) commitText();
+      const rec = textAt(cell);
+      if (wasOpen && !rec) return;
+      if (rec) e.currentTarget.setPointerCapture(e.pointerId);
+      textPressRef.current = { cell, x: e.clientX, y: e.clientY, slop: e.pointerType === 'mouse' ? 4 : 10, rec };
       return;
     }
     if (tool === 'fill') {
@@ -1457,7 +1576,22 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     }
     if (tool === 'text') {
       const p = textPressRef.current;
-      if (p && (Math.abs(e.clientX - p.x) > p.slop || Math.abs(e.clientY - p.y) > p.slop)) textPressRef.current = null;
+      if (p && !p.drag && (Math.abs(e.clientX - p.x) > p.slop || Math.abs(e.clientY - p.y) > p.slop)) {
+        if (!p.rec) { textPressRef.current = null; return; }
+        liftText(p.rec);
+        p.drag = { x0: p.rec.x, y0: p.rec.y };
+        setHoverText(null);
+      }
+      if (p && p.drag) {
+        // Followed off the board too, so words can be dragged half out and back.
+        const cv = canvasRef.current, rect = cv.getBoundingClientRect(), cs = cellSize * zoom;
+        const cx = Math.floor((e.clientX - rect.left) / cs), cy = Math.floor((e.clientY - rect.top) / cs);
+        const tb = textBoxRef.current;
+        const next = clampBox({ ...tb, x: p.drag.x0 + cx - p.cell[0], y: p.drag.y0 + cy - p.cell[1] });
+        if (next.x !== tb.x || next.y !== tb.y) setBox(next);
+        return;
+      }
+      if (!p && !textBoxRef.current) setHoverText(textAt(cellFromEvent(e)));
       return;
     }
     if ((tool === 'pen' || tool === 'eraser') && !drawingRef.current) {
@@ -1494,7 +1628,10 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (tool === 'text') {
       const p = textPressRef.current;
       textPressRef.current = null;
-      if (p) openTextBox(p.cell);
+      if (!p) return;
+      if (p.drag) commitText();
+      else if (p.rec) { setHoverText(null); liftText(p.rec); focusTextInput(true); }
+      else openTextBox(p.cell);
       return;
     }
     if (tool === 'select') {
@@ -1556,7 +1693,12 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     redraw(); bump();
   };
   const onPointerLeave = (e) => {
-    if (tool === 'text') { textPressRef.current = null; return; }
+    if (tool === 'text') {
+      if (textPressRef.current && textPressRef.current.drag) onPointerUp(e);
+      else textPressRef.current = null;
+      setHoverText(null);
+      return;
+    }
     if (tool === 'select') {
       if (movingRef.current || marqueeRef.current || resizeRef.current) onPointerUp(e);
       else { pressRef.current = null; setSelCursor(null); }
@@ -1573,6 +1715,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     previewRef.current = null;
     nibHoverRef.current = null;
     textPressRef.current = null;
+    textHoverRef.current = null;
+    setTextHover(false);
     commitTextRef.current();
     commitFloat();
     selRef.current = null; movingRef.current = false;
@@ -1667,6 +1811,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       record.pages = pagesRef.current.map(cells => ({ grid: serializeGrid(cells) }));
       record.activePage = activeCoasterRef.current;
     }
+    const texts = textsRef.current.filter(textAlive);
+    if (texts.length) record.texts = packTexts(texts);
     return record;
   };
   // Mirrors commitQuiltSave: account first, then this device, and local-only
@@ -1757,6 +1903,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       undoRef.current = [];
     }
     previewRef.current = null;
+    textsRef.current = unpackTexts(d.texts);
     if (Array.isArray(d.palette) && d.palette.length) { setPal(d.palette); setColor(d.palette[0]); }
     setBg(d.bgImage || null); setShowBg(!!d.bgImage);
     if (d.fabric) setFabric(d.fabric);
@@ -2073,7 +2220,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
 
   const finishGuide = () => {
     guideCtl.end();
-    setPanel(tool === 'text' && !isMobile ? 'text' : (isMobile ? null : 'floss'));
+    setPanel(isMobile ? null : 'floss');
     showToast(craft === 'punch-needle' ? 'All set · happy punching' : 'All set · happy stitching');
   };
   const guideStep = guideCtl.step;
@@ -2115,6 +2262,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     : null), [version, activeCoaster, isCoasterKit]);
   const pillAddRef = useRef(null);
   const selAddRef = useRef(null);
+  const textAddRef = useRef(null);
+  const textBoxElRef = useRef(null);
   const trayRef = useRef(null);
   const [trayH, setTrayH] = useState(0);
   useLayoutEffect(() => {
@@ -2128,7 +2277,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   }, [isMobile, panel]);
 
   const threadWord = CFG.threadLabel.toLowerCase();
-  const PANEL_TITLES = { designs: 'Templates', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', text: 'Text', help: 'Help', menu: 'More' };
+  const PANEL_TITLES = { designs: 'Templates', floss: CFG.threadLabel, fabric: 'Fabric', size: 'Size', help: 'Help', menu: 'More' };
   const panelTitle = guideStep >= 0 ? GUIDE[guideStep].title : PANEL_TITLES[panel];
   const renderPanel = id => {
     if (id === 'designs') return (
@@ -2151,12 +2300,6 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (id === 'size') return (
       <StitchSizePanel cfg={CFG} current={dims.name} W={W} H={H} finishedDims={finishedDims}
         onPick={name => { applySize(name); if (guide) guideCtl.advance('size'); }}/>
-    );
-    if (id === 'text') return (
-      <div className="ed-keep-text" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <StitchTextControls cfg={CFG} textFont={textFont} setTextFont={setTextFont}
-          textSize={textSize} setTextSize={setTextSize} editing={!!textBox} onDone={commitText}/>
-      </div>
     );
     if (id === 'help') return <StitchHelpPanel cfg={CFG} isMobile={isMobile} showTips={showTips} setShowTips={setShowTips}/>;
     if (id === 'menu') {
@@ -2224,6 +2367,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     <StitchCoasterStrip pages={coasterPages} active={activeCoaster} onSelect={selectCoaster} onCopyAll={copyCoasterToAll}
       w={W} h={H} bg={fabric.hex}/>
   );
+  const textOver = !!textBox && textOverEdge(textBox, textFont, textSize, { w: W, h: H });
+  const textThread = textBox
+    ? (pal.find(c => c.hex === textBox.color) || CFG.library.find(c => c.hex === textBox.color) || null) : null;
   const sel = hasSel ? selRef.current : null;
   const selInfo = sel && (() => {
     const f = selFrame(sel);
@@ -2279,7 +2425,6 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               {justSaved ? <>Saved <IcCheck size={12}/></> : 'Save design'}
             </button>
           ))}
-          {!isMobile && <AccountChip/>}
           {isMobile && (
             <button type="button" className="icon-btn ed-lg ed-more-btn" aria-haspopup="menu" aria-expanded={panel === 'menu'}
               aria-label={justSaved ? 'Saved. More actions' : 'More actions'} title="More actions"
@@ -2295,6 +2440,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               getDesign={() => { commitTextRef.current(); commitFloat(); return buildStitchRecord(currentStitchId ?? Date.now(), (currentStitch && currentStitch.name) || 'Untitled'); }}
               onSaved={id => { if (currentStitchId != null) setSavedStitches(p => p.map(x => x.id === currentStitchId ? { ...x, apiId: id } : x)); }}/>
           </div>
+          {!isMobile && <AccountChip/>}
         </div>
       </div>
 
@@ -2305,19 +2451,37 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               <div className={`xs-canvas-holder${textBox ? ' has-textbox' : ''}`} style={{ width: W * cellSize * zoom, height: H * cellSize * zoom }}>
                 <canvas ref={canvasRef} className="xs-canvas"
                   width={Math.round(W * cellSize * dpr)} height={Math.round(H * cellSize * dpr)}
-                  style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : tool === 'text' ? 'text' : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
+                  style={{ cursor: tool === 'pan' ? 'grab' : tool === 'select' ? (selCursor || 'crosshair') : tool === 'text' ? (textHover ? 'move' : 'text') : 'crosshair', width: W * cellSize * zoom, height: H * cellSize * zoom, flexShrink: 0 }}
                   onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerLeave}/>
                 {textBox && (
-                  <StitchTextBox box={textBox} font={textFont} size={textSize} color={color.hex} z={cellSize * zoom} board={{ w: W, h: H }}
-                    inputRef={textInputRef} onCommit={commitText}
-                    onChange={t => setBox({ ...textBoxRef.current, text: t })}
-                    onMove={(dx, dy) => setBox({ ...textBoxRef.current, x: textBoxRef.current.x + dx, y: textBoxRef.current.y + dy })}/>
+                  <StitchTextBox box={textBox} font={textFont} size={textSize} color={textBox.color} z={cellSize * zoom}
+                    over={textOver} inputRef={textInputRef} boxRef={textBoxElRef} onCommit={commitText}
+                    onChange={t => setBox({ ...textBoxRef.current, text: t })}/>
                 )}
               </div>
             </div>
+            {textBox && (
+              <StitchTextMenu cfg={CFG} compact={isMobile} boxRef={textBoxElRef} box={textBox} z={cellSize * zoom} over={textOver}
+                textFont={textFont} setTextFont={setTextFont} textSize={textSize} setTextSize={setTextSize}
+                onMove={moveTextBox} onDone={commitText}
+                onDelete={() => { setBox({ ...textBoxRef.current, text: '' }); commitText(); }}
+                colorMenu={(
+                  <EdMenuButton btnRef={textAddRef} label={`${CFG.threadLabel}: ${textThread ? textThread.name : 'custom'}`}
+                    menuLabel={CFG.threadLabel} width={256}
+                    trigger={<span className="ed-menu-swatch" style={textThread ? edSwatchStyle(textThread) : { background: textBox.color }}/>}>
+                    <div className="ed-menu-swatches">
+                      {paletteSwatches}
+                      <button type="button" className="ed-swatch ed-swatch-add"
+                        onClick={() => openLibrary(textAddRef, 'bottom-center')} title={`Add ${threadWord} from the library`} aria-label={`Add ${threadWord}`}>
+                        <IcPlus size={12}/>
+                      </button>
+                    </div>
+                  </EdMenuButton>
+                )}/>
+            )}
 
             {!isMobile && <EdTools className="ed-dock ed-float" tools={tools} tool={tool} onTool={chooseTool}/>}
-            {!isMobile && (selBar || ((nibbed || painting) && (
+            {!isMobile && (selBar || ((nibbed || painting) && !textBox && (
               <div className="ed-palette-pill ed-float ed-keep-sel">
                 {nibbed && (
                   <EdMenuButton label={`${tool === 'eraser' ? 'Eraser' : 'Pencil'} size: ${nib} × ${nib}`}
@@ -2361,15 +2525,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               <div className="ed-tray" ref={trayRef}>
                 {hintBubble}
                 {coasterStrip}
-                {selBar || (tool === 'text' ? (
-                  <div className="ed-strip ed-float ed-keep-sel xs-text-tray">
-                    <StitchTextControls compact cfg={CFG} textFont={textFont} setTextFont={setTextFont}
-                      textSize={textSize} setTextSize={setTextSize} editing={!!textBox} onDone={commitText}/>
-                    <span className="ed-strip-sep"/>
-                    {paletteSwatches}
-                    {addSwatch(pillAddRef, undefined)}
-                  </div>
-                ) : (nibbed || painting) && (
+                {selBar || ((nibbed || painting) && !textBox && (
                   <div className="ed-strip ed-float ed-keep-sel">
                     {nibs}
                     {nibs && painting && <span className="ed-strip-sep"/>}

@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { IcHand, IcMinus, IcPlus } from './icons.jsx';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { EdMenuButton } from './editor-ui.jsx';
+import { IcCheck, IcHand, IcMinus, IcPlus, IcTrash } from './icons.jsx';
 
 // Lettering for the grid studio. Words are typed into a box on the canvas, set
 // in the real face at the size they'll be stitched, and only become stitches
@@ -113,15 +114,26 @@ export function rasterizeText(text, fontId, sizeCells) {
   return out;
 }
 
+// Placed words as they're saved with a design: the stitches each placement
+// covered become [index, what was there] pairs.
+export const packTexts = list => list.map(({ cells, ...r }) => ({ ...r, cells: [...cells] }));
+export const unpackTexts = list => (Array.isArray(list) ? list : [])
+  .filter(r => r && typeof r.text === 'string' && Array.isArray(r.cells))
+  .map(r => ({ ...r, page: r.page || 0, cells: new Map(r.cells) }));
+
 // The box on the canvas: a textarea set in the chosen face at stitch scale,
 // in the thread colour, so what you type is what gets stitched. `z` is screen
 // pixels per stitch. Below 16px iOS zooms the page into a focused field, so a
 // small box is laid out larger and scaled back down.
-export function StitchTextBox({ box, font, size, color, z, board, onChange, onCommit, onMove, inputRef }) {
+export function textOverEdge(box, font, size, board) {
+  if (!box.text) return false;
+  const L = layoutStitchText(box.text, font, size);
+  return box.x < 0 || box.y < 0 || box.x + L.boxW > board.w || box.y + L.boxH > board.h;
+}
+
+export function StitchTextBox({ box, font, size, color, z, over, onChange, onCommit, inputRef, boxRef }) {
   const L = layoutStitchText(box.text || 'M', font, size);
   const f = L.font;
-  // Anything past the board's edge won't be stitched, so say so while typing.
-  const over = !!box.text && (box.x < 0 || box.y < 0 || box.x + L.boxW > board.w || box.y + L.boxH > board.h);
   const k = Math.max(1, 16 / (L.size * z));
   const taRef = useRef(null);
   const setRef = el => { taRef.current = el; if (inputRef) inputRef.current = el; };
@@ -130,33 +142,16 @@ export function StitchTextBox({ box, font, size, color, z, board, onChange, onCo
   useLayoutEffect(() => { const ta = taRef.current; if (ta) { ta.scrollLeft = 0; ta.scrollTop = 0; } });
   // Picking a face, height or colour moves focus to that button; hand it back
   // (or menu) so typing carries on. Sliders keep theirs, or the drag would stop.
+  // Not on opening: whoever opened the box decides whether it takes focus (a
+  // drag that lifts placed words shouldn't raise a phone keyboard).
+  const opened = useRef(false);
   useEffect(() => {
+    if (!opened.current) { opened.current = true; return; }
     const ta = taRef.current, a = document.activeElement;
     if (ta && a !== ta && (!a || a === document.body || a.tagName === 'BUTTON' || a.tagName === 'SELECT')) ta.focus({ preventScroll: true });
   }, [font, size, color]);
-  const drag = useRef(null);
-  const onGrip = e => {
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
-  };
-  const onGripMove = e => {
-    const d = drag.current; if (!d) return;
-    const dx = Math.round((e.clientX - d.x) / z), dy = Math.round((e.clientY - d.y) / z);
-    if (dx !== d.dx || dy !== d.dy) { onMove(dx - d.dx, dy - d.dy); d.dx = dx; d.dy = dy; }
-  };
-  const onGripUp = () => { drag.current = null; taRef.current?.focus({ preventScroll: true }); };
   return (
-    <div className={`xs-textbox${over ? ' is-over' : ''}`} style={{ left: box.x * z, top: box.y * z, width: L.boxW * z, height: L.boxH * z }}>
-      {/* Kept on the board: pulled right when the box starts off its left edge,
-          and dropped below the box when there's no room above it. */}
-      <div className={`xs-textbox-bar${box.y * z < 34 ? ' is-below' : ''}`} style={{ left: Math.max(-4, -box.x * z + 4) }}>
-        <button type="button" className="xs-textbox-grip" aria-label="Move text" title="Drag to move"
-          onPointerDown={onGrip} onPointerMove={onGripMove} onPointerUp={onGripUp} onPointerCancel={onGripUp}>
-          <IcHand size={14}/>
-        </button>
-        {over && <span className="xs-textbox-warn" role="status">Runs off the edge</span>}
-      </div>
+    <div ref={boxRef} className={`xs-textbox${over ? ' is-over' : ''}`} style={{ left: box.x * z, top: box.y * z, width: L.boxW * z, height: L.boxH * z }}>
       <textarea ref={setRef} className="xs-textbox-input" value={box.text} wrap="off" spellCheck={false}
         autoComplete="off" aria-label="Text to stitch" placeholder="Type"
         onChange={e => onChange(e.target.value)}
@@ -173,51 +168,89 @@ export function StitchTextBox({ box, font, size, color, z, board, onChange, onCo
   );
 }
 
-// Face and height, shared by the desktop panel and the mobile tray.
-export function StitchTextControls({ textFont, setTextFont, textSize, setTextSize, cfg, editing, onDone, compact = false }) {
+// The open box's item menu, floating over it like a selection toolbar: a grip
+// to move it, thread, face and height, delete and Done. It sits above the box,
+// below it when there's no room, and centres on the part of the box that's on
+// the board. Pressing its controls leaves the caret in the box.
+export function StitchTextMenu({ boxRef, box, z, textFont, setTextFont, textSize, setTextSize, over, colorMenu, onMove, onDelete, onDone, cfg, compact = false }) {
+  const ref = useRef(null);
+  const [pos, setPos] = useState(null);
+  const place = useCallback(() => {
+    const b = boxRef.current, m = ref.current;
+    if (!b || !m) return;
+    const stage = m.parentElement.getBoundingClientRect();
+    const board = b.parentElement.getBoundingClientRect();
+    const r = b.getBoundingClientRect();
+    const mw = m.offsetWidth, mh = m.offsetHeight, gap = 14;
+    // Worked in the stage's own coordinates; the menu is positioned inside it.
+    const cx = (Math.max(r.left, board.left) + Math.min(r.right, board.right)) / 2 - stage.left;
+    const left = Math.round(Math.max(8, Math.min(stage.width - 8 - mw, cx - mw / 2)));
+    let top = r.top - stage.top - mh - gap, mode = 'above';
+    if (top < 8) { top = r.bottom - stage.top + gap; mode = 'below'; }
+    if (top + mh > stage.height - 8) { top = 8; mode = 'clamped'; }
+    top = Math.round(top);
+    const arrow = Math.round(Math.max(14, Math.min(mw - 14, cx - left)));
+    setPos(p => (p && p.left === left && p.top === top && p.mode === mode && p.arrow === arrow ? p : { left, top, mode, arrow }));
+  }, [boxRef]);
+  useLayoutEffect(place);
+  useEffect(() => {
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => { window.removeEventListener('scroll', place, true); window.removeEventListener('resize', place); };
+  }, [place]);
+
+  const drag = useRef(null);
+  const onGrip = e => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, x0: box.x, y0: box.y };
+  };
+  const onGripMove = e => {
+    const d = drag.current; if (!d) return;
+    const x = d.x0 + Math.round((e.clientX - d.x) / z), y = d.y0 + Math.round((e.clientY - d.y) / z);
+    if (x !== box.x || y !== box.y) onMove(x, y);
+  };
+  const onGripUp = () => { drag.current = null; };
+
+  const f = fontOf(textFont);
   const pickFont = id => { setTextFont(id); setTextSize(s => snapTextSize(id, s)); };
   const step = d => setTextSize(s => stepTextSize(textFont, s, d));
   const [lo, hi] = sizeRange(textFont);
-  const sizes = fontOf(textFont).sizes;
-  if (compact) {
-    return (
-      <div className="xs-text-strip">
-        <select className="xs-text-font" value={textFont} onChange={e => pickFont(e.target.value)} aria-label="Lettering style"
-          style={{ fontFamily: fontOf(textFont).family }}>
-          {Object.keys(XS_FONTS).map(id => <option key={id} value={id}>{XS_FONTS[id].label}</option>)}
-        </select>
-        <div className="ed-zoom-pill xs-text-size" role="group" aria-label={`Height in ${cfg.unitPlural}`}>
-          <button type="button" onClick={() => step(-1)} disabled={textSize <= lo} aria-label="Smaller"><IcMinus/></button>
-          <span className="ed-zoom-val">{textSize}</span>
-          <button type="button" onClick={() => step(+1)} disabled={textSize >= hi} aria-label="Larger"><IcPlus/></button>
-        </div>
-        {editing && <button type="button" className="btn btn-xs btn-dark" onClick={onDone}>Done</button>}
-      </div>
-    );
-  }
   return (
-    <>
-      {/* Six faces don't fit one row at a readable size, so they wrap 2×3. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {Object.keys(XS_FONTS).map(id => (
-          <button key={id} type="button" className={`btn btn-sm${textFont === id ? ' btn-dark' : ''}`}
-            style={{ flex: '1 1 42%', fontFamily: XS_FONTS[id].family, fontSize: 14 }}
-            onClick={() => pickFont(id)}>{XS_FONTS[id].label}</button>
-        ))}
+    <div ref={ref} className={`xs-textmenu ed-float ed-keep-text is-${pos ? pos.mode : 'above'}${compact ? ' is-compact' : ''}`} role="toolbar" aria-label="Text"
+      style={pos ? { left: pos.left, top: pos.top, '--arrow-x': `${pos.arrow}px` } : { left: 0, top: 0, visibility: 'hidden' }}
+      onMouseDown={e => e.preventDefault()}>
+      <button type="button" className="icon-btn xs-textmenu-grip" aria-label="Move text" title="Drag to move"
+        onPointerDown={onGrip} onPointerMove={onGripMove} onPointerUp={onGripUp} onPointerCancel={onGripUp}>
+        <IcHand size={16}/>
+      </button>
+      <span className="ed-strip-sep"/>
+      {colorMenu}
+      <EdMenuButton label={`Lettering style: ${f.label}`} menuLabel="Style" width={200}
+        trigger={<span className="xs-textmenu-font" style={{ fontFamily: f.family, fontWeight: f.weight }}>{compact ? 'Aa' : f.label}</span>}>
+        <div className="xs-font-list" role="menu">
+          {Object.keys(XS_FONTS).map(id => (
+            <button key={id} type="button" role="menuitemradio" aria-checked={id === textFont}
+              className={`xs-font-opt${id === textFont ? ' is-active' : ''}`}
+              style={{ fontFamily: XS_FONTS[id].family, fontWeight: XS_FONTS[id].weight }} onClick={() => pickFont(id)}>
+              <span>{XS_FONTS[id].label}</span>
+              {id === textFont && <IcCheck size={14}/>}
+            </button>
+          ))}
+        </div>
+      </EdMenuButton>
+      {/* A pixel face steps between the heights it's drawn at. */}
+      <div className="ed-zoom-pill xs-text-size" role="group" aria-label={`Height in ${cfg.unitPlural}`}
+        title={f.sizes ? `${f.label} comes in ${f.sizes.join(', ')} ${cfg.unitPlural} tall` : `Height in ${cfg.unitPlural}`}>
+        <button type="button" onClick={() => step(-1)} disabled={textSize <= lo} aria-label="Smaller"><IcMinus/></button>
+        <span className="ed-zoom-val">{textSize}</span>
+        <button type="button" onClick={() => step(+1)} disabled={textSize >= hi} aria-label="Larger"><IcPlus/></button>
       </div>
-      <label className="xs-ctrl" style={{ gap: 8 }}>
-        <span style={{ fontSize: 11, color: 'var(--warm-muted)' }}>Height</span>
-        {/* A pixel face's slider walks its own sizes, one notch each. */}
-        {sizes
-          ? <input type="range" min={0} max={sizes.length - 1} step={1} value={Math.max(0, sizes.indexOf(textSize))}
-              onChange={e => setTextSize(sizes[+e.target.value])} style={{ flex: 1 }} aria-label="Height"/>
-          : <input type="range" min={lo} max={hi} value={textSize} onChange={e => setTextSize(+e.target.value)} style={{ flex: 1 }} aria-label="Height"/>}
-        <span style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{textSize}</span>
-      </label>
-      {sizes && <p className="ed-note" style={{ margin: 0 }}>{fontOf(textFont).label} is drawn {cfg.unit} by {cfg.unit}, so it comes in {sizes.join(', ')} for an exact match.</p>}
-      {editing
-        ? <button type="button" className="btn btn-dark" onClick={onDone}>Done · stitch it</button>
-        : <p className="ed-note" style={{ margin: 0 }}>Click the canvas where the words should start, type, then click away to stitch them.</p>}
-    </>
+      <span className="ed-strip-sep"/>
+      {over && <span className="xs-textmenu-warn" role="status" title={`Only the part on the board is stitched`}>Off the edge</span>}
+      <button type="button" className="icon-btn" onClick={onDelete} title="Delete text" aria-label="Delete text"><IcTrash size={16}/></button>
+      <button type="button" className="btn btn-xs btn-dark" onClick={onDone} title="Stitch it (Esc)">Done</button>
+    </div>
   );
 }
+
