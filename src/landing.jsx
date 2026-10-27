@@ -368,6 +368,22 @@ const FOOTER_LINKS = [
   { label: 'Contact', href: 'https://shop.makemetime.com/pages/contact' },
 ];
 
+export function LandFooter() {
+  return (
+    <footer className="land-footer brand-bleed">
+      <div className="land-footer-top">
+        <img className="land-footer-logo" src="assets/metime-logo.svg" alt="metime" width="72" height="24"/>
+      </div>
+      <div className="land-footer-bottom">
+        <nav className="land-footer-links" aria-label="Store information">
+          {FOOTER_LINKS.map(l => <a key={l.label} href={l.href}>{l.label}</a>)}
+        </nav>
+        <span className="land-footer-copy">© 2026 metime</span>
+      </div>
+    </footer>
+  );
+}
+
 // Each craft card carries its own colour field: grapefruit, golden and ice.
 const CRAFT_TONE = { 'cross-stitch': 'grapefruit', quilt: 'golden', 'punch-needle': 'ice' };
 
@@ -412,9 +428,18 @@ function CraftCard({ c, onSelect }) {
   );
 }
 
-export function CraftSelector({ onSelect, onOpenSaved }) {
+// Whether the nav should offer "My designs": the library is on and holds something.
+export function useHasSavedDesigns() {
   const auth = useAuth();
-  const [intro, setIntro] = useState(shouldPlayIntro);
+  return useMemo(() => !!(auth && auth.libraryOn)
+    && Object.values(SAVED_DRAWERS).some(d => d.load().length > 0),
+  [auth && auth.libraryOn, auth && auth.libraryTick]);
+}
+
+// `startAtSaved` opens the page on the saved designs, for "My designs" pressed
+// on another screen.
+export function CraftSelector({ onSelect, onOpenSaved, startAtSaved }) {
+  const [intro, setIntro] = useState(() => !startAtSaved && shouldPlayIntro());
   const pageRef = useRef(null), trackRef = useRef(null), stageRef = useRef(null);
   const afterIntro = useRef(null);
   const skipIntro = useLandingIntro({
@@ -428,15 +453,16 @@ export function CraftSelector({ onSelect, onOpenSaved }) {
     pageRef.current.scrollTop = afterIntro.current;
     afterIntro.current = null;
   }, [intro]);
-  const [savedOpen, setSavedOpenState] = useState(readSavedOpen);
+  const [savedOpen, setSavedOpenState] = useState(() => !!startAtSaved || readSavedOpen());
   const savedRef = useRef(null);
   const setSavedOpen = v => {
     setSavedOpenState(v);
     try { localStorage.setItem(SAVED_OPEN_KEY, v ? '1' : '0'); } catch (e) { /* ignore */ }
   };
-  const hasSaved = useMemo(() => !!(auth && auth.libraryOn)
-    && Object.values(SAVED_DRAWERS).some(d => d.load().length > 0),
-  [auth && auth.libraryOn, auth && auth.libraryTick]);
+  useLayoutEffect(() => {
+    if (startAtSaved && savedRef.current) savedRef.current.scrollIntoView({ block: 'start' });
+  }, []);
+  const hasSaved = useHasSavedDesigns();
   const goToSaved = e => {
     e.preventDefault();
     setSavedOpen(true);
@@ -462,17 +488,7 @@ export function CraftSelector({ onSelect, onOpenSaved }) {
         </main>
       </div>
       <SavedDesigns onOpen={onOpenSaved} open={savedOpen} setOpen={setSavedOpen} sectionRef={savedRef}/>
-      <footer className="land-footer brand-bleed">
-        <div className="land-footer-top">
-          <img className="land-footer-logo" src="assets/metime-logo.svg" alt="metime" width="72" height="24"/>
-        </div>
-        <div className="land-footer-bottom">
-          <nav className="land-footer-links" aria-label="Store information">
-            {FOOTER_LINKS.map(l => <a key={l.label} href={l.href}>{l.label}</a>)}
-          </nav>
-          <span className="land-footer-copy">© 2026 metime</span>
-        </div>
-      </footer>
+      <LandFooter/>
       </div>
     </div>
   );

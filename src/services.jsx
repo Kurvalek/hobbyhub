@@ -873,21 +873,27 @@ export function kitInchBox(o) {
   return `${o.w}" × ${o.h}"`;
 }
 
+// The backing or binding the design picked, as the swatch and second line of its
+// row. The BOM only carries the yardage, so these come from the design.
+function quiltTrim(c) {
+  return c ? { hex: c.hex || null, sub: c.name || null } : {};
+}
+
 // The server's BOM as rows for the review list: an optional colour swatch, a
-// label, and how much of it comes in the box. Labels match the ones on the
-// printed sheet (api/_lib/render/instructions.js) so the page, the paperwork and
-// the packer's list all name the same thing the same way.
-export function kitSupplyRows(type, bom) {
+// label, an optional second line, and how much of it comes in the box. Labels
+// match the ones on the printed sheet (api/_lib/render/instructions.js) so the
+// page, the paperwork and the packer's list all name the same thing the same way.
+export function kitSupplyRows(type, bom, record) {
   if (!bom) return null;
   const rows = [];
   const named = (code, name) => (code ? `DMC ${code} · ${name}` : name);
   if (type === "quilt") {
     (bom.fabrics || []).forEach((f) => rows.push({
-      hex: f.hex, label: f.code ? `Kona ${f.code} · ${f.name}` : f.name, qty: f.yardsLabel,
+      hex: f.hex, label: f.code ? `Kona ${f.code} · ${f.name}` : f.name, sub: f.code ? "Cotton solid" : null, qty: f.yardsLabel,
     }));
-    if (bom.batting) rows.push({ label: "Batting", qty: kitInchBox(bom.batting) });
-    if (bom.backing) rows.push({ label: "Backing fabric", qty: bom.backing.yardsLabel });
-    if (bom.binding) rows.push({ label: "Binding fabric", qty: bom.binding.yardsLabel });
+    if (bom.batting) rows.push({ label: "Batting", sub: "Cut 4\" bigger than the top all round", qty: kitInchBox(bom.batting) });
+    if (bom.backing) rows.push({ label: "Backing fabric", ...quiltTrim(record && record.backing), qty: bom.backing.yardsLabel });
+    if (bom.binding) rows.push({ label: "Binding fabric", ...quiltTrim(record && record.binding), qty: bom.binding.yardsLabel });
     return rows;
   }
   if (type === "cross-stitch") {
@@ -917,10 +923,10 @@ export function kitSupplyRowsLocal(type, record) {
   if (!record) return [];
   if (type === "quilt") {
     const rows = ((record.materials && record.materials.items) || []).map((m) => ({
-      hex: m.hex, label: m.code ? `Kona ${m.code} · ${m.name}` : m.name, qty: fmtY(m.yards || 0),
+      hex: m.hex, label: m.code ? `Kona ${m.code} · ${m.name}` : m.name, sub: m.code ? "Cotton solid" : null, qty: fmtY(m.yards || 0),
     }));
-    if (record.backing && record.backCalc) rows.push({ label: "Backing fabric", qty: fmtY(record.backCalc.yards) });
-    if (record.binding && record.bindCalc) rows.push({ label: "Binding fabric", qty: fmtY(record.bindCalc.yards) });
+    if (record.backing && record.backCalc) rows.push({ label: "Backing fabric", ...quiltTrim(record.backing), qty: fmtY(record.backCalc.yards) });
+    if (record.binding && record.bindCalc) rows.push({ label: "Binding fabric", ...quiltTrim(record.binding), qty: fmtY(record.bindCalc.yards) });
     return rows;
   }
   const cfg = CRAFT_STUDIO[type];

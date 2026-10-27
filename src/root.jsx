@@ -59,10 +59,13 @@ function Root() {
   // record arrives over the network, so unlike every other step it can't paint on
   // the first render — hence a separate pending state rather than seeding cartKit.
   const [cartPending, setCartPending] = React.useState(() => snapshotCart(landed));
+  // The craft picker opens on the saved designs: "My designs" on the review page.
+  const [landAtSaved, setLandAtSaved] = React.useState(false);
 
   const resetAll = () => {
-    setCraft(null); setOpenSaved(null); setCartKit(null); setCartPending(null);
+    setCraft(null); setOpenSaved(null); setCartKit(null); setCartPending(null); setLandAtSaved(false);
   };
+  const showSaved = () => { resetAll(); setLandAtSaved(true); };
 
   // Read the design back for a review page the browser rebuilt. On failure the
   // pending state simply clears, which drops the maker onto the studio the same
@@ -187,10 +190,10 @@ function Root() {
       {cartKit && (
         <div className="kit-layer">
           <KitReviewPage type={cartKit.type} record={cartKit.record} designId={cartKit.designId}
-            onBack={() => window.history.back()}/>
+            onBack={() => window.history.back()} onMyDesigns={showSaved}/>
         </div>
       )}
-      {!cartKit && cartPending && <div className="kit-layer"><KitReviewLoading/></div>}
+      {!cartKit && cartPending && <div className="kit-layer"><KitReviewLoading type={cartPending.type}/></div>}
     </>
   );
 
@@ -219,7 +222,8 @@ function Root() {
     }
 
     if (!craft) {
-      return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}/>;
+      return <CraftSelector onSelect={setCraft} onOpenSaved={(type, item) => setOpenSaved({ type, item })}
+        startAtSaved={landAtSaved}/>;
     }
 
     // A new design: the studio opens on its Size panel and guides the maker
