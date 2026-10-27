@@ -8,7 +8,6 @@ import { deserializeGrid } from './design-model.jsx';
 import { fmtY } from './catalog.jsx';
 import {
   BRAND_CRAFT_LABEL, BrandBack, BrandEyebrow, BrandFooter, BrandHead, BrandNav, BrandSpecs,
-  SavedQuiltThumb,
 } from './landing.jsx';
 import { CRAFT_STUDIO, StitchThumb } from './stitch-studio.jsx';
 import { QuiltFinishedRender } from './quilt-render.jsx';
@@ -94,21 +93,20 @@ export function KitReviewPage({ type, record, designId, onBack }) {
         <div className="kit-col">
           <div className="kit-scroll">
             <div className="kit-tiles">
-              <figure className="kit-tile">
-                <div className="kit-tile-art">
-                  {isQuilt
-                    ? <SavedQuiltThumb q={record}/>
-                    : <StitchThumb w={record.w} h={record.h} cells={deserializeGrid(record.grid, record.w * record.h)}
-                        size={320} bg={(record.fabric && record.fabric.hex) || "#FFFFFF"}/>}
-                </div>
-                <figcaption className="kit-tile-cap">Your design</figcaption>
-              </figure>
-              {isQuilt && (
+              {isQuilt ? (
                 <figure className="kit-tile">
                   <div className="kit-tile-art"><QuiltFinishedRender q={record}/></div>
                   <figcaption className="kit-tile-cap">
                     Finished · front and back{!record.binding || !record.backing ? ' · natural where not chosen' : ''}
                   </figcaption>
+                </figure>
+              ) : (
+                <figure className="kit-tile">
+                  <div className="kit-tile-art">
+                    <StitchThumb w={record.w} h={record.h} cells={deserializeGrid(record.grid, record.w * record.h)}
+                      size={320} bg={(record.fabric && record.fabric.hex) || "#FFFFFF"}/>
+                  </div>
+                  <figcaption className="kit-tile-cap">Your design</figcaption>
                 </figure>
               )}
             </div>

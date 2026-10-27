@@ -1778,6 +1778,7 @@ input[type=color] { width: 32px; height: 28px; padding: 2px; border: 1px solid v
   justify-content: center;
   aspect-ratio: 1;
   max-height: 360px;
+  margin-inline: auto;
   overflow: hidden;
 }
 .brand-shell .kit-tile-art > * { max-width: 100%; max-height: 100%; }
