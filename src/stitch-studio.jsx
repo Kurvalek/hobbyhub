@@ -664,6 +664,10 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (!pagesRef.current) return;
     const src = cellsRef.current.slice();
     pagesRef.current = pagesRef.current.map((_, i) => i === activeCoaster ? cellsRef.current : src.slice());
+    // Its words go along too, so they stay retypable on every coaster.
+    const words = textsRef.current.filter(r => r.page === activeCoaster);
+    textsRef.current = pagesRef.current.flatMap((_, i) => (i === activeCoaster ? words
+      : words.map(r => ({ ...r, cells: new Map(r.cells), page: i }))));
     if (undoPagesRef.current) {
       undoPagesRef.current = undoPagesRef.current.map((stack, i) => i === activeCoaster ? stack : []);
     }
@@ -941,16 +945,27 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   // Redo covers the board in view: it's dropped by any new edit, and by
   // anything that swaps the board (another coaster, a size, a saved design).
   const redoRef = useRef([]);
+  // Each snapshot also holds the placed-words list as it was, so a step that
+  // changes words without changing their stitches (a fill under them, a new
+  // palette) comes back exactly. Only this coaster's words are swapped back;
+  // the other coasters keep theirs.
+  const withTexts = (snapshot) => { snapshot.texts = textsRef.current; return snapshot; };
+  const restoreTexts = (snapshot) => {
+    if (!snapshot.texts) return;
+    const page = activeCoasterRef.current;
+    textsRef.current = [...textsRef.current.filter(r => r.page !== page), ...snapshot.texts.filter(r => r.page === page)];
+  };
   const recordUndo = (snapshot) => {
-    undoRef.current.push(snapshot);
+    undoRef.current.push(withTexts(snapshot));
     if (undoRef.current.length > 40) undoRef.current.shift();
     redoRef.current = [];
   };
   const pushUndo = () => recordUndo(cellsRef.current.slice());
   const redo = useCallback(() => {
     if (!redoRef.current.length || (selRef.current && selRef.current.floating)) return;
-    undoRef.current.push(cellsRef.current.slice());
+    undoRef.current.push(withTexts(cellsRef.current.slice()));
     cellsRef.current = redoRef.current.pop();
+    restoreTexts(cellsRef.current);
     bindActivePage();
     selRef.current = null; movingRef.current = false;
     dragRef.current = null; marqueeRef.current = null; pressRef.current = null;
@@ -974,8 +989,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (!undoRef.current.length) return;
     const last = undoRef.current[undoRef.current.length - 1];
     if (last.resize) { redoRef.current = []; restoreSize(undoRef.current.pop().resize); return; }
-    redoRef.current.push(cellsRef.current.slice());
+    redoRef.current.push(withTexts(cellsRef.current.slice()));
     cellsRef.current = undoRef.current.pop();
+    restoreTexts(cellsRef.current);
     bindActivePage();
     // The stitches the selection referred to may not exist any more, so drop it.
     selRef.current = null; movingRef.current = false;
@@ -1060,17 +1076,38 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     for (const k of r.cells.keys()) if (cells[k] !== r.color) return false;
     return true;
   };
-  const textAt = (cell) => {
+  // Words whose stitches are under the pointer win over words whose box merely
+  // reaches it, so lines stacked close together pick the one being touched.
+  // `onStitch` asks for the first kind only.
+  const textAt = (cell, onStitch = false) => {
     if (!cell) return null;
     const [x, y] = cell, k = idx(x, y);
     const list = textsRef.current;
-    for (let i = list.length - 1; i >= 0; i--) {
-      const r = list[i];
-      if (r.page !== activeCoasterRef.current) continue;
-      const inBox = x >= r.x && x < r.x + r.boxW && y >= r.y && y < r.y + r.boxH;
-      if ((inBox || r.cells.has(k)) && textAlive(r)) return r;
-    }
-    return null;
+    const find = (hit) => {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const r = list[i];
+        if (r.page === activeCoasterRef.current && hit(r) && textAlive(r)) return r;
+      }
+      return null;
+    };
+    return find(r => r.cells.has(k))
+      || (onStitch ? null : find(r => x >= r.x && x < r.x + r.boxW && y >= r.y && y < r.y + r.boxH));
+  };
+  // Starter-design words keep their alignment when retyped: the box holds an
+  // anchor `ax` (its center, or right edge) and grows around it. Until the
+  // words, face or height change, the box keeps the width it was set at.
+  const alignShare = tb => (tb.align === 'center' ? 0.5 : tb.align === 'right' ? 1 : 0);
+  const alignedX = (tb, text = tb.text) => {
+    const f = alignShare(tb);
+    if (!f) return tb.x;
+    const from = tb.from;
+    const w = from && text === from.text && textFont === from.font && textSize === from.size
+      ? from.boxW : layoutStitchText(text || 'M', textFont, textSize).boxW;
+    return Math.round(tb.ax - w * f);
+  };
+  const setBoxText = (text) => {
+    const tb = textBoxRef.current;
+    if (tb) setBox({ ...tb, text, x: alignedX(tb, text) });
   };
   // A box can hang off the board, but never so far that it can't be grabbed
   // and brought back: a quarter of it (three stitches at least) stays on.
@@ -1110,7 +1147,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       setTextFont(r.font);
       setTextSize(r.size);
       if (thread) setColor(thread);
-      setBox({ x: r.x, y: r.y, text: r.text, color: r.color, from: r });
+      const tb = { x: r.x, y: r.y, text: r.text, color: r.color, from: r };
+      if (r.align) { tb.align = r.align; tb.ax = r.x + r.boxW * alignShare(r); }
+      setBox(tb);
     });
     redraw(); bump();
   };
@@ -1147,6 +1186,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       let list = [...textsRef.current, {
         text: tb.text, font: textFont, size: L.size, color: tb.color, x: tb.x, y: tb.y,
         boxW: L.boxW, boxH: L.boxH, page: activeCoasterRef.current, w: W, h: H, cells: covered,
+        ...(tb.align ? { align: tb.align } : null),
       }];
       if (list.length > 120) list = list.filter(textAlive).slice(-120);
       textsRef.current = list;
@@ -1158,30 +1198,62 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
   commitTextRef.current = commitText;
   const moveTextBox = (x, y) => {
     const tb = textBoxRef.current;
-    if (tb) setBox(clampBox({ ...tb, x, y }));
+    if (!tb) return;
+    const next = clampBox({ ...tb, x, y });
+    if (tb.align) next.ax = tb.ax + (next.x - tb.x);
+    setBox(next);
   };
   // Picking a thread while the box is open recolors the words in it.
   useEffect(() => {
     const tb = textBoxRef.current;
     if (tb && tb.color !== color.hex) setBox({ ...tb, color: color.hex });
   }, [color]);
+  // A new face or height re-centers aligned words on their anchor.
+  useEffect(() => {
+    const tb = textBoxRef.current;
+    if (!tb || !tb.align) return;
+    const x = alignedX(tb);
+    if (x !== tb.x) setBox({ ...tb, x });
+  }, [textFont, textSize]);
 
   // Bucket fill: flood the contiguous region of cells matching the clicked
   // cell's value (empty by default) with `hex`, bounded by differently-colored
   // stitches. 4-connectivity.
+  //
+  // Placed words lie on top of whatever they were stitched over, so the flood
+  // runs underneath them: their stitches stay, what's under them takes the new
+  // color, and the holes in an O or a 4 fill along with the shape around them.
   const floodFill = (sx, sy, hex) => {
     const cells = cellsRef.current;
-    const target = cells[idx(sx, sy)];
+    const page = activeCoasterRef.current;
+    const over = new Map();
+    for (const r of textsRef.current) if (r.page === page && textAlive(r)) for (const k of r.cells.keys()) over.set(k, r);
+    const valueAt = k => (over.has(k) ? over.get(k).cells.get(k) : cells[k]);
+    const target = valueAt(idx(sx, sy));
     if (target === hex) return;
+    const seen = new Set(), under = new Map();
     const stack = [[sx, sy]];
     while (stack.length) {
       const [x, y] = stack.pop();
       if (x < 0 || y < 0 || x >= W || y >= H) continue;
       const k = idx(x, y);
-      if (cells[k] !== target) continue;
-      cells[k] = hex;
+      if (seen.has(k) || valueAt(k) !== target) continue;
+      seen.add(k);
+      const r = over.get(k);
+      if (r) {
+        if (!under.has(r)) under.set(r, new Map(r.cells));
+        under.get(r).set(k, hex);
+      } else cells[k] = hex;
       stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
     }
+    if (under.size) textsRef.current = textsRef.current.map(r => (under.has(r) ? { ...r, cells: under.get(r) } : r));
+  };
+  // The fill bucket on a word recolors the word, which stays editable.
+  const recolorText = (r, hex) => {
+    if (r.color === hex) return;
+    pushUndo();
+    for (const k of r.cells.keys()) cellsRef.current[k] = hex;
+    textsRef.current = textsRef.current.map(x => (x === r ? { ...r, color: hex } : x));
   };
 
   // Collect the connected group of same-color stitches touching (sx,sy).
@@ -1447,8 +1519,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       return;
     }
     if (tool === 'fill') {
-      pushUndo();
-      floodFill(cell[0], cell[1], color.hex);
+      const word = textAt(cell, true);
+      if (word) recolorText(word, color.hex);
+      else { pushUndo(); floodFill(cell[0], cell[1], color.hex); }
       redraw(); bump();
       return;
     }
@@ -1930,6 +2003,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     undoPagesRef.current = b.undoPages;
     cellsRef.current = b.cells;
     undoRef.current = b.undo;
+    if (b.texts) textsRef.current = b.texts;
     setActiveCoaster(b.active);
     activeCoasterRef.current = b.active;
     setDims(b.dims);
@@ -1944,11 +2018,15 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     bindActivePage();
     if (undoPagesRef.current) undoPagesRef.current[activeCoaster] = undoRef.current;
     const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
-      cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
+      cells: cellsRef.current, undo: undoRef.current, active: activeCoaster, texts: textsRef.current };
     const fit = cells => refitGrid(cells, W, H, p.w, p.h);
     // Guided setup can pick the size after the design is in, so an untouched
-    // chart or photo is laid again at the new size rather than cropped.
-    const relaid = guided ? reseed(p, null) : null;
+    // chart or photo is laid again at the new size rather than cropped. An
+    // untouched chart the new size doesn't offer leaves a blank board instead.
+    const s = sourceRef.current;
+    let relaid = guided ? reseed(p, null) : null;
+    const dropped = !relaid && !!s && s.kind === 'template' && sourceFresh();
+    if (dropped) relaid = { autoGrid: new Array(p.w * p.h).fill(null), autoPages: null };
     const active = 0;
     if (isCoasterSize(p.name)) {
       pagesRef.current = relaid
@@ -1966,10 +2044,18 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     redoRef.current = [];
     setActiveCoaster(active);
     activeCoasterRef.current = active;
-    if (relaid) markLaid();
+    if (relaid && !dropped) markLaid();
     else sourceRef.current = null;
     setDims({ w: p.w, h: p.h, name: p.name });
     bump();
+    if (dropped) showToast(`${s.tpl.name} is made for ${s.tpl.presets.join(' and ')} · undo to go back`);
+  };
+  // Template words as placed text on the given coaster pages (just page 0 off
+  // a coaster set), and those pages' words swapped for them.
+  const textsOnPages = (records, pages) => pages.flatMap(page =>
+    records.map(r => ({ ...r, cells: new Map(r.cells), page, w: W, h: H })));
+  const setPageTexts = (pages, list) => {
+    textsRef.current = [...textsRef.current.filter(r => !pages.includes(r.page)), ...list];
   };
   const finishedDims = p => inchDims(+(p.w / CFG.gauge).toFixed(1), +(p.h / CFG.gauge).toFixed(1));
 
@@ -1990,7 +2076,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (wholeSet) {
       undoPagesRef.current[activeCoaster] = undoRef.current;
       const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
-        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
+        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster, texts: textsRef.current };
       pagesRef.current = seed.autoPages.map(p => p.slice());
       undoPagesRef.current = pagesRef.current.map(() => [{ resize: before }]);
       cellsRef.current = pagesRef.current[activeCoaster];
@@ -2001,6 +2087,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       cellsRef.current = seed.autoGrid ? seed.autoGrid.slice() : new Array(len).fill(null);
       bindActivePage();
     }
+    const laidPages = wholeSet ? pagesRef.current.map((_, i) => i) : [activeCoaster];
+    setPageTexts(laidPages, textsOnPages(seed.texts || [], laidPages));
     const incoming = new Set();
     for (const cells of (wholeSet ? pagesRef.current : [cellsRef.current])) for (const h of cells) if (h) incoming.add(h);
     if (incoming.size) {
@@ -2012,14 +2100,16 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       });
     }
     redraw(); bump();
-    showToast(tpl ? `${tpl.name} applied · undo to go back` : 'Canvas cleared · undo to go back');
+    const words = !!(seed.texts && seed.texts.length);
+    showToast(!tpl ? 'Canvas cleared · undo to go back'
+      : words ? `${tpl.name} applied · tap a word to retype it` : `${tpl.name} applied · undo to go back`);
     if (isMobile) setPanel(null);
     if (tpl && tpl.seedText) {
       if (tpl.seedText.font) setTextFont(tpl.seedText.font);
       if (tpl.seedText.size) setTextSize(snapTextSize(tpl.seedText.font || textFont, tpl.seedText.size));
       if (tpl.seedText.text) seedWordsRef.current = tpl.seedText.text;
       chooseTool('text');
-    }
+    } else if (words) chooseTool('text');
   };
 
   // ── Guided setup ────────────────────────────────────────────────────────
@@ -2049,7 +2139,9 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     return out;
   };
   // Lays a seed on the board as one undo step. A coaster set takes it on every
-  // coaster (its own four pages for a set chart).
+  // coaster (its own four pages for a set chart). The board's words become the
+  // seed's: a template's `texts`, laid on every page it went to, or
+  // `placedTexts` already placed.
   const layGuided = (seed) => {
     const len = W * H;
     commitFloat();
@@ -2059,7 +2151,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (pagesRef.current) {
       undoPagesRef.current[activeCoaster] = undoRef.current;
       const before = { dims, pages: pagesRef.current, undoPages: undoPagesRef.current,
-        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster };
+        cells: cellsRef.current, undo: undoRef.current, active: activeCoaster, texts: textsRef.current };
       pagesRef.current = seedCoasterPages(grid, len, seed.autoPages);
       undoPagesRef.current = pagesRef.current.map(() => [{ resize: before }]);
       cellsRef.current = pagesRef.current[activeCoaster];
@@ -2069,6 +2161,8 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       recordUndo(cellsRef.current.slice());
       cellsRef.current = grid;
     }
+    const laidPages = pagesRef.current ? pagesRef.current.map((_, i) => i) : [0];
+    setPageTexts(laidPages, seed.placedTexts || textsOnPages(seed.texts || [], laidPages));
     redraw(); bump();
   };
   // The current source laid again at another size or in another palette, or
@@ -2088,11 +2182,13 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
 
   const applyGuidedTemplate = (tpl, seed) => {
     layGuided(seed);
-    sourceRef.current = tpl ? { kind: 'template', tpl, palette: null } : null;
+    sourceRef.current = tpl ? { kind: 'template', tpl, palette: null, roleHex: seed.roleHex || null } : null;
     markLaid();
     if (tpl) setPal(prev => paletteWith(prev, boardPages()));
     if (photo) { photoGenRef.current++; setPhoto(null); setBg(null); setShowBg(false); }
-    showToast(tpl ? `${tpl.name} applied · undo to go back` : 'Canvas cleared · undo to go back');
+    const words = !!(seed.texts && seed.texts.length);
+    showToast(!tpl ? 'Canvas cleared · undo to go back'
+      : words ? `${tpl.name} applied · tap a word to retype it` : `${tpl.name} applied · undo to go back`);
     // A lettering chart still sets up the text tool, but its panel waits until
     // the guide is done.
     if (tpl && tpl.seedText) {
@@ -2100,7 +2196,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
       if (tpl.seedText.size) setTextSize(snapTextSize(tpl.seedText.font || textFont, tpl.seedText.size));
       if (tpl.seedText.text) seedWordsRef.current = tpl.seedText.text;
       setTool('text');
-    }
+    } else if (words) setTool('text');
     guideCtl.advance('designs');
   };
 
@@ -2202,12 +2298,21 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
     if (seed) {
       layGuided(seed);
       s.palette = colors;
+      if (seed.roleHex) s.roleHex = seed.roleHex;
       markLaid();
     } else {
+      // A starter design that's been worked on still swaps role for role, so
+      // its words stay readable against their shapes; any other color goes by
+      // palette position. Placed words take the new colors and stay editable.
       const map = new Map(pal.map((c, i) => [c.hex, colors[i % colors.length].hex]));
-      const pages = boardPages().map(p => p.map(h => (h && map.has(h) ? map.get(h) : h)));
-      layGuided({ autoGrid: pages[pagesRef.current ? activeCoaster : 0], autoPages: pagesRef.current ? pages : null });
-      sourceRef.current = null;
+      const roles = s && s.kind === 'template' && s.tpl.roleSeed && s.roleHex ? s.tpl.roleSeed(colors).roleHex : null;
+      if (roles) s.roleHex.forEach((h, i) => map.set(h, roles[i]));
+      const swap = h => (h && map.has(h) ? map.get(h) : h);
+      const pages = boardPages().map(p => p.map(swap));
+      const placedTexts = textsRef.current.filter(textAlive)
+        .map(r => ({ ...r, color: swap(r.color), cells: new Map([...r.cells].map(([k, v]) => [k, swap(v)])) }));
+      layGuided({ autoGrid: pages[pagesRef.current ? activeCoaster : 0], autoPages: pagesRef.current ? pages : null, placedTexts });
+      sourceRef.current = roles ? { ...s, palette: colors, roleHex: roles, laid: null } : null;
     }
     setPal(paletteWith(colors, boardPages()));
     setColor(colors[0]);
@@ -2456,7 +2561,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
                 {textBox && (
                   <StitchTextBox box={textBox} font={textFont} size={textSize} color={textBox.color} z={cellSize * zoom}
                     over={textOver} inputRef={textInputRef} boxRef={textBoxElRef} onCommit={commitText}
-                    onChange={t => setBox({ ...textBoxRef.current, text: t })}/>
+                    onChange={setBoxText}/>
                 )}
               </div>
             </div>
@@ -2464,7 +2569,7 @@ export function CrossStitchApp({ preset, palette, initialDesign = null, onBack, 
               <StitchTextMenu cfg={CFG} compact={isMobile} boxRef={textBoxElRef} box={textBox} z={cellSize * zoom} over={textOver}
                 textFont={textFont} setTextFont={setTextFont} textSize={textSize} setTextSize={setTextSize}
                 onMove={moveTextBox} onDone={commitText}
-                onDelete={() => { setBox({ ...textBoxRef.current, text: '' }); commitText(); }}
+                onDelete={() => { setBoxText(''); commitText(); }}
                 colorMenu={(
                   <EdMenuButton btnRef={textAddRef} label={`${CFG.threadLabel}: ${textThread ? textThread.name : 'custom'}`}
                     menuLabel={CFG.threadLabel} width={256}

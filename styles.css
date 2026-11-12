@@ -1,9 +1,9 @@
 /* Self-hosted brand type — Söhne (sans) and BC Civitas (display).
    Trial ("TEST") cuts as supplied. The stitch text tool uses Google faces
    instead (Arvo, Cal Sans, Jacquarda Bastarda 9, Jacquard 12, Oleo Script
-   Swash Caps, plus Rye for the sampler alphabet). Rye's wedge serifs are
-   the classic stitched-sampler letterforms, and they survive being
-   rasterized down to ~12 stitches, which most display faces don't. */
+   Swash Caps, plus Silkscreen for the sampler alphabet). Silkscreen's caps
+   are five pixels tall, so at 8 stitches it stitches one pixel per stitch and
+   stays legible at sizes where outline faces turn to mush. */
 @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 300; font-display: swap; src: url('fonts/Sohne-Light.woff2') format('woff2'); }
 @font-face { font-family: 'Söhne'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Regular.woff2') format('woff2'); }
 @font-face { font-family: 'Söhne'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/Sohne-Italic.woff2') format('woff2'); }

@@ -7,16 +7,17 @@ import { IcCheck, IcHand, IcMinus, IcPlus, IcTrash } from './icons.jsx';
 // when the box is let go. The box and the stitches share one layout, worked in
 // stitch units, so the letters land where they were typed.
 
-// Script and Old Style are pixel faces drawn on a grid (Jacquarda Bastarda 9
-// and Jacquard 12, after weaving and needlework charts). At the heights in
-// `sizes` one pixel of the face is exactly one stitch, so they stitch exactly
-// as drawn; anywhere between, pixels would split across stitches, so their
-// height steps between those sizes only. Outline faces scale freely.
+// Script, Sampler and Old Style are pixel faces drawn on a grid (Jacquarda
+// Bastarda 9, Silkscreen and Jacquard 12, after weaving and needlework charts).
+// At the heights in `sizes` one pixel of the face is exactly one stitch (or a
+// square of them), so they stitch exactly as drawn; anywhere between, pixels
+// would split across stitches, so their height steps between those sizes only.
+// Outline faces scale freely.
 export const XS_FONTS = {
   serif:    { label: 'Serif',     family: '"Arvo", serif',                     weight: 700 },
   sans:     { label: 'Sans',      family: '"Cal Sans", sans-serif',            weight: 400 },
   script:   { label: 'Script',    family: '"Jacquarda Bastarda 9", serif',     weight: 400, sizes: [13, 26, 39] },
-  sampler:  { label: 'Sampler',   family: '"Rye", serif',                      weight: 400 },
+  sampler:  { label: 'Sampler',   family: '"Silkscreen", monospace',           weight: 400, sizes: [8, 16, 24, 32] },
   oldstyle: { label: 'Old Style', family: '"Jacquard 12", serif',              weight: 400, sizes: [21, 42] },
   swash:    { label: 'Swash',     family: '"Oleo Script Swash Caps", cursive', weight: 700 },
 };

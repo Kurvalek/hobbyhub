@@ -1,39 +1,34 @@
 // One-time authoring script: builds the cross-stitch chart data consumed by
 // index.html (window.STITCH_TEMPLATE_DATA) into assets/stitch-templates-data.js.
 //
-// Charts come from one of three sources:
-//   • an image in assets/stitch-templates/ (`file`) — cover-fit + box-sampled
-//     down to a canonical grid, with the background auto-detected from the image
-//     corners and dropped (→ empty cells);
-//   • a drawing function (`draw`) — the Bookmark designs are authored here with
-//     the shape primitives below so they default to the metime brand palette;
-//   • a design stitched in the studio and saved (`saved`) — exported out of a
-//     saved-designs blob into assets/stitch-templates/saved/*.json. These are
-//     already stitch-for-stitch charts in real floss colors, so they come in
-//     exactly as drawn.
-//
-// Either way every kept cell is snapped to the nearest DMC floss (the same
-// Euclidean match the app uses) and quantized to a small palette.
+// Every chart is one of the starter designs in tools/stitch-starters.mjs: each
+// is drawn in named color roles that are DMC flosses already, and carries its
+// words as text layers the studio opens in the text tool. The words are set
+// here, in headless Chrome, by the studio's own text code (src/stitch-text.jsx)
+// in the real web fonts, so the chart, the picker thumbnail and the editable
+// words all agree stitch for stitch. That step needs Chrome and the network
+// (for Google Fonts).
 //
 // It also writes a scaled-up preview PNG per design to tools/_preview/ so the
-// conversion can be eyeballed before embedding.
+// designs can be eyeballed before embedding.
 //
 //   node tools/gen-stitch-templates.mjs
 //
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as esbuild from 'esbuild';
 import { PNG } from 'pngjs';
+import puppeteer from 'puppeteer-core';
+import { STARTERS } from './stitch-starters.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const IMG_DIR = path.join(ROOT, 'assets', 'stitch-templates');
-const SAVED_DIR = path.join(IMG_DIR, 'saved');
 const PREVIEW_DIR = path.join(__dirname, '_preview');
 const OUT_JS = path.join(ROOT, 'assets', 'stitch-templates-data.js');
 
-// ── Pull the DMC floss list straight out of the app's color catalog so we snap
-// to the exact same palette the app ships with. ─────────────────────────────
+// ── Pull the DMC floss list straight out of the app's color catalog so the
+// roles' flosses are the exact ones the app ships with. ────────────────────
 function loadDMC() {
   const src = fs.readFileSync(path.join(ROOT, 'assets', 'color-catalogs.js'), 'utf8');
   const m = src.match(/const DMC_ENC = "([^"]*)"/);
@@ -44,17 +39,13 @@ function loadDMC() {
   });
 }
 const DMC = loadDMC();
-function nearestDMC(r, g, b) {
-  let best = null, bd = Infinity;
-  for (const c of DMC) { const d = (r - c.r) ** 2 + (g - c.g) ** 2 + (b - c.b) ** 2; if (d < bd) { bd = d; best = c; } }
-  return best;
-}
 
-// ── Drawing canvas for the authored (non-photo) charts ─────────────────────
-// A grid of hex-or-null cells plus the handful of primitives the bookmark
-// designs need. Coordinates are cell centers; fractional inputs are fine, the
-// primitives rasterize them, which is what keeps curves reading as curves at 30
-// stitches wide.
+// ── Drawing canvas for the starter designs ─────────────────────────────────
+// A grid of hex-or-null cells plus a handful of shape primitives. Coordinates
+// are edges: (0,0) is the board's top-left corner and a stitch (i,j) covers
+// [i,i+1)×[j,j+1), so a shape stitches every cell whose center it contains.
+// Fractional inputs are fine, which is what keeps curves reading as curves at
+// 30 stitches wide. `put` alone takes a stitch's own (i,j).
 function Canvas(W, H) {
   const cells = new Array(W * H).fill(null);
   const put = (x, y, hex) => {
@@ -64,307 +55,61 @@ function Canvas(W, H) {
   };
   const cv = {
     W, H, cells, put,
-    fill(hex) { cells.fill(hex); return cv; },
+    // Filled w×h rectangle at (x,y).
     rect(x, y, w, h, hex) {
       for (let j = Math.round(y); j < Math.round(y) + h; j++)
         for (let i = Math.round(x); i < Math.round(x) + w; i++) put(i, j, hex);
       return cv;
     },
-    // Solid border frame `t` stitches thick.
-    frame(t, hex) {
-      cv.rect(0, 0, W, t, hex); cv.rect(0, H - t, W, t, hex);
-      cv.rect(0, 0, t, H, hex); cv.rect(W - t, 0, t, H, hex);
+    // One-stitch outline of the w×h rectangle at (x,y).
+    box(x, y, w, h, hex) {
+      cv.rect(x, y, w, 1, hex); cv.rect(x, y + h - 1, w, 1, hex);
+      cv.rect(x, y, 1, h, hex); cv.rect(x + w - 1, y, 1, h, hex);
       return cv;
     },
-    // Filled ellipse, `rot` in degrees.
-    ellipse(cx, cy, rx, ry, hex, rot = 0) {
-      const a = (rot * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a);
-      const reach = Math.ceil(Math.max(rx, ry)) + 1;
-      for (let y = Math.round(cy) - reach; y <= Math.round(cy) + reach; y++) {
-        for (let x = Math.round(cx) - reach; x <= Math.round(cx) + reach; x++) {
-          const dx = x - cx, dy = y - cy;
-          const u = dx * cos + dy * sin, v = -dx * sin + dy * cos;
-          if ((u / rx) ** 2 + (v / ry) ** 2 <= 1.02) put(x, y, hex);
+    // Filled rectangle with its corners rounded off at radius r.
+    roundRect(x, y, w, h, r, hex) {
+      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
+        const px = i + 0.5, py = j + 0.5;
+        const qx = Math.max(x + r - px, 0, px - (x + w - r)), qy = Math.max(y + r - py, 0, py - (y + h - r));
+        if (qx * qx + qy * qy <= r * r) put(i, j, hex);
+      }
+      return cv;
+    },
+    // Stitches whose centers sit inside polygon `pts` ([[x,y],…]) and between
+    // d0 and d1 stitches in from its edge — (0, Infinity) fills it, (2, 3)
+    // runs a one-stitch line two stitches inside it.
+    poly(pts, hex, d0 = 0, d1 = Infinity) {
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+      for (let j = Math.floor(Math.min(...ys)); j < Math.ceil(Math.max(...ys)); j++) {
+        for (let i = Math.floor(Math.min(...xs)); i < Math.ceil(Math.max(...xs)); i++) {
+          const px = i + 0.5, py = j + 0.5;
+          let inside = false, d = Infinity;
+          for (let k = 0, m = pts.length - 1; k < pts.length; m = k++) {
+            const [ax, ay] = pts[m], [bx, by] = pts[k];
+            if ((ay > py) !== (by > py) && px < ax + ((py - ay) * (bx - ax)) / (by - ay)) inside = !inside;
+            const ex = bx - ax, ey = by - ay, l2 = ex * ex + ey * ey;
+            const t = l2 ? Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / l2)) : 0;
+            d = Math.min(d, Math.hypot(px - (ax + ex * t), py - (ay + ey * t)));
+          }
+          if (inside && d >= d0 && d < d1) put(i, j, hex);
         }
       }
       return cv;
     },
-    // Tapered round-capped stroke from (x0,y0) to (x1,y1) — the workhorse for
-    // petals, leaf fingers, fins and stems.
-    capsule(x0, y0, x1, y1, r0, r1, hex) {
-      const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy;
-      const rMax = Math.max(r0, r1);
-      const xa = Math.floor(Math.min(x0, x1) - rMax - 1), xb = Math.ceil(Math.max(x0, x1) + rMax + 1);
-      const ya = Math.floor(Math.min(y0, y1) - rMax - 1), yb = Math.ceil(Math.max(y0, y1) + rMax + 1);
-      for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) {
-        const t = len2 ? Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2)) : 0;
-        const px = x0 + dx * t, py = y0 + dy * t, r = r0 + (r1 - r0) * t;
-        if ((x - px) ** 2 + (y - py) ** 2 <= r * r + 0.25) put(x, y, hex);
+    // Stitches whose centers sit between r0 and r1 from (cx,cy): a disc when
+    // r0 is 0, a ring otherwise. Pass null to cut a hole.
+    ring(cx, cy, r0, r1, hex) {
+      for (let j = Math.floor(cy - r1); j <= Math.ceil(cy + r1); j++) {
+        for (let i = Math.floor(cx - r1); i <= Math.ceil(cx + r1); i++) {
+          const d = Math.hypot(i + 0.5 - cx, j + 0.5 - cy);
+          if (d >= r0 && d < r1) put(i, j, hex);
+        }
       }
       return cv;
-    },
-    // Filled triangle.
-    tri(x0, y0, x1, y1, x2, y2, hex) {
-      const xa = Math.floor(Math.min(x0, x1, x2)), xb = Math.ceil(Math.max(x0, x1, x2));
-      const ya = Math.floor(Math.min(y0, y1, y2)), yb = Math.ceil(Math.max(y0, y1, y2));
-      const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
-      if (!area) return cv;
-      for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) {
-        const w0 = ((x1 - x) * (y2 - y) - (x2 - x) * (y1 - y)) / area;
-        const w1 = ((x2 - x) * (y0 - y) - (x0 - x) * (y2 - y)) / area;
-        const w2 = 1 - w0 - w1;
-        if (w0 >= -0.02 && w1 >= -0.02 && w2 >= -0.02) put(x, y, hex);
-      }
-      return cv;
-    },
-    // Capsule aimed by angle (degrees clockwise from straight up) + length.
-    ray(x, y, angle, len, r0, r1, hex) {
-      const a = (angle * Math.PI) / 180;
-      return cv.capsule(x, y, x + Math.sin(a) * len, y - Math.cos(a) * len, r0, r1, hex);
     },
   };
   return cv;
-}
-
-// metime brand tokens used by the authored charts (see the :root block in
-// index.html). Each snaps to its nearest DMC floss during quantization, so the
-// studio palette, floss list and kit costing all still work off real flosses.
-//
-// Every bookmark is stitched edge to edge on one of the four neutrals below —
-// shell, ice, slate, ink. The picker previews a bookmark as a bare strip on a
-// white card and the studio draws it on white aida, so anything lighter (the
-// linen-600/Ecru and cream these grounds replaced) reads as unstitched fabric
-// and the bookmark stops looking like a bookmark. One ground per design, spread
-// light to dark, so the four cards don't read as one swatch.
-const BRAND = {
-  linen:  '#D5D1BD',   // --color-linen-800  → 453 Shell Gray Light
-  cream:  '#F5F3EE',   // --metime-cream     → 3866 Mocha Brn Ult Vy Lt
-  ice:    '#CCD6EB',   // --metime-ice       → 3747 Blue Violet Vy Lt
-  slate:  '#707F87',   // setup-card border  → 3768 Gray Green Dark
-  ink:    '#120F06',   // --color-taupe-900  → 3371 Black Brown
-  tomato: '#E8583A',   // --metime-tomato    → 608 Burnt Orange Bright
-  coral:  '#FDA198',   // --metime-grapefruit→ 352 Coral Light
-  golden: '#FBBB3F',   // --metime-golden    → 725 Topaz Med Lt
-  olive:  '#B5BB46',   // --metime-avocado   → 733 Olive Green Md
-};
-
-// A cut-paper frond: short stem with tapered paddle "fingers" fanning off it.
-// `fingers` entries are { a: degrees from vertical, len: fraction of size, w }.
-function frond(cv, cx, cy, size, hex, fingers) {
-  const baseY = cy + size * 0.40, forkY = cy + size * 0.12;
-  cv.capsule(cx, baseY, cx, forkY, 1.1, 1.1, hex);
-  for (const f of fingers) cv.ray(cx, forkY, f.a, size * f.len, 1.2, f.w, hex);
-}
-
-// Bookmark 1 — five cut-paper leaves stacked inside a solid border.
-function drawLeafStack(cv) {
-  cv.fill(BRAND.linen);
-  const leaves = [
-    { hex: BRAND.golden, fingers: [{ a: -62, len: .52, w: 2.1 }, { a: -30, len: .70, w: 2.3 }, { a: 0, len: .82, w: 2.5 }, { a: 30, len: .70, w: 2.3 }, { a: 62, len: .52, w: 2.1 }] },
-    { hex: BRAND.slate,  fingers: [{ a: -50, len: .58, w: 2.6 }, { a: -18, len: .80, w: 2.8 }, { a: 16, len: .78, w: 2.8 }, { a: 52, len: .56, w: 2.5 }] },
-    { hex: BRAND.olive,  fingers: [{ a: -38, len: .52, w: 2.3 }, { a: 0, len: .70, w: 2.5 }, { a: 38, len: .52, w: 2.3 }] },
-    { hex: BRAND.ink,    fingers: [{ a: -68, len: .46, w: 1.9 }, { a: -42, len: .62, w: 2.1 }, { a: -14, len: .78, w: 2.2 }, { a: 14, len: .78, w: 2.2 }, { a: 42, len: .62, w: 2.1 }, { a: 68, len: .46, w: 1.9 }] },
-    { hex: BRAND.tomato, fingers: [{ a: -54, len: .54, w: 2.4 }, { a: -20, len: .80, w: 2.6 }, { a: 16, len: .76, w: 2.6 }, { a: 50, len: .54, w: 2.4 }] },
-  ];
-  leaves.forEach((l, i) => frond(cv, 15, 18 + i * 21.8, 19, l.hex, l.fingers));
-  cv.frame(2, BRAND.slate);
-}
-
-// Bookmark 2 — a blocky fish on still water, nose up, tail fanning out below.
-function drawLittleFish(cv) {
-  cv.fill(BRAND.ice);
-  const cx = 15;
-  // Forked tail — two lobes sharing the center line, so the trailing edge dips
-  // into a shallow notch — then the body over it so the join reads as one fish.
-  cv.tri(cx, 86, cx - 11, 110, cx, 103, BRAND.ink);
-  cv.tri(cx, 86, cx + 11, 110, cx, 103, BRAND.ink);
-  cv.tri(cx + 8, 40, cx + 14, 50, cx + 7, 56, BRAND.ink);       // dorsal fin
-  cv.tri(cx - 8, 58, cx - 14, 68, cx - 7, 72, BRAND.ink);       // pectoral fin
-  cv.capsule(cx, 70, cx, 90, 6, 3.4, BRAND.slate);              // peduncle
-  cv.ellipse(cx, 48, 9.2, 34, BRAND.slate);                     // body
-  // Head: coral snout, one eye, a stitched mouth, a gill stroke.
-  cv.ellipse(cx, 19, 4.4, 5.5, BRAND.coral);
-  cv.capsule(cx, 15, cx + 2.5, 16.5, 0.6, 0.6, BRAND.ink);
-  cv.ellipse(cx - 3, 26, 1.5, 1.5, BRAND.ink);
-  cv.capsule(cx - 6, 31, cx - 3, 38, 0.9, 0.9, BRAND.slate);
-  // Belly clouds.
-  cv.ellipse(cx - 3, 44, 4.4, 6.5, BRAND.cream);
-  cv.ellipse(cx, 38, 3.4, 4, BRAND.cream);
-  cv.ellipse(cx + 3, 66, 4, 5.5, BRAND.cream);
-  cv.ellipse(cx - 1, 70, 3, 3.6, BRAND.cream);
-  // Scale spots.
-  cv.ellipse(cx + 5, 36, 2.8, 2.8, BRAND.coral);
-  cv.ellipse(cx - 5, 58, 2.8, 2.8, BRAND.coral);
-  cv.ellipse(cx + 4, 78, 2.8, 2.8, BRAND.coral);
-  cv.ellipse(cx + 5, 50, 2.6, 2.6, BRAND.tomato);
-  cv.ellipse(cx - 5, 72, 2.6, 2.6, BRAND.tomato);
-  cv.ellipse(cx, 86, 2.4, 2.4, BRAND.tomato);
-}
-
-// Bookmark 3 — an all-over scatter of petals and little blooms on a slate field.
-// The petals that used to be slate are stitched in cream now that slate is the
-// ground; the rest of the scatter keeps its warm tones, which read against it.
-function drawPetalScatter(cv) {
-  cv.fill(BRAND.slate);
-  // { x, y, a: angle, len, w, hex } petals; blooms get a ring of five.
-  const petals = [
-    { x: 8,  y: 9,   a: 20,  len: 8,  w: 2.6, hex: BRAND.tomato },
-    { x: 22, y: 14,  a: -35, len: 7,  w: 2.4, hex: BRAND.cream },
-    { x: 13, y: 22,  a: 70,  len: 6,  w: 2.2, hex: BRAND.golden },
-    { x: 25, y: 28,  a: 15,  len: 7,  w: 2.4, hex: BRAND.ink },
-    { x: 6,  y: 33,  a: -25, len: 8,  w: 2.6, hex: BRAND.coral },
-    { x: 17, y: 40,  a: 45,  len: 7,  w: 2.4, hex: BRAND.tomato },
-    { x: 27, y: 47,  a: -60, len: 6,  w: 2.2, hex: BRAND.golden },
-    { x: 5,  y: 52,  a: 30,  len: 7,  w: 2.4, hex: BRAND.cream },
-    { x: 15, y: 58,  a: -15, len: 8,  w: 2.6, hex: BRAND.ink },
-    { x: 25, y: 66,  a: 40,  len: 7,  w: 2.4, hex: BRAND.coral },
-    { x: 7,  y: 70,  a: -50, len: 6,  w: 2.2, hex: BRAND.golden },
-    { x: 16, y: 78,  a: 25,  len: 8,  w: 2.6, hex: BRAND.tomato },
-    { x: 27, y: 85,  a: -20, len: 6,  w: 2.2, hex: BRAND.cream },
-    { x: 6,  y: 90,  a: 55,  len: 7,  w: 2.4, hex: BRAND.ink },
-    { x: 18, y: 97,  a: -40, len: 7,  w: 2.4, hex: BRAND.coral },
-    { x: 26, y: 104, a: 20,  len: 6,  w: 2.2, hex: BRAND.tomato },
-    { x: 8,  y: 108, a: -18, len: 8,  w: 2.6, hex: BRAND.golden },
-    { x: 19, y: 114, a: 35,  len: 6,  w: 2.2, hex: BRAND.cream },
-  ];
-  for (const p of petals) cv.ray(p.x, p.y, p.a, p.len, 1.2, p.w, p.hex);
-  const blooms = [
-    { x: 9,  y: 17, hex: BRAND.golden },
-    { x: 21, y: 56, hex: BRAND.coral },
-    { x: 11, y: 100, hex: BRAND.tomato },
-  ];
-  for (const b of blooms) {
-    for (let k = 0; k < 5; k++) cv.ray(b.x, b.y, k * 72, 4.6, 1.1, 2.2, b.hex);
-    cv.ellipse(b.x, b.y, 1.6, 1.6, BRAND.ink);
-  }
-}
-
-// Bookmark 4 — a bold ribbon of coral shapes with a soft echo, on ink.
-function drawCoralWave(cv) {
-  cv.fill(BRAND.ink);
-  // Four comma/bean shapes alternating side to side, each shadowed by a pale
-  // echo one stitch out so the silhouette stays crisp against the ground.
-  for (let i = 0; i < 4; i++) {
-    const cy = 16 + i * 29, flip = i % 2 === 0 ? 1 : -1, cx = 15 - 2 * flip;
-    const arc = (dx, dy, hex, r) => {
-      cv.capsule(cx - 7 * flip + dx, cy - 10 + dy, cx + 5 * flip + dx, cy - 4 + dy, r * 0.8, r, hex);
-      cv.capsule(cx + 5 * flip + dx, cy - 4 + dy, cx + 2 * flip + dx, cy + 9 + dy, r, r * 0.75, hex);
-      cv.capsule(cx + 2 * flip + dx, cy + 9 + dy, cx - 8 * flip + dx, cy + 12 + dy, r * 0.75, r * 0.5, hex);
-    };
-    arc(1.6 * flip, 2, BRAND.coral, 4.2);
-    arc(0, 0, BRAND.tomato, 4);
-    // A small golden crescent nested in the hollow of each shape.
-    cv.capsule(cx - 6 * flip, cy - 2, cx - 4 * flip, cy + 3, 1.5, 1.9, BRAND.golden);
-  }
-}
-
-// ── Per-design conversion config. `w`/`h` = canonical grid the chart is baked
-// at (build() in-app nearest-neighbour resamples it to each preset size).
-// `bgTol` = RGB distance from the auto-detected corner background under which a
-// cell is treated as empty (image designs only). `colors` = max palette size
-// after quantization; emitted in descending stitch-count order, which is the
-// role order the app's palette override maps onto. ──
-const DESIGNS = [
-  { file: 'alien.png',        id: 'alien',        name: 'Little Alien',      desc: '8 colors',        presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
-  { file: 'ufo.png',          id: 'ufo',          name: 'Flying Saucer',     desc: '8 colors',            presets: ['Coaster Set', 'Small Hoop'],              w: 70,  h: 70,  bgTol: 60, colors: 8 },
-  // Medium Hoop is served entirely by the two stitched designs at the bottom of
-  // this list, so the traced charts only cover the smaller sizes now.
-  { file: 'moth.png',         id: 'moth',         name: 'Celestial Moth',    desc: '14 colors',         presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 46, colors: 14 },
-  { file: 'heart.png',        id: 'heart',        name: 'Floral Heart',      desc: '16 colors',          presets: ['Coaster Set', 'Small Hoop'],              w: 104, h: 104, bgTol: 40, colors: 16 },
-  { file: 'bouquet.png',      id: 'bouquet',      name: 'Flower Bouquet',    desc: '14 colors',         presets: ['Small Hoop'],                             w: 104, h: 104, bgTol: 52, colors: 14 },
-  { draw: drawLeafStack,      id: 'leaf-stack',   name: 'Cutout Leaves',     desc: '6 colors', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
-  { draw: drawLittleFish,     id: 'little-fish',  name: 'Little Fish',       desc: '6 colors',  presets: ['Bookmark'],                               w: 30,  h: 120, colors: 6 },
-  { draw: drawPetalScatter,   id: 'petal-scatter',name: 'Petal Scatter',     desc: '6 colors', presets: ['Bookmark'],                             w: 30,  h: 120, colors: 6 },
-  { draw: drawCoralWave,      id: 'coral-wave',   name: 'Coral Wave',        desc: '4 colors',      presets: ['Bookmark'],                               w: 30,  h: 120, colors: 4 },
-  // ── Medium Hoop: designs stitched in the studio and saved, taken in as-is ──
-  // The lettering is already stitched into these charts, so `seedText` carries
-  // no words — it opens the studio on the text tool with the font and height the
-  // chart's own lettering was stitched at, ready for the maker's words. Both
-  // were measured off the charts (tools/_id-saved-font.mjs), which is why the
-  // matchbox is Sans and the wreath is Sampler.
-  { saved: 'perfect-match.json', id: 'perfect-match', name: 'Perfect Match', desc: '8 colors · add your initials', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
-    clear: clearPerfectMatch, seedText: { font: 'sans', size: 12 } },
-  { saved: 'wreath-quote.json',  id: 'wreath-quote',  name: 'Wreath Quote',  desc: '6 colors · add your own words', presets: ['Medium Hoop'],                       w: 120, h: 120, colors: 12,
-    clear: clearWreathQuote, seedText: { font: 'sampler', size: 11 } },
-];
-
-function readPNG(file) {
-  const buf = fs.readFileSync(path.join(IMG_DIR, file));
-  return PNG.sync.read(buf);
-}
-
-// Cover-fit + box-average an image region into a W×H grid of {r,g,b} (or null
-// for cells that are dropped as background).
-function sampleGrid(png, W, H, bgTol) {
-  const { width: iw, height: ih, data } = png;
-  const scale = Math.max(W / iw, H / ih);
-  const sw = W / scale, sh = H / scale;      // source window (cover crop)
-  const sx0 = (iw - sw) / 2, sy0 = (ih - sh) / 2;
-  const at = (x, y) => { const i = (y * iw + x) * 4; return [data[i], data[i + 1], data[i + 2], data[i + 3]]; };
-
-  // Background = median-ish average of the four image corners.
-  const corner = (cx, cy) => { let r = 0, g = 0, b = 0, n = 0; const s = Math.max(2, Math.round(Math.min(iw, ih) * 0.04));
-    for (let y = cy; y < cy + s; y++) for (let x = cx; x < cx + s; x++) { const [pr, pg, pb, pa] = at(x, y); if (pa < 40) continue; r += pr; g += pg; b += pb; n++; } return n ? [r / n, g / n, b / n] : null; };
-  const corners = [corner(0, 0), corner(iw - Math.round(iw * 0.04) - 1, 0), corner(0, ih - Math.round(ih * 0.04) - 1), corner(iw - Math.round(iw * 0.04) - 1, ih - Math.round(ih * 0.04) - 1)].filter(Boolean);
-  const bg = corners.length ? [corners.reduce((a, c) => a + c[0], 0) / corners.length, corners.reduce((a, c) => a + c[1], 0) / corners.length, corners.reduce((a, c) => a + c[2], 0) / corners.length] : [255, 255, 255];
-
-  const grid = new Array(W * H).fill(null);
-  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) {
-    const rx0 = Math.floor(sx0 + (tx / W) * sw), rx1 = Math.max(rx0 + 1, Math.floor(sx0 + ((tx + 1) / W) * sw));
-    const ry0 = Math.floor(sy0 + (ty / H) * sh), ry1 = Math.max(ry0 + 1, Math.floor(sy0 + ((ty + 1) / H) * sh));
-    let r = 0, g = 0, b = 0, n = 0, bgHits = 0, tot = 0;
-    for (let y = ry0; y < ry1; y++) for (let x = rx0; x < rx1; x++) {
-      if (x < 0 || y < 0 || x >= iw || y >= ih) continue;
-      const [pr, pg, pb, pa] = at(x, y); if (pa < 40) continue;
-      tot++;
-      const db = (pr - bg[0]) ** 2 + (pg - bg[1]) ** 2 + (pb - bg[2]) ** 2;
-      if (db < bgTol * bgTol) { bgHits++; continue; }   // background pixel — skip from average
-      r += pr; g += pg; b += pb; n++;
-    }
-    // Cell is background if most of its pixels matched the background.
-    if (!n || bgHits > tot * 0.55) { grid[ty * W + tx] = null; continue; }
-    grid[ty * W + tx] = { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
-  }
-  return grid;
-}
-
-// Snap → DMC, count usage, keep the top `maxColors`, remap the rest to the
-// nearest kept floss. Returns { colors:[hex...], idx:Int (0=empty else 1-based) }.
-function quantize(grid, maxColors) {
-  const snapped = grid.map(c => c ? nearestDMC(c.r, c.g, c.b) : null);
-  const freq = new Map();
-  for (const c of snapped) if (c) freq.set(c.code, (freq.get(c.code) || 0) + 1);
-  const keep = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, maxColors).map(([code]) => code);
-  const keepSet = new Set(keep);
-  const keepList = keep.map(code => DMC.find(d => d.code === code));
-  const remap = new Map();
-  const resolve = (c) => {
-    if (keepSet.has(c.code)) return c.code;
-    if (remap.has(c.code)) return remap.get(c.code);
-    let best = null, bd = Infinity;
-    for (const k of keepList) { const d = (c.r - k.r) ** 2 + (c.g - k.g) ** 2 + (c.b - k.b) ** 2; if (d < bd) { bd = d; best = k; } }
-    remap.set(c.code, best.code); return best.code;
-  };
-  const colorHex = keep.map(code => DMC.find(d => d.code === code).hex);
-  const colorIndex = new Map(keep.map((code, i) => [code, i + 1]));
-  const idx = snapped.map(c => c ? colorIndex.get(resolve(c)) : 0);
-  return { colors: colorHex, idx };
-}
-
-// Drop isolated single-cell specks (a kept cell whose 4-neighbours are all
-// empty) — trims anti-alias noise so the chart reads cleanly.
-function despeckle(idx, W, H) {
-  const out = idx.slice();
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x; if (!idx[i]) continue;
-    let neigh = 0;
-    if (x > 0 && idx[i - 1]) neigh++;
-    if (x < W - 1 && idx[i + 1]) neigh++;
-    if (y > 0 && idx[i - W]) neigh++;
-    if (y < H - 1 && idx[i + W]) neigh++;
-    if (neigh === 0) out[i] = 0;
-  }
-  return out;
 }
 
 function toRLE(idx) {
@@ -392,93 +137,157 @@ function writePreview(id, colors, idx, W, H) {
   fs.writeFileSync(path.join(PREVIEW_DIR, id + '.png'), PNG.sync.write(png));
 }
 
-// ── Lifting placeholder lettering back out of a saved chart ────────────────
-// Both Medium Hoop charts were stitched with placeholder words in them. The
-// words have to go, or the maker's own text stamps on top of them and the label
-// turns to mush. Everything else stays exactly as saved, so these clear by
-// colour inside a bounded area rather than blanking a rectangle.
-
-// The quote is the only stitching in the wreath's olive inside the ring, so
-// clearing that colour within r=36 of centre lifts the words without costing a
-// single leaf or petal — the ring itself sits out past r=40.
-function clearWreathQuote(cells, W, H) {
-  const cx = 59.5, cy = 59.5, R = 36;
-  let n = 0;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x;
-    if (cells[i] !== '#BCB34C') continue;
-    if ((x - cx) ** 2 + (y - cy) ** 2 > R * R) continue;
-    cells[i] = null; n++;
-  }
-  return n;
+// ── Starter designs: color roles + text layers ─────────────────────────────
+function chromePath() {
+  const guesses = [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  ];
+  const hit = guesses.find(g => fs.existsSync(g));
+  if (!hit) throw new Error('Setting the starter lettering needs Chrome, Chromium or Edge installed');
+  return hit;
 }
 
-// The initials are the only dark stitching inside the label oval. They get
-// repainted in the oval's own field colour, sampled from just above them, so
-// the label stays a label instead of turning into a hole.
-function clearPerfectMatch(cells, W, H) {
-  const field = cells[67 * W + 60];
-  let n = 0;
-  for (let y = 69; y < 84; y++) for (let x = 41; x < 73; x++) {
-    const i = y * W + x;
-    if (cells[i] === '#1E1108' || cells[i] === '#000000') { cells[i] = field; n++; }
+// Every text layer as the studio would stitch it: its box and its stitches as
+// [dx,dy] offsets from the box's top-left. Runs src/stitch-text.jsx in Chrome
+// with the same Google Fonts stylesheet index.html loads.
+async function setLettering(layers) {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const fontsHref = (html.match(/href="(https:\/\/fonts\.googleapis\.com\/css2[^"]+)"/) || [])[1];
+  if (!fontsHref) throw new Error('Google Fonts stylesheet not found in index.html');
+  const bundle = await esbuild.build({
+    absWorkingDir: ROOT, bundle: true, format: 'iife', globalName: 'XST', jsx: 'automatic', write: false,
+    stdin: { contents: "export { XS_FONTS, layoutStitchText, rasterizeText } from './src/stitch-text.jsx';", resolveDir: ROOT, loader: 'js' },
+    define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'warning',
+  });
+  const browser = await puppeteer.launch({ executablePath: chromePath(), headless: 'new', args: ['--no-sandbox'] });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<!doctype html><html><head><link rel="stylesheet" href="${fontsHref.replace(/&amp;/g, '&')}"></head><body></body></html>`, { waitUntil: 'networkidle0' });
+    await page.addScriptTag({ content: bundle.outputFiles[0].text });
+    return await page.evaluate(async (layers) => {
+      const { XS_FONTS, layoutStitchText, rasterizeText } = window.XST;
+      for (const id of new Set(layers.map(l => l.font))) {
+        const f = XS_FONTS[id];
+        if (!f) throw new Error(`Unknown font "${id}"`);
+        const spec = `${f.weight} 16px ${f.family}`;
+        await document.fonts.load(spec);
+        if (!document.fonts.check(spec)) throw new Error(`${f.family} didn't load`);
+      }
+      return layers.map(l => {
+        const L = layoutStitchText(l.text, l.font, l.size);
+        return { size: L.size, boxW: L.boxW, boxH: L.boxH, offs: rasterizeText(l.text, l.font, l.size) };
+      });
+    }, layers);
+  } finally {
+    await browser.close();
   }
-  return n;
 }
 
-// A studio design saved out of the app → the {r,g,b}|null grid quantize()
-// wants. Runs are "<count>.<colorIdx>" joined by "|" with 0 = empty, matching
-// serializeGrid() in index.html.
-function savedGrid(d) {
-  const src = JSON.parse(fs.readFileSync(path.join(SAVED_DIR, d.saved), 'utf8'));
-  if (src.w !== d.w || src.h !== d.h) {
-    throw new Error(`${d.saved} is ${src.w}x${src.h} but the design is declared ${d.w}x${d.h}`);
-  }
-  const cells = new Array(src.w * src.h).fill(null);
-  let i = 0;
-  for (const run of src.rle.split('|')) {
-    const dot = run.indexOf('.');
-    const c = +run.slice(0, dot), v = +run.slice(dot + 1);
-    for (let k = 0; k < c && i < cells.length; k++) { if (v > 0) cells[i] = src.colors[v - 1] || null; i++; }
-  }
-  if (d.clear) {
-    const lifted = d.clear(cells, src.w, src.h);
-    console.log(`  ${d.id}: lifted ${lifted} lettering stitches`);
-  }
-  return cells.map(hex => hex
-    ? { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
-    : null);
+// Sorted stitch indices as base-36 gaps, the text layers' answer to toRLE.
+const toGaps = list => list.map((k, i) => (k - (i ? list[i - 1] : 0)).toString(36)).join(' ');
+
+// Places one set layer. Horizontally `x` is where the ink's center, left or
+// right edge goes (by `align`); vertically the ink's top goes at `top`, or its
+// middle at `cy`. Placing by ink rather than box keeps short words optically
+// centered; the box's alignment is what the studio holds to when they're retyped.
+function placeLayer(t, set, W) {
+  const xs = set.offs.map(o => o[0]), ys = set.offs.map(o => o[1]);
+  const l = Math.min(...xs), r = Math.max(...xs) + 1, tp = Math.min(...ys), b = Math.max(...ys) + 1;
+  const align = t.align || 'center';
+  const x = align === 'left' ? t.x - l : align === 'right' ? t.x - r : Math.round(t.x - (l + r) / 2);
+  const y = t.top != null ? t.top - tp : Math.round(t.cy - (tp + b) / 2);
+  const cells = [...new Set(set.offs.map(([dx, dy]) => (y + dy) * W + (x + dx)))].sort((a, c) => a - c);
+  const outside = set.offs.some(([dx, dy]) => x + dx < 0 || y + dy < 0 || x + dx >= W);
+  return { x, y, align, cells, outside, ink: { l: x + l, r: x + r, t: y + tp, b: y + b } };
 }
 
-// A drawn canvas of hex-or-null cells → the {r,g,b}|null grid quantize() wants.
-function drawnGrid(d) {
-  const cv = Canvas(d.w, d.h);
-  d.draw(cv);
-  return cv.cells.map(hex => hex
-    ? { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }
-    : null);
+// What a design has to get right before it ships. Errors stop the build;
+// warnings are printed and let through.
+function checkStarter(d, layers, idx) {
+  const errors = [], warnings = [];
+  const where = t => `"${t.text.replace(/\n/g, ' / ')}"`;
+  const seen = new Map();
+  for (const t of layers) {
+    // The studio flags a box that crosses the board's edge ("Off the edge").
+    // A stitch of margin covers browsers measuring a font a hair wider.
+    if (t.x < 1 || t.y < 1 || t.x + t.boxW > d.w - 1 || t.y + t.boxH > d.h - 1) {
+      errors.push(`${where(t)} box ${t.x},${t.y} ${t.boxW}×${t.boxH} is within a stitch of the edge`);
+    }
+    if (t.outside || t.cells.some(k => k >= d.w * d.h)) errors.push(`${where(t)} has stitches off the board`);
+    for (const k of t.cells) {
+      if (seen.has(k)) { errors.push(`${where(t)} overlaps ${where(seen.get(k))}`); break; }
+      seen.set(k, t);
+    }
+  }
+  if (d.roles.length > 4) warnings.push(`${d.roles.length} colors`);
+  if (d.presets.some(p => /Hoop/.test(p))) {
+    // A hoop's ring is as wide as the board, so its corners sit under the hoop.
+    const cx = d.w / 2, cy = d.h / 2, R = d.w / 2 - 1;
+    let n = 0;
+    const all = idx.map(Boolean);
+    for (const t of layers) for (const k of t.cells) all[k] = true;
+    all.forEach((on, k) => { if (on && Math.hypot((k % d.w) + 0.5 - cx, Math.floor(k / d.w) + 0.5 - cy) > R) n++; });
+    if (n) warnings.push(`${n} stitches within a stitch of the hoop or under it`);
+  }
+  return { errors, warnings };
 }
 
-const out = [];
-for (const d of DESIGNS) {
-  const grid = d.draw ? drawnGrid(d) : d.saved ? savedGrid(d) : sampleGrid(readPNG(d.file), d.w, d.h, d.bgTol);
-  const { colors, idx } = quantize(grid, d.colors);
-  // Despeckling trims anti-aliasing noise out of traced photos. Drawn and
-  // stitched charts are already clean and use deliberate single stitches (an
-  // eye, a flower center, a comma), so they skip it.
-  const clean = (d.draw || d.saved) ? idx : despeckle(idx, d.w, d.h);
-  const rle = toRLE(clean);
-  const used = new Set(clean); const fill = clean.filter(Boolean).length;
-  writePreview(d.id, colors, clean, d.w, d.h);
-  out.push({ id: d.id, name: d.name, desc: d.desc, presets: d.presets, w: d.w, h: d.h, colors, rle,
-    ...(d.seedText ? { seedText: d.seedText } : null) });
-  console.log(`${d.id.padEnd(14)} ${d.w}x${d.h}  colors=${colors.length}  fill=${(100 * fill / (d.w * d.h)).toFixed(0)}%  rleBytes=${rle.length}`);
+async function buildStarters() {
+  const layers = STARTERS.flatMap(d => d.texts);
+  const set = layers.length ? await setLettering(layers) : [];
+  let si = 0, failed = false;
+  const built = STARTERS.map(d => {
+    const roleHex = d.roles.map(r => {
+      const c = DMC.find(x => x.code === r.code);
+      if (!c) throw new Error(`${d.id}: no DMC ${r.code}`);
+      return c.hex;
+    });
+    if (new Set(roleHex).size !== roleHex.length) throw new Error(`${d.id}: two roles share a floss`);
+    const hexOf = Object.fromEntries(d.roles.map((r, i) => [r.id, roleHex[i]]));
+    const cv = Canvas(d.w, d.h);
+    d.draw(cv, hexOf);
+    const idx = cv.cells.map(hex => (hex ? roleHex.indexOf(hex) + 1 : 0));
+    if (cv.cells.some((h, i) => h && !idx[i])) throw new Error(`${d.id}: drew a color that isn't one of its roles`);
+    const placed = d.texts.map(t => {
+      const s = set[si++];
+      const role = d.roles.findIndex(r => r.id === t.role);
+      if (role < 0) throw new Error(`${d.id}: "${t.text}" uses unknown role ${t.role}`);
+      return { ...t, role, size: s.size, boxW: s.boxW, boxH: s.boxH, ...placeLayer(t, s, d.w) };
+    });
+    const { errors, warnings } = checkStarter(d, placed, idx);
+    const preview = idx.slice();
+    for (const t of placed) for (const k of t.cells) preview[k] = t.role + 1;
+    writePreview(d.id, roleHex, preview, d.w, d.h);
+    const fill = preview.filter(Boolean).length;
+    console.log(`${d.id.padEnd(14)} ${d.w}x${d.h}  colors=${roleHex.length}  fill=${(100 * fill / (d.w * d.h)).toFixed(0)}%  texts=${placed.length}`);
+    for (const t of placed) console.log(`    ${JSON.stringify(t.text).padEnd(18)} ${t.font} ${t.size}  box ${t.x},${t.y} ${t.boxW}×${t.boxH}  ink x ${t.ink.l}–${t.ink.r} y ${t.ink.t}–${t.ink.b}`);
+    for (const w of warnings) console.log(`  ! ${w}`);
+    for (const e of errors) console.log(`  ✗ ${e}`);
+    if (errors.length) failed = true;
+    return {
+      id: d.id, name: d.name, desc: d.desc, presets: d.presets, w: d.w, h: d.h,
+      colors: roleHex, roles: d.roles.map(r => ({ id: r.id, tone: r.tone })), rle: toRLE(idx),
+      texts: placed.map(t => ({
+        text: t.text, font: t.font, size: t.size, role: t.role, align: t.align,
+        x: t.x, y: t.y, boxW: t.boxW, boxH: t.boxH, cells: toGaps(t.cells),
+      })),
+    };
+  });
+  if (failed) throw new Error('Starter designs failed their checks (✗ above)');
+  return built;
 }
+
+const out = await buildStarters();
 
 const banner = '// AUTO-GENERATED by tools/gen-stitch-templates.mjs — do not hand-edit.\n'
-  + '// Regenerate: node tools/gen-stitch-templates.mjs (reads assets/stitch-templates/*.png).\n'
+  + '// Regenerate: node tools/gen-stitch-templates.mjs (reads tools/stitch-starters.mjs).\n'
   + '// Each entry is a canonical cross-stitch chart: { id, name, desc, presets, w, h,\n'
-  + '//   colors:[hex...], rle } where rle tokens are "<idxB36>.<runB36>" and idx 0 = empty.\n';
+  + '//   colors:[hex...], rle, roles, texts } where rle tokens are "<idxB36>.<runB36>" and\n'
+  + '//   idx 0 = empty, roles are [{id,tone}] (one per color) and texts are [{text, font,\n'
+  + '//   size, role, align, x, y, boxW, boxH, cells}], cells being the layer\'s stitch\n'
+  + '//   indices as base-36 gaps; the layer\'s stitches are not in rle.\n';
 fs.writeFileSync(OUT_JS, banner + 'window.STITCH_TEMPLATE_DATA = ' + JSON.stringify(out) + ';\n');
 console.log('\nWrote', path.relative(ROOT, OUT_JS), '(' + fs.statSync(OUT_JS).size + ' bytes)');
 console.log('Previews in', path.relative(ROOT, PREVIEW_DIR));

@@ -199,16 +199,29 @@ function xsColorsFromGrid(grid) {
 // canonical W×H chart (colors + RLE); build({w,h}) decodes it once and nearest-
 // neighbour resamples to the requested size, so a single chart scales to every
 // preset that offers it.
-function xsDecodeChart(entry) {
-  if (entry._grid) return entry._grid;                       // memoized native grid
-  const grid = new Array(entry.w * entry.h).fill(null);
+// The chart's shapes as color indexes (0 = unstitched).
+function xsDecodeIdx(entry) {
+  if (entry._idx) return entry._idx;
+  const idx = new Array(entry.w * entry.h).fill(0);
   let pos = 0;
   for (const tok of entry.rle.split(' ')) {
     const dot = tok.indexOf('.');
-    const idx = parseInt(tok.slice(0, dot), 36), run = parseInt(tok.slice(dot + 1), 36);
-    const hex = idx ? entry.colors[idx - 1] : null;
-    for (let k = 0; k < run; k++) grid[pos++] = hex;
+    const v = parseInt(tok.slice(0, dot), 36), run = parseInt(tok.slice(dot + 1), 36);
+    for (let k = 0; k < run; k++) idx[pos++] = v;
   }
+  entry._idx = idx;
+  return idx;
+}
+// A text layer's stitch indices, stored as base-36 gaps between them.
+function xsDecodeGaps(str) {
+  let k = 0;
+  return str ? str.split(' ').map(g => (k += parseInt(g, 36))) : [];
+}
+// The chart as it looks in its own colors, words included.
+function xsDecodeChart(entry) {
+  if (entry._grid) return entry._grid;                       // memoized native grid
+  const grid = xsDecodeIdx(entry).map(v => (v ? entry.colors[v - 1] : null));
+  for (const t of entry._texts || []) for (const k of t.cells) grid[k] = entry.colors[t.role];
   entry._grid = grid;
   return grid;
 }
@@ -271,10 +284,15 @@ function xsSetMosaic(entry, w, h) {
 function xsBuildTemplates(data) {
   return (data || []).map(entry => {
     const set = entry.set || null;
+    // Starter designs name their colors by role and carry their words as
+    // text layers (see tools/stitch-starters.mjs).
+    if (entry.texts) entry._texts = entry.texts.map(t => ({ ...t, cells: xsDecodeGaps(t.cells) }));
     return {
       id: entry.id, name: entry.name, desc: entry.desc, presets: entry.presets,
       w: entry.w, h: entry.h,
       set,
+      roles: entry.roles || null,
+      roleSeed: entry.roles ? palette => xsRoleSeed(entry, palette) : null,
       // Charts built around lettering carry the font and height their words want,
       // and optionally the words themselves. The studio opens on the text tool
       // with those settings so the maker can type straight into the design
@@ -355,12 +373,59 @@ function xsRecolorGrid(grid, palette) {
   return grid.map(hex => hex ? (map.get(hex) || hex) : null);
 }
 
+// How colorful a floss is, 0–1.
+function xsChroma(hex) {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+}
+// A starter design's roles dressed in `palette`, one floss each, by the role's
+// tone (see tools/stitch-starters.mjs). Dark and light roles pick first: the
+// words are read by the contrast between them. Each role takes a floss no other
+// role has, until a short palette runs out and they have to share.
+const XS_TONE_RANK = { dark: 0, light: 1, accent: 2 };
+function xsRoleColors(roles, defaults, palette) {
+  const pal = [...new Set((palette || []).map(c => c && c.hex).filter(Boolean))];
+  if (!pal.length) return defaults.slice();
+  const score = (tone, own) => (
+    tone === 'dark' ? xsLuma : tone === 'light' ? h => -xsLuma(h) : tone === 'accent' ? h => -xsChroma(h)
+      : h => Math.abs(xsLuma(h) - xsLuma(own)));
+  const out = [], used = new Set();
+  const order = roles.map((_, i) => i)
+    .sort((a, b) => (XS_TONE_RANK[roles[a].tone] ?? 3) - (XS_TONE_RANK[roles[b].tone] ?? 3));
+  for (const i of order) {
+    const s = score(roles[i].tone, defaults[i]);
+    const free = pal.filter(h => !used.has(h));
+    const best = (free.length ? free : pal).reduce((a, b) => (s(b) < s(a) ? b : a));
+    used.add(best);
+    out[i] = best;
+  }
+  return out;
+}
+// A starter design laid in `palette` (or its own colors): the board, its words
+// as text records (each with the stitches it covers and what lies under them),
+// and the floss each role ended up as.
+function xsRoleSeed(entry, palette) {
+  const roleHex = xsRoleColors(entry.roles, entry.colors, palette);
+  const grid = xsDecodeIdx(entry).map(v => (v ? roleHex[v - 1] : null));
+  const texts = (entry._texts || []).map(t => {
+    const color = roleHex[t.role], cells = new Map();
+    for (const k of t.cells) { cells.set(k, grid[k]); grid[k] = color; }
+    return { text: t.text, font: t.font, size: t.size, color, x: t.x, y: t.y, boxW: t.boxW, boxH: t.boxH, align: t.align, cells };
+  });
+  return { grid, texts, roleHex };
+}
+
 // What the board should hold for a chosen template: the chart dressed in the
 // given palette (or its own colors, without one), plus — for a set — one grid
 // per coaster page. Picking a chart and re-dressing it in a palette both go
 // through here, so a new palette re-dresses the original chart rather than a
-// recolored copy of it.
+// recolored copy of it. A starter design also hands back its words as text
+// records (`texts`) and its role colors (`roleHex`).
 export function gridSeedFromTemplate(tpl, preset, palette) {
+  if (tpl.roleSeed && preset.w === tpl.w && preset.h === tpl.h) {
+    const { grid, texts, roleHex } = tpl.roleSeed(palette);
+    return { autoGrid: grid, autoPages: null, texts, roleHex };
+  }
   const chart = tpl.build(preset);
   const dressed = palette ? xsRecolorGrid(chart, palette) : chart;
   if (!dressed || !dressed.some(Boolean)) return { autoGrid: null, autoPages: null };
