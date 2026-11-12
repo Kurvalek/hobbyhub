@@ -42,11 +42,69 @@ function colorId(color) {
   return color.code || color.name || color.hex || "?";
 }
 
+function isComplementaryHst(a, b) {
+  return !!(a && b && a.type === "tri" && b.type === "tri"
+    && a.r === b.r && a.c === b.c && a.h === b.h && a.w === b.w
+    && a.dir === b.dir && a.half !== b.half);
+}
+function bboxHasCell(s, r, c) {
+  return r >= s.r && r < s.r + s.h && c >= s.c && c < s.c + s.w;
+}
+function triHitsCell(s, r, c) {
+  if (!s || s.type !== "tri" || !s.h || !s.w) return false;
+  const x0 = (c - s.c) / s.w, y0 = (r - s.r) / s.h;
+  const x1 = x0 + 1 / s.w, y1 = y0 + 1 / s.h;
+  const inside = (fx, fy) => s.dir === "/"
+    ? (s.half === "a" ? fx + fy <= 1 + 1e-9 : fx + fy >= 1 - 1e-9)
+    : (s.half === "a" ? fy <= fx + 1e-9 : fy >= fx - 1e-9);
+  return inside(x0, y0) || inside(x1, y0) || inside(x0, y1) || inside(x1, y1)
+    || inside((x0 + x1) / 2, (y0 + y1) / 2);
+}
+function coversCell(s, r, c) {
+  if (!bboxHasCell(s, r, c)) return false;
+  return s.type === "tri" ? triHitsCell(s, r, c) : true;
+}
+function fullyCoversCell(s, r, c) {
+  if (!bboxHasCell(s, r, c)) return false;
+  if (s.type !== "tri") return true;
+  if (!s.h || !s.w) return false;
+  const x0 = (c - s.c) / s.w, y0 = (r - s.r) / s.h;
+  const x1 = x0 + 1 / s.w, y1 = y0 + 1 / s.h;
+  const inside = (fx, fy) => s.dir === "/"
+    ? (s.half === "a" ? fx + fy <= 1 + 1e-9 : fx + fy >= 1 - 1e-9)
+    : (s.half === "a" ? fy <= fx + 1e-9 : fy >= fx - 1e-9);
+  return inside(x0, y0) && inside(x1, y0) && inside(x0, y1) && inside(x1, y1);
+}
+function cellBuriedBy(lower, upper, r, c) {
+  if (!coversCell(upper, r, c) || isComplementaryHst(lower, upper)) return false;
+  if (lower.type !== "tri") return fullyCoversCell(upper, r, c);
+  return fullyCoversCell(upper, r, c) || coversCell(upper, r, c);
+}
+
+// Keep in sync with quiltVisibleShapes in src/design-model.jsx. A piece sitting entirely
+// under later shapes is not on the quilt top, so it is not a piece to cut.
+export function quiltVisibleShapes(shapes) {
+  const list = Array.isArray(shapes) ? shapes : [];
+  return list.filter((s, idx) => {
+    const above = list.slice(idx + 1);
+    if (!above.length) return true;
+    let hits = 0;
+    for (let r = s.r; r < s.r + s.h; r++) {
+      for (let c = s.c; c < s.c + s.w; c++) {
+        if (!coversCell(s, r, c)) continue;
+        hits++;
+        if (!above.some((a) => cellBuriedBy(s, a, r, c))) return true;
+      }
+    }
+    return hits === 0;
+  });
+}
+
 // Groups identical square/rect pieces (by color + cut dimensions, folding
 // rotations so 2×3 and 3×2 merge) and identical HST units (by unordered color
 // pair + block size). Pure — safe to call from both render templates.
 export function quiltCutList(data) {
-  const shapes = Array.isArray(data?.shapes) ? data.shapes : [];
+  const shapes = quiltVisibleShapes(Array.isArray(data?.shapes) ? data.shapes : []);
   const bs = Number(data?.bs) || 0;
 
   const squareMap = new Map();
