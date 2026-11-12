@@ -7,10 +7,13 @@
 // the role's own floss. Light roles are only ever stitched over a darker
 // shape, never straight onto the Aida, so they stay readable on any fabric.
 //
-// Defaults are only ever the metime brand colors, as their nearest flosses
-// (see METIME): the five accents plus the brand's black and cream. Light
-// lettering on any of the accents is too faint to read in thread, so black is
-// the dark wherever a design needs one.
+// Defaults come from the metime brand colors (see METIME) and a set of deeper
+// flosses beside them (see DEEP), so that one starter doesn't look like the
+// next. Black is for lettering and small accents only: a design built on a
+// big black shape takes one of the deep colors instead, which carries light
+// lettering just as well. A design that copies something whose colors are how
+// you recognize it uses those colors: a text thread is iMessage blue and gray
+// or it isn't one.
 //
 // `draw(cv, c)` stitches the shapes with c[roleId] (see Canvas in the
 // generator; these use its edge-coordinate primitives). Anything not drawn is
@@ -44,11 +47,25 @@ const METIME = {
   cream: '3865',   // Winter White          ← --metime-cream      #F9F7F2
 };
 
+const DEEP = {
+  teal: '3808',    // Turquoise Ult Vy Dk   #366970
+  garnet: '816',   // Garnet                #970B23
+  navy: '336',     // Navy Blue             #253B73
+  twilight: '333', // Blue Violet Vy Dk     #5C5478
+  plum: '3834',    // Grape Dark            #72375D
+  green: '501',    // Blue Green Dark       #396F52
+  sage: '3363',    // Pine Green Md         #728256
+  rose: '3350',    // Dusty Rose Ultra Dk   #BC4365
+  pink: '3731',    // Dusty Rose Very Dk    #DA6783
+  mocha: '3781',   // Mocha Brown Dk        #6B5743
+  terracotta: '3830', // Terra Cotta        #B95544
+};
+
 export const STARTERS = [
   {
     ...SMALL_HOOP, id: 'drop-cap', name: 'Drop Cap', desc: 'Serif + Sampler · 2 colors',
     roles: [
-      { id: 'ink', code: METIME.black, tone: 'dark' },
+      { id: 'ink', code: DEEP.teal, tone: 'dark' },
       { id: 'accent', code: METIME.tomato, tone: 'accent' },
     ],
     draw(cv, c) {
@@ -94,7 +111,7 @@ export const STARTERS = [
   {
     ...SMALL_HOOP, id: 'hotel-key', name: 'Hotel Key Tag', desc: 'Serif + Sampler · 3 colors',
     roles: [
-      { id: 'fob', code: METIME.black, tone: 'dark' },
+      { id: 'fob', code: DEEP.garnet, tone: 'dark' },
       { id: 'cream', code: METIME.cream, tone: 'light' },
       { id: 'gold', code: METIME.golden, tone: 'accent' },
     ],
@@ -113,12 +130,16 @@ export const STARTERS = [
     ],
   },
   {
-    ...SMALL_HOOP, id: 'text-thread', name: 'Text Thread', desc: 'Sampler · 4 colors',
+    ...SMALL_HOOP, id: 'text-thread', name: 'Text Thread', desc: 'Sampler · 5 colors',
     roles: [
       { id: 'ink', code: METIME.black, tone: 'dark' },
-      { id: 'cream', code: METIME.cream, tone: 'light' },
-      { id: 'sent', code: METIME.tomato, tone: 'accent' },
-      { id: 'received', code: METIME.ice, tone: 'mid' },
+      { id: 'white', code: 'B5200', tone: 'light' },
+      // DMC has nothing as saturated as iMessage blue (#0B84FE); 322 matches
+      // its lightness and stays blue where the brighter Electric Blues go teal.
+      { id: 'sent', code: '322', tone: 'accent' },
+      // A shade deeper than iOS gray (#E9E9EB), which vanishes on white Aida.
+      { id: 'received', code: '415', tone: 'mid' },
+      { id: 'status', code: '414', tone: 'mid' },
     ],
     draw(cv, c) {
       // Each bubble is one solid shape, tail included, so one fill recolors it
@@ -130,15 +151,15 @@ export const STARTERS = [
     },
     texts: [
       { text: 'MISS YOU', font: 'sampler', size: 8, role: 'ink', x: 33, cy: 18.5 },
-      { text: 'MISS YOU\nMORE', font: 'sampler', size: 8, role: 'cream', x: 39, cy: 38 },
-      { text: 'DELIVERED', font: 'sampler', size: 8, role: 'ink', align: 'right', x: 61, top: 52 },
+      { text: 'MISS YOU\nMORE', font: 'sampler', size: 8, role: 'white', x: 39, cy: 38 },
+      { text: 'DELIVERED', font: 'sampler', size: 8, role: 'status', align: 'right', x: 61, top: 52 },
     ],
   },
   {
     ...COASTER, id: 'monogram', name: 'The Monogram', desc: 'Serif · 3 colors',
     roles: [
-      { id: 'ink', code: METIME.black, tone: 'dark' },
-      { id: 'initial', code: METIME.tomato, tone: 'accent' },
+      { id: 'ink', code: DEEP.sage, tone: 'dark' },
+      { id: 'initial', code: DEEP.rose, tone: 'accent' },
       { id: 'corner', code: METIME.golden, tone: 'accent' },
     ],
     draw(cv, c) {
@@ -169,7 +190,7 @@ export const STARTERS = [
   {
     ...COASTER, id: 'house-bar', name: 'House Bar', desc: 'Sampler · 3 colors',
     roles: [
-      { id: 'badge', code: METIME.black, tone: 'dark' },
+      { id: 'badge', code: DEEP.navy, tone: 'dark' },
       { id: 'cream', code: METIME.cream, tone: 'light' },
       { id: 'gold', code: METIME.golden, tone: 'accent' },
     ],
@@ -210,8 +231,8 @@ export const STARTERS = [
   {
     ...BOOKMARK, id: 'bookplate', name: 'Bookplate', desc: 'Serif + Sampler · 2 colors',
     roles: [
-      { id: 'ink', code: METIME.black, tone: 'dark' },
-      { id: 'accent', code: METIME.tomato, tone: 'accent' },
+      { id: 'ink', code: DEEP.plum, tone: 'dark' },
+      { id: 'accent', code: DEEP.pink, tone: 'accent' },
     ],
     draw(cv, c) {
       cv.box(0, 0, 30, 120, c.ink).box(2, 2, 26, 116, c.ink);
@@ -296,7 +317,7 @@ export const STARTERS = [
   {
     ...BOOKMARK, id: 'moon-phases', name: 'Moon Phases', desc: 'Sampler · 2 colors',
     roles: [
-      { id: 'sky', code: METIME.black, tone: 'dark' },
+      { id: 'sky', code: DEEP.twilight, tone: 'dark' },
       { id: 'moon', code: METIME.golden, tone: 'light' },
     ],
     draw(cv, c) {
@@ -323,7 +344,7 @@ export const STARTERS = [
   {
     ...MEDIUM_HOOP, id: 'quote-sampler', name: 'Quote Sampler', desc: 'Sampler · 4 colors',
     roles: [
-      { id: 'ink', code: METIME.black, tone: 'dark' },
+      { id: 'ink', code: DEEP.green, tone: 'dark' },
       { id: 'flower', code: METIME.tomato, tone: 'accent' },
       { id: 'pot', code: METIME.golden, tone: 'accent' },
       { id: 'leaf', code: METIME.avocado, tone: 'mid' },
@@ -406,9 +427,9 @@ export const STARTERS = [
   {
     ...MEDIUM_HOOP, id: 'contour-map', name: 'Contour Map', desc: 'Serif + Sampler · 3 colors',
     roles: [
-      { id: 'ink', code: METIME.black, tone: 'dark' },
+      { id: 'ink', code: DEEP.mocha, tone: 'dark' },
       { id: 'sage', code: METIME.avocado, tone: 'mid' },
-      { id: 'rust', code: METIME.tomato, tone: 'accent' },
+      { id: 'rust', code: DEEP.terracotta, tone: 'accent' },
     ],
     draw(cv, c) {
       cv.box(14, 24, 92, 72, c.ink);
