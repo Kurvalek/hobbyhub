@@ -216,6 +216,27 @@ Useful flags: `--type quilt` to seed one craft, `--design <uuid>` to use an
 existing design instead of a generated one, `--base` and `--secret` to point at
 another server.
 
+Seeded orders land in the same queue as real ones — there is one database, and
+local dev talks to it too. They're marked so you can tell at a glance: a small
+outlined `test` beside the order number in the list and in the drawer, and
+"test order, do not pull" on the pick sheet. The customer-facing packing slip is
+deliberately left unmarked, because a label that can leak onto a real order's
+slip is a worse bug than the one it's guarding against.
+
+The marking comes from `is_test`, which is Shopify's own `test` field on the
+webhook payload — true for anything paid through the Bogus Gateway or a
+provider in test mode. `seed-order.mjs` sets the same field, so fixtures and
+real test purchases are flagged by one mechanism rather than two that could
+disagree. Nothing infers it after the fact: an order that can't be classified
+is treated as real, because showing a genuine order as a test is how you fail
+to ship it.
+
+Scripts that write to this database create their own orders and touch only
+those. `tools/_shot-admin-bulk.mjs` exercises delete for real, so it seeds a
+throwaway order first and refuses to run if its target is a row that already
+existed. This is not a style preference — an earlier version deleted "whatever
+is last in the list" and destroyed real orders.
+
 Two checks cover the document code, which is the part most likely to regress
 quietly:
 
@@ -232,14 +253,20 @@ Products are already live in Shopify, the webhook code is verified working, and
 `supabase/migrations/0002_order_statuses.sql` has been applied — all seven
 statuses write successfully. What remains:
 
-1. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
+1. Apply `supabase/migrations/0003_order_test_flag.sql` in the Supabase SQL
+   editor. Do this **before** deploying the code that reads `is_test`: there is
+   one database, so until the column exists the dashboard's order list answers
+   500. Shopify retries failed webhooks, so an order arriving in that window
+   isn't lost, but the queue looks empty while it lasts.
+2. In Vercel, set `SHOPIFY_WEBHOOK_SECRET` to the signing secret Shopify shows
    when you create the webhook. **Not** the local placeholder — a mismatch
    rejects every order with a 401.
-2. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
+3. Register the webhook: Shopify **Settings → Notifications → Webhooks**, topic
    `orders/create`, format JSON, URL
    `https://www.makemetime.com/api/webhooks/order`.
-3. Redeploy. Vercel only applies environment changes to new deployments.
-4. Place a real test order and confirm it appears on the dashboard.
+4. Redeploy. Vercel only applies environment changes to new deployments.
+5. Place a real test order and confirm it appears on the dashboard. Put the
+   payment provider in test mode and it arrives already marked as a test.
 
 If a real order doesn't show up, suspect a secret mismatch between Shopify and
 Vercel before suspecting the code.

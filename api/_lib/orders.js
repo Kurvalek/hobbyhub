@@ -34,7 +34,7 @@ export const ORDER_STATUSES = [...ORDER_PIPELINE, "on_hold"];
 const ORDER_COLUMNS = `
   id, shopify_order_id, order_name, customer_name, customer_email,
   ship_name, ship_address1, ship_address2, ship_city, ship_province, ship_zip,
-  ship_country, status, checklist, created_at, received_at, updated_at,
+  ship_country, status, checklist, is_test, created_at, received_at, updated_at,
   order_items ( position, line_item_id, title, variant_title, quantity, sku,
                 design_id, design_ref, design_found, type, bom )
 `;
@@ -73,6 +73,7 @@ function toOrder(row) {
     updatedAt: row.updated_at,
     status: row.status,
     checklist: row.checklist || {},
+    isTest: row.is_test === true,
     customer: { name: row.customer_name, email: row.customer_email },
     shipping: {
       name: row.ship_name,
@@ -123,6 +124,7 @@ export async function putOrder(record) {
         ship_province: ship.province ?? null,
         ship_zip: ship.zip ?? null,
         ship_country: ship.country ?? null,
+        is_test: record.isTest === true,
         created_at: record.createdAt || new Date().toISOString(),
       },
       { onConflict: "shopify_order_id" },

@@ -258,6 +258,10 @@ function buildOrderPayload(lineItems) {
     name: `#${orderNumber}`,
     order_number: orderNumber,
     created_at: new Date().toISOString(),
+    // The same field Shopify sets on a Bogus Gateway order, so a seed is marked
+    // in the dashboard by exactly the mechanism a real test order would be —
+    // one flag to trust rather than a fixture-detecting heuristic beside it.
+    test: true,
     email: "wren.callaway@example.com",
     customer: { first_name: "Wren", last_name: "Callaway", email: "wren.callaway@example.com" },
     shipping_address: {

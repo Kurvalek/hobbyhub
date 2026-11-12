@@ -70,6 +70,10 @@ export function extractOrder(order) {
     orderId: order?.id != null ? String(order.id) : null,
     orderName: order?.name || (order?.order_number ? `#${order.order_number}` : null),
     createdAt: order?.created_at || new Date().toISOString(),
+    // Shopify sets `test` on anything paid through the Bogus Gateway or a
+    // provider in test mode. Absent means real: an order we can't classify has
+    // to be treated as one somebody is waiting on.
+    isTest: order?.test === true,
     customer: {
       name:
         [order?.customer?.first_name, order?.customer?.last_name]
