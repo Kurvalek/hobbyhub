@@ -18,3 +18,18 @@ assets/fabrics/**/*.zip
 # the baked data (assets/stitch-templates-data.js). Regenerate with
 # tools/gen-stitch-templates.mjs. Keep on disk, out of the repo/deploy.
 assets/stitch-templates/
+
+# Design handoff exports — reference only, not part of the app.
+design updates/
+
+# Scratch scripts and their output. The _check-* scripts already committed stay
+# tracked; add a new one with `git add -f` if it's worth keeping.
+tools/_*
+
+# Candidate images and sample PDFs not used by the app.
+assets/landing/542b0afe07059a37d2ff90786ad70029.jpg
+assets/landing/cross-stitch-bookmark.png
+assets/landing/cross-stitch-coasters.png
+assets/landing/cross-stitch-medium.png
+assets/landing/two-strawberries-isolated-png.webp
+/lily-quilt-*.pdf
